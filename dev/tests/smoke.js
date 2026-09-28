@@ -1,5 +1,5 @@
 // Browser-Durchlauf (Playwright/Chromium): node tests/smoke.js
-// Spielt Theorie T1A und Aufgaben 1.1–1.3 ueber die echte Oberflaeche.
+// Spielt Theorie T1A und Aufgaben 1.1, 1.5, 1.8 ueber die echte Oberflaeche (alle Aufgaben in beiden Ansichten: tests/tasks.js).
 const path = require('path');
 let chromium; try { ({ chromium } = require('playwright')); } catch (e) { ({ chromium } = require(require('child_process').execSync('npm root -g').toString().trim() + '/playwright')); }
 const url = 'file://' + path.join(__dirname, '../../index.html') + '?alle';
@@ -15,7 +15,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
 
   // Theorie T1A
   await page.click('[data-open="T1A"]'); await page.click('#toQuiz');
-  for (const [i, j] of [[0, 1], [1, 2], [2, 2], [3, 0], [4, 2]]) await page.check(`input[name="q${i}"][value="${j}"]`);
+  for (const [i, j] of [[0, 1], [1, 1], [2, 2], [3, 1], [4, 1]]) await page.check(`input[name="q${i}"][value="${j}"]`);
   await page.click('#evalQuiz'); if (!/bestanden!/.test(await page.textContent('#quizRes'))) errors.push('T1A nicht bestanden');
 
   // 1.1 Lampe + Schalter
@@ -26,8 +26,8 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   await page.screenshot({ path: shots + '/2_lampe.png' });
   await check('1.1');
 
-  // 1.2 LED + Vorwiderstand, Spannung messen
-  await page.evaluate(() => DigitalQuest.openItem('1.2'));
+  // 1.8 LED + Vorwiderstand, Spannung messen
+  await page.evaluate(() => DigitalQuest.openItem('1.8'));
   await page.click('[data-add="resistor"]');
   await page.fill('[data-prop="value"]', '470'); await page.press('[data-prop="value"]', 'Enter'); await page.dispatchEvent('[data-prop="value"]', 'change');
   await pin('B1.p'); await pin('R1.a'); await pin('R1.b'); await pin('D1.a'); await pin('D1.k'); await pin('B1.n');
@@ -35,35 +35,35 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   const lcd = await page.textContent('#lcd'); const v = parseFloat(lcd);
   await page.fill('[data-ans="uled"]', String(v)); await page.click('#btnVolt');
   await page.screenshot({ path: shots + '/3_led_messen.png' });
-  await check('1.2');
+  await check('1.8');
 
-  // 1.3 Strom messen: Leitung R1.b–R2.a loesen, Amperemeter in die Luecke
-  await page.evaluate(() => DigitalQuest.openItem('1.3'));
+  // 1.5 Strom messen: Leitung R1.b–H1.a loesen, Amperemeter in die Luecke
+  await page.evaluate(() => DigitalQuest.openItem('1.5'));
   await page.dispatchEvent('[data-wire="1"] .wirehit', 'pointerdown'); await page.keyboard.press('Delete');
-  await page.click('[data-mm="A"]'); await pin('R1.b'); await pin('R2.a');
+  await page.click('[data-mm="A"]'); await pin('R1.b'); await pin('H1.a');
   const ia = parseFloat(await page.textContent('#lcd'));
-  await page.click('[data-mm="V"]'); await pin('R2.a'); await pin('R2.b');
+  await page.click('[data-mm="V"]'); await pin('R1.a'); await pin('R1.b');
   // Luecke wieder schliessen, dann Spannung messen
-  await page.click('[data-mm="OFF"]'); await pin('R1.b'); await pin('R2.a');
-  await page.click('[data-mm="V"]'); await pin('R2.a'); await pin('R2.b');
+  await page.click('[data-mm="OFF"]'); await pin('R1.b'); await pin('H1.a');
+  await page.click('[data-mm="V"]'); await pin('R1.a'); await pin('R1.b');
   const u2 = parseFloat(await page.textContent('#lcd'));
-  await page.fill('[data-ans="i"]', String(ia)); await page.fill('[data-ans="u2"]', String(u2));
+  await page.fill('[data-ans="i"]', String(ia)); await page.fill('[data-ans="ur"]', String(u2));
   await page.click('#btnScope'); await page.screenshot({ path: shots + '/4_messen.png' });
-  await check('1.3');
+  await check('1.5');
 
   // Fehlbedienung: Amperemeter parallel zur Quelle
-  await page.evaluate(() => DigitalQuest.openItem('1.3'));
+  await page.evaluate(() => DigitalQuest.openItem('1.5'));
   await page.click('[data-mm="A"]'); await pin('B1.p'); await pin('B1.n');
   if (await page.textContent('#lcd') !== 'FUSE') errors.push('Sicherung sollte durchbrennen');
 
   // ===== Werkbank (Umschalt-Button in der Toolbar): 1.1 komplett auf der Werkbank bauen =====
   const bpin = id => page.click(`#bench [data-pin="${id}"] .bpinhit`, { force: true });
-  await page.evaluate(() => { delete DigitalQuest.state.drafts['1.1']; delete DigitalQuest.state.drafts['1.2']; DigitalQuest.openItem('1.1'); });
+  await page.evaluate(() => { delete DigitalQuest.state.drafts['1.1']; delete DigitalQuest.state.drafts['1.8']; DigitalQuest.openItem('1.1'); });
   await page.click('#btnView');
   if (!await page.isVisible('#bench') || await page.isVisible('#board')) errors.push('Werkbank: Umschalt-Button wirkt nicht');
   await page.click('[data-add="switch"]'); await page.click('[data-add="lamp"]');
   const bpos = await page.evaluate(() => ['S1', 'H1'].map(id => DigitalQuest.core.part(id).bench));
-  if (!bpos[0] || bpos[0].x !== 560 || !bpos[1] || bpos[1].x !== 820) errors.push('Werkbank: bench-Layout der Aufgabe nicht verwendet ' + JSON.stringify(bpos));
+  if (!bpos[0] || bpos[0].x !== 520 || !bpos[1] || bpos[1].x !== 780) errors.push('Werkbank: bench-Layout der Aufgabe nicht verwendet ' + JSON.stringify(bpos));
   await bpin('B1.p'); await bpin('S1.a'); await bpin('S1.b'); await bpin('H1.a'); await bpin('H1.b'); await bpin('B1.n');
   await page.click('#bench [data-part="S1"] .bblock', { force: true });
   if (!await page.evaluate(() => DigitalQuest.core.part('S1').props.closed)) errors.push('Werkbank: Schalter nicht umgelegt');
@@ -74,8 +74,8 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   await page.click('#btnView');
   await check('1.1 Werkbank');
 
-  // 1.2 auf der Werkbank, gemessen mit dem Werkbank-Multimeter (Drehschalter) + Oszilloskop (RUN)
-  await page.evaluate(() => DigitalQuest.openItem('1.2'));
+  // 1.8 auf der Werkbank, gemessen mit dem Werkbank-Multimeter (Drehschalter) + Oszilloskop (RUN)
+  await page.evaluate(() => DigitalQuest.openItem('1.8'));
   if (!await page.isVisible('#bench')) errors.push('Werkbank: Ansicht nicht gemerkt');
   await page.click('[data-add="resistor"]');
   await page.fill('[data-prop="value"]', '470'); await page.dispatchEvent('[data-prop="value"]', 'change');
@@ -100,7 +100,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   for (let k = 0; k < 6; k++) { labels.push(await page.textContent('#rpLabel')); await page.click('#rpNext'); }
   if (!labels.some(l => /D1 wird leitend/.test(l)) || !labels.some(l => /Ruhelage/.test(l))) errors.push('Zeitlupe: ' + labels.join(' | '));
   await page.click('#rpClose');
-  await check('1.2 Werkbank');
+  await check('1.8 Werkbank');
 
   // Kurzschluss auf der Werkbank: Batterie wird heiss, Diagnose mit echten Werten
   await page.evaluate(() => DigitalQuest.openItem('1.1'));
@@ -141,7 +141,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   // Handy
   const m =await browser.newPage({ viewport: { width: 390, height: 844 } });
   m.on('pageerror', e => errors.push('mobil: ' + e.message));
-  await m.goto(url); await m.evaluate(() => DigitalQuest.openItem('1.2')); await m.screenshot({ path: shots + '/5_handy.png', fullPage: true });
+  await m.goto(url); await m.evaluate(() => DigitalQuest.openItem('1.8')); await m.screenshot({ path: shots + '/5_handy.png', fullPage: true });
   const overflow = await m.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1); if (overflow) errors.push('mobil: horizontaler Scroll');
   await m.click('#btnView'); await m.screenshot({ path: shots + '/11_handy_werkbank.png' });
   if (await m.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) errors.push('mobil Werkbank: horizontaler Scroll');

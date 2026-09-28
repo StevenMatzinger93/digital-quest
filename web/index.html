@@ -255,7 +255,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       <h3>Oszilloskop</h3>
       <div class="scopebox">
         <canvas id="scope"></canvas>
-        <div class="scope-ctl"><select id="tb"><option value="0.01">10 ms</option><option value="0.1">100 ms</option><option value="1" selected>1 s</option><option value="5">5 s</option></select><button class="btn small" id="btnScope">Aufnahme</button></div>
+        <div class="scope-ctl"><select id="tb" aria-label="Zeitbasis (ganze Bildbreite)"><option value="0.005">5 ms</option><option value="0.01">10 ms</option><option value="0.02">20 ms</option><option value="0.05">50 ms</option><option value="0.1">100 ms</option><option value="1" selected>1 s</option><option value="5">5 s</option></select><button class="btn small" id="btnScope">Aufnahme</button></div>
         <div id="scopeInfo">Kanal = Messspitzen des Multimeters. Aufnahme startet beim Einschalten.</div>
       </div>
     </aside>
@@ -690,8 +690,24 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
    *   {a:'B1.p', b:'R1.b', v:[min,max]}          Spannung zwischen zwei Anschluessen
    *   {sel:'U1', out:true}                       Gatterausgang
    *   {noFault:true} / {fault:'SHORT'}           keine Fehler / bestimmter Fehler
+   *   {a:'R1.a', b:'R1.b', ac:'dc'|'rms'|'avg'|'peak'|'pp', range:[min,max]}   Wechselgroesse ueber eine Periode (acMeasure)
    * task.need: {led:1, resistor:1}  Mindestanzahl Bauteile je Typ
-   * task.measure: [{id, ask, unit, tol, set?, mode+a+b | truth:{sel,q:'i'|'v'}}] – Messwert, den die lernende Person eintraegt */
+   * task.measure: [{id, ask, unit, tol, set?, mode+a+b | truth:{sel,q:'i'|'v'} | value}] – Messwert, den die lernende Person eintraegt
+   *   mode 'V'|'A'|'R'|'VAC' (+meterType) wie am Multimeter, mode 'AC' + q ('dc'|'rms'|'avg'|'peak'|'pp') = Wechselgroesse
+   *   (Oszilloskop/Mittelwert), value = fester Rechenwert (z. B. aus Messwerten berechneter Innenwiderstand) */
+  function truthOf(m, ml) {
+    if (m.value !== undefined) return { value: m.value, unit: '' };
+    if (m.truth) { // Sollwert direkt aus der Simulation (z. B. Strom durch R1), unabhaengig davon, wie gemessen wurde
+      var rt = api.analyze(ml), pp = rt.parts[m.truth.sel];
+      if (!pp) throw new Error('Bauteil ' + m.truth.sel + ' fehlt');
+      return { value: Math.abs(pp[m.truth.q]), unit: m.truth.q === 'i' ? 'A' : 'V' };
+    }
+    if (m.mode === 'AC') { var ac = acMeasure(ml, { a: m.a, b: m.b }); if (!ac.ok) throw new Error(ac.error); return { value: ac[m.q], unit: 'V' }; }
+    return measure(ml, { mode: m.mode, a: m.a, b: m.b, meterType: m.meterType });
+  }
+  function applyMeasureSet(m, ml) {
+    Object.keys(m.set || {}).forEach(function (id) { ml.parts.forEach(function (q) { if (q.id === id || id === '@' + q.type) { q.props = q.props || {}; Object.keys(m.set[id]).forEach(function (k) { q.props[k] = m.set[id][k]; }); } }); });
+  }
   function select(net, sel) {
     if (sel.charAt(0) === '@') return net.parts.filter(function (p) { return p.type === sel.slice(1); });
     return net.byId[sel] ? [net.byId[sel]] : [];
@@ -715,6 +731,11 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         var label = (t.name ? t.name + ' – ' : '');
         if (e.noFault) { push(r.faults.length === 0, label + 'keine Stoerung', { faults: r.faults }); return; }
         if (e.fault) { push(r.faults.some(function (f) { return f.code === e.fault; }), label + 'Stoerung ' + e.fault); return; }
+        if (e.a && e.ac) {
+          var acr = acMeasure(lay, { a: e.a, b: e.b }), av = acr.ok ? acr[e.ac] : NaN;
+          push(acr.ok && inRange(av, e.range), label + ({ dc: 'Gleichanteil', rms: 'Effektivwert', avg: 'AVG-Anzeige', peak: 'Scheitelwert', pp: 'Spitze-Spitze' }[e.ac] || e.ac) + ' ' + e.a + '→' + e.b + ' im Bereich ' + fmt(e.range[0], 'V') + '…' + fmt(e.range[1], 'V'), { got: av });
+          return;
+        }
         if (e.a) {
           var v = r.nodeV[n2.pinNode[e.a]] - r.nodeV[n2.pinNode[e.b]];
           push(inRange(v, e.v), label + 'Spannung ' + e.a + '→' + e.b + ' im Bereich ' + fmt(e.v[0], 'V') + '…' + fmt(e.v[1], 'V'), { got: v });
@@ -733,16 +754,9 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       });
     });
     (task.measure || []).forEach(function (m) {
-      var truth;
-      var ml = clone(layout);
-      Object.keys(m.set || {}).forEach(function (id) { ml.parts.forEach(function (q) { if (q.id === id || id === '@' + q.type) { q.props = q.props || {}; Object.keys(m.set[id]).forEach(function (k) { q.props[k] = m.set[id][k]; }); } }); });
-      try {
-        if (m.truth) { // Sollwert direkt aus der Simulation (z. B. Strom durch R1), unabhaengig davon, wie gemessen wurde
-          var rt = api.analyze(ml), pp = rt.parts[m.truth.sel];
-          if (!pp) throw new Error('Bauteil ' + m.truth.sel + ' fehlt');
-          truth = { value: Math.abs(pp[m.truth.q]), unit: m.truth.q === 'i' ? 'A' : 'V' };
-        } else truth = measure(ml, { mode: m.mode, a: m.a, b: m.b });
-      } catch (e) { push(false, m.ask + ': ' + e.message); return; }
+      var truth, ml = clone(layout);
+      applyMeasureSet(m, ml);
+      try { truth = truthOf(m, ml); } catch (e) { push(false, m.ask + ': ' + e.message); return; }
       var ans = answers ? answers[m.id] : undefined;
       if (typeof ans === 'string') ans = ans.replace(',', '.');
       if (ans === undefined || ans === '' || isNaN(+ans)) { push(false, m.ask + ': Messwert fehlt', { expected: truth.value }); return; }
@@ -753,14 +767,14 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     return { pass: allPass && results.length > 0, results: results };
   }
 
-  var UNIT_SCALE = { mA: 1e-3, mV: 1e-3, 'µA': 1e-6, 'kΩ': 1e3, 'MΩ': 1e6, ms: 1e-3 };
+  var UNIT_SCALE = { mA: 1e-3, mV: 1e-3, 'µA': 1e-6, 'kΩ': 1e3, 'MΩ': 1e6, ms: 1e-3, mW: 1e-3 };
   /* Sollwerte fuer task.measure in der Einheit der Aufgabe (fuer Validator und „Loesung zeigen“) */
   function expectedAnswers(task, layout) {
     var out = {};
     (task.measure || []).forEach(function (m) {
       var ml = clone(layout);
-      Object.keys(m.set || {}).forEach(function (id) { ml.parts.forEach(function (q) { if (q.id === id || id === '@' + q.type) { q.props = q.props || {}; Object.keys(m.set[id]).forEach(function (k) { q.props[k] = m.set[id][k]; }); } }); });
-      var v = m.truth ? Math.abs(api.analyze(ml).parts[m.truth.sel][m.truth.q]) : measure(ml, { mode: m.mode, a: m.a, b: m.b }).value;
+      applyMeasureSet(m, ml);
+      var v = truthOf(m, ml).value;
       out[m.id] = +(v / (UNIT_SCALE[m.unit] || 1)).toPrecision(4);
     });
     return out;
@@ -818,18 +832,47 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* ==== content/ch01.js ==== */
-/* BEISPIELKAPITEL – zeigt das Aufgabenformat. Wird ersetzt, sobald die Themenliste vorliegt (docs/THEMEN.md). */
+/* Kapitel 1 – Stromkreis und Ohmsches Gesetz
+ * Quelle: Praktische Elektronik (Kap. 2.1 Ohmsches Gesetz, Aufgabe 1), Willkommen in der Digitaltechnik (Auftrag 3: Fehlersuche LED),
+ * Messtechnik Erweiterung (Grundbegriffe). Inhalte sinngemaess uebernommen, Werte an Laborbauteile angepasst. */
 (function () {
   'use strict';
 
   defChapter({
-    id: 1, title: 'Beispiel: Der erste Stromkreis',
-    intro: 'Willkommen im Labor. Bevor wir die grossen Anlagen reparieren, baust du deinen ersten Stromkreis – und misst nach, ob die Rechnung stimmt.',
-    sequence: ['T1A', '1.1', '1.2', 'T1B', '1.3']
+    id: 1, title: 'Stromkreis und Ohmsches Gesetz',
+    intro: 'Willkommen im Labor. Hier lernst du den geschlossenen Stromkreis kennen, misst Spannung und Strom wie in der Werkstatt und rechnest mit dem Ohmschen Gesetz.',
+    sequence: ['T1A', '1.1', '1.2', '1.3', '1.4', '1.5', 'T1B', '1.6', '1.7', '1.8', '1.9', '1.10']
   });
 
-  var bat9 = { id: 'B1', type: 'battery', value: 9, x: 160, y: 300, rot: 0 };
+  var bat = function (v) { return { id: 'B1', type: 'battery', value: v, x: 160, y: 300, rot: 0 }; };
+  var bat9 = bat(9), bat10 = bat(10);
+  var bB1 = { id: 'B1', x: 260, y: 460, rot: 0 };
 
+  /* ================= Theorie A ================= */
+  var lampCircuit = function (closed) {
+    return { parts: [bat9, { id: 'S1', type: 'switch', props: { closed: closed } }, { id: 'H1', type: 'lamp' }],
+      wires: [W('B1.p', 'S1.a'), W('S1.b', 'H1.a'), W('H1.b', 'B1.n')] };
+  };
+  defTheory({
+    id: 'T1A', ch: 1, title: 'Der Stromkreis', tags: ['elektro.stromkreis', 'elektro.grundgroessen', 'messen.multimeter'],
+    lesson:
+      '<p>Ein <b>Stromkreis</b> besteht mindestens aus einer <b>Quelle</b> (Batterie, Netzgeraet), einem <b>Verbraucher</b> (Lampe, Widerstand, LED) und einem <b>geschlossenen Leiterweg</b> hin und zurueck. Ein <b>Schalter</b> oeffnet oder schliesst diesen Weg.</p>' +
+      '<p><b>Spannung U</b> (Volt, V) ist der Antrieb fuer die Ladungen. Sie liegt immer <i>zwischen zwei Punkten</i> an – zum Beispiel zwischen Plus- und Minuspol der Batterie.</p>' +
+      '<p><b>Strom I</b> (Ampere, A) ist die Ladung, die pro Sekunde durch den Leiter fliesst. Er fliesst nur, wenn der Kreis <i>geschlossen</i> ist – und dann durch jedes Bauteil einer Reihe gleich stark.</p>' +
+      '<p>Zwei Schalter <b>in Reihe</b>: Die Lampe leuchtet nur, wenn <i>beide</i> geschlossen sind (UND). Zwei Schalter <b>parallel</b>: Es genuegt <i>einer</i> (ODER).</p>' +
+      '<p><b>Messen:</b> Das Voltmeter kommt <i>parallel</i> an die zwei Punkte, zwischen denen du die Spannung wissen willst. Das Amperemeter kommt <i>in Reihe</i> – dazu wird der Kreis aufgetrennt und das Messgeraet in die Luecke gesetzt.</p>',
+    questions: [
+      { q: 'Was braucht ein Stromkreis mindestens?', options: ['Eine Quelle und einen Schalter', 'Eine Quelle, einen Verbraucher und einen geschlossenen Leiterweg', 'Einen Verbraucher und ein Messgeraet', 'Zwei Leitungen und einen Schalter'], correct: 1, explain: 'Ohne Quelle kein Antrieb, ohne Verbraucher nichts, das die Energie nutzt, ohne geschlossenen Weg kein Strom.' },
+      { q: 'Zwei Schalter liegen in Reihe mit einer Lampe. Wann leuchtet die Lampe?', options: ['Wenn mindestens ein Schalter zu ist', 'Nur wenn beide Schalter zu sind', 'Immer', 'Nur wenn beide offen sind'], correct: 1, explain: 'In Reihe muss der Strom durch beide Schalter – jeder offene Schalter unterbricht den Kreis (UND-Funktion).' },
+      { q: 'Batterie 9 V, Schalter offen, Lampe. Welche Spannung misst du ueber dem offenen Schalter?', options: ['0 V', '4,5 V', '9 V', '18 V'], correct: 2,
+        explain: 'Es fliesst kein Strom, an der Lampe faellt nichts ab – die ganze Quellenspannung liegt ueber der Unterbrechung.', verify: { layout: lampCircuit(false), mode: 'V', a: 'S1.a', b: 'S1.b' } },
+      { q: 'Wie schliesst du ein Amperemeter an?', options: ['Parallel zum Verbraucher', 'In Reihe: Kreis auftrennen, Messgeraet in die Luecke', 'Direkt an die Batteriepole', 'Gar nicht – Strom kann man nur rechnen'], correct: 1, explain: 'Der Strom muss durch das Messgeraet fliessen. Direkt an die Batterie waere ein Kurzschluss.' },
+      { q: 'Die Lampe (60 Ω) haengt ueber den geschlossenen Schalter an 9 V. Welcher Strom fliesst?', options: ['15 mA', '150 mA', '540 mA', '1,5 A'], correct: 1,
+        explain: 'I = U / R = 9 V / 60 Ω = 0,15 A = 150 mA.', verifyTruth: { layout: lampCircuit(true), sel: 'H1', q: 'i' } }
+    ]
+  });
+
+  /* ================= Aufgaben 1–5 ================= */
   defTask({
     id: '1.1', ch: 1, title: 'Licht an!', tags: ['elektro.stromkreis', 'elektro.schalter'],
     story: 'Die Notbeleuchtung im Labor ist tot. Nur die Batterie liegt noch auf dem Tisch.',
@@ -838,12 +881,11 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     take: 'Ein Schalter unterbricht den Stromkreis – offen heisst: kein Strom.',
     hint: 'Verbinde + der Batterie mit dem Schalter, den Schalter mit der Lampe und die Lampe zurueck mit –.',
     hint2: 'Reihenfolge: B1.+ → S1 → H1 → B1.–',
-    palette: ['switch', 'lamp'],
-    need: { switch: 1, lamp: 1 },
+    palette: ['switch', 'lamp'], need: { switch: 1, lamp: 1 },
     start: { parts: [bat9], wires: [] },
     ref: { parts: [bat9, { id: 'S1', type: 'switch', x: 300, y: 200, rot: 0 }, { id: 'H1', type: 'lamp', x: 500, y: 300, rot: 90 }],
       wires: [W('B1.p', 'S1.a'), W('S1.b', 'H1.a'), W('H1.b', 'B1.n')] },
-    bench: { parts: [{ id: 'B1', x: 300, y: 450, rot: 0 }, { id: 'S1', x: 560, y: 290, rot: 0 }, { id: 'H1', x: 820, y: 450, rot: 0 }] },
+    bench: { parts: [bB1, { id: 'S1', x: 520, y: 290, rot: 0 }, { id: 'H1', x: 780, y: 460, rot: 0 }] },
     wrong: [
       { name: 'Schalter nicht im Kreis', parts: [bat9, { id: 'S1', type: 'switch', x: 300, y: 120, rot: 0 }, { id: 'H1', type: 'lamp', x: 500, y: 300, rot: 90 }],
         wires: [W('B1.p', 'H1.a'), W('H1.b', 'B1.n')] }
@@ -854,97 +896,202 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     ]
   });
 
-  var led = { id: 'D1', type: 'led', props: { color: 'rot' }, x: 500, y: 300, rot: 90 };
+  var serRef = { parts: [bat9, { id: 'S1', type: 'switch', x: 300, y: 200, rot: 0 }, { id: 'S2', type: 'switch', x: 440, y: 200, rot: 0 }, { id: 'H1', type: 'lamp', x: 580, y: 300, rot: 90 }],
+    wires: [W('B1.p', 'S1.a'), W('S1.b', 'S2.a'), W('S2.b', 'H1.a'), W('H1.b', 'B1.n')] };
+  var parRef = { parts: [bat9, { id: 'S1', type: 'switch', x: 320, y: 160, rot: 0 }, { id: 'S2', type: 'switch', x: 320, y: 260, rot: 0 }, { id: 'H1', type: 'lamp', x: 560, y: 300, rot: 90 }],
+    wires: [W('B1.p', 'S1.a'), W('B1.p', 'S2.a'), W('S1.b', 'H1.a'), W('S2.b', 'H1.a'), W('H1.b', 'B1.n')] };
+  var two = function (a, b) { return { S1: { closed: a }, S2: { closed: b } }; };
+  var on = [{ sel: 'H1', i: [0.05, 1] }], off = [{ sel: 'H1', i: [0, 1e-4] }];
+
   defTask({
-    id: '1.2', ch: 1, title: 'Die LED ueberlebt', tags: ['elektro.ohm', 'bauteil.led', 'messen.spannung'],
+    id: '1.2', ch: 1, title: 'Sicherheitsschaltung', tags: ['elektro.stromkreis', 'elektro.schalter', 'elektro.reihenschaltung', 'digital.und'],
+    story: 'Die Presse im Nachbarraum darf nur anlaufen, wenn die Schutztuer zu ist <i>und</i> jemand den Startschalter betaetigt.',
+    brief: 'Baue eine Schaltung mit <b>zwei Schaltern</b> und einer Lampe (als Anzeige „Presse laeuft“). Die Lampe darf nur leuchten, wenn <b>S1 und S2</b> geschlossen sind.',
+    learn: 'Schalter in Reihe wirken wie eine UND-Verknuepfung.',
+    take: 'In Reihe muss der Strom durch jeden Schalter – ein einziger offener Schalter unterbricht alles.',
+    hint: 'Der Strom soll erst durch S1, dann durch S2 und dann durch die Lampe fliessen.',
+    hint2: 'B1.+ → S1 → S2 → H1 → B1.–',
+    palette: ['switch', 'lamp'], need: { switch: 2, lamp: 1 },
+    start: { parts: [bat9], wires: [] }, ref: serRef,
+    bench: { parts: [bB1, { id: 'S1', x: 440, y: 290, rot: 0 }, { id: 'S2', x: 620, y: 290, rot: 0 }, { id: 'H1', x: 800, y: 460, rot: 0 }] },
+    wrong: [{ name: 'parallel statt in Reihe', parts: parRef.parts, wires: parRef.wires }],
+    tests: [
+      { name: 'beide zu', set: two(true, true), expect: on.concat([{ noFault: true }]) },
+      { name: 'nur S1 zu', set: two(true, false), expect: off },
+      { name: 'nur S2 zu', set: two(false, true), expect: off },
+      { name: 'beide offen', set: two(false, false), expect: off }
+    ]
+  });
+
+  defTask({
+    id: '1.3', ch: 1, title: 'Zwei Lichtschalter', tags: ['elektro.stromkreis', 'elektro.schalter', 'elektro.parallelschaltung', 'digital.oder'],
+    story: 'Der Gang hat zwei Eingaenge. Das Licht soll von jedem Eingang aus eingeschaltet werden koennen.',
+    brief: 'Baue die Schaltung so, dass die Lampe leuchtet, wenn <b>S1 oder S2</b> (oder beide) geschlossen sind.',
+    learn: 'Parallele Schalter wirken wie eine ODER-Verknuepfung.',
+    take: 'Parallel gibt es mehrere Wege – ein geschlossener Weg genuegt.',
+    hint: 'Beide Schalter bekommen denselben Anfang (B1.+) und dasselbe Ende (Lampe).',
+    hint2: 'B1.+ → S1.a und S2.a; S1.b und S2.b → H1.a; H1.b → B1.–',
+    palette: ['switch', 'lamp'], need: { switch: 2, lamp: 1 },
+    start: { parts: [bat9], wires: [] }, ref: parRef,
+    bench: { parts: [bB1, { id: 'S1', x: 500, y: 230, rot: 0 }, { id: 'S2', x: 500, y: 370, rot: 0 }, { id: 'H1', x: 780, y: 470, rot: 0 }] },
+    wrong: [{ name: 'in Reihe statt parallel', parts: serRef.parts, wires: serRef.wires }],
+    tests: [
+      { name: 'nur S1 zu', set: two(true, false), expect: on.concat([{ noFault: true }]) },
+      { name: 'nur S2 zu', set: two(false, true), expect: on },
+      { name: 'beide zu', set: two(true, true), expect: on },
+      { name: 'beide offen', set: two(false, false), expect: off }
+    ]
+  });
+
+  var lampOn = { parts: [bat9, { id: 'S1', type: 'switch', props: { closed: true }, x: 300, y: 200, rot: 0 }, { id: 'H1', type: 'lamp', x: 500, y: 300, rot: 90 }],
+    wires: [W('B1.p', 'S1.a'), W('S1.b', 'H1.a'), W('H1.b', 'B1.n')] };
+  defTask({
+    id: '1.4', ch: 1, title: 'Wo liegt die Spannung?', tags: ['messen.spannung', 'elektro.stromkreis'],
+    story: 'Die Werkmeisterin will wissen, ob du Spannung richtig misst: „Rot auf Plus, Schwarz auf Minus – und immer parallel.“',
+    brief: 'Die Lampe leuchtet. Miss mit dem Multimeter (V⎓) die Spannung an der <b>Batterie</b>, an der <b>Lampe</b> und am <b>geschlossenen Schalter</b>. Trage die Werte ins Protokoll ein.',
+    learn: 'Spannung misst man parallel zwischen zwei Punkten.',
+    take: 'Am geschlossenen Schalter liegt praktisch keine Spannung – die ganze Quellenspannung faellt am Verbraucher ab.',
+    hint: 'Multimeter auf V⎓, rote Spitze an den einen Anschluss, schwarze an den anderen.',
+    hint2: 'Batterie: B1.+ und B1.–; Lampe: H1.a und H1.b; Schalter: S1.a und S1.b.',
+    palette: [], start: lampOn, ref: lampOn,
+    bench: { parts: [bB1, { id: 'S1', x: 520, y: 290, rot: 0 }, { id: 'H1', x: 780, y: 460, rot: 0 }] },
+    tests: [{ name: 'Anlage', expect: [{ sel: 'H1', i: [0.1, 0.2] }, { noFault: true }] }],
+    measure: [
+      { id: 'uq', ask: 'Spannung an der Batterie B1', unit: 'V', mode: 'V', a: 'B1.p', b: 'B1.n', tol: 0.03 },
+      { id: 'uh', ask: 'Spannung an der Lampe H1', unit: 'V', mode: 'V', a: 'H1.a', b: 'H1.b', tol: 0.03 },
+      { id: 'us', ask: 'Spannung am geschlossenen Schalter S1', unit: 'V', mode: 'V', a: 'S1.a', b: 'S1.b', tol: 0.03, abs: 0.02 }
+    ]
+  });
+
+  var rLamp = { parts: [bat9, { id: 'R1', type: 'resistor', value: 220, x: 300, y: 200, rot: 0 }, { id: 'H1', type: 'lamp', x: 500, y: 300, rot: 90 }],
+    wires: [W('B1.p', 'R1.a'), W('R1.b', 'H1.a'), W('H1.b', 'B1.n')] };
+  defTask({
+    id: '1.5', ch: 1, title: 'Strom messen', tags: ['messen.strom', 'elektro.reihenschaltung'],
+    story: 'Die Kontrolllampe glimmt nur schwach. Wie viel Strom fliesst eigentlich?',
+    brief: 'Miss den <b>Strom</b> im Kreis. Dazu musst du den Kreis <b>auftrennen</b> (eine Leitung anklicken und loeschen) und das Multimeter im Bereich A⎓ in die Luecke setzen. Miss ausserdem die Spannung am Widerstand R1.',
+    learn: 'Strom misst man in Reihe – der Kreis wird aufgetrennt.',
+    take: 'In einer Reihe fliesst ueberall derselbe Strom – egal, wo du den Kreis auftrennst.',
+    hint: 'Leitung anklicken, Entf druecken. Dann A⎓ waehlen und die Spitzen an die beiden freien Anschluesse setzen.',
+    hint2: 'Nach dem Messen die Luecke wieder mit einer Leitung schliessen.',
+    palette: [], start: rLamp, ref: rLamp,
+    bench: { parts: [bB1, { id: 'R1', x: 520, y: 290, rot: 0 }, { id: 'H1', x: 780, y: 460, rot: 0 }] },
+    tests: [{ name: 'Anlage geschlossen', expect: [{ sel: 'H1', i: [0.02, 0.05] }, { noFault: true }] }],
+    measure: [
+      { id: 'i', ask: 'Strom im Kreis', unit: 'mA', truth: { sel: 'H1', q: 'i' }, tol: 0.03 },
+      { id: 'ur', ask: 'Spannung an R1', unit: 'V', mode: 'V', a: 'R1.a', b: 'R1.b', tol: 0.03 }
+    ]
+  });
+
+  /* ================= Theorie B ================= */
+  var ohm = function (u, r) { return { parts: [bat(u), { id: 'R1', type: 'resistor', value: r }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'B1.n')] }; };
+  defTheory({
+    id: 'T1B', ch: 1, title: 'Ohmsches Gesetz und Vorwiderstand', tags: ['elektro.ohm', 'bauteil.led', 'elektro.leistung'],
+    lesson:
+      '<p>Der <b>Widerstand R</b> (Ohm, Ω) bremst den Strom. Spannung, Strom und Widerstand haengen fest zusammen – das <b>Ohmsche Gesetz</b>:</p>' +
+      '<div class="formula">U = R · I &nbsp;&nbsp; I = U / R &nbsp;&nbsp; R = U / I</div>' +
+      '<p>Doppelte Spannung am gleichen Widerstand → doppelter Strom. Doppelter Widerstand bei gleicher Spannung → halber Strom.</p>' +
+      '<p><b>Leistung:</b> P = U · I (Watt, W). Ein Widerstand wird warm; ueberschreitet P seine Belastbarkeit (hier 0,25 W), wird er zu heiss.</p>' +
+      '<p><b>LED und Vorwiderstand:</b> Eine LED leitet ab ihrer Flussspannung U<sub>F</sub> (rot ≈ 1,8 V, gruen ≈ 2,1 V, blau ≈ 3 V) und begrenzt den Strom selbst kaum. Deshalb braucht sie einen <b>Vorwiderstand</b>, der die restliche Spannung „aufnimmt“:</p>' +
+      '<div class="formula">R<sub>V</sub> = (U<sub>B</sub> − U<sub>F</sub>) / I<sub>LED</sub></div>' +
+      '<p>Ueblich sind 10–20 mA. Die LED hat eine Richtung: Strom nur von der <b>Anode</b> (+, langes Bein) zur <b>Kathode</b> (−, abgeflachte Seite).</p>',
+    questions: [
+      { q: 'An 10 V liegt ein Widerstand von 470 Ω. Welcher Strom fliesst?', options: ['2,13 mA', '21,3 mA', '47 mA', '4,7 A'], correct: 1,
+        explain: 'I = 10 V / 470 Ω ≈ 0,0213 A = 21,3 mA.', verifyTruth: { layout: ohm(10, 470), sel: 'R1', q: 'i' } },
+      { q: 'Bei 10 V sollen genau 10 mA fliessen. Wie gross muss R sein?', options: ['100 Ω', '1 kΩ', '10 kΩ', '0,1 Ω'], correct: 1, explain: 'R = U / I = 10 V / 0,01 A = 1000 Ω.' },
+      { q: 'Rote LED (U_F = 1,8 V) an 9 V, gewuenscht 20 mA. Welcher Vorwiderstand?', options: ['90 Ω', '360 Ω', '450 Ω', '1,8 kΩ'], correct: 1, explain: 'R = (9 V − 1,8 V) / 0,02 A = 360 Ω.' },
+      { q: 'Was passiert, wenn du eine LED ohne Vorwiderstand direkt an 9 V anschliesst?', options: ['Sie leuchtet besonders schoen', 'Nichts, sie sperrt', 'Der Strom wird sehr gross – sie brennt durch', 'Die Batterie laedt sich auf'], correct: 2, explain: 'Oberhalb von U_F begrenzt fast nur der kleine Bahnwiderstand den Strom.' },
+      { q: 'Welche Leistung setzt ein 1-kΩ-Widerstand an 10 V um?', options: ['0,01 W', '0,1 W', '1 W', '10 W'], correct: 1, explain: 'P = U² / R = 100 V² / 1000 Ω = 0,1 W.' }
+    ]
+  });
+
+  /* ================= Aufgaben 6–10 ================= */
+  var rOnly = function (r, u) { return { parts: [bat(u || 10), { id: 'R1', type: 'resistor', value: r, x: 400, y: 300, rot: 90 }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'B1.n')] }; };
+  var rOnlyWrong = function (name, r) { var l = rOnly(r); l.name = name; return l; };
+  defTask({
+    id: '1.6', ch: 1, title: 'Das Ohmsche Gesetz nachmessen', tags: ['elektro.ohm', 'messen.strom'],
+    story: 'Im Laborbuch steht: „10 V an 470 Ω ergibt 21,28 mA.“ Stimmt das auch in echt?',
+    brief: 'Schliesse einen <b>Widerstand von 470 Ω</b> an die 10-V-Quelle an. Miss den Strom mit dem Multimeter und trage ihn ein.',
+    learn: 'I = U / R – und die Messung bestaetigt die Rechnung.',
+    take: 'Messwert und Rechnung duerfen nur wenig auseinanderliegen – sonst stimmt etwas mit dem Aufbau oder der Messung nicht.',
+    hint: 'Widerstand aus der Palette holen, Wert im Feld „Widerstand“ auf 470 setzen.',
+    hint2: 'Fuer die Strommessung eine Leitung loesen und das Multimeter (A⎓) in die Luecke setzen – oder einen Strommesser in Reihe einbauen.',
+    palette: ['resistor', 'ammeter'], need: { resistor: 1 },
+    start: { parts: [bat10], wires: [] }, ref: rOnly(470),
+    bench: { parts: [bB1, { id: 'R1', x: 620, y: 380, rot: 90 }] },
+    wrong: [rOnlyWrong('1 kΩ statt 470 Ω', 1000), rOnlyWrong('47 Ω statt 470 Ω', 47)],
+    tests: [{ name: 'Betrieb', expect: [{ sel: 'R1', i: [0.0205, 0.022] }, { noFault: true }] }],
+    measure: [{ id: 'i', ask: 'Strom durch R1', unit: 'mA', truth: { sel: 'R1', q: 'i' }, tol: 0.03 }]
+  });
+
+  defTask({
+    id: '1.7', ch: 1, title: 'Genau 10 mA', tags: ['elektro.ohm', 'elektro.dimensionieren'],
+    story: 'Ein Sensor verlangt einen Messstrom von genau 10 mA. Die Quelle liefert 10 V.',
+    brief: 'Waehle einen Widerstand so, dass <b>10 mA (±5 %)</b> fliessen. Miss den Strom zur Kontrolle.',
+    learn: 'R = U / I – das Ohmsche Gesetz umgestellt.',
+    take: 'Mit dem Ohmschen Gesetz dimensionierst du Bauteile, bevor du sie einbaust.',
+    hint: 'Rechne R = U / I mit I = 0,01 A.',
+    hint2: 'R = 10 V / 0,01 A = 1000 Ω = 1 kΩ.',
+    palette: ['resistor', 'ammeter'], need: { resistor: 1 },
+    start: { parts: [bat10], wires: [] }, ref: rOnly(1000),
+    bench: { parts: [bB1, { id: 'R1', x: 620, y: 380, rot: 90 }] },
+    wrong: [rOnlyWrong('470 Ω – zu viel Strom', 470), rOnlyWrong('10 kΩ – zu wenig Strom', 10000)],
+    tests: [{ name: 'Betrieb', expect: [{ sel: '@resistor', i: [0.0095, 0.0105] }, { noFault: true }] }],
+    measure: [{ id: 'i', ask: 'Strom im Kreis', unit: 'mA', truth: { sel: 'R1', q: 'i' }, tol: 0.03 }]
+  });
+
+  var led = { id: 'D1', type: 'led', props: { color: 'rot' }, x: 500, y: 300, rot: 90 };
+  var ledRef = function (r, rev) {
+    return { parts: [bat9, led, { id: 'R1', type: 'resistor', value: r, x: 300, y: 200, rot: 0 }],
+      wires: rev ? [W('B1.p', 'R1.a'), W('R1.b', 'D1.k'), W('D1.a', 'B1.n')] : [W('B1.p', 'R1.a'), W('R1.b', 'D1.a'), W('D1.k', 'B1.n')] };
+  };
+  var ledWrong = function (name, r, rev) { var l = ledRef(r, rev); l.name = name; return l; };
+  defTask({
+    id: '1.8', ch: 1, title: 'Die LED ueberlebt', tags: ['elektro.ohm', 'bauteil.led', 'messen.spannung'],
     story: 'Der Werkstattleiter hat drei LEDs verbraucht. „Die gehen einfach kaputt!“, schimpft er.',
     brief: 'Schliesse die rote LED an die 9-V-Batterie an. Waehle einen <b>Vorwiderstand</b>, sodass 10–20 mA fliessen. Miss danach die Spannung an der LED.',
     learn: 'Eine LED braucht einen Vorwiderstand: R = (U<sub>B</sub> − U<sub>F</sub>) / I.',
     take: 'Ohne Vorwiderstand ist der Strom nur durch die Leitungen begrenzt – die LED brennt durch.',
     hint: 'Rote LED: U<sub>F</sub> ≈ 1,8 V. Am Widerstand bleiben 9 V − 1,8 V = 7,2 V.',
     hint2: 'Fuer 15 mA: R = 7,2 V / 0,015 A = 480 Ω → naechster Normwert 470 Ω.',
-    palette: ['resistor'],
-    need: { resistor: 1 },
-    start: { parts: [bat9, led], wires: [] },
-    ref: { parts: [bat9, led, { id: 'R1', type: 'resistor', value: 470, x: 300, y: 200, rot: 0 }],
-      wires: [W('B1.p', 'R1.a'), W('R1.b', 'D1.a'), W('D1.k', 'B1.n')] },
-    bench: { parts: [{ id: 'B1', x: 300, y: 450, rot: 0 }, { id: 'R1', x: 560, y: 290, rot: 0 }, { id: 'D1', x: 820, y: 450, rot: 0 }] },
-    wrong: [
-      { name: 'zu kleiner Widerstand', parts: [bat9, led, { id: 'R1', type: 'resistor', value: 100, x: 300, y: 200, rot: 0 }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'D1.a'), W('D1.k', 'B1.n')] },
-      { name: 'zu grosser Widerstand', parts: [bat9, led, { id: 'R1', type: 'resistor', value: 10000, x: 300, y: 200, rot: 0 }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'D1.a'), W('D1.k', 'B1.n')] },
-      { name: 'LED verpolt', parts: [bat9, led, { id: 'R1', type: 'resistor', value: 470, x: 300, y: 200, rot: 0 }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'D1.k'), W('D1.a', 'B1.n')] }
-    ],
+    palette: ['resistor'], need: { resistor: 1 },
+    start: { parts: [bat9, led], wires: [] }, ref: ledRef(470),
+    bench: { parts: [bB1, { id: 'R1', x: 520, y: 290, rot: 0 }, { id: 'D1', x: 780, y: 460, rot: 0 }] },
+    wrong: [ledWrong('zu kleiner Widerstand', 100), ledWrong('zu grosser Widerstand', 10000), ledWrong('LED verpolt', 470, true)],
     tests: [{ name: 'Betrieb', expect: [{ sel: '@led', on: true, i: [0.010, 0.020] }, { noFault: true }] }],
     measure: [{ id: 'uled', ask: 'Spannung an der LED', unit: 'V', mode: 'V', a: 'D1.a', b: 'D1.k', tol: 0.03 }]
   });
 
-  var divider = {
-    parts: [{ id: 'B1', type: 'battery', value: 12, x: 160, y: 300, rot: 0 },
-      { id: 'R1', type: 'resistor', value: 1000, x: 340, y: 200, rot: 0 },
-      { id: 'R2', type: 'resistor', value: 2000, x: 500, y: 300, rot: 90 }],
-    wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'B1.n')]
+  var rMeas = function (closed) {
+    return { parts: [bat9, { id: 'S1', type: 'switch', props: { closed: closed }, x: 300, y: 200, rot: 0 }, { id: 'R1', type: 'resistor', value: 1000, x: 500, y: 200, rot: 0 },
+      { id: 'H1', type: 'lamp', x: 640, y: 300, rot: 90 }],
+      wires: [W('B1.p', 'S1.a'), W('S1.b', 'R1.a'), W('R1.b', 'H1.a'), W('H1.b', 'B1.n')] };
   };
   defTask({
-    id: '1.3', ch: 1, title: 'Messen wie ein Profi', tags: ['messen.strom', 'messen.spannung', 'elektro.reihenschaltung'],
-    story: 'Die Pruefprotokolle fehlen. Ohne Messwerte gibt der Werkmeister die Anlage nicht frei.',
-    brief: 'Miss mit dem Multimeter den <b>Strom</b> im Kreis und die <b>Spannung an R2</b>. Trage beide Werte ins Protokoll ein.',
-    learn: 'Spannung misst man parallel, Strom in Reihe.',
-    take: 'Fuer die Strommessung muss der Kreis aufgetrennt und das Messgeraet hineingeschaltet werden.',
-    hint: 'Strommessung: Loese eine Leitung und setze die Messspitzen in die Luecke (Bereich A).',
-    hint2: 'Oder setze einen Strommesser (Bauteil) in Reihe ein.',
-    palette: ['ammeter'],
-    start: divider, ref: divider,
-    bench: { parts: [{ id: 'B1', x: 300, y: 450, rot: 0 }, { id: 'R1', x: 560, y: 290, rot: 0 }, { id: 'R2', x: 820, y: 450, rot: 0 }] },
-    tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
-    measure: [
-      { id: 'i', ask: 'Strom im Kreis', unit: 'mA', truth: { sel: 'R1', q: 'i' }, tol: 0.03 },
-      { id: 'u2', ask: 'Spannung an R2', unit: 'V', mode: 'V', a: 'R2.a', b: 'R2.b', tol: 0.03 }
-    ]
-  });
-})();
-
-/* ==== content/theory.js ==== */
-/* BEISPIEL-THEORIEN – Aufbau: Lektion + 5 Fragen (80 % zum Bestehen).
- * Fragen mit verify werden vom Validator gegen die Engine geprueft. */
-(function () {
-  'use strict';
-  var divider = {
-    parts: [{ id: 'B1', type: 'battery', value: 12 }, { id: 'R1', type: 'resistor', value: 1000 }, { id: 'R2', type: 'resistor', value: 2000 }],
-    wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'B1.n')]
-  };
-
-  defTheory({
-    id: 'T1A', ch: 1, title: 'Spannung, Strom, Widerstand', tags: ['elektro.grundgroessen', 'elektro.ohm'],
-    lesson:
-      '<p><b>Spannung U</b> (Volt, V) ist der „Druck“, der die Elektronen antreibt. Sie liegt immer <i>zwischen zwei Punkten</i> an.</p>' +
-      '<p><b>Strom I</b> (Ampere, A) ist die Menge Ladung, die pro Sekunde durch einen Leiter fliesst. Er fliesst nur im <i>geschlossenen</i> Kreis.</p>' +
-      '<p><b>Widerstand R</b> (Ohm, Ω) bremst den Strom.</p>' +
-      '<div class="formula">U = R · I</div>' +
-      '<p>In der Reihenschaltung fliesst durch alle Bauteile derselbe Strom; die Spannungen addieren sich.</p>',
-    questions: [
-      { q: 'Wie heisst die Einheit der Spannung?', options: ['Ampere', 'Volt', 'Ohm', 'Watt'], correct: 1, explain: 'Spannung wird in Volt (V) angegeben.' },
-      { q: 'Ein Widerstand von 100 Ω wird von 50 mA durchflossen. Welche Spannung liegt an?', options: ['0,5 V', '2 V', '5 V', '50 V'], correct: 2, explain: 'U = 100 Ω · 0,05 A = 5 V.' },
-      { q: '12 V liegen an R1 = 1 kΩ und R2 = 2 kΩ in Reihe. Welche Spannung liegt an R2?', options: ['4 V', '6 V', '8 V', '12 V'], correct: 2,
-        explain: 'I = 12 V / 3 kΩ = 4 mA; U2 = 2 kΩ · 4 mA = 8 V.', verify: { layout: divider, mode: 'V', a: 'R2.a', b: 'R2.b' } },
-      { q: 'Wie gross ist der Strom in dieser Schaltung?', options: ['4 mA', '6 mA', '12 mA', '36 mA'], correct: 0,
-        explain: 'I = U / R<sub>ges</sub> = 12 V / 3000 Ω = 4 mA.', verifyTruth: { layout: divider, sel: 'R1', q: 'i' } },
-      { q: 'Was passiert mit dem Strom, wenn der Widerstand verdoppelt wird (gleiche Spannung)?', options: ['Er verdoppelt sich', 'Er bleibt gleich', 'Er halbiert sich', 'Er wird null'], correct: 2, explain: 'I = U / R – doppelter Widerstand, halber Strom.' }
-    ]
+    id: '1.9', ch: 1, title: 'Nur spannungsfrei!', tags: ['messen.widerstand', 'messen.sicherheit'],
+    story: '„Widerstand messen? Zuerst freischalten!“ – das steht gross ueber jedem Messplatz.',
+    brief: 'Miss den <b>Widerstand von R1</b> mit dem Ohmmeter (Ω). Die Anlage laeuft noch – schalte sie zuerst <b>spannungsfrei</b> (Schalter oeffnen).',
+    learn: 'Widerstand misst man nur im spannungsfreien Zustand.',
+    take: 'Das Ohmmeter schickt selbst einen Pruefstrom. Eine fremde Spannung verfaelscht das Ergebnis oder beschaedigt das Geraet.',
+    hint: 'Versuch es ruhig zuerst mit geschlossenem Schalter – das Multimeter meldet einen Fehler.',
+    hint2: 'Schalter S1 anklicken (oeffnen), dann Ω waehlen und die Spitzen an R1.a und R1.b setzen.',
+    palette: [], start: rMeas(true), ref: rMeas(false),
+    bench: { parts: [bB1, { id: 'S1', x: 460, y: 290, rot: 0 }, { id: 'R1', x: 660, y: 290, rot: 0 }, { id: 'H1', x: 800, y: 470, rot: 0 }] },
+    tests: [{ name: 'Anlage spannungsfrei', expect: [{ sel: 'H1', i: [0, 1e-6] }] }],
+    measure: [{ id: 'r', ask: 'Widerstand von R1', unit: 'kΩ', mode: 'R', a: 'R1.a', b: 'R1.b', tol: 0.03 }]
   });
 
-  defTheory({
-    id: 'T1B', ch: 1, title: 'Messen mit dem Multimeter', tags: ['messen.multimeter'],
-    lesson:
-      '<p><b>Spannung</b> misst du <i>parallel</i> zum Bauteil: rote Spitze an den einen, schwarze an den anderen Anschluss. Das Voltmeter ist sehr hochohmig (10 MΩ) und stoert kaum.</p>' +
-      '<p><b>Strom</b> misst du <i>in Reihe</i>: Kreis auftrennen, Messgeraet in die Luecke. Das Amperemeter ist sehr niederohmig – parallel zu einer Quelle entsteht ein Kurzschluss, die Sicherung im Messgeraet brennt durch.</p>' +
-      '<p><b>Widerstand</b> misst du nur im <i>spannungsfreien</i> Zustand. Das Ohmmeter schickt selbst einen kleinen Pruefstrom.</p>',
-    questions: [
-      { q: 'Wie wird das Voltmeter angeschlossen?', options: ['In Reihe', 'Parallel zum Bauteil', 'Zwischen Pluspol und Masse, egal wo', 'Gar nicht, nur rechnen'], correct: 1, explain: 'Spannung liegt zwischen zwei Punkten – parallel messen.' },
-      { q: 'Warum brennt die Sicherung, wenn man im A-Bereich direkt an die Batterie geht?', options: ['Das Amperemeter ist sehr niederohmig – Kurzschluss', 'Die Batterie ist leer', 'Das Voltmeter ist hochohmig', 'Die Spitzen sind vertauscht'], correct: 0, explain: 'Ein Amperemeter hat fast 0 Ω – parallel zur Quelle wirkt es wie ein Draht.' },
-      { q: 'Wann darf man einen Widerstand messen?', options: ['Immer', 'Nur bei eingeschalteter Anlage', 'Nur im spannungsfreien Zustand', 'Nur mit zwei Messgeraeten'], correct: 2, explain: 'Fremdspannung verfaelscht die Messung und kann das Geraet beschaedigen.' },
-      { q: 'Die Anzeige zeigt „OL“ bei der Widerstandsmessung. Was bedeutet das?', options: ['Kurzschluss', 'Unterbrechung / sehr grosser Widerstand', 'Batterie leer', 'Falscher Messbereich V'], correct: 1, explain: 'OL = Overload: Der Widerstand ist groesser als der Messbereich – meist eine Unterbrechung.' },
-      { q: 'Rot an R2 oben, Schwarz an R2 unten zeigt +8 V. Was zeigt das Geraet mit vertauschten Spitzen?', options: ['+8 V', '−8 V', '0 V', 'OL'], correct: 1, explain: 'Die Spannung ist gerichtet: vertauschte Spitzen kehren das Vorzeichen um.' }
-    ]
+  defTask({
+    id: '1.10', ch: 1, title: 'Die LED bleibt dunkel', tags: ['bauteil.led', 'elektro.fehlersuche'],
+    story: 'Ein Kollege hat die Anzeige-LED eingebaut – sie leuchtet nicht. „Kaputt“, sagt er. Die Werkmeisterin sagt: „Pruefen, nicht raten.“',
+    brief: 'Finde den Fehler und behebe ihn, sodass die LED mit 10–20 mA leuchtet. Die Bauteile bleiben, nur die <b>Verdrahtung</b> darfst du aendern.',
+    learn: 'Eine LED leitet nur in eine Richtung: von der Anode (+) zur Kathode (−).',
+    take: 'Erst messen, dann tauschen: Liegt an der LED eine negative Spannung, ist sie verpolt – nicht defekt.',
+    hint: 'Miss die Spannung an der LED (rot an D1.a, schwarz an D1.k). Was bedeutet ein negativer Wert?',
+    hint2: 'Anode D1.a muss Richtung Pluspol (ueber R1), Kathode D1.k zum Minuspol.',
+    palette: [], start: ledRef(470, true), ref: ledRef(470),
+    bench: { parts: [bB1, { id: 'R1', x: 520, y: 290, rot: 0 }, { id: 'D1', x: 780, y: 460, rot: 0 }] },
+    wrong: [ledWrong('weiterhin verpolt', 470, true)],
+    tests: [{ name: 'Betrieb', expect: [{ sel: 'D1', on: true, i: [0.010, 0.020] }, { noFault: true }] }]
   });
 })();
 
@@ -2328,6 +2475,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     if (p.type === 'clock') h += field('Frequenz', 'freq', q.freq || d.props.freq, 'Hz');
     if (p.type === 'acsource') {
       h += field('Scheitelwert Û', 'value', Editor.fmtVal(val), 'V') + field('Frequenz', 'freq', q.freq || d.props.freq, 'Hz');
+      h += '<label class="fld"><span>Gleichanteil</span><input data-prop="offset" value="' + esc(q.offset || 0) + '"' + (lock ? ' disabled' : '') + '><em>V</em></label>';
       h += '<label class="fld"><span>Kurvenform</span><select data-prop="shape"' + (lock ? ' disabled' : '') + '>' + [['sine', 'Sinus'], ['square', 'Rechteck'], ['triangle', 'Dreieck']].map(function (o) {
         return '<option value="' + o[0] + '"' + ((q.shape || 'sine') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>';
     }
@@ -2348,7 +2496,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     $$('[data-prop]', el).forEach(function (inp) {
       inp.onchange = inp.oninput = function (ev) {
         var k = inp.dataset.prop, v = inp.value;
-        if (k === 'value' || k === 'freq') { var n = parseVal(v); if (!(n > 0)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; v = n; if (k === 'value') { p.value = n; delete q.value; } else q[k] = n; }
+        if (k === 'offset') { var o = parseFloat(String(v).replace(',', '.')); if (!isFinite(o)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; q.offset = o; }
+        else if (k === 'value' || k === 'freq') { var n = parseVal(v); if (!(n > 0)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; v = n; if (k === 'value') { p.value = n; delete q.value; } else q[k] = n; }
         else if (k === 'pos') q.pos = +v; else q[k] = v;
         persistDraft(); rebuild(); core.redraw(); if (k !== 'pos') renderInspector();
       };

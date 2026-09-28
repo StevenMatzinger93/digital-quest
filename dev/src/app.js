@@ -410,6 +410,7 @@
     if (p.type === 'clock') h += field('Frequenz', 'freq', q.freq || d.props.freq, 'Hz');
     if (p.type === 'acsource') {
       h += field('Scheitelwert Û', 'value', Editor.fmtVal(val), 'V') + field('Frequenz', 'freq', q.freq || d.props.freq, 'Hz');
+      h += '<label class="fld"><span>Gleichanteil</span><input data-prop="offset" value="' + esc(q.offset || 0) + '"' + (lock ? ' disabled' : '') + '><em>V</em></label>';
       h += '<label class="fld"><span>Kurvenform</span><select data-prop="shape"' + (lock ? ' disabled' : '') + '>' + [['sine', 'Sinus'], ['square', 'Rechteck'], ['triangle', 'Dreieck']].map(function (o) {
         return '<option value="' + o[0] + '"' + ((q.shape || 'sine') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>';
     }
@@ -430,7 +431,8 @@
     $$('[data-prop]', el).forEach(function (inp) {
       inp.onchange = inp.oninput = function (ev) {
         var k = inp.dataset.prop, v = inp.value;
-        if (k === 'value' || k === 'freq') { var n = parseVal(v); if (!(n > 0)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; v = n; if (k === 'value') { p.value = n; delete q.value; } else q[k] = n; }
+        if (k === 'offset') { var o = parseFloat(String(v).replace(',', '.')); if (!isFinite(o)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; q.offset = o; }
+        else if (k === 'value' || k === 'freq') { var n = parseVal(v); if (!(n > 0)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; v = n; if (k === 'value') { p.value = n; delete q.value; } else q[k] = n; }
         else if (k === 'pos') q.pos = +v; else q[k] = v;
         persistDraft(); rebuild(); core.redraw(); if (k !== 'pos') renderInspector();
       };

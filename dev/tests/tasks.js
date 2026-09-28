@@ -46,6 +46,12 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
           else { await page.fill(sel, String(v)); await page.dispatchEvent(sel, 'change'); }
         }
       }
+      // Startbauteile, deren Schalterstellung in der Loesung anders ist: anklicken (Schalter/Taster schalten per Klick)
+      for (const rp of t.ref.parts.filter(p => startIds.has(p.id))) {
+        const sp = t.start.parts.find(p => p.id === rp.id);
+        if (!!(rp.props || {}).closed !== !!(sp.props || {}).closed && rp.type === 'switch')
+          await page.click(`${svg} [data-part="${rp.id}"] ${view === 'bench' ? '.bblock' : '.hit'}`, { force: true });
+      }
       const idOf = pid => { const [a, b] = pid.split('.'); return (map[a] || a) + '.' + b; };
       const key = w => [w.from, w.to].sort().join('|');
       const want = new Set(t.ref.wires.map(w => key({ from: idOf(w.from), to: idOf(w.to) })));
@@ -76,8 +82,11 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
       };
       for (const m of t.measure) {
         let v = t.expected[m.id], base = NaN;
-        if (m.set) { /* Messung mit veraendertem Zustand (z. B. Schalter zu): Sollwert */ }
-        else if (m.mode && m.a) base = await readMeter(m, m.mode, idOf(m.a), idOf(m.b));
+        if (m.set || m.value !== undefined || m.mode === 'AC') { /* veraenderter Zustand, Rechenwert oder Oszilloskop-Ablesung: Sollwert */ }
+        else if (m.mode && m.a) {
+          if (m.mode === 'VAC') await page.click(`[data-mt="${m.meterType === 'avg' ? 'avg' : 'trms'}"]`);
+          base = await readMeter(m, m.mode, idOf(m.a), idOf(m.b));
+        }
         else if (m.truth) {
           const part = idOf(m.truth.sel + '.x').split('.')[0];
           const pins = await page.evaluate(id => { const p = DigitalQuest.core.part(id); return p ? DigitalQuest.engine.PARTS[p.type].pins : []; }, part);

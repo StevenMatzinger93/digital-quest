@@ -422,8 +422,24 @@
    *   {a:'B1.p', b:'R1.b', v:[min,max]}          Spannung zwischen zwei Anschluessen
    *   {sel:'U1', out:true}                       Gatterausgang
    *   {noFault:true} / {fault:'SHORT'}           keine Fehler / bestimmter Fehler
+   *   {a:'R1.a', b:'R1.b', ac:'dc'|'rms'|'avg'|'peak'|'pp', range:[min,max]}   Wechselgroesse ueber eine Periode (acMeasure)
    * task.need: {led:1, resistor:1}  Mindestanzahl Bauteile je Typ
-   * task.measure: [{id, ask, unit, tol, set?, mode+a+b | truth:{sel,q:'i'|'v'}}] – Messwert, den die lernende Person eintraegt */
+   * task.measure: [{id, ask, unit, tol, set?, mode+a+b | truth:{sel,q:'i'|'v'} | value}] – Messwert, den die lernende Person eintraegt
+   *   mode 'V'|'A'|'R'|'VAC' (+meterType) wie am Multimeter, mode 'AC' + q ('dc'|'rms'|'avg'|'peak'|'pp') = Wechselgroesse
+   *   (Oszilloskop/Mittelwert), value = fester Rechenwert (z. B. aus Messwerten berechneter Innenwiderstand) */
+  function truthOf(m, ml) {
+    if (m.value !== undefined) return { value: m.value, unit: '' };
+    if (m.truth) { // Sollwert direkt aus der Simulation (z. B. Strom durch R1), unabhaengig davon, wie gemessen wurde
+      var rt = api.analyze(ml), pp = rt.parts[m.truth.sel];
+      if (!pp) throw new Error('Bauteil ' + m.truth.sel + ' fehlt');
+      return { value: Math.abs(pp[m.truth.q]), unit: m.truth.q === 'i' ? 'A' : 'V' };
+    }
+    if (m.mode === 'AC') { var ac = acMeasure(ml, { a: m.a, b: m.b }); if (!ac.ok) throw new Error(ac.error); return { value: ac[m.q], unit: 'V' }; }
+    return measure(ml, { mode: m.mode, a: m.a, b: m.b, meterType: m.meterType });
+  }
+  function applyMeasureSet(m, ml) {
+    Object.keys(m.set || {}).forEach(function (id) { ml.parts.forEach(function (q) { if (q.id === id || id === '@' + q.type) { q.props = q.props || {}; Object.keys(m.set[id]).forEach(function (k) { q.props[k] = m.set[id][k]; }); } }); });
+  }
   function select(net, sel) {
     if (sel.charAt(0) === '@') return net.parts.filter(function (p) { return p.type === sel.slice(1); });
     return net.byId[sel] ? [net.byId[sel]] : [];
@@ -447,6 +463,11 @@
         var label = (t.name ? t.name + ' – ' : '');
         if (e.noFault) { push(r.faults.length === 0, label + 'keine Stoerung', { faults: r.faults }); return; }
         if (e.fault) { push(r.faults.some(function (f) { return f.code === e.fault; }), label + 'Stoerung ' + e.fault); return; }
+        if (e.a && e.ac) {
+          var acr = acMeasure(lay, { a: e.a, b: e.b }), av = acr.ok ? acr[e.ac] : NaN;
+          push(acr.ok && inRange(av, e.range), label + ({ dc: 'Gleichanteil', rms: 'Effektivwert', avg: 'AVG-Anzeige', peak: 'Scheitelwert', pp: 'Spitze-Spitze' }[e.ac] || e.ac) + ' ' + e.a + '→' + e.b + ' im Bereich ' + fmt(e.range[0], 'V') + '…' + fmt(e.range[1], 'V'), { got: av });
+          return;
+        }
         if (e.a) {
           var v = r.nodeV[n2.pinNode[e.a]] - r.nodeV[n2.pinNode[e.b]];
           push(inRange(v, e.v), label + 'Spannung ' + e.a + '→' + e.b + ' im Bereich ' + fmt(e.v[0], 'V') + '…' + fmt(e.v[1], 'V'), { got: v });
@@ -465,16 +486,9 @@
       });
     });
     (task.measure || []).forEach(function (m) {
-      var truth;
-      var ml = clone(layout);
-      Object.keys(m.set || {}).forEach(function (id) { ml.parts.forEach(function (q) { if (q.id === id || id === '@' + q.type) { q.props = q.props || {}; Object.keys(m.set[id]).forEach(function (k) { q.props[k] = m.set[id][k]; }); } }); });
-      try {
-        if (m.truth) { // Sollwert direkt aus der Simulation (z. B. Strom durch R1), unabhaengig davon, wie gemessen wurde
-          var rt = api.analyze(ml), pp = rt.parts[m.truth.sel];
-          if (!pp) throw new Error('Bauteil ' + m.truth.sel + ' fehlt');
-          truth = { value: Math.abs(pp[m.truth.q]), unit: m.truth.q === 'i' ? 'A' : 'V' };
-        } else truth = measure(ml, { mode: m.mode, a: m.a, b: m.b });
-      } catch (e) { push(false, m.ask + ': ' + e.message); return; }
+      var truth, ml = clone(layout);
+      applyMeasureSet(m, ml);
+      try { truth = truthOf(m, ml); } catch (e) { push(false, m.ask + ': ' + e.message); return; }
       var ans = answers ? answers[m.id] : undefined;
       if (typeof ans === 'string') ans = ans.replace(',', '.');
       if (ans === undefined || ans === '' || isNaN(+ans)) { push(false, m.ask + ': Messwert fehlt', { expected: truth.value }); return; }
@@ -485,14 +499,14 @@
     return { pass: allPass && results.length > 0, results: results };
   }
 
-  var UNIT_SCALE = { mA: 1e-3, mV: 1e-3, 'µA': 1e-6, 'kΩ': 1e3, 'MΩ': 1e6, ms: 1e-3 };
+  var UNIT_SCALE = { mA: 1e-3, mV: 1e-3, 'µA': 1e-6, 'kΩ': 1e3, 'MΩ': 1e6, ms: 1e-3, mW: 1e-3 };
   /* Sollwerte fuer task.measure in der Einheit der Aufgabe (fuer Validator und „Loesung zeigen“) */
   function expectedAnswers(task, layout) {
     var out = {};
     (task.measure || []).forEach(function (m) {
       var ml = clone(layout);
-      Object.keys(m.set || {}).forEach(function (id) { ml.parts.forEach(function (q) { if (q.id === id || id === '@' + q.type) { q.props = q.props || {}; Object.keys(m.set[id]).forEach(function (k) { q.props[k] = m.set[id][k]; }); } }); });
-      var v = m.truth ? Math.abs(api.analyze(ml).parts[m.truth.sel][m.truth.q]) : measure(ml, { mode: m.mode, a: m.a, b: m.b }).value;
+      applyMeasureSet(m, ml);
+      var v = truthOf(m, ml).value;
       out[m.id] = +(v / (UNIT_SCALE[m.unit] || 1)).toPrecision(4);
     });
     return out;
