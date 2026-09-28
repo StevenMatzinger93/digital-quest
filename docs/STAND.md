@@ -8,6 +8,9 @@
 - **QA**: Validator 0 Fehler, Browser-Durchlauf (Theorie + 3 Aufgaben + Fehlbedienung Amperemeter + Handy) ohne Fehler.
 - **Build**: `index.html` (≈ 105 KB, offline) und `web/` (PWA).
 
+## Hosting (Stand 28.09.2026)
+GitHub-Repo: github.com/StevenMatzinger93/digital-quest (Branch `main`). Cloudflare Worker `digital-quest` (`wrangler.jsonc`, Assets aus `web/`) per GitHub verbunden – jeder Push nach `main` deployt automatisch. Bewusst ohne D1-Datenbank/Klassen-Anbindung, siehe `docs/ENTSCHEIDUNGEN.md`.
+
 ## Naechste Schritte
 0. **Prioritaet (Entscheid 28.09.2026): Werkbank-Ansicht bauen** - neues Modul `dev/src/bench.js`, 2.5D werkbank-illustrierte Zweitdarstellung derselben Netzliste wie `editor.js`, Umschalt-Button Schema <-> Werkbank, Stil: echtes Elektroniklabor. Start mit den Kapitel-1-Bauteilen (Batterie, Schalter, Lampe, LED, Widerstand) und dem Multimeter. Siehe `docs/KONZEPT.md` und `docs/ENTSCHEIDUNGEN.md`.
 0b. **Quick Wins (Entscheid 28.09.2026)**, gehoeren in dieselbe Bauphase wie die Werkbank: Zeitlupen-Replay (Simulationsverlauf statt nur Endergebnis speichern), Diagnose aus echten Simulationswerten, Messgeraete-Toleranz/Rauschen inkl. Average-responding- vs. TRMS-Anzeige, Sandbox-Modus. Details in `docs/ENTSCHEIDUNGEN.md`.
