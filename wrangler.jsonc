@@ -1,0 +1,10 @@
+{
+  // Cloudflare Worker fuer Digital Quest: liefert den Ordner web/ als Website aus.
+  // Bewusst ohne D1-Datenbank/Klassen-Anbindung - das ist laut docs/ENTSCHEIDUNGEN.md
+  // ("Klassen und Personen") noch nicht dran. Wird ergaenzt, sobald diese Funktion gebaut wird.
+  "name": "digital-quest",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./web"
+  }
+}

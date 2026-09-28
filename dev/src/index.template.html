@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digital Quest</title>
+<meta name="description" content="Digital Quest – Schaltungen bauen, messen, verstehen.">
+<meta name="theme-color" content="#121212">
+<!--PWA-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;600;800&display=swap">
+<style>/*CSS*/</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 4 12 2-6h8"/></svg><span>DIGITAL<b>QUEST</b></span></div>
+  <nav><button data-go="map">Karte</button><button data-go="manual">Handbuch</button><button data-go="settings">Einstellungen</button></nav>
+  <span id="saveInd"></span>
+</header>
+<main>
+  <section id="scr-map" class="screen"></section>
+  <section id="scr-task" class="screen">
+    <aside class="panel" id="taskInfo"></aside>
+    <div class="center">
+      <div class="toolbar">
+        <div id="palette"></div><span class="sep"></span>
+        <button class="tb" id="btnRot" title="Drehen (R)">⟳ Drehen</button>
+        <button class="tb" id="btnDel" title="Loeschen (Entf)">✕ Loeschen</button>
+        <button class="tb" id="btnFit" title="Ansicht einpassen">⤢ Einpassen</button>
+        <button class="tb" id="btnVolt" title="Knotenspannungen einfaerben">U anzeigen</button>
+        <button class="tb" id="btnRepair" title="Defekte Bauteile ersetzen">Reparieren</button>
+        <button class="tb" id="btnReset" title="Startzustand">Neu</button>
+      </div>
+      <div class="boardwrap"><svg id="board" tabindex="0" aria-label="Schaltplan"></svg></div>
+      <div id="statusbar"></div>
+    </div>
+    <aside class="panel">
+      <h3>Multimeter</h3>
+      <div class="meter">
+        <div class="lcd" id="lcd">OFF</div>
+        <div class="mm-modes"><button data-mm="OFF">OFF</button><button data-mm="V">V⎓</button><button data-mm="A">A⎓</button><button data-mm="R">Ω</button></div>
+        <div id="mmProbes"></div><p id="mmHelp"></p><p id="mmWarn"></p>
+        <button class="btn small" id="btnFuse" hidden>Sicherung ersetzen</button>
+      </div>
+      <h3>Eigenschaften</h3>
+      <div id="inspector"></div>
+      <h3>Oszilloskop</h3>
+      <div class="scopebox">
+        <canvas id="scope"></canvas>
+        <div class="scope-ctl"><select id="tb"><option value="0.01">10 ms</option><option value="0.1">100 ms</option><option value="1" selected>1 s</option><option value="5">5 s</option></select><button class="btn small" id="btnScope">Aufnahme</button></div>
+        <div id="scopeInfo">Kanal = Messspitzen des Multimeters. Aufnahme startet beim Einschalten.</div>
+      </div>
+    </aside>
+  </section>
+  <section id="scr-theory" class="screen"></section>
+  <section id="scr-manual" class="screen"></section>
+  <section id="scr-settings" class="screen"></section>
+</main>
+<div id="modal"></div>
+<script>/*JS*/</script>
+</body>
+</html>
