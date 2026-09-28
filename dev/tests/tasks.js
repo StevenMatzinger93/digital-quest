@@ -1,4 +1,4 @@
-// Jede Aufgabe in beiden Ansichten loesbar? node tests/tasks.js [nur-diese-id]
+// Jede Aufgabe in beiden Ansichten loesbar? node tests/tasks.js [id, z. B. 2.5, oder Kapitel, z. B. 2.]
 // Loest jede Aufgabe aus DQ.tasks einmal im Schaltplan und einmal auf der Werkbank – nur ueber die echte Bedienung:
 // Bauteile aus der Palette, Werte im Eigenschaften-Panel, Leitungen per Klick auf Anschluesse, ueberzaehlige
 // Leitungen anklicken + Entf, Messwerte mit dem Multimeter der jeweiligen Ansicht (Schema: Panel, Werkbank: Drehschalter),
@@ -11,6 +11,23 @@ let chromium; try { ({ chromium } = require('playwright')); } catch (e) { ({ chr
 const url = 'file://' + path.join(__dirname, '../../index.html') + '?alle';
 const only = process.argv[2];
 const PRE = { p: 1e-12, n: 1e-9, 'µ': 1e-6, u: 1e-6, m: 1e-3, '': 1, k: 1e3, M: 1e6 };
+/* Klick wie mit der Maus, aber atomar im Browser (robust bei Live-Schleife mit 60 Bildern/s): Mitte des Elements
+ * bestimmen, pruefen, dass dort wirklich dieses Element (bzw. sein data-Traeger) obenauf liegt, dann pointerdown/up. */
+async function atomicClick(page, sel, key) {
+  const r = await page.evaluate(([sel, key]) => {
+    const el = document.querySelector(sel); if (!el) return 'fehlt: ' + sel;
+    const q = el.getBoundingClientRect(), x = q.left + q.width / 2, y = q.top + q.height / 2;
+    const svg = el.closest('svg'), box = svg ? svg.getBoundingClientRect() : null;
+    if (box && (x < box.left || x > box.right || y < box.top || y > box.bottom)) return 'ausserhalb des Ausschnitts: ' + sel;
+    const t = document.elementFromPoint(x, y); if (!t) return 'nichts getroffen: ' + sel;
+    const want = key ? el.closest('[' + key + ']') : el, got = key ? t.closest('[' + key + ']') : t;
+    if (key && (!got || got.getAttribute(key) !== want.getAttribute(key))) return 'verdeckt (' + (got ? key + '=' + got.getAttribute(key) : t.tagName + '.' + t.getAttribute('class')) + '): ' + sel;
+    const o = { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1, pointerType: 'mouse', isPrimary: true };
+    t.dispatchEvent(new PointerEvent('pointerdown', o)); t.dispatchEvent(new PointerEvent('pointerup', o)); t.dispatchEvent(new MouseEvent('click', o));
+    return 'ok';
+  }, [sel, key]);
+  if (r !== 'ok') throw new Error(r);
+}
 function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
   const m = String(txt).trim().match(/^(-?[\d.]+)\s*([pnµumkM]?)/); return m ? +m[1] * PRE[m[2]] : NaN;
 }
@@ -19,14 +36,14 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
   const browser = await chromium.launch(); const errors = []; let runs = 0;
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.on('pageerror', e => errors.push('JS: ' + e.message));
-  await page.goto(url);
+  await page.goto(url, { waitUntil: 'domcontentloaded' });
   const tasks = await page.evaluate(() => window.DQ.tasks.map(t => ({ id: t.id, start: t.start, ref: t.ref, measure: t.measure, unitScale: DigitalQuest.engine.UNIT_SCALE,
     expected: DigitalQuest.engine.expectedAnswers(t, t.ref) })));
 
-  for (const t of tasks.filter(x => !only || x.id === only)) for (const view of ['schema', 'bench']) {
+  for (const t of tasks.filter(x => !only || x.id === only || (only.endsWith('.') && x.id.startsWith(only)))) for (const view of ['schema', 'bench']) {
     const tag = t.id + ' [' + (view === 'bench' ? 'Werkbank' : 'Schaltplan') + ']', fail = m => errors.push(tag + ': ' + m);
     const svg = view === 'bench' ? '#bench' : '#board', hit = view === 'bench' ? '.bpinhit' : '.pinhit', whit = view === 'bench' ? '.bwirehit' : '.wirehit';
-    const pin = id => page.click(`${svg} [data-pin="${id}"] ${hit}`, { force: true, timeout: 3000 });
+    const pin = id => atomicClick(page, `${svg} [data-pin="${id}"] ${hit}`, 'data-pin');
     runs++;
     try {
       await page.evaluate(([id, v]) => { delete DigitalQuest.state.drafts[id]; DigitalQuest.state.settings.view = v; DigitalQuest.openItem(id); DigitalQuest.setView(v); }, [t.id, view]);
@@ -50,7 +67,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
       for (const rp of t.ref.parts.filter(p => startIds.has(p.id))) {
         const sp = t.start.parts.find(p => p.id === rp.id);
         if (!!(rp.props || {}).closed !== !!(sp.props || {}).closed && rp.type === 'switch')
-          await page.click(`${svg} [data-part="${rp.id}"] ${view === 'bench' ? '.bblock' : '.hit'}`, { force: true });
+          await atomicClick(page, `${svg} [data-part="${rp.id}"] ${view === 'bench' ? '.bblock' : '.hit'}`, 'data-part');
       }
       const idOf = pid => { const [a, b] = pid.split('.'); return (map[a] || a) + '.' + b; };
       const key = w => [w.from, w.to].sort().join('|');
@@ -59,7 +76,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
       for (let guard = 0; guard < 50; guard++) {
         const idx = await page.evaluate(ws => DigitalQuest.core.layout.wires.findIndex(w => !ws.includes([w.from, w.to].sort().join('|'))), [...want]);
         if (idx < 0) break;
-        await page.dispatchEvent(`${svg} [data-wire="${idx}"] ${whit}`, 'pointerdown'); await page.keyboard.press('Delete');
+        await page.dispatchEvent(`${svg} [data-wire="${idx}"] ${whit}`, 'pointerdown'); await page.evaluate(() => document.activeElement && document.activeElement.blur()); await page.keyboard.press('Delete');
       }
       // 3. fehlende Leitungen: Anschluss anklicken, dann Ziel-Anschluss
       const have = new Set(await page.evaluate(() => DigitalQuest.core.layout.wires.map(w => [w.from, w.to].sort().join('|'))));
@@ -71,11 +88,12 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
       const got = new Set(await page.evaluate(() => DigitalQuest.core.layout.wires.map(w => [w.from, w.to].sort().join('|'))));
       if (got.size !== want.size || [...want].some(k => !got.has(k))) fail('Leitungen nach dem Bauen weichen ab');
       // 4. Messprotokoll: mit dem Multimeter der Ansicht messen
-      const dial = async mode => { if (view === 'bench') await page.click(`#bench [data-dial="${mode}"] .bdialhit`, { force: true }); else await page.click(`[data-mm="${mode}"]`); };
+      const dial = async mode => { if (view === 'bench') await atomicClick(page, `#bench [data-dial="${mode}"] .bdialhit`, 'data-dial'); else await page.click(`[data-mm="${mode}"]`); };
       const readMeter = async (m, mode, a, b) => {
         await dial(mode); await pin(a); await pin(b);
-        const lcd = await page.textContent('#lcd'), base = lcdValue(lcd);
-        if (view === 'bench' && (await page.textContent('#bench .bmlcd')) !== lcd) fail(m.id + ': Werkbank-Multimeter zeigt anderen Wert als das Panel');
+        const both = await page.evaluate(() => [document.getElementById('lcd').textContent, (document.querySelector('#bench .bmlcd') || {}).textContent]); // gleiches Bild
+        const lcd = both[0], base = lcdValue(lcd);
+        if (view === 'bench' && both[1] !== lcd) fail(m.id + ': Werkbank-Multimeter zeigt anderen Wert als das Panel (' + both[1] + ' / ' + lcd + ')');
         await dial('OFF');
         if (!isFinite(base)) { fail(m.id + ': Anzeige „' + lcd + '“ nicht ablesbar'); return NaN; }
         return Math.abs(base);
@@ -91,14 +109,23 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
           const part = idOf(m.truth.sel + '.x').split('.')[0];
           const pins = await page.evaluate(id => { const p = DigitalQuest.core.part(id); return p ? DigitalQuest.engine.PARTS[p.type].pins : []; }, part);
           if (m.truth.q === 'v') base = await readMeter(m, 'V', part + '.' + pins[0], part + '.' + pins[1]);
-          else { // Strom: Leitung am Bauteil loesen, Amperemeter in die Luecke, danach wieder schliessen
-            const wi = await page.evaluate(id => DigitalQuest.core.layout.wires.findIndex(w => w.from.split('.')[0] === id || w.to.split('.')[0] === id), part);
-            const w = await page.evaluate(i => DigitalQuest.core.layout.wires[i], wi);
-            if (!w) fail(m.id + ': keine Leitung an ' + part + ' zum Auftrennen');
+          else { // Strom wie im Labor: alle Leitungen an einem Anschluss des Bauteils loesen, deren Gegenseiten
+            // untereinander verbinden, Amperemeter zwischen Anschluss und diesen Knoten, danach wieder anschliessen
+            const plan = await page.evaluate(([id, pins]) => {
+              const ws = DigitalQuest.core.layout.wires, best = pins.map(pn => id + '.' + pn).map(pid => ({ pid, other: ws.filter(w => w.from === pid || w.to === pid).map(w => w.from === pid ? w.to : w.from) }))
+                .filter(x => x.other.length).sort((a, b) => a.other.length - b.other.length)[0];
+              return best || null;
+            }, [part, pins]);
+            if (!plan) fail(m.id + ': keine Leitung an ' + part + ' zum Auftrennen');
             else {
-              await page.dispatchEvent(`${svg} [data-wire="${wi}"] ${whit}`, 'pointerdown'); await page.keyboard.press('Delete');
-              base = await readMeter(m, 'A', w.from, w.to);
-              await pin(w.from); await pin(w.to);
+              for (let g = 0; g < 20; g++) { // alle Leitungen am Anschluss loeschen
+                const wi = await page.evaluate(pid => DigitalQuest.core.layout.wires.findIndex(w => w.from === pid || w.to === pid), plan.pid);
+                if (wi < 0) break;
+                await page.dispatchEvent(`${svg} [data-wire="${wi}"] ${whit}`, 'pointerdown'); await page.evaluate(() => document.activeElement && document.activeElement.blur()); await page.keyboard.press('Delete');
+              }
+              for (const o of plan.other.slice(1)) { await pin(plan.other[0]); await pin(o); } // Gegenseiten bleiben verbunden
+              base = await readMeter(m, 'A', plan.pid, plan.other[0]);
+              await pin(plan.pid); await pin(plan.other[0]);
             }
           }
         }

@@ -150,8 +150,8 @@
         var q = p.props, n = p.n;
         if (st.burnt[p.id]) { return; }
         switch (p.type) {
-          case 'resistor': G(n.a, n.b, 1 / Math.max(q.value, 1e-3)); break;
-          case 'lamp': G(n.a, n.b, 1 / Math.max(q.value, 1e-3)); break;
+          case 'resistor': case 'lamp': // props.defect: verdeckte Unterbrechung (Fehlersuche) – von aussen nicht sichtbar
+            G(n.a, n.b, q.defect ? G_OPEN : 1 / Math.max(q.value, 1e-3)); break;
           case 'pot': G(n.a, n.w, 1 / Math.max(q.value * q.pos, 1e-3)); G(n.w, n.b, 1 / Math.max(q.value * (1 - q.pos), 1e-3)); break;
           case 'switch': case 'button': G(n.a, n.b, q.closed ? G_CLOSED : G_OPEN); break;
           case 'ammeter': G(n.a, n.b, 1 / METER.rA); break;
@@ -231,7 +231,7 @@
       var q = p.props, n = p.n, r = { burnt: !!st.burnt[p.id] };
       function across(a, b) { return volt(a) - volt(b); }
       switch (p.type) {
-        case 'resistor': case 'lamp': r.v = across(n.a, n.b); r.i = r.burnt ? 0 : r.v / Math.max(q.value, 1e-3); r.p = r.v * r.i; break;
+        case 'resistor': case 'lamp': r.v = across(n.a, n.b); r.i = r.burnt || q.defect ? r.v * G_OPEN : r.v / Math.max(q.value, 1e-3); r.p = r.v * r.i; break;
         case 'pot': r.v = across(n.a, n.b); r.vw = across(n.w, n.b); r.i = across(n.a, n.w) / Math.max(q.value * q.pos, 1e-3); r.p = Math.abs(r.v * r.i); break;
         case 'switch': case 'button': r.v = across(n.a, n.b); r.i = r.v * (q.closed ? G_CLOSED : G_OPEN); break;
         case 'ammeter': r.v = across(n.a, n.b); r.i = r.v / METER.rA; break;

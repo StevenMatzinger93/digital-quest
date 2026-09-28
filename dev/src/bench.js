@@ -497,7 +497,7 @@
     [['a', '#d32f2f', this.meter.mode === 'A' ? -40 : 40, -34], ['b', '#1e1e1e', 0, 18]].forEach(function (k) {
       var pid = core.probes[k[0]], set = pid && byId[pid.split('.')[0]];
       var tip = set ? pp(pid) : devXY('meter', k[3] - 20, 200), jack = devXY('meter', k[2], 88), grip = [tip[0] + 38, tip[1] - 70];
-      h.push('<g filter="url(#bCable)"><path d="' + cablePath(jack, grip) + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="6" stroke-linecap="round"/>' +
+      h.push('<g class="bmcable" filter="url(#bCable)" pointer-events="none"><path d="' + cablePath(jack, grip) + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="6" stroke-linecap="round"/>' +
         '<path d="' + cablePath(jack, grip) + '" fill="none" stroke="' + k[1] + '" stroke-width="4" stroke-linecap="round"/>' + plug(jack, k[1]) + probeSvg(tip, k[1], !set) + '</g>');
     });
     h.push('</g>');

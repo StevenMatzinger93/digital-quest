@@ -373,7 +373,7 @@
     else if (!mn) txt = meter.mode === 'R' ? '0L Ω' : '- - -';
     else if (meter.mode === 'V') {
       var vdc = r.nodeV[mn.a] - r.nodeV[mn.b];
-      if (slowestFreq() >= 5) { var ac1 = acReading(); if (ac1.ok) vdc = ac1.dc; } // DMM zeigt bei schnellem Wechsel den Mittelwert
+      var fs = slowestFreq(); if (isFinite(fs) && fs >= 5) { var ac1 = acReading(); if (ac1.ok) vdc = ac1.dc; } // DMM zeigt bei schnellem Wechsel den Mittelwert (ohne Wechselquelle: Momentanwert mit Eigenverbrauch)
       txt = E.dmm(vdc, 'V').text;
     } else if (meter.mode === 'VAC') {
       var ac = acReading();

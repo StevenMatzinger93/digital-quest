@@ -207,5 +207,11 @@ const trRS = E.step(E.buildNetlist(rsl), E.newState(), { trace: true }).trace;
 ok(trRS.some(x => x.kind === 'gate'), 'Zeitlupe: Gatter-Schritte der Rueckkopplung', trRS.map(x => x.kind));
 ok(trRS.length <= E.TRACE_MAX, 'Verlauf begrenzt');
 
+// 19 Verdeckte Unterbrechung (props.defect) fuer Fehlersuche
+const chain3 = { parts: [{ id: 'B1', type: 'battery', value: 9 }, { id: 'H1', type: 'lamp' }, { id: 'H2', type: 'lamp', props: { defect: true } }, { id: 'H3', type: 'lamp' }],
+  wires: [W('B1.p', 'H1.a'), W('H1.b', 'H2.a'), W('H2.b', 'H3.a'), W('H3.b', 'B1.n')] };
+const rc3 = E.analyze(chain3);
+ok(Math.abs(rc3.parts.H1.i) < 1e-6 && Math.abs(rc3.parts.H2.v) > 8.9 && !rc3.parts.H2.burnt, 'Unterbrechung: kein Strom, volle Spannung an der defekten Lampe', rc3.parts.H2);
+
 console.log(`Engine-Tests: ${pass} ok, ${fail} Fehler`);
 process.exit(fail ? 1 : 0);

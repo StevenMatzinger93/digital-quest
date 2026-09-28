@@ -418,8 +418,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         var q = p.props, n = p.n;
         if (st.burnt[p.id]) { return; }
         switch (p.type) {
-          case 'resistor': G(n.a, n.b, 1 / Math.max(q.value, 1e-3)); break;
-          case 'lamp': G(n.a, n.b, 1 / Math.max(q.value, 1e-3)); break;
+          case 'resistor': case 'lamp': // props.defect: verdeckte Unterbrechung (Fehlersuche) – von aussen nicht sichtbar
+            G(n.a, n.b, q.defect ? G_OPEN : 1 / Math.max(q.value, 1e-3)); break;
           case 'pot': G(n.a, n.w, 1 / Math.max(q.value * q.pos, 1e-3)); G(n.w, n.b, 1 / Math.max(q.value * (1 - q.pos), 1e-3)); break;
           case 'switch': case 'button': G(n.a, n.b, q.closed ? G_CLOSED : G_OPEN); break;
           case 'ammeter': G(n.a, n.b, 1 / METER.rA); break;
@@ -499,7 +499,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       var q = p.props, n = p.n, r = { burnt: !!st.burnt[p.id] };
       function across(a, b) { return volt(a) - volt(b); }
       switch (p.type) {
-        case 'resistor': case 'lamp': r.v = across(n.a, n.b); r.i = r.burnt ? 0 : r.v / Math.max(q.value, 1e-3); r.p = r.v * r.i; break;
+        case 'resistor': case 'lamp': r.v = across(n.a, n.b); r.i = r.burnt || q.defect ? r.v * G_OPEN : r.v / Math.max(q.value, 1e-3); r.p = r.v * r.i; break;
         case 'pot': r.v = across(n.a, n.b); r.vw = across(n.w, n.b); r.i = across(n.a, n.w) / Math.max(q.value * q.pos, 1e-3); r.p = Math.abs(r.v * r.i); break;
         case 'switch': case 'button': r.v = across(n.a, n.b); r.i = r.v * (q.closed ? G_CLOSED : G_OPEN); break;
         case 'ammeter': r.v = across(n.a, n.b); r.i = r.v / METER.rA; break;
@@ -1092,6 +1092,785 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     bench: { parts: [bB1, { id: 'R1', x: 520, y: 290, rot: 0 }, { id: 'D1', x: 780, y: 460, rot: 0 }] },
     wrong: [ledWrong('weiterhin verpolt', 470, true)],
     tests: [{ name: 'Betrieb', expect: [{ sel: 'D1', on: true, i: [0.010, 0.020] }, { noFault: true }] }]
+  });
+})();
+
+/* ==== content/ch02.js ==== */
+/* Kapitel 2 – Reihen- und Parallelschaltung
+ * Quelle: Praktische Elektronik, Kap. 2.2–2.7 und 3 (Aufgaben 2–6, 8, 9, 11): Reihen- und Parallelschaltung, Kirchhoff,
+ * Spannungsteiler, belasteter Spannungsteiler, reale Spannungsquelle. Werte teils an 0,25-W-Widerstaende angepasst. */
+(function () {
+  'use strict';
+
+  defChapter({
+    id: 2, title: 'Reihen- und Parallelschaltung',
+    intro: 'Mehrere Widerstaende – wie teilen sich Strom und Spannung auf? Du baust Reihen- und Parallelschaltungen, Spannungsteiler und entlarvst eine Quelle, die nicht haelt, was sie verspricht.',
+    sequence: ['T2A', '2.1', '2.2', '2.3', '2.4', '2.5', 'T2B', '2.6', '2.7', '2.8', '2.9', '2.10']
+  });
+
+  var bat = function (v, props) { var b = { id: 'B1', type: 'battery', value: v, x: 160, y: 300, rot: 0 }; if (props) b.props = props; return b; };
+  var R = function (id, v, x, y, rot) { return { id: id, type: 'resistor', value: v, x: x, y: y, rot: rot || 0 }; };
+  var bB1 = { id: 'B1', x: 240, y: 460, rot: 0 };
+  /* Reihe aus Widerstaenden an der Quelle (Schema: waagrecht oben, Rueckleitung zum Minuspol) */
+  function chain(u, vals, withBat) {
+    var parts = vals.map(function (v, i) { return R('R' + (i + 1), v, 280 + 120 * i, 200); }), wires = [];
+    for (var i = 1; i < vals.length; i++) wires.push(W('R' + i + '.b', 'R' + (i + 1) + '.a'));
+    if (withBat !== false) { parts.unshift(bat(u)); wires.unshift(W('B1.p', 'R1.a')); wires.push(W('R' + vals.length + '.b', 'B1.n')); }
+    return { parts: parts, wires: wires };
+  }
+  var benchChain = function (n, withBat) {
+    var p = []; for (var i = 0; i < n; i++) p.push({ id: 'R' + (i + 1), x: 400 + 150 * i, y: 290, rot: 0 });
+    if (withBat !== false) p.unshift(bB1); return { parts: p };
+  };
+  /* Widerstaende parallel an der Quelle (Schema: senkrecht nebeneinander) */
+  function para(u, vals, withBat) {
+    var parts = vals.map(function (v, i) { return R('R' + (i + 1), v, 360 + 120 * i, 300, 90); }), wires = [];
+    for (var i = 1; i < vals.length; i++) { wires.push(W('R' + i + '.a', 'R' + (i + 1) + '.a')); wires.push(W('R' + i + '.b', 'R' + (i + 1) + '.b')); }
+    if (withBat !== false) { parts.unshift(bat(u)); wires.unshift(W('B1.p', 'R1.a')); wires.push(W('R1.b', 'B1.n')); }
+    return { parts: parts, wires: wires };
+  }
+  var benchPara = function (n, withBat) {
+    var p = []; for (var i = 0; i < n; i++) p.push({ id: 'R' + (i + 1), x: 460 + 130 * i, y: 380, rot: 90 });
+    if (withBat !== false) p.unshift(bB1); return { parts: p };
+  };
+  var named = function (name, l) { l.name = name; return l; };
+
+  /* ================= Theorie A ================= */
+  defTheory({
+    id: 'T2A', ch: 2, title: 'Die Reihenschaltung', tags: ['elektro.reihenschaltung', 'elektro.kirchhoff'],
+    lesson:
+      '<p>In der <b>Reihenschaltung</b> liegen die Bauteile hintereinander – es gibt nur <i>einen</i> Weg fuer den Strom.</p>' +
+      '<ul><li>Der <b>Strom ist ueberall gleich gross</b>: I = I<sub>1</sub> = I<sub>2</sub> = …</li>' +
+      '<li>Die Widerstaende addieren sich: <b>R<sub>ges</sub> = R<sub>1</sub> + R<sub>2</sub> + …</b></li>' +
+      '<li>Die Spannungen addieren sich zur Quellenspannung (<b>Maschenregel</b>, 2. Kirchhoffsches Gesetz): U = U<sub>1</sub> + U<sub>2</sub> + …</li>' +
+      '<li>Die Spannung teilt sich <b>im Verhaeltnis der Widerstaende</b> auf: Am groesseren Widerstand liegt die groessere Spannung.</li></ul>' +
+      '<div class="formula">U<sub>1</sub> = U · R<sub>1</sub> / R<sub>ges</sub></div>' +
+      '<p>Faellt ein Bauteil der Reihe aus (Unterbrechung), fliesst <i>nirgends</i> mehr Strom – wie bei einer alten Lichterkette.</p>',
+    questions: [
+      { q: 'Wie verhaelt sich der Strom in einer Reihenschaltung?', options: ['Er ist an jeder Stelle gleich gross', 'Er wird nach jedem Widerstand kleiner', 'Er teilt sich auf die Widerstaende auf', 'Er ist am groessten Widerstand am groessten'], correct: 0, explain: 'Es gibt nur einen Weg – was hineinfliesst, fliesst auch wieder hinaus.' },
+      { q: '1 kΩ, 100 Ω, 220 Ω und 470 Ω liegen in Reihe. Wie gross ist der Gesamtwiderstand?', options: ['79 Ω', '790 Ω', '1,79 kΩ', '17,9 kΩ'], correct: 2,
+        explain: 'R_ges = 1000 + 100 + 220 + 470 = 1790 Ω.', verify: { layout: chain(10, [1000, 100, 220, 470], false), mode: 'R', a: 'R1.a', b: 'R4.b' } },
+      { q: 'Diese Reihe liegt an 10 V. Welche Spannung liegt am 1-kΩ-Widerstand?', options: ['1 V', '2,5 V', '5,59 V', '10 V'], correct: 2,
+        explain: 'U₁ = 10 V · 1000 Ω / 1790 Ω ≈ 5,59 V.', verify: { layout: chain(10, [1000, 100, 220, 470]), mode: 'V', a: 'R1.a', b: 'R1.b' } },
+      { q: 'Was sagt die Maschenregel?', options: ['Die Summe der Teilstroeme ist null', 'Die Summe der Teilspannungen ergibt die Quellenspannung', 'Alle Spannungen sind gleich', 'Die Spannung ist am Anfang der Reihe am groessten'], correct: 1, explain: 'U = U₁ + U₂ + … – die Quellenspannung verteilt sich auf die Bauteile.' },
+      { q: 'In einer Lichterkette (Reihe) brennt eine Lampe durch. Was passiert?', options: ['Nur diese Lampe ist dunkel', 'Alle Lampen gehen aus', 'Die anderen leuchten heller', 'Nichts'], correct: 1, explain: 'Die Unterbrechung trennt den einzigen Stromweg.' }
+    ]
+  });
+
+  /* ================= Aufgaben 1–5 ================= */
+  defTask({
+    id: '2.1', ch: 2, title: 'Vier gleiche Widerstaende', tags: ['elektro.reihenschaltung', 'messen.spannung'],
+    story: 'Aus einer 10-V-Versorgung sollen vier gleich grosse Teilspannungen entstehen.',
+    brief: 'Schalte <b>vier Widerstaende von je 1 kΩ in Reihe</b> an die 10-V-Quelle. Miss die Spannung an R1 und den Strom.',
+    learn: 'Gleiche Widerstaende in Reihe teilen die Spannung gleichmaessig.',
+    take: 'Vier gleiche Widerstaende – vier gleiche Teilspannungen: 10 V / 4 = 2,5 V.',
+    hint: 'Hole viermal einen Widerstand (Standard 1 kΩ) und verbinde sie hintereinander: R1.b mit R2.a usw.',
+    hint2: 'B1.+ → R1 → R2 → R3 → R4 → B1.–',
+    palette: ['resistor'], need: { resistor: 4 },
+    start: { parts: [bat(10)], wires: [] }, ref: chain(10, [1000, 1000, 1000, 1000]),
+    bench: benchChain(4),
+    wrong: [named('R4 parallel statt in Reihe', { parts: chain(10, [1000, 1000, 1000, 1000]).parts, wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'R3.a'), W('R3.b', 'B1.n'), W('R4.a', 'R3.a'), W('R4.b', 'R3.b')] })],
+    tests: [{ name: 'Betrieb', expect: [{ sel: '@resistor', v: [2.45, 2.55] }, { noFault: true }] }],
+    measure: [
+      { id: 'u1', ask: 'Spannung an R1', unit: 'V', mode: 'V', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'i', ask: 'Strom im Kreis', unit: 'mA', truth: { sel: 'R1', q: 'i' }, tol: 0.03 }
+    ]
+  });
+
+  var mixed = chain(10, [1000, 100, 220, 470]);
+  defTask({
+    id: '2.2', ch: 2, title: 'Die Spannung teilt sich auf', tags: ['elektro.reihenschaltung', 'messen.spannung', 'elektro.kirchhoff'],
+    story: 'Im Pruefprotokoll fehlen alle Spannungen der Widerstandskette. Ohne Messwerte keine Freigabe.',
+    brief: 'Miss die Spannungen an <b>R1, R2, R3 und R4</b> und den <b>Strom</b>. Pruefe: Ergibt die Summe der Teilspannungen die 10 V der Quelle?',
+    learn: 'Maschenregel: U = U₁ + U₂ + U₃ + U₄.',
+    take: 'Die Spannung teilt sich proportional zu den Widerstaenden auf – am grossen Widerstand liegt viel Spannung.',
+    hint: 'V⎓ waehlen, jeweils rot an .a und schwarz an .b des Widerstands.',
+    hint2: 'Rechnung zur Kontrolle: I = 10 V / 1790 Ω ≈ 5,59 mA; U₁ = 1 kΩ · I ≈ 5,59 V.',
+    palette: [], start: mixed, ref: mixed, bench: benchChain(4),
+    tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'u1', ask: 'U1 an R1 (1 kΩ)', unit: 'V', mode: 'V', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'u2', ask: 'U2 an R2 (100 Ω)', unit: 'V', mode: 'V', a: 'R2.a', b: 'R2.b', tol: 0.03 },
+      { id: 'u3', ask: 'U3 an R3 (220 Ω)', unit: 'V', mode: 'V', a: 'R3.a', b: 'R3.b', tol: 0.03 },
+      { id: 'u4', ask: 'U4 an R4 (470 Ω)', unit: 'V', mode: 'V', a: 'R4.a', b: 'R4.b', tol: 0.03 },
+      { id: 'i', ask: 'Strom im Kreis', unit: 'mA', truth: { sel: 'R3', q: 'i' }, tol: 0.03 }
+    ]
+  });
+
+  var chainNoBat = chain(0, [1000, 100, 220, 470], false);
+  defTask({
+    id: '2.3', ch: 2, title: 'Gesamtwiderstand messen', tags: ['elektro.reihenschaltung', 'messen.widerstand'],
+    story: 'Die Widerstandskette liegt ausgebaut auf dem Tisch. Stimmt der Gesamtwert mit der Rechnung ueberein?',
+    brief: 'Miss mit dem Ohmmeter den <b>Gesamtwiderstand</b> der Kette (von R1.a bis R4.b) und zur Kontrolle den Widerstand von R4.',
+    learn: 'In Reihe addieren sich die Widerstaende.',
+    take: 'R_ges = R₁ + R₂ + R₃ + R₄ – gemessen ohne Spannung, direkt an den Enden der Kette.',
+    hint: 'Ω waehlen, rote Spitze an R1.a, schwarze an R4.b.',
+    hint2: 'Erwartet: 1000 + 100 + 220 + 470 = 1790 Ω = 1,79 kΩ.',
+    palette: [], start: chainNoBat, ref: chainNoBat, bench: benchChain(4, false),
+    tests: [{ name: 'Kette', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'rges', ask: 'Gesamtwiderstand R1.a → R4.b', unit: 'kΩ', mode: 'R', a: 'R1.a', b: 'R4.b', tol: 0.03 },
+      { id: 'r4', ask: 'Widerstand R4', unit: 'Ω', mode: 'R', a: 'R4.a', b: 'R4.b', tol: 0.03 }
+    ]
+  });
+
+  var lamps = function (series) {
+    var p = [bat(9), { id: 'H1', type: 'lamp', x: 340, y: 200, rot: 0 }, { id: 'H2', type: 'lamp', x: 520, y: 300, rot: 90 }];
+    return series ? { parts: p, wires: [W('B1.p', 'H1.a'), W('H1.b', 'H2.a'), W('H2.b', 'B1.n')] }
+      : { parts: p, wires: [W('B1.p', 'H1.a'), W('H1.b', 'B1.n'), W('B1.p', 'H2.a'), W('H2.b', 'B1.n')] };
+  };
+  defTask({
+    id: '2.4', ch: 2, title: 'Zwei Lampen in Reihe', tags: ['elektro.reihenschaltung', 'bauteil.lampe'],
+    story: 'Fuer die Nachtbeleuchtung sollen zwei Lampen an der 9-V-Batterie haengen – bewusst gedaempft.',
+    brief: 'Schalte eine <b>zweite Lampe H2 in Reihe</b> zu H1. Beobachte die Helligkeit und miss die Spannung an H1.',
+    learn: 'Zwei gleiche Verbraucher in Reihe teilen sich die Spannung.',
+    take: 'In Reihe bekommt jede Lampe nur die halbe Spannung – und leuchtet deutlich schwaecher (P = U² / R: ein Viertel).',
+    hint: 'Der Strom soll zuerst durch H1, dann durch H2 fliessen.',
+    hint2: 'B1.+ → H1 → H2 → B1.–',
+    palette: ['lamp'], need: { lamp: 2 },
+    start: { parts: [bat(9), { id: 'H1', type: 'lamp', x: 340, y: 200, rot: 0 }], wires: [] }, ref: lamps(true),
+    bench: { parts: [bB1, { id: 'H1', x: 500, y: 290, rot: 0 }, { id: 'H2', x: 760, y: 440, rot: 0 }] },
+    wrong: [named('Lampen parallel', lamps(false))],
+    tests: [{ name: 'Betrieb', expect: [{ sel: '@lamp', i: [0.07, 0.08] }, { noFault: true }] }],
+    measure: [{ id: 'u1', ask: 'Spannung an H1', unit: 'V', mode: 'V', a: 'H1.a', b: 'H1.b', tol: 0.03 }]
+  });
+
+  var div15 = function (r1, r2) { return { parts: [bat(15), R('R1', r1, 360, 240, 90), R('R2', r2, 360, 380, 90)], wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'B1.n')] }; };
+  defTask({
+    id: '2.5', ch: 2, title: 'Spannungsteiler auslegen', tags: ['elektro.spannungsteiler', 'elektro.dimensionieren'],
+    story: 'Ein Sensoreingang vertraegt hoechstens 5 V – die Versorgung liefert aber 15 V.',
+    brief: 'Baue einen <b>Spannungsteiler</b> aus R1 (oben, am Pluspol) und R2 (unten, am Minuspol), sodass an <b>R2 genau 5 V (±2 %)</b> liegen. Beide Widerstaende hoechstens 100 kΩ. Miss U2.',
+    learn: 'Spannungsteiler: U₂ = U · R₂ / (R₁ + R₂).',
+    take: 'Das Verhaeltnis der Widerstaende bestimmt die Teilspannung – nicht ihr absoluter Wert.',
+    hint: 'Fuer 5 V von 15 V muss R₂ ein Drittel des Gesamtwiderstands sein.',
+    hint2: 'Zum Beispiel R1 = 2 kΩ und R2 = 1 kΩ (oder 20 kΩ und 10 kΩ).',
+    palette: ['resistor'], need: { resistor: 2 },
+    start: { parts: [bat(15)], wires: [] }, ref: div15(2000, 1000),
+    bench: { parts: [bB1, { id: 'R1', x: 560, y: 300, rot: 90 }, { id: 'R2', x: 720, y: 480, rot: 90 }] },
+    wrong: [named('gleiche Widerstaende (7,5 V)', div15(1000, 1000)), named('R1 und R2 vertauscht (10 V)', div15(1000, 2000))],
+    tests: [{ name: 'Teiler', expect: [{ a: 'R2.a', b: 'R2.b', v: [4.9, 5.1] }, { noFault: true }] }],
+    measure: [{ id: 'u2', ask: 'Spannung U2 an R2', unit: 'V', mode: 'V', a: 'R2.a', b: 'R2.b', tol: 0.03 }]
+  });
+
+  /* ================= Theorie B ================= */
+  var par2 = para(0, [1000, 1000], false);
+  defTheory({
+    id: 'T2B', ch: 2, title: 'Parallelschaltung, Knotenregel, Spannungsteiler', tags: ['elektro.parallelschaltung', 'elektro.kirchhoff', 'elektro.spannungsteiler', 'elektro.quelle'],
+    lesson:
+      '<p>In der <b>Parallelschaltung</b> liegen alle Bauteile an <i>denselben zwei Punkten</i>:</p>' +
+      '<ul><li>An allen liegt <b>dieselbe Spannung</b>.</li>' +
+      '<li>Die Teilstroeme addieren sich zum Gesamtstrom (<b>Knotenregel</b>, 1. Kirchhoffsches Gesetz): I = I₁ + I₂ + …</li>' +
+      '<li>Der Strom teilt sich <b>umgekehrt proportional</b> zu den Widerstaenden – durch den kleinen Widerstand fliesst viel.</li>' +
+      '<li>Der Gesamtwiderstand ist <b>kleiner als der kleinste</b> Einzelwiderstand. Fuer zwei: R = R₁ · R₂ / (R₁ + R₂); allgemein ueber die Leitwerte G = 1/R (Siemens): 1/R = 1/R₁ + 1/R₂ + …</li></ul>' +
+      '<p><b>Spannungsteiler:</b> U₂ = U · R₂ / (R₁ + R₂). Haengst du eine Last R<sub>L</sub> parallel zu R₂, wird der untere Teil kleiner (R₂ ∥ R<sub>L</sub>) – U₂ <b>sinkt</b>. Je kleiner R<sub>L</sub>, desto staerker.</p>' +
+      '<p><b>Reale Quelle:</b> Jede Quelle hat einen <b>Innenwiderstand R<sub>i</sub></b>. Ohne Last misst du die Leerlaufspannung U₀, unter Last sinkt die Klemmenspannung: R<sub>i</sub> = (U₀ − U<sub>Last</sub>) / I.</p>',
+    questions: [
+      { q: 'Zwei Widerstaende von je 1 kΩ sind parallel geschaltet. Gesamtwiderstand?', options: ['250 Ω', '500 Ω', '1 kΩ', '2 kΩ'], correct: 1,
+        explain: 'R = 1 kΩ · 1 kΩ / 2 kΩ = 500 Ω – bei gleichen Widerstaenden die Haelfte.', verify: { layout: par2, mode: 'R', a: 'R1.a', b: 'R1.b' } },
+      { q: 'In einen Knoten fliessen 30 mA hinein, ein Zweig fuehrt 10 mA ab. Wie viel fliesst im zweiten Abzweig?', options: ['10 mA', '20 mA', '30 mA', '40 mA'], correct: 1, explain: 'Knotenregel: Zufluss = Abfluss, also 30 mA − 10 mA = 20 mA.' },
+      { q: '15 V, R1 = 2 kΩ oben, R2 = 1 kΩ unten. Welche Spannung liegt an R2?', options: ['3 V', '5 V', '7,5 V', '10 V'], correct: 1,
+        explain: 'U₂ = 15 V · 1 kΩ / 3 kΩ = 5 V.', verify: { layout: div15(2000, 1000), mode: 'V', a: 'R2.a', b: 'R2.b' } },
+      { q: 'Was passiert mit U₂, wenn eine Last parallel zu R₂ angeschlossen wird?', options: ['U₂ steigt', 'U₂ sinkt', 'U₂ bleibt gleich', 'U₂ wird negativ'], correct: 1, explain: 'R₂ ∥ R_L ist kleiner als R₂ – der untere Teil des Teilers bekommt weniger Spannung.' },
+      { q: 'Leerlauf 10 V, unter Last 9,1 V bei 9 mA. Wie gross ist der Innenwiderstand?', options: ['1 Ω', '10 Ω', '100 Ω', '1 kΩ'], correct: 2, explain: 'R_i = (10 V − 9,1 V) / 0,009 A = 100 Ω.' }
+    ]
+  });
+
+  /* ================= Aufgaben 6–10 ================= */
+  defTask({
+    id: '2.6', ch: 2, title: 'Zwei Wege fuer den Strom', tags: ['elektro.parallelschaltung', 'messen.strom', 'elektro.kirchhoff'],
+    story: 'Die Heizung im Pruefstand hat zwei gleiche Heizwiderstaende, die gemeinsam an 10 V haengen.',
+    brief: 'Schalte <b>zwei Widerstaende von 1 kΩ parallel</b> an die 10-V-Quelle. Miss den Strom durch R1 und den <b>Gesamtstrom</b> aus der Quelle.',
+    learn: 'Knotenregel: Die Teilstroeme addieren sich zum Gesamtstrom.',
+    take: 'Parallel liegen alle Zweige an derselben Spannung, die Stroeme addieren sich: 10 mA + 10 mA = 20 mA.',
+    hint: 'Beide Widerstaende bekommen oben dieselbe Verbindung zu B1.+ und unten zu B1.–.',
+    hint2: 'Fuer den Gesamtstrom die Leitung direkt am Pluspol (B1.+) auftrennen und dort messen.',
+    palette: ['resistor', 'ammeter'], need: { resistor: 2 },
+    start: { parts: [bat(10)], wires: [] }, ref: para(10, [1000, 1000]), bench: benchPara(2),
+    wrong: [named('in Reihe statt parallel', chain(10, [1000, 1000]))],
+    tests: [{ name: 'Betrieb', expect: [{ sel: '@resistor', i: [0.0098, 0.0102] }, { sel: 'B1', i: [0.0195, 0.0205] }, { noFault: true }] }],
+    measure: [
+      { id: 'i1', ask: 'Strom durch R1', unit: 'mA', truth: { sel: 'R1', q: 'i' }, tol: 0.03 },
+      { id: 'iges', ask: 'Gesamtstrom aus der Quelle', unit: 'mA', truth: { sel: 'B1', q: 'i' }, tol: 0.03 }
+    ]
+  });
+
+  var p5 = para(5, [10000, 220]);
+  defTask({
+    id: '2.7', ch: 2, title: 'Wer bekommt den Strom?', tags: ['elektro.parallelschaltung', 'messen.strom'],
+    story: 'Ein hochohmiger Sensor (10 kΩ) und ein Lastwiderstand (220 Ω) haengen parallel an 5 V.',
+    brief: 'Miss die Stroeme durch <b>R1 (10 kΩ)</b> und <b>R2 (220 Ω)</b>, die Spannung an R1 und den Gesamtstrom.',
+    learn: 'Der Strom teilt sich umgekehrt proportional zu den Widerstaenden auf.',
+    take: 'Durch den kleinen Widerstand fliesst fast der ganze Strom – der grosse Widerstand „merkt“ man kaum.',
+    hint: 'Fuer jeden Zweigstrom die Leitung genau in diesem Zweig auftrennen.',
+    hint2: 'Kontrolle: I₁ = 5 V / 10 kΩ = 0,5 mA, I₂ = 5 V / 220 Ω ≈ 22,7 mA.',
+    palette: ['ammeter'], start: p5, ref: p5, bench: benchPara(2),
+    tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'u', ask: 'Spannung an R1', unit: 'V', mode: 'V', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'i1', ask: 'Strom durch R1', unit: 'mA', truth: { sel: 'R1', q: 'i' }, tol: 0.03 },
+      { id: 'i2', ask: 'Strom durch R2', unit: 'mA', truth: { sel: 'R2', q: 'i' }, tol: 0.03 },
+      { id: 'iges', ask: 'Gesamtstrom', unit: 'mA', truth: { sel: 'B1', q: 'i' }, tol: 0.03 }
+    ]
+  });
+
+  var p4 = para(0, [1000, 220, 100, 10000], false);
+  defTask({
+    id: '2.8', ch: 2, title: 'Kleiner als der kleinste', tags: ['elektro.parallelschaltung', 'messen.widerstand'],
+    story: 'Vier Widerstaende sind parallel verloetet. Welcher Gesamtwiderstand ergibt sich?',
+    brief: 'Miss den <b>Gesamtwiderstand</b> der Parallelschaltung (1 kΩ, 220 Ω, 100 Ω, 10 kΩ) und zum Vergleich den kleinsten Einzelwiderstand R3.',
+    learn: 'Parallel ist der Gesamtwiderstand kleiner als der kleinste Einzelwiderstand.',
+    take: 'Jeder zusaetzliche Zweig ist ein weiterer Weg – der Gesamtwiderstand sinkt: 1/R = 1/R₁ + 1/R₂ + …',
+    hint: 'Ω waehlen und an die gemeinsamen Anschluesse oben (R1.a) und unten (R1.b) gehen.',
+    hint2: 'Rechnung: G = 1 mS + 4,55 mS + 10 mS + 0,1 mS = 15,65 mS → R ≈ 63,9 Ω.',
+    palette: [], start: p4, ref: p4, bench: benchPara(4, false),
+    tests: [{ name: 'Netzwerk', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'rges', ask: 'Gesamtwiderstand', unit: 'Ω', mode: 'R', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'r3', ask: 'Kleinster Einzelwiderstand R3 (100 Ω) – gemessen in der Schaltung', unit: 'Ω', mode: 'R', a: 'R3.a', b: 'R3.b', tol: 0.03 }
+    ]
+  });
+
+  var loaded = function (rl, series) {
+    var l = { parts: [bat(10), R('R1', 10000, 360, 240, 90), R('R2', 10000, 360, 380, 90)], wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'B1.n')] };
+    if (rl) { l.parts.push(R('R3', rl, 500, 380, 90)); l.wires = l.wires.concat(series ? [] : [W('R3.a', 'R2.a'), W('R3.b', 'R2.b')]); }
+    if (rl && series) l.wires = [W('B1.p', 'R1.a'), W('R1.b', 'R3.a'), W('R3.b', 'R2.a'), W('R2.b', 'B1.n')];
+    return l;
+  };
+  defTask({
+    id: '2.9', ch: 2, title: 'Der belastete Spannungsteiler', tags: ['elektro.spannungsteiler', 'messen.spannung'],
+    story: 'Der Teiler liefert im Leerlauf saubere 5 V. Kaum ist der Verbraucher angeschlossen, stimmt nichts mehr.',
+    brief: 'Schliesse eine <b>Last R3 = 10 kΩ parallel zu R2</b> an. Miss U2 <b>mit</b> Last. Wie viel ist davon noch uebrig?',
+    learn: 'Eine Last parallel zu R₂ senkt die Teilspannung.',
+    take: 'R₂ ∥ R_L = 5 kΩ statt 10 kΩ – aus 5 V werden 3,33 V. Abhilfe: niederohmigerer Teiler oder hochohmigere Last.',
+    hint: 'Miss U2 zuerst ohne Last (5 V), dann baue R3 ein: oben an R2.a, unten an R2.b.',
+    hint2: 'Rechnung: R₂ ∥ R₃ = 5 kΩ; U₂ = 10 V · 5 kΩ / 15 kΩ ≈ 3,33 V.',
+    palette: ['resistor'], need: { resistor: 3 },
+    start: loaded(0), ref: loaded(10000),
+    bench: { parts: [bB1, { id: 'R1', x: 540, y: 300, rot: 90 }, { id: 'R2', x: 680, y: 480, rot: 90 }, { id: 'R3', x: 840, y: 480, rot: 90 }] },
+    wrong: [named('Last parallel zu R1 statt zu R2', { parts: loaded(10000).parts, wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'B1.n'), W('R3.a', 'R1.a'), W('R3.b', 'R1.b')] })],
+    tests: [{ name: 'belastet', expect: [{ a: 'R2.a', b: 'R2.b', v: [3.2, 3.45] }, { noFault: true }] }],
+    measure: [{ id: 'u2', ask: 'U2 mit Last', unit: 'V', mode: 'V', a: 'R2.a', b: 'R2.b', tol: 0.03 }]
+  });
+
+  var realSrc = function (closed) {
+    return { parts: [bat(10, { ri: 100 }), { id: 'S1', type: 'switch', props: { closed: closed }, x: 300, y: 200, rot: 0 }, R('R1', 1000, 480, 300, 90)],
+      wires: [W('B1.p', 'S1.a'), W('S1.b', 'R1.a'), W('R1.b', 'B1.n')] };
+  };
+  defTask({
+    id: '2.10', ch: 2, title: 'Die schwache Quelle', tags: ['elektro.quelle', 'messen.spannung', 'elektro.ohm'],
+    story: 'Die Pruefquelle zeigt im Leerlauf 10 V. Unter Last bricht sie ein. Wie gross ist ihr Innenwiderstand?',
+    brief: 'Miss die <b>Leerlaufspannung</b> (S1 offen) und die <b>Klemmenspannung unter Last</b> (S1 geschlossen, Last 1 kΩ). Berechne daraus den <b>Innenwiderstand</b> der Quelle.',
+    learn: 'Jede reale Quelle hat einen Innenwiderstand: R_i = (U₀ − U_Last) / I.',
+    take: 'Je mehr Strom du entnimmst, desto mehr Spannung „bleibt in der Quelle“ haengen – die Klemmenspannung sinkt.',
+    hint: 'Miss an B1.+ und B1.– einmal mit offenem und einmal mit geschlossenem Schalter. Der Strom unter Last ist I = U_Last / 1 kΩ.',
+    hint2: 'Beispiel: U₀ = 10 V, U_Last = 9,09 V → I = 9,09 mA → R_i = 0,91 V / 9,09 mA ≈ 100 Ω.',
+    palette: [], start: realSrc(false), ref: realSrc(false),
+    bench: { parts: [bB1, { id: 'S1', x: 520, y: 290, rot: 0 }, { id: 'R1', x: 760, y: 440, rot: 90 }] },
+    tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'u0', ask: 'Leerlaufspannung U₀ (S1 offen)', unit: 'V', mode: 'V', a: 'B1.p', b: 'B1.n', tol: 0.03, set: { S1: { closed: false } } },
+      { id: 'ul', ask: 'Klemmenspannung unter Last (S1 zu)', unit: 'V', mode: 'V', a: 'B1.p', b: 'B1.n', tol: 0.03, set: { S1: { closed: true } } },
+      { id: 'ri', ask: 'Innenwiderstand R_i (berechnet)', unit: 'Ω', value: 100, tol: 0.08 }
+    ]
+  });
+})();
+
+/* ==== content/ch03.js ==== */
+/* Kapitel 3 – Gleich- und Wechselgroessen
+ * Quelle: Gleich- & Wechselgroessen (Gleich-/Wechselgroessen, Periode, Frequenz, linearer Mittelwert, Gleichrichtwert,
+ * Effektivwert bei Sinus/Dreieck/Rechteck, harmonische Schwingung), Messtechnik Erweiterung (Kap. 4 AVG/RMS/TRMS,
+ * Kap. 6.3/6.4/6.6 Kurvenformen, DC-Anteil, Gleichrichterschaltungen). */
+(function () {
+  'use strict';
+
+  defChapter({
+    id: 3, title: 'Gleich- und Wechselgroessen',
+    intro: 'Der Funktionsgenerator liefert Sinus, Rechteck und Dreieck. Du misst Scheitelwert, Mittelwert und Effektivwert – und findest heraus, warum ein billiges Multimeter bei Rechteckspannung luegt.',
+    sequence: ['T3A', '3.1', '3.2', '3.3', '3.4', '3.5', 'T3B', '3.6', '3.7', '3.8', '3.9', '3.10']
+  });
+
+  var gen = function (props) { return { id: 'G1', type: 'acsource', value: 10, props: Object.assign({ freq: 50, shape: 'sine', offset: 0 }, props || {}), x: 160, y: 300, rot: 0 }; };
+  var R1 = { id: 'R1', type: 'resistor', value: 1000, x: 420, y: 300, rot: 90 };
+  var bG1 = { id: 'G1', x: 250, y: 460, rot: 0 }, bR1 = { id: 'R1', x: 700, y: 440, rot: 90 };
+  var genR = function (props) { return { parts: [gen(props), R1], wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] }; };
+  var named = function (name, l) { l.name = name; return l; };
+
+  /* ================= Theorie A ================= */
+  defTheory({
+    id: 'T3A', ch: 3, title: 'Gleich- und Wechselgroessen', tags: ['elektro.wechselgroessen', 'elektro.frequenz'],
+    lesson:
+      '<p><b>Gleichgroessen</b> (Gleichspannung, Gleichstrom) sind ueber die Zeit konstant – wie bei der Batterie.</p>' +
+      '<p><b>Wechselgroessen</b> aendern sich mit der Zeit. Wiederholt sich der Verlauf immer gleich, ist sie <b>periodisch</b> mit der <b>Periodendauer T</b>. Die <b>Frequenz</b> f gibt an, wie viele Perioden pro Sekunde ablaufen:</p>' +
+      '<div class="formula">f = 1 / T &nbsp;&nbsp; [Hz = 1/s]</div>' +
+      '<p>Nicht periodisch ist z. B. das einmalige Laden eines Kondensators.</p>' +
+      '<p>Der <b>lineare Mittelwert</b> ist der Gleichanteil U<sub>DC</sub> – die Flaeche ueber der Nulllinie minus die Flaeche darunter, geteilt durch T. Bei einer <b>reinen Wechselgroesse</b> ist er <b>0 V</b>. Ist er ungleich null, spricht man von einer <b>Mischgroesse</b> (Wechselanteil + Gleichanteil).</p>' +
+      '<p>Die Sinusform heisst <b>harmonische Schwingung</b> – so sieht die Netzspannung aus:</p>' +
+      '<div class="formula">u(t) = Û · sin(ω·t + φ) + U<sub>DC</sub> &nbsp;&nbsp; ω = 2·π·f</div>' +
+      '<p><b>Û</b> ist der Scheitelwert (Spitze), <b>U<sub>ss</sub></b> der Spitze-Spitze-Wert (bei reinem Sinus 2·Û), φ der Nullphasenwinkel. Am <b>Oszilloskop</b> siehst du den Verlauf direkt; ein Multimeter auf V⎓ zeigt bei schneller Wechselspannung nur den Mittelwert.</p>',
+    questions: [
+      { q: 'Eine Wechselspannung hat die Periodendauer T = 20 ms. Wie gross ist die Frequenz?', options: ['20 Hz', '50 Hz', '200 Hz', '500 Hz'], correct: 1, explain: 'f = 1 / T = 1 / 0,02 s = 50 Hz.' },
+      { q: 'Welchen linearen Mittelwert hat eine reine Sinusspannung mit Û = 10 V?', options: ['0 V', '6,37 V', '7,07 V', '10 V'], correct: 0, explain: 'Die positive und die negative Halbwelle sind gleich gross – sie heben sich auf.' },
+      { q: 'Ein Sinus hat Û = 10 V. Wie gross ist der Spitze-Spitze-Wert U_ss?', options: ['5 V', '10 V', '14,1 V', '20 V'], correct: 3, explain: 'Von −10 V bis +10 V sind es 20 V.' },
+      { q: 'Was ist eine Mischgroesse?', options: ['Eine Wechselgroesse mit Gleichanteil ≠ 0', 'Eine Spannung aus zwei Batterien', 'Ein Rechteck mit 50 % Tastgrad', 'Eine Spannung ohne Frequenz'], correct: 0, explain: 'Mischgroesse = Wechselanteil + Gleichanteil; ihr linearer Mittelwert ist nicht null.' },
+      { q: 'Wie gross ist die Kreisfrequenz ω bei 50 Hz?', options: ['50 1/s', '100 1/s', '314 1/s', '3140 1/s'], correct: 2, explain: 'ω = 2 · π · 50 Hz ≈ 314 1/s.' }
+    ]
+  });
+
+  /* ================= Aufgaben 1–5 ================= */
+  defTask({
+    id: '3.1', ch: 3, title: 'Der Funktionsgenerator', tags: ['elektro.wechselgroessen', 'messen.oszilloskop'],
+    story: 'Neues Geraet im Labor: ein Funktionsgenerator. Die Werkmeisterin will sehen, ob du ihn ablesen kannst.',
+    brief: 'Schliesse den Widerstand R1 (1 kΩ) an den Funktionsgenerator an (Sinus, Û = 10 V, 50 Hz). Nimm die Spannung an R1 mit dem <b>Oszilloskop</b> auf und lies den <b>Scheitelwert Û</b> und den <b>Spitze-Spitze-Wert U<sub>ss</sub></b> ab.',
+    learn: 'Am Oszilloskop liest du Scheitelwert und Spitze-Spitze-Wert direkt ab.',
+    take: 'U_ss = 2 · Û bei einer reinen Wechselspannung.',
+    hint: 'Multimeter auf V⎓, Spitzen an R1.a (rot) und R1.b (schwarz) – das Oszilloskop nutzt dieselben Spitzen. Zeitbasis 50 ms, dann „Aufnahme“ (auf der Werkbank: RUN).',
+    hint2: 'Unter dem Bild stehen max und min. Û = max, U_ss = max − min.',
+    palette: [], need: {},
+    start: { parts: [gen(), R1], wires: [] }, ref: genR(),
+    bench: { parts: [bG1, bR1] },
+    tests: [{ name: 'Anschluss', expect: [{ a: 'R1.a', b: 'R1.b', ac: 'peak', range: [9.8, 10.2] }, { noFault: true }] }],
+    measure: [
+      { id: 'up', ask: 'Scheitelwert Û an R1', unit: 'V', mode: 'AC', q: 'peak', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'upp', ask: 'Spitze-Spitze-Wert U_ss an R1', unit: 'V', mode: 'AC', q: 'pp', a: 'R1.a', b: 'R1.b', tol: 0.03 }
+    ]
+  });
+
+  defTask({
+    id: '3.2', ch: 3, title: 'Das Multimeter zeigt null?', tags: ['elektro.wechselgroessen', 'elektro.mittelwert', 'messen.spannung'],
+    story: 'Ein Lernender meldet: „Am Widerstand liegt keine Spannung, das Multimeter zeigt 0 V.“ Das Oszilloskop sagt etwas anderes.',
+    brief: 'Miss an R1 mit dem Multimeter auf <b>V⎓</b> (Gleichspannung) und mit dem Oszilloskop. Trage den angezeigten <b>Gleichanteil</b> und den <b>Spitze-Spitze-Wert</b> ein.',
+    learn: 'V⎓ zeigt den linearen Mittelwert – bei reiner Wechselspannung 0 V.',
+    take: 'Eine reine Wechselgroesse hat den Mittelwert null. Fuer Wechselspannung braucht es den Bereich V~ oder das Oszilloskop.',
+    hint: 'V⎓ waehlen, Spitzen an R1.a und R1.b. Danach „Aufnahme“ am Oszilloskop.',
+    hint2: 'Das Multimeter mittelt ueber viele Perioden – positive und negative Halbwelle heben sich auf.',
+    palette: [], start: genR(), ref: genR(), bench: { parts: [bG1, bR1] },
+    tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'udc', ask: 'Anzeige V⎓ an R1 (Gleichanteil)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.03, abs: 0.1 },
+      { id: 'upp', ask: 'Spitze-Spitze-Wert U_ss (Oszilloskop)', unit: 'V', mode: 'AC', q: 'pp', a: 'R1.a', b: 'R1.b', tol: 0.03 }
+    ]
+  });
+
+  defTask({
+    id: '3.3', ch: 3, title: 'Mischgroesse einstellen', tags: ['elektro.wechselgroessen', 'elektro.mittelwert'],
+    story: 'Ein Sensor braucht eine Sinusspannung, die um 5 V herum schwingt – nie ganz auf null.',
+    brief: 'Hole den Funktionsgenerator, schliesse ihn an R1 an und stelle einen <b>Gleichanteil von 5 V</b> ein (Sinus, Û = 10 V). Miss den Mittelwert mit V⎓.',
+    learn: 'Mischgroesse = Wechselanteil + Gleichanteil.',
+    take: 'Der Gleichanteil verschiebt die Kurve nach oben – V⎓ zeigt genau diesen Anteil.',
+    hint: 'Im Eigenschaften-Panel des Generators gibt es das Feld „Gleichanteil“.',
+    hint2: 'Gleichanteil 5 → Enter. Die Kurve laeuft dann von −5 V bis +15 V.',
+    palette: ['acsource'], need: { acsource: 1 },
+    start: { parts: [R1], wires: [] }, ref: genR({ offset: 5 }),
+    bench: { parts: [bG1, bR1] },
+    wrong: [named('ohne Gleichanteil', genR())],
+    tests: [{ name: 'Mischgroesse', expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [4.9, 5.1] }, { a: 'R1.a', b: 'R1.b', ac: 'pp', range: [19.5, 20.5] }, { noFault: true }] }],
+    measure: [{ id: 'udc', ask: 'Gleichanteil an R1 (V⎓)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.03 }]
+  });
+
+  var half = { parts: [gen(), R1, { id: 'V1', type: 'diode', x: 290, y: 200, rot: 0 }], wires: [W('G1.p', 'V1.a'), W('V1.k', 'R1.a'), W('R1.b', 'G1.n')] };
+  defTask({
+    id: '3.4', ch: 3, title: 'Einweggleichrichter', tags: ['bauteil.diode', 'elektro.gleichrichter', 'elektro.mittelwert'],
+    story: 'Aus der Wechselspannung soll eine Spannung werden, die nur noch in eine Richtung zeigt.',
+    brief: 'Setze eine <b>Diode</b> zwischen Generator und R1, sodass nur die positiven Halbwellen durchkommen. Miss an R1 den <b>Gleichanteil</b> (V⎓) und den <b>Scheitelwert</b> (Oszilloskop).',
+    learn: 'Eine Diode laesst den Strom nur in eine Richtung durch – der Einweggleichrichter.',
+    take: 'Nur jede zweite Halbwelle kommt durch: der Gleichanteil ist ≈ (Û − U_F) / π – deutlich kleiner als Û.',
+    hint: 'Die Anode (V1.a) an den Generator (G1.+), die Kathode (V1.k) an R1.',
+    hint2: 'Erwartet: Û an R1 ≈ 10 V − 0,7 V ≈ 9,3 V, Gleichanteil ≈ 2,8 V.',
+    palette: ['diode'], need: { diode: 1 },
+    start: genR(), ref: half,
+    bench: { parts: [bG1, { id: 'V1', x: 480, y: 290, rot: 0 }, bR1] },
+    wrong: [named('Diode verkehrt (negative Halbwellen)', { parts: half.parts, wires: [W('G1.p', 'V1.k'), W('V1.a', 'R1.a'), W('R1.b', 'G1.n')] })],
+    tests: [{ name: 'gleichgerichtet', expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [2.6, 3.1] }, { noFault: true }] }],
+    measure: [
+      { id: 'udc', ask: 'Gleichanteil an R1 (V⎓)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.04 },
+      { id: 'up', ask: 'Scheitelwert an R1 (Oszilloskop)', unit: 'V', mode: 'AC', q: 'peak', a: 'R1.a', b: 'R1.b', tol: 0.03 }
+    ]
+  });
+
+  var d = function (id, x, y, rot) { return { id: id, type: 'diode', x: x, y: y, rot: rot }; };
+  var bridge = { parts: [gen(), R1, d('V1', 280, 200, 0), d('V2', 280, 400, 0), d('V3', 540, 200, 180), d('V4', 540, 400, 180)],
+    wires: [W('G1.p', 'V1.a'), W('G1.p', 'V3.k'), W('G1.n', 'V2.a'), W('G1.n', 'V4.k'), W('V1.k', 'R1.a'), W('V2.k', 'R1.a'), W('V3.a', 'R1.b'), W('V4.a', 'R1.b')] };
+  defTask({
+    id: '3.5', ch: 3, title: 'Brueckengleichrichter', tags: ['bauteil.diode', 'elektro.gleichrichter', 'elektro.mittelwert'],
+    story: 'Der Einweggleichrichter verschenkt die Haelfte. Mit vier Dioden geht es besser.',
+    brief: 'Baue einen <b>Brueckengleichrichter</b> (Graetz-Bruecke) aus vier Dioden: Durch R1 soll in <b>beiden</b> Halbwellen Strom in dieselbe Richtung fliessen (R1.a positiv). Miss den Gleichanteil an R1.',
+    learn: 'Die Graetz-Bruecke nutzt beide Halbwellen.',
+    take: 'Zweiweg-Gleichrichtung: etwa doppelter Gleichanteil wie beim Einweggleichrichter – dafuer zwei Diodenspannungen Verlust.',
+    hint: 'R1.a bekommt die Kathoden von zwei Dioden (deren Anoden an G1.+ und G1.–). R1.b bekommt die Anoden der anderen zwei (deren Kathoden an G1.+ und G1.–).',
+    hint2: 'V1: G1.+ → R1.a · V2: G1.– → R1.a · V3: R1.b → G1.+ · V4: R1.b → G1.– (jeweils Anode → Kathode).',
+    palette: ['diode'], need: { diode: 4 },
+    start: genR(), ref: bridge,
+    bench: { parts: [bG1, { id: 'V1', x: 470, y: 250, rot: 0 }, { id: 'V2', x: 470, y: 620, rot: 0 }, { id: 'V3', x: 700, y: 250, rot: 180 }, { id: 'V4', x: 700, y: 620, rot: 180 }, { id: 'R1', x: 860, y: 440, rot: 90 }] },
+    wrong: [named('nur Einweg (eine Diode)', half)],
+    tests: [{ name: 'Zweiweg', expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [4.9, 5.9] }, { noFault: true }] }],
+    measure: [{ id: 'udc', ask: 'Gleichanteil an R1 (V⎓)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.04 }]
+  });
+
+  /* ================= Theorie B ================= */
+  defTheory({
+    id: 'T3B', ch: 3, title: 'Gleichrichtwert, Effektivwert, AVG und TRMS', tags: ['elektro.effektivwert', 'messen.trms', 'elektro.gleichrichtwert'],
+    lesson:
+      '<p>Der <b>Gleichrichtwert</b> |Ū| (engl. average, AVG) ist der Mittelwert des <i>Betrags</i> – alle Halbwellen nach oben geklappt. Beim Sinus: <b>|Ū| = 2·Û/π ≈ 0,637·Û</b>.</p>' +
+      '<p>Der <b>Effektivwert</b> (RMS, root mean square) ist die Gleichspannung, die an einem Widerstand <i>dieselbe Leistung</i> umsetzt. Die 230 V im Haushalt sind ein Effektivwert.</p>' +
+      '<div class="formula">Sinus: U = Û/√2 &nbsp; Dreieck: U = Û/√3 &nbsp; Rechteck (±Û): U = Û</div>' +
+      '<p>Leistung am Widerstand mit Effektivwerten: <b>P = U² / R</b>.</p>' +
+      '<p><b>Wie Multimeter messen:</b> Ein <b>AVG-Geraet</b> misst den Gleichrichtwert und multipliziert mit dem <b>Formfaktor 1,11</b> (= Effektivwert/Gleichrichtwert beim Sinus). Beim Sinus stimmt das – bei Rechteck zeigt es 11 % zu viel, beim Dreieck 4 % zu wenig, bei verzerrten Kurven bis 40 % daneben. Ein <b>TRMS-Geraet</b> („true RMS“) rechnet den echten Effektivwert und stimmt bei jeder Kurvenform.</p>' +
+      '<p>V~ misst nur den <b>Wechselanteil</b>. Bei einer Mischgroesse gilt fuer den gesamten Effektivwert: U<sub>ges</sub> = √(U<sub>DC</sub>² + U<sub>AC</sub>²).</p>',
+    questions: [
+      { q: 'Ein Sinus hat Û = 10 V. Wie gross ist der Effektivwert?', options: ['5 V', '6,37 V', '7,07 V', '10 V'], correct: 2, explain: 'U = Û / √2 = 10 V / 1,414 ≈ 7,07 V.' },
+      { q: 'Wie gross ist der Gleichrichtwert dieses Sinus?', options: ['3,18 V', '6,37 V', '7,07 V', '10 V'], correct: 1, explain: '|Ū| = 2 · Û / π = 20 V / 3,14 ≈ 6,37 V.' },
+      { q: 'Ein AVG-Multimeter misst ein Rechteck ±10 V. Was zeigt es an?', options: ['7,07 V', '9,0 V', '10,0 V', '11,1 V'], correct: 3, explain: 'Gleichrichtwert 10 V × Formfaktor 1,11 = 11,1 V – 11 % zu viel, denn der echte Effektivwert ist 10 V.' },
+      { q: 'Welches Messgeraet zeigt bei einer beliebigen Kurvenform den richtigen Effektivwert?', options: ['Drehspulgeraet', 'AVG-Multimeter', 'TRMS-Multimeter', 'Jedes Multimeter auf V⎓'], correct: 2, explain: 'Nur TRMS berechnet den echten quadratischen Mittelwert.' },
+      { q: 'Welche Leistung setzt eine Sinusspannung Û = 10 V an 1 kΩ um?', options: ['10 mW', '50 mW', '70,7 mW', '100 mW'], correct: 1, explain: 'P = U² / R = (7,07 V)² / 1000 Ω = 50 mW.' }
+    ]
+  });
+
+  /* ================= Aufgaben 6–10 ================= */
+  defTask({
+    id: '3.6', ch: 3, title: 'Der Effektivwert', tags: ['elektro.effektivwert', 'messen.wechselspannung', 'elektro.leistung'],
+    story: 'Wie warm wird R1 an der Wechselspannung? Dafuer zaehlt der Effektivwert, nicht der Scheitelwert.',
+    brief: 'Miss an R1 die Wechselspannung mit dem Multimeter auf <b>V~ (TRMS)</b>. Berechne daraus die <b>Leistung</b> in R1 (1 kΩ).',
+    learn: 'Der Effektivwert ist die gleichwertige Gleichspannung fuer die Leistung: P = U² / R.',
+    take: 'Beim Sinus ist der Effektivwert Û/√2 – mit ihm rechnest du wie mit Gleichspannung.',
+    hint: 'V~ waehlen, Verfahren „Echt-Effektivwert (TRMS)“, Spitzen an R1.',
+    hint2: 'U ≈ 7,07 V → P = (7,07 V)² / 1000 Ω ≈ 0,05 W = 50 mW.',
+    palette: [], start: genR(), ref: genR(), bench: { parts: [bG1, bR1] },
+    tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'ueff', ask: 'Effektivwert an R1 (V~ TRMS)', unit: 'V', mode: 'VAC', meterType: 'trms', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'p', ask: 'Leistung in R1 (berechnet)', unit: 'mW', value: 0.05, tol: 0.05 }
+    ]
+  });
+
+  var sq = genR({ shape: 'square' });
+  defTask({
+    id: '3.7', ch: 3, title: 'Das Multimeter luegt', tags: ['messen.trms', 'elektro.effektivwert', 'messen.wechselspannung'],
+    story: 'Zwei Multimeter, zwei Anzeigen – am selben Rechtecksignal. Welches hat recht?',
+    brief: 'Der Generator liefert ein <b>Rechteck ±10 V</b>. Miss die Spannung an R1 auf V~ einmal mit dem Verfahren <b>Mittelwert (AVG)</b> und einmal mit <b>Echt-Effektivwert (TRMS)</b>.',
+    learn: 'AVG-Geraete rechnen mit dem Sinus-Formfaktor 1,11 – bei anderen Kurvenformen zeigen sie falsch.',
+    take: 'Rechteck ±10 V: TRMS zeigt 10 V (richtig), AVG zeigt 11,1 V (11 % zu viel).',
+    hint: 'Im Multimeter-Panel unter „V~ misst“ zwischen AVG und TRMS umschalten.',
+    hint2: 'Der Gleichrichtwert eines Rechtecks ist 10 V; das AVG-Geraet multipliziert mit 1,11.',
+    palette: [], start: sq, ref: sq, bench: { parts: [bG1, bR1] },
+    tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'avg', ask: 'Anzeige V~ mit AVG-Verfahren', unit: 'V', mode: 'VAC', meterType: 'avg', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'trms', ask: 'Anzeige V~ mit TRMS-Verfahren', unit: 'V', mode: 'VAC', meterType: 'trms', a: 'R1.a', b: 'R1.b', tol: 0.03 }
+    ]
+  });
+
+  defTask({
+    id: '3.8', ch: 3, title: 'Dreieck einstellen', tags: ['messen.trms', 'elektro.effektivwert', 'elektro.wechselgroessen'],
+    story: 'Fuer einen Test braucht es eine Dreieckspannung. Kontrolliere, ob der Generator richtig eingestellt ist.',
+    brief: 'Hole den Funktionsgenerator, schliesse ihn an R1 an und stelle die Kurvenform <b>Dreieck</b> ein (Û = 10 V). Miss auf V~ mit <b>TRMS</b> und mit <b>AVG</b>.',
+    learn: 'Dreieck: U_eff = Û/√3 ≈ 0,577 · Û.',
+    take: 'Beim Dreieck zeigt das AVG-Geraet etwa 4 % zu wenig (5,55 V statt 5,77 V).',
+    hint: 'Im Eigenschaften-Panel „Kurvenform: Dreieck“ waehlen.',
+    hint2: 'TRMS ≈ 10 V / 1,732 ≈ 5,77 V.',
+    palette: ['acsource'], need: { acsource: 1 },
+    start: { parts: [R1], wires: [] }, ref: genR({ shape: 'triangle' }),
+    bench: { parts: [bG1, bR1] },
+    wrong: [named('Sinus statt Dreieck', genR()), named('Rechteck statt Dreieck', genR({ shape: 'square' }))],
+    tests: [{ name: 'Dreieck', expect: [{ a: 'R1.a', b: 'R1.b', ac: 'rms', range: [5.6, 5.95] }, { noFault: true }] }],
+    measure: [
+      { id: 'trms', ask: 'Anzeige V~ mit TRMS', unit: 'V', mode: 'VAC', meterType: 'trms', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'avg', ask: 'Anzeige V~ mit AVG', unit: 'V', mode: 'VAC', meterType: 'avg', a: 'R1.a', b: 'R1.b', tol: 0.03 }
+    ]
+  });
+
+  var twoLamps = function (u) {
+    var l = { parts: [gen(), { id: 'H1', type: 'lamp', x: 300, y: 300, rot: 90 }, { id: 'H2', type: 'lamp', x: 620, y: 300, rot: 90 }], wires: [W('G1.p', 'H1.a'), W('H1.b', 'G1.n')] };
+    if (u) { l.parts.push({ id: 'B1', type: 'battery', value: u, x: 480, y: 300, rot: 0 }); l.wires.push(W('B1.p', 'H2.a'), W('H2.b', 'B1.n')); }
+    return l;
+  };
+  defTask({
+    id: '3.9', ch: 3, title: 'Gleich hell', tags: ['elektro.effektivwert', 'elektro.leistung'],
+    story: 'Was bedeutet „Effektivwert“ eigentlich? Die Werkmeisterin stellt zwei gleiche Lampen auf den Tisch.',
+    brief: 'H1 haengt an der Sinusspannung Û = 10 V. Schliesse H2 an eine <b>Gleichspannungsquelle</b> an und stelle deren Spannung so ein, dass H2 <b>gleich viel Leistung</b> bekommt wie H1 (±2 %).',
+    learn: 'Der Effektivwert ist die Gleichspannung mit derselben Waermewirkung.',
+    take: 'Û = 10 V wirkt an der Lampe wie 7,07 V Gleichspannung – genau das bedeutet Effektivwert.',
+    hint: 'Welche Gleichspannung setzt an 60 Ω dieselbe Leistung um wie ein Sinus mit Û = 10 V?',
+    hint2: 'U = Û / √2 ≈ 7,07 V – Quelle holen, Spannung auf 7.07 setzen, an H2 anschliessen.',
+    palette: ['battery'], need: { battery: 1 },
+    start: twoLamps(0), ref: twoLamps(7.07),
+    bench: { parts: [bG1, { id: 'H1', x: 480, y: 330, rot: 90 }, { id: 'B1', x: 660, y: 520, rot: 0 }, { id: 'H2', x: 860, y: 330, rot: 90 }] },
+    wrong: [named('Scheitelwert statt Effektivwert (10 V)', twoLamps(10)), named('Gleichrichtwert (6,37 V)', twoLamps(6.37))],
+    tests: [{ name: 'gleiche Leistung', expect: [{ sel: 'H2', v: [6.93, 7.21] }, { noFault: true }] }]
+  });
+
+  var mix = genR({ offset: 5 });
+  defTask({
+    id: '3.10', ch: 3, title: 'Gleich- und Wechselanteil', tags: ['messen.trms', 'elektro.effektivwert', 'elektro.mittelwert'],
+    story: 'Am Ausgang eines Sensors liegt ein Sinus mit Gleichanteil. Wie gross ist der gesamte Effektivwert?',
+    brief: 'Miss an R1 den <b>Gleichanteil</b> (V⎓) und den <b>Wechselanteil</b> (V~ TRMS). Berechne daraus den <b>gesamten Effektivwert</b> U = √(U<sub>DC</sub>² + U<sub>AC</sub>²).',
+    learn: 'V~ misst nur den Wechselanteil – der Gleichanteil kommt quadratisch dazu.',
+    take: 'Fuer Mischgroessen braucht es beide Messungen (oder ein TRMS-Geraet mit AC+DC).',
+    hint: 'Erst V⎓, dann V~ (TRMS) an R1.',
+    hint2: 'U_DC ≈ 5 V, U_AC ≈ 7,07 V → U = √(25 + 50) V ≈ 8,66 V.',
+    palette: [], start: mix, ref: mix, bench: { parts: [bG1, bR1] },
+    tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'udc', ask: 'Gleichanteil U_DC (V⎓)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'uac', ask: 'Wechselanteil U_AC (V~ TRMS)', unit: 'V', mode: 'VAC', meterType: 'trms', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'uges', ask: 'Gesamter Effektivwert (berechnet)', unit: 'V', value: Math.sqrt(25 + 50), tol: 0.03 }
+    ]
+  });
+})();
+
+/* ==== content/ch04.js ==== */
+/* Kapitel 4 – Messtechnik
+ * Quelle: Messtechnik Erweiterung (Kap. 1 Grundbegriffe, 2 Messgeraete, 3 Messkategorien, 5 Genauigkeit/Messfehler inkl.
+ * Systemfehler, 6 Messaufgaben), Willkommen in der Digitaltechnik (Auftrag 3: systematische Fehlersuche). */
+(function () {
+  'use strict';
+
+  defChapter({
+    id: 4, title: 'Messtechnik',
+    intro: 'Ein Messgeraet zeigt immer eine Zahl – aber stimmt sie? Du lernst Messbereiche, Potentiale, Eigenverbrauch und Messfehler kennen und findest einen Defekt, den man nicht sieht.',
+    sequence: ['T4A', '4.1', '4.2', '4.3', '4.4', '4.5', 'T4B', '4.6', '4.7', '4.8', '4.9', '4.10']
+  });
+
+  var bat = function (v) { return { id: 'B1', type: 'battery', value: v, x: 160, y: 300, rot: 0 }; };
+  var R = function (id, v, x, y, rot) { return { id: id, type: 'resistor', value: v, x: x, y: y, rot: rot || 0 }; };
+  var bB1 = { id: 'B1', x: 240, y: 460, rot: 0 };
+  var named = function (name, l) { l.name = name; return l; };
+  var divider = function (u, r1, r2) { return { parts: [bat(u), R('R1', r1, 360, 240, 90), R('R2', r2, 360, 380, 90)], wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'B1.n')] }; };
+  var bDiv = { parts: [bB1, { id: 'R1', x: 560, y: 300, rot: 90 }, { id: 'R2', x: 720, y: 480, rot: 90 }] };
+
+  /* ================= Theorie A ================= */
+  defTheory({
+    id: 'T4A', ch: 4, title: 'Messen, Pruefen, Messgeraete', tags: ['messen.grundbegriffe', 'messen.geraete', 'messen.sicherheit'],
+    lesson:
+      '<p><b>Messen</b> heisst, eine physikalische Groesse als Zahlenwert zu erfassen (z. B. 8,02 V). <b>Pruefen</b> stellt nur fest, ob etwas vorhanden ist oder nicht (Spannung ja/nein) – ohne Zahlenwert.</p>' +
+      '<p><b>Kalibrieren</b>: vergleichen, wie weit die Anzeige vom wahren Wert abweicht. <b>Justieren</b>: die Anzeige nachstellen, damit die Abweichung wieder klein ist. <b>Eichen</b>: amtliche Pruefung, ob das Geraet in der Eichfehlergrenze liegt.</p>' +
+      '<p><b>Messgeraete:</b> Das <b>Drehspulmesswerk</b> zeigt bei DC den linearen Mittelwert, bei AC (mit Gleichrichter) den Gleichrichtwert. Das <b>Dreheisenmesswerk</b> zeigt bei AC den Effektivwert. Das <b>Digitalmultimeter</b> misst Spannung, Strom und Widerstand – je nach Bauart als AVG, RMS oder TRMS. Die <b>Strommesszange</b> misst ueber das Magnetfeld, ohne den Kreis aufzutrennen.</p>' +
+      '<p><b>Potential</b> ist die Spannung eines Punktes gegen einen festen Bezugspunkt (Masse ⏚, 0 V). Eine Spannung ist die Differenz zweier Potentiale.</p>' +
+      '<p><b>Messkategorien</b> sagen, wo ein Geraet eingesetzt werden darf: <b>CAT I</b> Geraete ohne Netzverbindung (Batterie, Schutzkleinspannung) · <b>CAT II</b> Geraete am Stecker · <b>CAT III</b> Gebaeudeinstallation (Steckdosen, Verteiler, fest angeschlossene Geraete) · <b>CAT IV</b> Quelle der Installation (Hausanschluss, Zaehler).</p>',
+    questions: [
+      { q: 'Ein Spannungspruefer zeigt „Spannung vorhanden“ ohne Zahlenwert. Das ist …', options: ['Messen', 'Pruefen', 'Kalibrieren', 'Eichen'], correct: 1, explain: 'Pruefen kennt nur zwei Zustaende – vorhanden oder nicht.' },
+      { q: 'Die amtliche Pruefung, ob ein Messgeraet in der Fehlergrenze liegt, heisst …', options: ['Justieren', 'Kalibrieren', 'Eichen', 'Pruefen'], correct: 2, explain: 'Eichen macht eine staatliche Eichbehoerde.' },
+      { q: 'Wie misst eine Strommesszange den Strom?', options: ['Sie trennt den Kreis auf', 'Ueber das Magnetfeld um den Leiter', 'Ueber einen Nebenwiderstand im Geraet', 'Gar nicht, nur Spannung'], correct: 1, explain: 'Das Magnetfeld des Leiters induziert in der Zange einen proportionalen Strom.' },
+      { q: 'In welcher Messkategorie misst du an einer Steckdose der Gebaeudeinstallation?', options: ['CAT I', 'CAT II', 'CAT III', 'Keine'], correct: 2, explain: 'Steckdosen, Verteiler und fest angeschlossene Verbraucher gehoeren zu CAT III.' },
+      { q: 'Ein Punkt hat das Potential 10 V, ein anderer 6 V (gegen Masse). Welche Spannung liegt dazwischen?', options: ['4 V', '6 V', '10 V', '16 V'], correct: 0, explain: 'Spannung = Potentialdifferenz: 10 V − 6 V = 4 V.' }
+    ]
+  });
+
+  /* ================= Aufgaben 1–5 ================= */
+  var lamp = function (closed) {
+    return { parts: [bat(9), { id: 'S1', type: 'switch', props: { closed: closed }, x: 300, y: 200, rot: 0 }, { id: 'H1', type: 'lamp', x: 500, y: 300, rot: 90 }],
+      wires: [W('B1.p', 'S1.a'), W('S1.b', 'H1.a'), W('H1.b', 'B1.n')] };
+  };
+  defTask({
+    id: '4.1', ch: 4, title: 'Wo lauert die Spannung?', tags: ['messen.spannung', 'messen.sicherheit'],
+    story: '„Lampe aus, also alles spannungsfrei“ – sagt der Neue. Die Werkmeisterin reicht ihm schweigend das Multimeter.',
+    brief: 'Die Lampe ist aus, der Schalter offen. Miss die Spannung <b>am offenen Schalter</b> und <b>an der Lampe</b>.',
+    learn: 'Ein offener Schalter hat die volle Spannung ueber sich.',
+    take: '„Aus“ heisst nicht „spannungsfrei“: Am offenen Kontakt liegt die ganze Quellenspannung an.',
+    hint: 'V⎓, rote Spitze an S1.a, schwarze an S1.b.',
+    hint2: 'Es fliesst kein Strom → an der Lampe faellt nichts ab → alles liegt am Schalter.',
+    palette: [], start: lamp(false), ref: lamp(false),
+    bench: { parts: [bB1, { id: 'S1', x: 520, y: 290, rot: 0 }, { id: 'H1', x: 780, y: 460, rot: 0 }] },
+    tests: [{ name: 'Anlage aus', expect: [{ sel: 'H1', i: [0, 1e-6] }] }],
+    measure: [
+      { id: 'us', ask: 'Spannung am offenen Schalter S1', unit: 'V', mode: 'V', a: 'S1.a', b: 'S1.b', tol: 0.03 },
+      { id: 'uh', ask: 'Spannung an der Lampe H1', unit: 'V', mode: 'V', a: 'H1.a', b: 'H1.b', tol: 0.03, abs: 0.02 }
+    ]
+  });
+
+  var small = divider(10, 100000, 100);
+  defTask({
+    id: '4.2', ch: 4, title: 'Kleine Spannungen', tags: ['messen.spannung', 'messen.messbereich'],
+    story: 'Ein Shunt-Widerstand liefert nur wenige Millivolt. Reicht die Aufloesung des Multimeters?',
+    brief: 'Miss die Spannung an <b>R2 (100 Ω)</b> und an <b>R1 (100 kΩ)</b>. Achte auf die Einheit, die das Multimeter anzeigt.',
+    learn: 'Das Multimeter waehlt den Messbereich automatisch – kleine Spannungen in mV mit feinerer Aufloesung.',
+    take: 'Im 600-mV-Bereich zeigt das Geraet 0,1 mV Aufloesung, im 6-V-Bereich nur 1 mV. Einheit immer mitlesen!',
+    hint: 'Die Anzeige springt auf mV – trage den Wert in mV ein.',
+    hint2: 'U₂ = 10 V · 100 Ω / 100,1 kΩ ≈ 10 mV.',
+    palette: [], start: small, ref: small, bench: bDiv,
+    tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'u2', ask: 'Spannung an R2', unit: 'mV', mode: 'V', a: 'R2.a', b: 'R2.b', tol: 0.03 },
+      { id: 'u1', ask: 'Spannung an R1', unit: 'V', mode: 'V', a: 'R1.a', b: 'R1.b', tol: 0.03 }
+    ]
+  });
+
+  var amm = function (mode) {
+    var p = [bat(9), { id: 'H1', type: 'lamp', x: 500, y: 300, rot: 90 }];
+    if (!mode) return { parts: p, wires: [W('B1.p', 'H1.a'), W('H1.b', 'B1.n')] };
+    p.push({ id: 'A1', type: 'ammeter', x: 300, y: 200, rot: 0 });
+    return mode === 'series' ? { parts: p, wires: [W('B1.p', 'A1.a'), W('A1.b', 'H1.a'), W('H1.b', 'B1.n')] }
+      : { parts: p, wires: [W('B1.p', 'H1.a'), W('H1.b', 'B1.n'), W('A1.a', 'H1.a'), W('A1.b', 'H1.b')] };
+  };
+  defTask({
+    id: '4.3', ch: 4, title: 'Fest eingebauter Strommesser', tags: ['messen.strom', 'messen.geraete'],
+    story: 'Die Pruefstation soll den Lampenstrom dauernd anzeigen – ohne dass jemand mit dem Multimeter danebensteht.',
+    brief: 'Baue den <b>Strommesser A1</b> fest in den Lampenkreis ein und lies den Strom ab.',
+    learn: 'Ein Strommesser gehoert immer in Reihe.',
+    take: 'Parallel zur Lampe wuerde der Strommesser (fast 0 Ω) einen Kurzschluss bilden.',
+    hint: 'Leitung B1.+ → H1 loesen, A1 dazwischen setzen.',
+    hint2: 'B1.+ → A1.a, A1.b → H1.a.',
+    palette: ['ammeter'], need: { ammeter: 1 },
+    start: amm(), ref: amm('series'),
+    bench: { parts: [bB1, { id: 'A1', x: 520, y: 290, rot: 0 }, { id: 'H1', x: 780, y: 460, rot: 0 }] },
+    wrong: [named('Strommesser parallel zur Lampe', amm('parallel'))],
+    tests: [{ name: 'Betrieb', expect: [{ sel: '@ammeter', i: [0.14, 0.16] }, { sel: 'H1', i: [0.14, 0.16] }, { noFault: true }] }],
+    measure: [{ id: 'i', ask: 'Anzeige des Strommessers A1', unit: 'mA', truth: { sel: 'A1', q: 'i' }, tol: 0.03 }]
+  });
+
+  var pot = { parts: [bat(12), R('R1', 1000, 300, 200), R('R2', 2000, 440, 200), R('R3', 3000, 580, 300, 90), { id: 'GND1', type: 'ground', x: 160, y: 420, rot: 0 }],
+    wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'R3.a'), W('R3.b', 'B1.n'), W('B1.n', 'GND1.g')] };
+  defTask({
+    id: '4.4', ch: 4, title: 'Potentiale gegen Masse', tags: ['messen.spannung', 'messen.potential'],
+    story: 'Im Schaltplan stehen an jedem Knoten Spannungswerte – gemessen gegen Masse. Pruefe sie nach.',
+    brief: 'Miss die <b>Potentiale</b> (gegen Masse ⏚) am Knoten zwischen R1 und R2 und am Knoten zwischen R2 und R3. Miss dann die <b>Spannung an R2</b>.',
+    learn: 'Potential = Spannung gegen Masse; Spannung = Potentialdifferenz.',
+    take: 'Schwarze Spitze an Masse lassen, mit Rot von Knoten zu Knoten wandern – so misst man Potentiale.',
+    hint: 'Schwarze Spitze an GND1, rote an R1.b bzw. R2.b.',
+    hint2: 'Erwartet 10 V und 6 V → U₂ = 10 V − 6 V = 4 V.',
+    palette: [], start: pot, ref: pot,
+    bench: { parts: [bB1, { id: 'R1', x: 420, y: 290, rot: 0 }, { id: 'R2', x: 620, y: 290, rot: 0 }, { id: 'R3', x: 800, y: 460, rot: 90 }, { id: 'GND1', x: 240, y: 640, rot: 0 }] },
+    tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'p1', ask: 'Potential zwischen R1 und R2', unit: 'V', mode: 'V', a: 'R1.b', b: 'GND1.g', tol: 0.03 },
+      { id: 'p2', ask: 'Potential zwischen R2 und R3', unit: 'V', mode: 'V', a: 'R2.b', b: 'GND1.g', tol: 0.03 },
+      { id: 'u2', ask: 'Spannung an R2', unit: 'V', mode: 'V', a: 'R2.a', b: 'R2.b', tol: 0.03 }
+    ]
+  });
+
+  var clk = { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 100 }, x: 200, y: 300, rot: 0 }, R('R1', 1000, 420, 300, 90), { id: 'GND1', type: 'ground', x: 420, y: 440, rot: 0 }],
+    wires: [W('CLK1.out', 'R1.a'), W('R1.b', 'GND1.g')] };
+  defTask({
+    id: '4.5', ch: 4, title: 'Ein Taktsignal messen', tags: ['messen.trms', 'messen.oszilloskop', 'digital.pegel'],
+    story: 'Ein digitales Taktsignal springt zwischen 0 und 5 V. Was zeigen die verschiedenen Messbereiche?',
+    brief: 'Der Taktgeber (100 Hz) treibt R1. Miss an R1: den Mittelwert (<b>V⎓</b>), den Wechselanteil (<b>V~</b> mit AVG und mit TRMS) und den <b>Spitze-Spitze-Wert</b> mit dem Oszilloskop.',
+    learn: 'Ein Rechtecksignal 0…5 V ist eine Mischgroesse: Gleichanteil + Wechselanteil.',
+    take: 'V⎓ zeigt den halben Pegel (Tastgrad 50 %), V~ nur den Wechselanteil – und das AVG-Geraet liegt wieder 11 % daneben.',
+    hint: 'Erst V⎓, dann V~ (Verfahren umschalten), zum Schluss Oszilloskop mit Zeitbasis 50 ms.',
+    hint2: 'Durch den Ausgangswiderstand des Taktgebers ist der High-Pegel an R1 knapp unter 5 V.',
+    palette: [], start: clk, ref: clk,
+    bench: { parts: [{ id: 'CLK1', x: 300, y: 380, rot: 0 }, { id: 'R1', x: 600, y: 400, rot: 90 }, { id: 'GND1', x: 600, y: 620, rot: 0 }] },
+    tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'udc', ask: 'Anzeige V⎓ (Mittelwert)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'trms', ask: 'Anzeige V~ mit TRMS', unit: 'V', mode: 'VAC', meterType: 'trms', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'avg', ask: 'Anzeige V~ mit AVG', unit: 'V', mode: 'VAC', meterType: 'avg', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'upp', ask: 'Spitze-Spitze-Wert (Oszilloskop)', unit: 'V', mode: 'AC', q: 'pp', a: 'R1.a', b: 'R1.b', tol: 0.03 }
+    ]
+  });
+
+  /* ================= Theorie B ================= */
+  defTheory({
+    id: 'T4B', ch: 4, title: 'Genauigkeit und Messfehler', tags: ['messen.genauigkeit', 'messen.systemfehler'],
+    lesson:
+      '<p><b>Analoge Geraete:</b> Die Genauigkeit (z. B. 0,5 %) bezieht sich auf den <b>Messbereich-Endwert</b>. Bereich 20 V, 0,5 % → ±0,1 V – egal ob 15 V oder 2 V angezeigt werden. Deshalb im kleinsten passenden Bereich messen.</p>' +
+      '<p><b>Digitale Geraete:</b> Die Genauigkeit bezieht sich auf den <b>angezeigten Wert</b> plus einige <b>Digit</b> (die letzte Stelle). Beispiel 15,0 V, ±(0,5 % + 1 Digit): 0,075 V + 0,1 V = ±0,175 V.</p>' +
+      '<p><b>Fehlerarten:</b> Selbstverschuldet (falsche Skala, Parallaxe beim schraegen Ablesen), Anzeigefehler (Fertigung, Reibung), Einflussfehler (Feuchtigkeit, Fremdfelder) und <b>Systemfehler</b> durch den <b>Eigenverbrauch</b> des Messgeraets.</p>' +
+      '<p><b>Eigenverbrauch:</b> Ein Voltmeter hat 10 MΩ Innenwiderstand – an einer hochohmigen Schaltung belastet es den Messpunkt merklich. Ein Amperemeter hat einen kleinen Innenwiderstand, an dem Spannung abfaellt.</p>' +
+      '<p><b>Spannungsrichtige Messung:</b> Voltmeter direkt am Verbraucher, Amperemeter davor – das Amperemeter misst den Voltmeterstrom mit (schlecht bei <i>grossen</i> Widerstaenden). <b>Stromrichtige Messung:</b> Voltmeter ueber Amperemeter und Verbraucher – es misst die Spannung am Amperemeter mit (schlecht bei <i>kleinen</i> Widerstaenden).</p>',
+    questions: [
+      { q: 'Analoges Geraet, Bereich 20 V, Genauigkeit 0,5 %. Wie gross ist der moegliche Fehler?', options: ['±0,01 V', '±0,075 V', '±0,1 V', '±1 V'], correct: 2, explain: '0,5 % vom Endwert 20 V = 0,1 V.' },
+      { q: 'Digital, Anzeige 15,0 V, ±(0,5 % + 1 Digit). Maximaler Fehler?', options: ['±0,075 V', '±0,1 V', '±0,175 V', '±0,5 V'], correct: 2, explain: '0,5 % von 15,0 V = 0,075 V, 1 Digit = 0,1 V → zusammen 0,175 V.' },
+      { q: '10 V an zwei Widerstaenden von je 10 MΩ. Was zeigt das Multimeter (10 MΩ) an R2?', options: ['5,00 V', '4,50 V', '3,33 V', '0 V'], correct: 2,
+        explain: 'R2 ∥ 10 MΩ = 5 MΩ → U = 10 V · 5 / 15 ≈ 3,33 V. Das Messgeraet belastet den Teiler.', verify: { layout: divider(10, 10e6, 10e6), mode: 'V', a: 'R2.a', b: 'R2.b' } },
+      { q: 'Bei der spannungsrichtigen Messung misst das Amperemeter …', options: ['nur den Verbraucherstrom', 'den Verbraucherstrom plus den Voltmeterstrom', 'die Spannung am Voltmeter', 'gar nichts'], correct: 1, explain: 'Das Voltmeter haengt hinter dem Amperemeter – sein Strom fliesst durch das Amperemeter.' },
+      { q: 'Wann ist die spannungsrichtige Messung ungeeignet?', options: ['Bei sehr kleinen Widerstaenden', 'Bei sehr grossen Widerstaenden', 'Bei Wechselspannung', 'Nie'], correct: 1, explain: 'Bei grossen Widerstaenden ist der Voltmeterstrom im Vergleich gross – der Fehler wird gross.' }
+    ]
+  });
+
+  /* ================= Aufgaben 6–10 ================= */
+  var hi = divider(10, 10e6, 10e6);
+  defTask({
+    id: '4.6', ch: 4, title: 'Das Voltmeter belastet', tags: ['messen.systemfehler', 'messen.spannung', 'elektro.spannungsteiler'],
+    story: 'Rechnerisch liegen an R2 genau 5 V. Das Multimeter zeigt etwas anderes. Ist es kaputt?',
+    brief: 'Miss U2 am hochohmigen Teiler (2 × 10 MΩ). Trage den <b>angezeigten</b> Wert ein und den <b>unbelasteten</b> Wert, den die Schaltung ohne Messgeraet haette.',
+    learn: 'Das Voltmeter (10 MΩ) liegt parallel zum Messobjekt und veraendert die Schaltung.',
+    take: 'Messen veraendert, was man misst – bei hochohmigen Schaltungen stark. R2 ∥ 10 MΩ = 5 MΩ → 3,33 V statt 5 V.',
+    hint: 'Die Anzeige ist korrekt – sie zeigt die Spannung der belasteten Schaltung.',
+    hint2: 'Unbelastet: 10 V · 10 MΩ / 20 MΩ = 5 V.',
+    palette: [], start: hi, ref: hi, bench: bDiv,
+    tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'um', ask: 'Angezeigte Spannung an R2', unit: 'V', mode: 'V', a: 'R2.a', b: 'R2.b', tol: 0.03 },
+      { id: 'u0', ask: 'Spannung an R2 ohne Messgeraet (berechnet)', unit: 'V', value: 5, tol: 0.02 }
+    ]
+  });
+
+  var sr = { parts: [bat(10), { id: 'A1', type: 'ammeter', x: 300, y: 200, rot: 0 }, R('R1', 10e6, 480, 300, 90)], wires: [W('B1.p', 'A1.a'), W('A1.b', 'R1.a'), W('R1.b', 'B1.n')] };
+  defTask({
+    id: '4.7', ch: 4, title: 'Spannungsrichtig gemessen', tags: ['messen.systemfehler', 'messen.strom'],
+    story: 'Der Strommesser A1 zeigt den Strom durch den 10-MΩ-Widerstand. Sobald jemand die Spannung misst, springt die Anzeige.',
+    brief: 'Lies A1 ab (Tooltip oder Anzeige auf der Werkbank). Miss dann mit dem Multimeter die Spannung an <b>R1</b> und lies A1 <b>waehrend</b> dieser Messung erneut ab.',
+    learn: 'Spannungsrichtige Schaltung: Das Amperemeter misst den Voltmeterstrom mit.',
+    take: 'An 10 MΩ fliesst genau so viel Strom durch das Voltmeter wie durch R1 – der Strommesser zeigt das Doppelte.',
+    hint: 'Ohne Voltmeter: I = 10 V / 10 MΩ = 1 µA.',
+    hint2: 'Mit Voltmeter parallel zu R1: R1 ∥ 10 MΩ = 5 MΩ → 2 µA.',
+    palette: [], start: sr, ref: sr,
+    bench: { parts: [bB1, { id: 'A1', x: 520, y: 290, rot: 0 }, { id: 'R1', x: 780, y: 440, rot: 90 }] },
+    tests: [{ name: 'Anlage', expect: [{ sel: 'A1', i: [0.95e-6, 1.05e-6] }] }],
+    measure: [
+      { id: 'i0', ask: 'Anzeige A1 ohne Voltmeter', unit: 'µA', value: 1e-6, tol: 0.05 },
+      { id: 'u', ask: 'Spannung an R1', unit: 'V', mode: 'V', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'i1', ask: 'Anzeige A1 waehrend der Spannungsmessung', unit: 'µA', value: 2e-6, tol: 0.05 }
+    ]
+  });
+
+  var inCirc = { parts: [R('R1', 1000, 360, 300, 90), R('R2', 1000, 480, 300, 90)], wires: [W('R1.a', 'R2.a'), W('R1.b', 'R2.b')] };
+  defTask({
+    id: '4.8', ch: 4, title: 'Der falsche Widerstand', tags: ['messen.widerstand', 'elektro.parallelschaltung'],
+    story: 'R1 soll 1 kΩ haben. In der Platine gemessen zeigt das Ohmmeter nur 500 Ω. Falsch bestueckt?',
+    brief: 'Miss R1 zuerst <b>in der Schaltung</b>. Trenne ihn dann einseitig heraus (eine Leitung loeschen) und miss seinen <b>wahren Wert</b>. Die Schaltung darf am Schluss wieder verbunden sein.',
+    learn: 'Parallelpfade verfaelschen die Widerstandsmessung in der Schaltung.',
+    take: 'Das Ohmmeter misst alles, was zwischen seinen Spitzen liegt. Zum Ausmessen ein Bauteil mindestens einseitig freilegen.',
+    hint: 'R2 liegt parallel zu R1 – das Ohmmeter misst R1 ∥ R2.',
+    hint2: 'Leitung R1.a–R2.a loeschen, R1 messen, Leitung wieder ziehen.',
+    palette: [], start: inCirc, ref: inCirc,
+    bench: { parts: [{ id: 'R1', x: 480, y: 400, rot: 90 }, { id: 'R2', x: 640, y: 400, rot: 90 }] },
+    tests: [{ name: 'Schaltung', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'rin', ask: 'Anzeige in der Schaltung', unit: 'Ω', value: 500, tol: 0.03 },
+      { id: 'rtrue', ask: 'Wahrer Wert von R1 (freigelegt)', unit: 'Ω', value: 1000, tol: 0.03 }
+    ]
+  });
+
+  var gen = function (props) { return { id: 'G1', type: 'acsource', value: 10, props: Object.assign({ freq: 50, shape: 'sine', offset: 0 }, props), x: 160, y: 300, rot: 0 }; };
+  var tri = { parts: [gen({ shape: 'triangle', offset: 3 }), R('R1', 1000, 420, 300, 90)], wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] };
+  defTask({
+    id: '4.9', ch: 4, title: 'Welches Messgeraet?', tags: ['messen.trms', 'messen.geraete', 'elektro.effektivwert'],
+    story: 'Ein Sensor liefert ein Dreieck mit Gleichanteil. Drei Kollegen, drei Messwerte – wer hat recht?',
+    brief: 'Miss an R1: <b>V⎓</b>, <b>V~ mit AVG</b> und <b>V~ mit TRMS</b>. Berechne den gesamten Effektivwert (AC + DC).',
+    learn: 'AVG stimmt nur beim Sinus; V~ zeigt nur den Wechselanteil; der Gleichanteil kommt quadratisch dazu.',
+    take: 'Fuer beliebige Kurven mit Gleichanteil: TRMS fuer den Wechselanteil, V⎓ fuer den Gleichanteil, U = √(U_DC² + U_AC²).',
+    hint: 'Dreieck Û = 10 V: TRMS ≈ 5,77 V, AVG ≈ 5,55 V; Gleichanteil 3 V.',
+    hint2: 'U = √(3² + 5,77²) V ≈ 6,51 V.',
+    palette: [], start: tri, ref: tri,
+    bench: { parts: [{ id: 'G1', x: 250, y: 460, rot: 0 }, { id: 'R1', x: 700, y: 440, rot: 90 }] },
+    tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'udc', ask: 'V⎓ (Gleichanteil)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'avg', ask: 'V~ mit AVG', unit: 'V', mode: 'VAC', meterType: 'avg', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'trms', ask: 'V~ mit TRMS', unit: 'V', mode: 'VAC', meterType: 'trms', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'uges', ask: 'Gesamter Effektivwert (berechnet)', unit: 'V', value: Math.sqrt(9 + 100 / 3), tol: 0.03 }
+    ]
+  });
+
+  var L = function (id, x, y, rot, defect) { var l = { id: id, type: 'lamp', x: x, y: y, rot: rot || 0 }; if (defect) l.props = { defect: true }; return l; };
+  var chainStart = { parts: [bat(9), L('H1', 300, 200), L('H2', 440, 200, 0, true), L('H3', 580, 300, 90)],
+    wires: [W('B1.p', 'H1.a'), W('H1.b', 'H2.a'), W('H2.b', 'H3.a'), W('H3.b', 'B1.n')] };
+  var chainFixed = { parts: chainStart.parts.concat([L('H4', 440, 100)]), wires: [W('B1.p', 'H1.a'), W('H1.b', 'H4.a'), W('H4.b', 'H3.a'), W('H3.b', 'B1.n')] };
+  defTask({
+    id: '4.10', ch: 4, title: 'Die Lichterkette ist tot', tags: ['elektro.fehlersuche', 'messen.spannung', 'elektro.reihenschaltung'],
+    story: 'Drei Lampen in Reihe, alle dunkel. Von aussen sieht man nichts. „Pruefen, nicht raten“, sagt die Werkmeisterin wieder.',
+    brief: 'Finde die <b>defekte Lampe</b> durch Spannungsmessung und ersetze sie: neue Lampe aus der Palette an ihre Stelle verdrahten (die defekte bleibt liegen). Notiere die Spannung, die du an der defekten Lampe gemessen hast.',
+    learn: 'In einer unterbrochenen Reihe liegt die ganze Spannung an der Unterbrechung.',
+    take: 'Systematische Fehlersuche: Spannung an jedem Bauteil messen – wo die volle Quellenspannung anliegt, ist der Kreis offen.',
+    hint: 'Miss nacheinander an H1, H2 und H3. An intakten Lampen fliesst kein Strom → 0 V.',
+    hint2: 'An H2 liegen 9 V → H2 ist unterbrochen. Neue Lampe H4 holen, H1.b → H4.a und H4.b → H3.a, die Leitungen an H2 loeschen.',
+    palette: ['lamp'], need: { lamp: 4 },
+    start: chainStart, ref: chainFixed,
+    bench: { parts: [bB1, { id: 'H1', x: 420, y: 290, rot: 0 }, { id: 'H2', x: 620, y: 290, rot: 0 }, { id: 'H3', x: 800, y: 470, rot: 90 }, { id: 'H4', x: 620, y: 150, rot: 0 }] },
+    wrong: [named('defekte Lampe noch im Kreis', { parts: chainFixed.parts, wires: chainStart.wires })],
+    tests: [{ name: 'repariert', expect: [{ sel: 'H1', i: [0.045, 0.055] }, { sel: 'H3', i: [0.045, 0.055] }, { sel: 'H4', i: [0.045, 0.055] }, { noFault: true }] }],
+    measure: [{ id: 'ud', ask: 'Spannung an der defekten Lampe (vor der Reparatur)', unit: 'V', value: 9, tol: 0.03 }]
   });
 })();
 
@@ -2051,7 +2830,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     [['a', '#d32f2f', this.meter.mode === 'A' ? -40 : 40, -34], ['b', '#1e1e1e', 0, 18]].forEach(function (k) {
       var pid = core.probes[k[0]], set = pid && byId[pid.split('.')[0]];
       var tip = set ? pp(pid) : devXY('meter', k[3] - 20, 200), jack = devXY('meter', k[2], 88), grip = [tip[0] + 38, tip[1] - 70];
-      h.push('<g filter="url(#bCable)"><path d="' + cablePath(jack, grip) + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="6" stroke-linecap="round"/>' +
+      h.push('<g class="bmcable" filter="url(#bCable)" pointer-events="none"><path d="' + cablePath(jack, grip) + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="6" stroke-linecap="round"/>' +
         '<path d="' + cablePath(jack, grip) + '" fill="none" stroke="' + k[1] + '" stroke-width="4" stroke-linecap="round"/>' + plug(jack, k[1]) + probeSvg(tip, k[1], !set) + '</g>');
     });
     h.push('</g>');
@@ -2438,7 +3217,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     else if (!mn) txt = meter.mode === 'R' ? '0L Ω' : '- - -';
     else if (meter.mode === 'V') {
       var vdc = r.nodeV[mn.a] - r.nodeV[mn.b];
-      if (slowestFreq() >= 5) { var ac1 = acReading(); if (ac1.ok) vdc = ac1.dc; } // DMM zeigt bei schnellem Wechsel den Mittelwert
+      var fs = slowestFreq(); if (isFinite(fs) && fs >= 5) { var ac1 = acReading(); if (ac1.ok) vdc = ac1.dc; } // DMM zeigt bei schnellem Wechsel den Mittelwert (ohne Wechselquelle: Momentanwert mit Eigenverbrauch)
       txt = E.dmm(vdc, 'V').text;
     } else if (meter.mode === 'VAC') {
       var ac = acReading();

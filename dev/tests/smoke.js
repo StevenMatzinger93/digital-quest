@@ -9,7 +9,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   const browser = await chromium.launch(); const errors = [];
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !/fonts\.g|net::ERR_/.test(m.text())) errors.push(m.text()); });
-  await page.goto(url); await page.screenshot({ path: shots + '/1_karte.png' });
+  await page.goto(url, { waitUntil: 'domcontentloaded' }); await page.screenshot({ path: shots + '/1_karte.png' });
   const pin = id => page.click(`[data-pin="${id}"] .pinhit`, { force: true });
   const check = async (name) => { await page.click('#btnCheck'); await page.waitForTimeout(100); const ok = await page.isVisible('#modal.open .win'); if (!ok) errors.push(name + ': nicht bestanden: ' + await page.textContent('#results')); else await page.click('#modal .modal-btns button:first-child'); };
 
@@ -141,7 +141,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   // Handy
   const m =await browser.newPage({ viewport: { width: 390, height: 844 } });
   m.on('pageerror', e => errors.push('mobil: ' + e.message));
-  await m.goto(url); await m.evaluate(() => DigitalQuest.openItem('1.8')); await m.screenshot({ path: shots + '/5_handy.png', fullPage: true });
+  await m.goto(url, { waitUntil: 'domcontentloaded' }); await m.evaluate(() => DigitalQuest.openItem('1.8')); await m.screenshot({ path: shots + '/5_handy.png', fullPage: true });
   const overflow = await m.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1); if (overflow) errors.push('mobil: horizontaler Scroll');
   await m.click('#btnView'); await m.screenshot({ path: shots + '/11_handy_werkbank.png' });
   if (await m.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) errors.push('mobil Werkbank: horizontaler Scroll');
