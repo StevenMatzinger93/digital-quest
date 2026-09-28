@@ -4,7 +4,7 @@
  * Werkzeuge: 'wire' (Anschluss → Anschluss verbinden) und 'probe' (Messspitzen setzen). */
 (function (root) {
   'use strict';
-  var E = root.DQEngine;
+  var E = root.DQEngine, Circuit = root.DQCircuit;
   var GRID = 20, W = 1000, H = 620;
   var TWO = { a: [-40, 0], b: [40, 0] };
   var GEO = {
@@ -106,21 +106,19 @@
 
   function Editor(svg, opts) {
     this.svg = svg; this.opts = opts || {};
-    this.layout = { parts: [], wires: [] }; this.locked = {};
-    this.sel = null; this.wireStart = null; this.tool = 'wire';
-    this.probes = { a: null, b: null }; this.sim = null; this.showVolt = false;
-    this.mouse = [0, 0]; this.drag = null;
+    this.core = this.opts.core || new Circuit(this.opts); // Zustand + Bedienlogik (circuit-ui.js); geteilt, falls uebergeben
+    this.sim = null; this.showVolt = false; this.mouse = [0, 0];
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    this.core.attach(this);
     this._bind();
   }
   Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal;
+  // Zustand liegt im Kern; die bisherigen Eigenschaften bleiben fuer app.js erhalten
+  ['layout', 'locked', 'sel', 'wireStart', 'tool', 'probes', 'drag'].forEach(function (k) {
+    Object.defineProperty(Editor.prototype, k, { get: function () { return this.core[k]; }, set: function (v) { this.core[k] = v; } });
+  });
 
-  Editor.prototype.load = function (layout, lockedIds) {
-    this.layout = E.clone(layout); this.locked = {};
-    (lockedIds || []).forEach(function (id) { this.locked[id] = true; }, this);
-    this.sel = null; this.wireStart = null; this.probes = { a: null, b: null };
-    this.fit();
-  };
+  Editor.prototype.load = function (layout, lockedIds) { this.core.load(layout, lockedIds); this.fit(); };
   /* Ansicht auf die Bauteile einpassen (mind. 640 × 400, Rand 140) – nur beim Laden und auf Wunsch, nie waehrend des Ziehens */
   Editor.prototype.fit = function () {
     var ps = this.layout.parts, x0 = 300, y0 = 200, x1 = 700, y1 = 420;
@@ -133,100 +131,40 @@
     this.svg.setAttribute('viewBox', this.view.join(' '));
     this.render();
   };
-  Editor.prototype.part = function (id) { return this.layout.parts.filter(function (p) { return p.id === id; })[0]; };
-  Editor.prototype.changed = function (kind) { this.render(); if (this.opts.onChange) this.opts.onChange(kind || 'edit'); };
+  Editor.prototype.part = function (id) { return this.core.part(id); };
+  Editor.prototype.changed = function (kind) { this.core.changed(kind); };
   Editor.prototype.setSim = function (sim) { this.sim = sim; this.render(); };
 
-  Editor.prototype.nextId = function (type) {
-    var pre = E.PARTS[type].prefix, used = {}, n = 1;
-    this.layout.parts.forEach(function (p) { used[p.id] = true; });
-    while (used[pre + n]) n++; return pre + n;
-  };
-  Editor.prototype.addPart = function (type) {
-    var id = this.nextId(type), parts = this.layout.parts, v = this.view || [0, 0, W, H], cx0 = Math.round((v[0] + v[2] / 2) / GRID) * GRID, cy0 = Math.round((v[1] + v[3] / 2) / GRID) * GRID, x = cx0, y = cy0, ring = 0, k = 0;
-    function free(x, y) { return parts.every(function (p) { return Math.abs(p.x - x) > 90 || Math.abs(p.y - y) > 70; }); }
-    while (!free(x, y) && ring < 12) { // spiralfoermig freien Platz suchen
-      k++; var ang = k * 0.9; ring = Math.floor(k / 7) + 1;
-      x = Math.round((cx0 + Math.cos(ang) * 120 * ring) / GRID) * GRID; y = Math.round((cy0 + Math.sin(ang) * 90 * ring) / GRID) * GRID;
-      x = Math.max(60, Math.min(W - 60, x)); y = Math.max(60, Math.min(H - 60, y));
-    }
-    var p = { id: id, type: type, x: x, y: y, rot: type === 'battery' || type === 'ground' ? 0 : 0, props: {} };
-    parts.push(p); this.sel = id; this.changed('add');
-    return p;
-  };
-  Editor.prototype.removeSelected = function () {
-    var s = this.sel; if (!s) return false;
-    if (s.indexOf('w:') === 0) { this.layout.wires.splice(+s.slice(2), 1); }
-    else {
-      if (this.locked[s]) { if (this.opts.onMessage) this.opts.onMessage('Dieses Bauteil gehoert zur Aufgabe und bleibt.'); return false; }
-      this.layout.parts = this.layout.parts.filter(function (p) { return p.id !== s; });
-      this.layout.wires = this.layout.wires.filter(function (w) { return w.from.split('.')[0] !== s && w.to.split('.')[0] !== s; });
-      ['a', 'b'].forEach(function (k) { if (this.probes[k] && this.probes[k].split('.')[0] === s) this.probes[k] = null; }, this);
-    }
-    this.sel = null; this.changed('delete'); return true;
-  };
-  Editor.prototype.rotateSelected = function () {
-    var p = this.sel && this.part(this.sel); if (!p) return;
-    p.rot = ((p.rot || 0) + 90) % 360; this.changed('rotate');
-  };
+  Editor.prototype.nextId = function (type) { return this.core.nextId(type); };
+  /* Neues Bauteil in der Mitte des sichtbaren Ausschnitts */
+  Editor.prototype.addPart = function (type) { var v = this.view || [0, 0, W, H]; return this.core.addPart(type, v[0] + v[2] / 2, v[1] + v[3] / 2); };
+  Editor.prototype.removeSelected = function () { return this.core.removeSelected(); };
+  Editor.prototype.rotateSelected = function () { this.core.rotateSelected(); };
 
   Editor.prototype._pt = function (ev) {
     var pt = this.svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
     var m = this.svg.getScreenCTM(); if (!m) return [0, 0];
     var r = pt.matrixTransform(m.inverse()); return [r.x, r.y];
   };
+  /* Nur Hit-Testing und Koordinaten-Umrechnung – die Bedienlogik steckt im Kern */
   Editor.prototype._bind = function () {
-    var self = this, svg = this.svg;
+    var self = this, svg = this.svg, core = this.core;
     svg.addEventListener('pointerdown', function (ev) {
       var t = ev.target.closest('[data-pin],[data-part],[data-wire]'), xy = self._pt(ev);
-      if (t && t.dataset.pin) {
-        ev.preventDefault();
-        var pin = t.dataset.pin;
-        if (self.tool === 'probe') { if (self.opts.onProbe) self.opts.onProbe(pin); return; }
-        if (!self.wireStart) { self.wireStart = pin; self.render(); return; }
-        if (self.wireStart !== pin) {
-          var a = self.wireStart, dup = self.layout.wires.some(function (w) { return (w.from === a && w.to === pin) || (w.from === pin && w.to === a); });
-          if (!dup) self.layout.wires.push({ from: a, to: pin });
-          self.wireStart = null; self.changed('wire'); return;
-        }
-        self.wireStart = null; self.render(); return;
-      }
-      if (t && t.dataset.wire !== undefined) { self.sel = 'w:' + t.dataset.wire; self.wireStart = null; self.render(); if (self.opts.onSelect) self.opts.onSelect(null); return; }
-      if (t && t.dataset.part) {
-        var p = self.part(t.dataset.part); self.sel = p.id; self.wireStart = null;
-        self.drag = { id: p.id, ox: xy[0] - p.x, oy: xy[1] - p.y, sx: xy[0], sy: xy[1], moved: false };
-        if (p.type === 'button') { p.props = p.props || {}; p.props.closed = true; self.changed('toggle'); }
-        svg.setPointerCapture(ev.pointerId); self.render(); if (self.opts.onSelect) self.opts.onSelect(p);
-        return;
-      }
-      self.sel = null; self.wireStart = null; self.render(); if (self.opts.onSelect) self.opts.onSelect(null);
+      if (t && t.dataset.pin) { ev.preventDefault(); core.clickPin(t.dataset.pin); return; }
+      if (t && t.dataset.wire !== undefined) { core.clickWire(+t.dataset.wire); return; }
+      if (t && t.dataset.part) { if (core.pressPart(t.dataset.part, xy)) svg.setPointerCapture(ev.pointerId); return; }
+      core.clickEmpty();
     });
     svg.addEventListener('pointermove', function (ev) {
       var xy = self._pt(ev); self.mouse = xy;
-      if (self.drag) {
-        var d = self.drag, p = self.part(d.id);
-        if (Math.abs(xy[0] - d.sx) + Math.abs(xy[1] - d.sy) > 6) d.moved = true;
-        if (d.moved) {
-          var nx = Math.round((xy[0] - d.ox) / GRID) * GRID, ny = Math.round((xy[1] - d.oy) / GRID) * GRID;
-          nx = Math.max(40, Math.min(W - 40, nx)); ny = Math.max(40, Math.min(H - 40, ny));
-          if (nx !== p.x || ny !== p.y) { p.x = nx; p.y = ny; self.render(); }
-        }
-      } else if (self.wireStart) self.render();
+      if (core.drag) core.dragTo(xy);
+      else if (core.wireStart) self.render();
     });
-    function up() {
-      var d = self.drag; self.drag = null; if (!d) return;
-      var p = self.part(d.id); if (!p) return;
-      if (p.type === 'button') { p.props.closed = false; self.changed('toggle'); return; }
-      if (!d.moved && p.type === 'switch') { p.props = p.props || {}; p.props.closed = !p.props.closed; self.changed('toggle'); return; }
-      if (d.moved) self.changed('move');
-    }
+    function up() { core.release(); }
     svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
   };
-  Editor.prototype.key = function (ev) {
-    if (ev.key === 'Delete' || ev.key === 'Backspace') { if (this.removeSelected()) ev.preventDefault(); }
-    else if (ev.key === 'r' || ev.key === 'R') this.rotateSelected();
-    else if (ev.key === 'Escape') { this.wireStart = null; this.sel = null; this.render(); }
-  };
+  Editor.prototype.key = function (ev) { this.core.key(ev); };
 
   Editor.prototype.render = function () {
     var self = this, L = this.layout, sim = this.sim, res = sim && sim.res, pinNode = sim && sim.pinNode;

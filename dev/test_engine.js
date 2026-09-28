@@ -128,5 +128,27 @@ ok(tr.pass, 'Aufgabe bestanden mit richtigem Messwert', tr.results.filter(x => !
 tr = E.runTask(task, lay2, { m1: '9' });
 ok(!tr.pass, 'Falscher Messwert faellt durch');
 
+// 14 Interaktionskern (circuit-ui.js, ohne DOM)
+const Circuit = require('./src/circuit-ui.js');
+const kinds = [], msgs = [], views = { n: 0 };
+const cu = new Circuit({ onChange: k => kinds.push(k), onMessage: t => msgs.push(t) });
+cu.attach({ render: () => views.n++ });
+cu.load({ parts: [{ id: 'B1', type: 'battery', value: 9, x: 200, y: 300, rot: 0 }], wires: [] }, ['B1']);
+const r1 = cu.addPart('resistor', 200, 300);
+ok(r1.id === 'R1' && !(r1.x === 200 && r1.y === 300) && r1.x % 20 === 0 && r1.y % 20 === 0, 'Neues Bauteil: ID R1, freier Rasterplatz', r1);
+ok(cu.addPart('resistor', 500, 300).id === 'R2', 'Zweiter Widerstand bekommt R2');
+cu.clickPin('B1.p'); cu.clickPin('R1.a'); cu.clickPin('R1.a'); cu.clickPin('B1.p');
+ok(cu.layout.wires.length === 1, 'Leitung ziehen, Duplikat wird ignoriert', cu.layout.wires);
+cu.pressPart('R1', [r1.x, r1.y]); cu.dragTo([r1.x + 3, r1.y]); ok(cu.drag.moved === false, 'Unter 6 px kein Ziehen');
+cu.dragTo([r1.x + 47, r1.y + 21]); cu.release();
+ok(r1.x % 20 === 0 && r1.y % 20 === 0 && kinds[kinds.length - 1] === 'move', 'Ziehen rastet ein und meldet move', r1);
+cu.rotateSelected(); ok(r1.rot === 90, 'Drehen um 90°');
+cu.sel = 'B1'; ok(!cu.removeSelected() && msgs.length === 1, 'Gesperrtes Bauteil bleibt');
+cu.probes.a = 'R1.b'; cu.sel = 'R1'; cu.removeSelected();
+ok(!cu.part('R1') && cu.layout.wires.length === 0 && cu.probes.a === null, 'Loeschen entfernt Leitungen und Messspitze');
+const s1 = cu.addPart('switch', 600, 300); cu.pressPart('S1', [s1.x, s1.y]); cu.release();
+ok(s1.props.closed === true && kinds[kinds.length - 1] === 'toggle', 'Schalter per Klick umlegen');
+ok(views.n > 0, 'Angehaengte Ansicht wird neu gezeichnet');
+
 console.log(`Engine-Tests: ${pass} ok, ${fail} Fehler`);
 process.exit(fail ? 1 : 0);
