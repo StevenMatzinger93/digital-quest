@@ -75,7 +75,19 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   await page.click('[data-mm="V"]'); await bpin('D1.a'); await bpin('D1.k');
   await page.fill('[data-ans="uled"]', String(parseFloat(await page.textContent('#lcd'))));
   await page.screenshot({ path: shots + '/7_werkbank_led.png' });
+  // Live-Anzeige: Knotenspannungen und Tooltips mit Simulationswerten
+  await page.click('#btnVolt');
+  if (await page.locator('#bench .bvlabel').count() < 4) errors.push('Werkbank: Spannungsanzeige fehlt');
+  const tipD1 = await page.textContent('#bench [data-part="D1"] > title');
+  if (!/U = .*\n?I = /s.test(tipD1)) errors.push('Werkbank: Tooltip ohne U/I: ' + tipD1);
+  await page.screenshot({ path: shots + '/8_werkbank_spannungen.png' });
+  await page.click('#btnVolt');
   await check('1.2 Werkbank');
+  // Kurzschluss auf der Werkbank: Batterie wird heiss
+  await page.evaluate(() => DigitalQuest.openItem('1.1'));
+  await bpin('B1.p'); await bpin('B1.n');
+  if (!await page.locator('#bench [data-part="B1"] .bsmoke').count()) errors.push('Werkbank: Kurzschluss nicht sichtbar');
+  await page.screenshot({ path: shots + '/9_werkbank_kurzschluss.png' });
   await page.evaluate(() => DigitalQuest.setView('schema'));
 
   // Handy

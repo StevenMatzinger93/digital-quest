@@ -120,7 +120,7 @@
       bench = new Bench($('#bench'), { core: core });
       setView(viewMode);
     }
-    ed.showVolt = false; $('#btnVolt').classList.remove('on');
+    ed.showVolt = bench.showVolt = false; $('#btnVolt').classList.remove('on');
     ed.load(layout, lockedIds, t.bench); bench.fit();
     setMeterMode('OFF');
     rebuild(); renderInspector();
@@ -423,7 +423,7 @@
     $('#btnFit').onclick = function () { view().fit(); };
     window.addEventListener('resize', function () { if (ed && current.screen === 'task') view().fit(); });
     $('#btnDel').onclick = function () { ed.removeSelected(); renderInspector(); };
-    $('#btnVolt').onclick = function () { ed.showVolt = !ed.showVolt; this.classList.toggle('on', ed.showVolt); core.redraw(); };
+    $('#btnVolt').onclick = function () { ed.showVolt = bench.showVolt = !ed.showVolt; this.classList.toggle('on', ed.showVolt); core.redraw(); };
     $('#btnRepair').onclick = function () { live.state = E.newState(); rebuild(); status([{ cls: 'info', text: 'Defekte Bauteile ersetzt.' }]); };
     $('#btnReset').onclick = function () {
       modal('<h2>Aufgabe zuruecksetzen?</h2><p>Deine Schaltung wird auf den Startzustand gesetzt.</p>', [{ label: 'Abbrechen' }, { label: 'Zuruecksetzen', primary: true, action: function () { delete S.drafts[current.task.id]; save(); openTask(current.task); } }]);

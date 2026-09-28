@@ -105,6 +105,11 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bpin { fill: none; stroke: transparent; stroke-width: 3; pointer-events: none; }
 [data-pin]:hover .bpin { stroke: #ffb000; } .bpin.active { stroke: #ffb000; stroke-width: 4; filter: drop-shadow(0 0 4px #ffb000); }
 .bprobe { pointer-events: none; }
+.bvlabel { font: 600 12px var(--font-code); fill: #7fe6ff; paint-order: stroke; stroke: rgba(0,0,0,.75); stroke-width: 3px; pointer-events: none; }
+.blcd { font: 700 10px var(--font-code); fill: #1d2416; text-anchor: middle; pointer-events: none; }
+.bsmoke path { fill: none; stroke: rgba(200,200,200,.55); stroke-width: 4; stroke-linecap: round; pointer-events: none; animation: bsmoke 1.6s ease-in-out infinite; }
+.bsmoke path + path { animation-delay: .8s; }
+@keyframes bsmoke { 0% { opacity: 0; transform: translateY(6px); } 40% { opacity: .9; } 100% { opacity: 0; transform: translateY(-14px); } }
 #statusbar { min-height: 36px; }
 
 /* Schaltplan-Symbole (Arbeitsflaeche bleibt immer dunkel) */

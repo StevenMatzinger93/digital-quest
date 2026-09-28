@@ -9,7 +9,7 @@ Idee: „zwischen Fritzing und LTspice“ – Lernende **bauen Schaltungen** im 
 Methode, Qualitaetsregeln und Design folgen dem Bauplan aus SCL Quest (`docs/BAUPLAN_LERNSPIEL.md`).
 
 ## Naechster Arbeitsschritt (Stand 28.09.2026)
-**Vor Inhalten: Werkbank-Ansicht fertig bauen (Phasen 1–2 erledigt, weiter mit Phase 3).** Reihenfolge und Details in `docs/STAND.md` ("Naechste Schritte", Punkte 0/0b) und `docs/ENTSCHEIDUNGEN.md` ("Werkbank-Ansicht", "Interaktionsumfang"). Kurzform: (1) ~~Interaktionskern aus `editor.js` in `src/circuit-ui.js` loesen~~ – erledigt 28.09.2026, (2) ~~`src/bench.js`-Rendering-Grundgeruest~~ – erledigt 28.09.2026, (3) Live-Sync, (4) Multimeter auf der Werkbank, (5) Umschalt-Button + `tests/smoke.js` fuer beide Ansichten. Das `bench`-Layout-Feld fuer `defTask` ist unter "Aufgaben schreiben" unten beschrieben. Erst danach: Themenliste (`docs/THEMEN.md`, steht bereits) in echte Kapitel/Aufgaben umsetzen.
+**Vor Inhalten: Werkbank-Ansicht fertig bauen (Phasen 1–3 erledigt, weiter mit Phase 4).** Reihenfolge und Details in `docs/STAND.md` ("Naechste Schritte", Punkte 0/0b) und `docs/ENTSCHEIDUNGEN.md` ("Werkbank-Ansicht", "Interaktionsumfang"). Kurzform: (1) ~~Interaktionskern aus `editor.js` in `src/circuit-ui.js` loesen~~ – erledigt 28.09.2026, (2) ~~`src/bench.js`-Rendering-Grundgeruest~~ – erledigt 28.09.2026, (3) ~~Live-Sync~~ – erledigt 28.09.2026, (4) Multimeter auf der Werkbank, (5) Umschalt-Button + `tests/smoke.js` fuer beide Ansichten. Das `bench`-Layout-Feld fuer `defTask` ist unter "Aufgaben schreiben" unten beschrieben. Erst danach: Themenliste (`docs/THEMEN.md`, steht bereits) in echte Kapitel/Aufgaben umsetzen.
 
 ## Aufbau
 - `index.html` – ausgelieferte Einzeldatei, offline. **Generiert – nicht von Hand aendern.**

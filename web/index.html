@@ -116,6 +116,11 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bpin { fill: none; stroke: transparent; stroke-width: 3; pointer-events: none; }
 [data-pin]:hover .bpin { stroke: #ffb000; } .bpin.active { stroke: #ffb000; stroke-width: 4; filter: drop-shadow(0 0 4px #ffb000); }
 .bprobe { pointer-events: none; }
+.bvlabel { font: 600 12px var(--font-code); fill: #7fe6ff; paint-order: stroke; stroke: rgba(0,0,0,.75); stroke-width: 3px; pointer-events: none; }
+.blcd { font: 700 10px var(--font-code); fill: #1d2416; text-anchor: middle; pointer-events: none; }
+.bsmoke path { fill: none; stroke: rgba(200,200,200,.55); stroke-width: 4; stroke-linecap: round; pointer-events: none; animation: bsmoke 1.6s ease-in-out infinite; }
+.bsmoke path + path { animation-delay: .8s; }
+@keyframes bsmoke { 0% { opacity: 0; transform: translateY(6px); } 40% { opacity: .9; } 100% { opacity: 0; transform: translateY(-14px); } }
 #statusbar { min-height: 36px; }
 
 /* Schaltplan-Symbole (Arbeitsflaeche bleibt immer dunkel) */
@@ -1115,6 +1120,15 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     var up = GATE_SIGN[p.type] ? -38 : -24, dn = GATE_SIGN[p.type] ? 48 : 30;
     return '<text class="lbl" y="' + up + '">' + esc(p.id) + '</text><text class="val" y="' + dn + '">' + v + '</text>';
   }
+  /* Tooltip eines Bauteils mit Simulationswerten (auch fuer die Werkbank) */
+  function partTip(p, r) {
+    var tip = p.id + ' – ' + E.PARTS[p.type].label + (valueText(p) ? ' ' + valueText(p) : '');
+    if (r && r.v !== undefined) tip += '\nU = ' + E.fmt(Math.abs(r.v), 'V');
+    if (r && r.i !== undefined) tip += '\nI = ' + E.fmt(Math.abs(r.i), 'A');
+    if (r && r.p !== undefined && Math.abs(r.p) > 1e-9) tip += '\nP = ' + E.fmt(Math.abs(r.p), 'W');
+    if (r && r.burnt) tip += '\nDEFEKT';
+    return tip;
+  }
   function voltColor(v, vmax) {
     var t = vmax > 0 ? Math.max(0, Math.min(1, v / vmax)) : 0; // 0 V blau → max rot
     var h = 220 - 220 * t; return 'hsl(' + h.toFixed(0) + ',85%,58%)';
@@ -1128,7 +1142,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     this.core.attach(this);
     this._bind();
   }
-  Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText;
+  Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText; Editor.partTip = partTip; Editor.voltColor = voltColor;
   // Zustand liegt im Kern; die bisherigen Eigenschaften bleiben fuer app.js erhalten
   ['layout', 'locked', 'sel', 'wireStart', 'tool', 'probes', 'drag'].forEach(function (k) {
     Object.defineProperty(Editor.prototype, k, { get: function () { return this.core[k]; }, set: function (v) { this.core[k] = v; } });
@@ -1221,11 +1235,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     // Bauteile
     L.parts.forEach(function (p) {
       var r = res && res.parts[p.id], sel = self.sel === p.id;
-      var tip = p.id + ' – ' + E.PARTS[p.type].label + (valueText(p) ? ' ' + valueText(p) : '');
-      if (r && r.v !== undefined) tip += '\nU = ' + E.fmt(Math.abs(r.v), 'V');
-      if (r && r.i !== undefined) tip += '\nI = ' + E.fmt(Math.abs(r.i), 'A');
-      if (r && r.p !== undefined && Math.abs(r.p) > 1e-9) tip += '\nP = ' + E.fmt(Math.abs(r.p), 'W');
-      if (r && r.burnt) tip += '\nDEFEKT';
+      var tip = partTip(p, r);
       h.push('<g class="part' + (sel ? ' selected' : '') + (self.locked[p.id] ? ' locked' : '') + '" data-part="' + p.id + '" transform="translate(' + p.x + ' ' + p.y + ')">' +
         '<title>' + esc(tip) + '</title><rect class="hit" x="-44" y="-34" width="88" height="68"/>' +
         '<g transform="rotate(' + (p.rot || 0) + ')">' + symbol(p, r) + '</g>' +
@@ -1306,8 +1316,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   }
   function lead(x0, x1, y) { return '<path class="blead" d="M' + x0 + ' ' + (y || 0) + 'H' + x1 + '"/>'; }
 
-  /* Bauteil-Illustration um den Ursprung, unrotiert. r = Simulationsergebnis (optional) */
-  function illus(p, r) {
+  /* Bauteil-Illustration um den Ursprung, unrotiert. r = Simulationsergebnis, hot = Stoerungscode des Bauteils (beides optional) */
+  function illus(p, r, hot) {
     var q = p.props || {}, sz = size(p.type), w = sz[0], h = sz[1], g = GEO[p.type], s = '';
     r = r || {};
     // Baustein
@@ -1318,10 +1328,11 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       var ring = p.type === 'battery' ? (pin === 'p' ? '#c62828' : '#1a1a1a') : p.type === 'ground' ? '#2e9d44' : null;
       s += socket(g[pin], ring);
     });
+    if (hot) s += '<circle r="' + (Math.min(w, h) / 2 + 6) + '" fill="#ff5a1f" opacity=".55" filter="url(#bBlur)"/>'; // Hitze (Kurzschluss, Ueberlast)
     switch (p.type) {
       case 'resistor':
         var bd = bands(val(p));
-        s += lead(-35, -26) + lead(26, 35) + '<rect x="-26" y="-8" width="52" height="16" rx="8" fill="url(#bResBody)" stroke="rgba(0,0,0,.35)"/>' +
+        s += lead(-35, -26) + lead(26, 35) + '<rect x="-26" y="-8" width="52" height="16" rx="8" fill="' + (hot ? '#7a4a28' : 'url(#bResBody)') + '" stroke="rgba(0,0,0,.35)"/>' +
           '<rect x="-17" y="-8" width="4" height="16" fill="' + bd[0] + '"/><rect x="-9" y="-8" width="4" height="16" fill="' + bd[1] + '"/>' +
           '<rect x="-1" y="-8" width="4" height="16" fill="' + bd[2] + '"/><rect x="13" y="-8" width="4" height="16" fill="#c9a227"/>' +
           '<rect x="-24" y="-6" width="48" height="3" rx="1.5" fill="rgba(255,255,255,.35)"/>'; break;
@@ -1330,11 +1341,12 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
           s += lead(-35, -18) + lead(18, 35) + '<rect x="-18" y="-7" width="36" height="14" rx="3" fill="#1b1b1b" stroke="#000"/><rect x="9" y="-7" width="4" height="14" fill="#cfcfcf"/>';
         } else {
           var col = (E.LED_COLORS[q.color || 'rot'] || {}).rgb || '#f33', b = r.burnt ? 0 : (r.brightness || 0);
+          if (r.burnt) col = '#3b2b25';
           s += lead(-35, -8) + lead(8, 35) +
             (b > 0.02 ? '<circle r="' + (22 + 40 * b) + '" fill="' + col + '" opacity="' + (0.3 + 0.5 * b).toFixed(2) + '" filter="url(#bBlur)"/>' : '') +
             '<path d="M-12 0A12 12 0 1 1 10 6.6V-6.6A12 12 0 0 1-12 0Z" fill="' + col + '" opacity=".75" stroke="rgba(0,0,0,.4)"/>' +
             '<circle r="9.5" fill="' + col + '" opacity="' + (0.45 + 0.55 * b).toFixed(2) + '"/>' +
-            '<ellipse cx="-3.5" cy="-4" rx="3.5" ry="2.4" fill="rgba(255,255,255,.7)"/>' +
+            (r.burnt ? '<path d="M-6-6L-1 0L-4 3M2-7L1-1L6 4" fill="none" stroke="#111" stroke-width="1.5"/>' : '<ellipse cx="-3.5" cy="-4" rx="3.5" ry="2.4" fill="rgba(255,255,255,.7)"/>') +
             '<text class="bprint" x="-45" y="-17">+</text>';
         }
         break;
@@ -1343,8 +1355,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         s += lead(-35, -21) + lead(21, 35) +
           '<circle r="21" fill="url(#bMetal)" stroke="rgba(0,0,0,.5)"/>' +
           (gl > 0.02 ? '<circle r="' + (30 + 60 * gl) + '" fill="#ffc940" opacity="' + (0.25 + 0.45 * gl).toFixed(2) + '" filter="url(#bBlur)"/><circle r="' + (24 + 40 * gl) + '" fill="url(#bGlow)" opacity="' + Math.min(1, 0.3 + gl).toFixed(2) + '"/>' : '') +
-          '<circle r="15" fill="' + (gl > 0.02 ? 'rgba(255,214,120,' + (0.35 + 0.6 * gl).toFixed(2) + ')' : 'rgba(230,240,245,.35)') + '" stroke="rgba(255,255,255,.55)"/>' +
-          '<path d="M-7 3L-4-3L-1 3L2-3L5 3" fill="none" stroke="' + (gl > 0.05 ? '#fff6d0' : '#6d6d6d') + '" stroke-width="1.4"/>' +
+          '<circle r="15" fill="' + (r.burnt ? 'rgba(70,64,58,.7)' : gl > 0.02 ? 'rgba(255,214,120,' + (0.35 + 0.6 * gl).toFixed(2) + ')' : 'rgba(230,240,245,.35)') + '" stroke="rgba(255,255,255,.55)"/>' +
+          '<path d="' + (r.burnt ? 'M-7 3L-4-3L-2 0M2-1L2-3L5 3' : 'M-7 3L-4-3L-1 3L2-3L5 3') + '" fill="none" stroke="' + (gl > 0.05 ? '#fff6d0' : '#6d6d6d') + '" stroke-width="1.4"/>' +
           '<ellipse cx="-5" cy="-6" rx="4" ry="2.5" fill="rgba(255,255,255,.6)"/>'; break;
       case 'switch':
         var on = !!q.closed;
@@ -1362,8 +1374,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         s += lead(-35, -20) + lead(20, 35) + '<rect x="-20" y="-12" width="40" height="24" rx="5" fill="#27498a" stroke="rgba(0,0,0,.4)"/>' +
           '<rect x="10" y="-12" width="6" height="24" fill="#aab4c8"/><rect x="-18" y="-9" width="36" height="4" rx="2" fill="rgba(255,255,255,.25)"/>'; break;
       case 'ammeter':
-        s += lead(-35, -28) + lead(28, 35) + '<rect x="-28" y="-26" width="56" height="44" rx="4" fill="#1d1d1d"/><rect x="-24" y="-22" width="48" height="30" rx="2" fill="#f3f0e6"/>' +
-          '<path d="M-17 2A20 20 0 0 1 17 2" fill="none" stroke="#333" stroke-width="1"/><path d="M0 6L-9-12" stroke="#c62828" stroke-width="1.5"/><text class="bprint dark" y="15">A</text>'; break;
+        s += lead(-35, -28) + lead(28, 35) + '<rect x="-28" y="-24" width="56" height="44" rx="4" fill="#1d1d1d"/><rect x="-24" y="-20" width="48" height="22" rx="2" fill="#b9c6a2"/>' +
+          '<text class="blcd" y="-4">' + (r.i !== undefined ? esc(E.fmt(Math.abs(r.i), 'A')) : '- - -') + '</text><text class="bchip" y="15">A</text>'; break;
       case 'pot':
         var ang = -135 + 270 * (q.pos !== undefined ? q.pos : 0.5);
         s += lead(-40, -24, -8) + lead(24, 40, -8) + '<path class="blead" d="M0 22V10"/>' +
@@ -1392,7 +1404,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
             (r.out !== undefined ? '<circle cx="46" cy="-30" r="4" fill="' + (r.out ? '#39ff14' : '#243024') + '"' + (r.out ? ' filter="url(#bSoft)"' : '') + '/>' : '');
         }
     }
-    if (r.burnt) s += '<path d="M-14-12l8 4 2-8 6 10 6-6 2 12M-12 10l9-3" fill="none" stroke="#222" stroke-width="3"/><circle r="15" fill="rgba(40,30,20,.35)"/>';
+    if (r.burnt && p.type !== 'led' && p.type !== 'lamp') s += '<path d="M-14-12l8 4 2-8 6 10 6-6 2 12M-12 10l9-3" fill="none" stroke="#222" stroke-width="3"/><circle r="15" fill="rgba(40,30,20,.35)"/>';
     return s;
   }
 
@@ -1414,7 +1426,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   function Bench(svg, opts) {
     this.svg = svg; this.opts = opts || {};
     this.core = this.opts.core || new Circuit(this.opts);
-    this.sim = null; this.mouse = [0, 0]; this.dirty = true;
+    this.sim = null; this.showVolt = false; this.mouse = [0, 0]; this.dirty = true;
     this.view = [0, 0, W, W * 0.62]; // gleiches Seitenverhaeltnis wie das Schema (1000 × 620), damit die Flaeche gleich gross bleibt
     svg.setAttribute('viewBox', this.view.join(' '));
     this.core.attach(this);
@@ -1484,7 +1496,11 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   Bench.prototype.render = function () {
     if (this._hidden()) { this.dirty = true; return; }
     this.dirty = false;
-    var self = this, core = this.core, L = core.layout, res = this.sim && this.sim.res;
+    var self = this, core = this.core, L = core.layout, res = this.sim && this.sim.res, pinNode = this.sim && this.sim.pinNode;
+    var vmax = 0; if (res) Object.keys(res.nodeV).forEach(function (n) { vmax = Math.max(vmax, res.nodeV[n]); });
+    var hot = {}; ((res && res.faults) || []).forEach(function (f) { if (f.part && /SHORT|OVERLOAD/.test(f.code)) hot[f.part] = f.code; });
+    function nodeV(pid) { return res && pinNode && pinNode[pid] !== undefined ? res.nodeV[pinNode[pid]] || 0 : undefined; }
+    function wcol(pid) { var v = self.showVolt ? nodeV(pid) : undefined; return v === undefined ? null : Ed.voltColor(v, vmax); }
     var byId = {}; L.parts.forEach(function (p) { byId[p.id] = p; });
     var used = {}; L.wires.forEach(function (w) { used[w.from] = (used[w.from] || 0) + 1; used[w.to] = (used[w.to] || 0) + 1; });
     function pp(pid) { var s = pid.split('.'); return byId[s[0]] ? self.pinPos(byId[s[0]], s[1]) : [0, 0]; }
@@ -1511,17 +1527,18 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     L.parts.forEach(function (p) {
       var q = core.pos(p, 'bench'), r = res && res.parts[p.id], sel = core.sel === p.id, sz = size(p.type), rot = q.rot || 0;
       var hw = (rot % 180 ? sz[1] : sz[0]) / 2, hh = (rot % 180 ? sz[0] : sz[1]) / 2, vt = Ed.valueText(p);
-      var tip = p.id + ' – ' + E.PARTS[p.type].label + (vt ? ' ' + vt : '');
+      var tip = Ed.partTip(p, r);
       h.push('<g class="bpart' + (sel ? ' selected' : '') + (core.locked[p.id] ? ' locked' : '') + '" data-part="' + p.id + '" transform="translate(' + q.x + ' ' + q.y + ')">' +
         '<title>' + esc(tip) + '</title>' +
-        '<g filter="url(#bShadow)" transform="rotate(' + rot + ')">' + illus(p, r) + '</g>' +
+        '<g filter="url(#bShadow)" transform="rotate(' + rot + ')">' + illus(p, r, hot[p.id]) + '</g>' +
+        (hot[p.id] ? '<g class="bsmoke" transform="scale(1 ' + (1 / K) + ')"><path d="M-8 ' + (-hh * K) + 'c-8-14 8-22 0-36s8-22 0-34"/><path d="M8 ' + (-hh * K) + 'c8-12-6-20 2-32s-6-18 2-28"/></g>' : '') +
         (sel ? '<rect class="bsel" x="' + (-hw - 7) + '" y="' + (-hh - 7) + '" width="' + (2 * hw + 14) + '" height="' + (2 * hh + 14) + '" rx="12"/>' : '') +
         '<g transform="scale(1 ' + (1 / K) + ')"><text class="blbl" y="' + ((-hh - 9) * K) + '">' + esc(p.id) + (vt ? ' · ' + esc(vt) : '') + '</text></g>' +
         '</g>');
     });
     // Laborkabel
     L.wires.forEach(function (w, i) {
-      var a = pp(w.from), b = pp(w.to), d = cablePath(a, b), col = cableColor(w, i, byId), sel = core.sel === 'w:' + i;
+      var a = pp(w.from), b = pp(w.to), d = cablePath(a, b), col = wcol(w.from) || cableColor(w, i, byId), sel = core.sel === 'w:' + i;
       h.push('<g data-wire="' + i + '" class="bwire' + (sel ? ' selected' : '') + '"><path class="bwirehit" d="' + d + '"/>' +
         '<g filter="url(#bCable)">' + (sel ? '<path d="' + d + '" fill="none" stroke="#ffb000" stroke-width="14" stroke-linecap="round" opacity=".8"/>' : '') +
         '<path d="' + d + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="8" stroke-linecap="round"/>' +
@@ -1532,9 +1549,10 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     // Buchsen (Klickflaechen, oben)
     L.parts.forEach(function (p) {
       Object.keys(GEO[p.type]).forEach(function (pin) {
-        var pid = p.id + '.' + pin, xy = self.pinPos(p, pin);
-        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="14"/>' +
-          '<circle class="bpin' + (core.wireStart === pid ? ' active' : '') + (used[pid] ? ' used' : '') + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="12"><title>' + pid + '</title></circle></g>');
+        var pid = p.id + '.' + pin, xy = self.pinPos(p, pin), v = nodeV(pid), col = wcol(pid);
+        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="14"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen Masse' : '') + '</title></circle>' +
+          '<circle class="bpin' + (core.wireStart === pid ? ' active' : '') + (used[pid] ? ' used' : '') + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="12"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
+        if (col && pin !== 'g') h.push('<g transform="translate(' + (xy[0] + 12) + ' ' + (xy[1] - 14) + ') scale(1 ' + (1 / K) + ')"><text class="bvlabel">' + E.fmt(v, 'V') + '</text></g>');
       });
     });
     // Kabel im Entstehen
@@ -1679,7 +1697,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       bench = new Bench($('#bench'), { core: core });
       setView(viewMode);
     }
-    ed.showVolt = false; $('#btnVolt').classList.remove('on');
+    ed.showVolt = bench.showVolt = false; $('#btnVolt').classList.remove('on');
     ed.load(layout, lockedIds, t.bench); bench.fit();
     setMeterMode('OFF');
     rebuild(); renderInspector();
@@ -1982,7 +2000,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     $('#btnFit').onclick = function () { view().fit(); };
     window.addEventListener('resize', function () { if (ed && current.screen === 'task') view().fit(); });
     $('#btnDel').onclick = function () { ed.removeSelected(); renderInspector(); };
-    $('#btnVolt').onclick = function () { ed.showVolt = !ed.showVolt; this.classList.toggle('on', ed.showVolt); core.redraw(); };
+    $('#btnVolt').onclick = function () { ed.showVolt = bench.showVolt = !ed.showVolt; this.classList.toggle('on', ed.showVolt); core.redraw(); };
     $('#btnRepair').onclick = function () { live.state = E.newState(); rebuild(); status([{ cls: 'info', text: 'Defekte Bauteile ersetzt.' }]); };
     $('#btnReset').onclick = function () {
       modal('<h2>Aufgabe zuruecksetzen?</h2><p>Deine Schaltung wird auf den Startzustand gesetzt.</p>', [{ label: 'Abbrechen' }, { label: 'Zuruecksetzen', primary: true, action: function () { delete S.drafts[current.task.id]; save(); openTask(current.task); } }]);
