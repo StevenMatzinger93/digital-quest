@@ -491,7 +491,7 @@
     this.dirty = false;
     var self = this, core = this.core, L = core.layout, res = this.sim && this.sim.res, pinNode = this.sim && this.sim.pinNode;
     var vmax = 0; if (res) Object.keys(res.nodeV).forEach(function (n) { vmax = Math.max(vmax, res.nodeV[n]); });
-    var hot = {}; ((res && res.faults) || []).forEach(function (f) { if (f.part && /SHORT|OVERLOAD/.test(f.code)) hot[f.part] = f.code; });
+    var hot = {}; ((res && res.faults) || []).forEach(function (f) { if (f.part && /SHORT|OVERLOAD/.test(f.code)) hot[f.part] = f.code; if (f.code === 'OUTPUT_CLASH') f.parts.forEach(function (id) { hot[id] = f.code; }); });
     function nodeV(pid) { return res && pinNode && pinNode[pid] !== undefined ? res.nodeV[pinNode[pid]] || 0 : undefined; }
     function wcol(pid) { var v = self.showVolt ? nodeV(pid) : undefined; return v === undefined ? null : Ed.voltColor(v, vmax); }
     var byId = {}; L.parts.forEach(function (p) { byId[p.id] = p; });

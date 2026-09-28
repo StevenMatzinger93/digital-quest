@@ -381,6 +381,21 @@
       if (out.res.oscillating) faults.push({ code: 'UNSTABLE' });
       if (!net.hasGround && !net.autoGround && net.parts.some(function (p) { return isDigital(def(p.type)) || p.type === 'clock'; })) faults.push({ code: 'NO_GROUND' });
       out.res.faults = faults;
+      // Nie Ausgang gegen Ausgang: zwei digitale Ausgaenge am selben Knoten mit unterschiedlichem Pegel
+      var drv = {};
+      net.parts.forEach(function (p) {
+        var d = def(p.type), r = out.res.parts[p.id]; if (state.burnt[p.id]) return;
+        function add(pin, v) { var nd = p.n[pin]; if (nd === undefined) return; (drv[nd] = drv[nd] || []).push({ id: p.id, v: !!v }); }
+        if (p.type === 'logicin') add('out', p.props.closed);
+        else if (p.type === 'clock') add('out', Math.floor(state.t * p.props.freq * 2) % 2 === 0);
+        else if (d.ff) { add('Q', r.q); add('Qn', !r.q); }
+        else if (d.logic) dOuts(d).forEach(function (pin, k) { add(pin, Array.isArray(r.out) ? r.out[k] : r.out); });
+      });
+      Object.keys(drv).forEach(function (nd) {
+        var ds = drv[nd]; if (ds.length < 2) return;
+        if (ds.some(function (x) { return x.v; }) && ds.some(function (x) { return !x.v; }))
+          faults.push({ code: 'OUTPUT_CLASH', part: ds[0].id, parts: ds.map(function (x) { return x.id; }), i: LOGIC.vcc / (2 * LOGIC.rout) });
+      });
       // Flipflops: bei steigender Flanke an C die Eingaenge uebernehmen (alle gleichzeitig aus derselben Loesung)
       var ffChanged = false; state.ff = state.ff || {};
       net.parts.forEach(function (p) {
@@ -563,6 +578,11 @@
     function push(ok, text, info) { results.push({ ok: ok, text: text, info: info }); if (!ok) allPass = false; }
     var net;
     try { net = buildNetlist(layout); } catch (e) { return { pass: false, results: [{ ok: false, text: e.message }] }; }
+    /* limit: hoechstens so viele Bauteile eines Typs; Schluessel 'gates' zaehlt alle Logikgatter zusammen */
+    Object.keys(task.limit || {}).forEach(function (type) {
+      var c = net.parts.filter(function (p) { return type === 'gates' ? GATES[p.type] : p.type === type; }).length;
+      push(c <= task.limit[type], (type === 'gates' ? 'Logikgatter' : def(type).label) + ': hoechstens ' + task.limit[type], { have: c });
+    });
     Object.keys(task.need || {}).forEach(function (type) {
       var c = net.parts.filter(function (p) { return p.type === type; }).length;
       push(c >= task.need[type], 'Bauteil ' + def(type).label + ': mindestens ' + task.need[type], { have: c });
@@ -625,6 +645,7 @@
     return { pass: allPass && results.length > 0, results: results };
   }
 
+  var GATES = { not: 1, and: 1, or: 1, nand: 1, nor: 1, xor: 1, xnor: 1 };
   var UNIT_SCALE = { mA: 1e-3, mV: 1e-3, 'µA': 1e-6, 'kΩ': 1e3, 'MΩ': 1e6, ms: 1e-3, mW: 1e-3 };
   /* Sollwerte fuer task.measure in der Einheit der Aufgabe (fuer Validator und „Loesung zeigen“) */
   function expectedAnswers(task, layout) {

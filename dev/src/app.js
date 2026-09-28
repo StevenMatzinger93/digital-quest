@@ -334,7 +334,8 @@
       var ids = Object.keys(g);
       return 'Die Logikschaltung kommt nicht zur Ruhe' + (ids.length ? ': ' + ids.join(' und ') + ' schalten sich gegenseitig immer wieder um' : '') + ' (Rueckkopplung ohne Ruhelage). Die Zeitlupe zeigt die einzelnen Schritte.';
     },
-    NO_GROUND: function () { return 'Logikbausteine und Taktgeber brauchen eine Masse-Verbindung (⏚).'; }
+    NO_GROUND: function () { return 'Logikbausteine und Taktgeber brauchen eine Masse-Verbindung (⏚).'; },
+    OUTPUT_CLASH: function (f) { return 'Ausgang gegen Ausgang: ' + f.parts.join(' und ') + ' treiben denselben Knoten mit unterschiedlichem Pegel (1 gegen 0). Es fliessen rund ' + E.fmt(f.i, 'A') + ' Ausgleichsstrom – die Ausgangsstufen werden heiss und gehen kaputt. Zwei Signale verknuepft man mit einem Gatter (z. B. ODER), nie durch direktes Zusammenschalten.'; }
   };
   function diagnose(faults) { return (faults || []).map(function (f) { return { cls: 'err', text: (FAULT_TEXT[f.code] || function () { return f.code; })(f) }; }); }
   function status(items) {

@@ -208,3 +208,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bdot { fill: #fff6c2; stroke: rgba(120,80,0,.8); stroke-width: 1; filter: drop-shadow(0 0 2px #ffd54a); pointer-events: none; }
 .bilabel { font: 700 11px var(--font-code); fill: #ffe9a8; text-anchor: middle; paint-order: stroke; stroke: rgba(0,0,0,.8); stroke-width: 3px; pointer-events: none; }
 .bprint.w { fill: #e8e8e8; }
+/* Wahrheitstabellen in Auftraegen und Lektionen */
+table.tt { border-collapse: collapse; margin: 8px 0; font: 13px var(--font-code); }
+table.tt th, table.tt td { border: 1px solid var(--line); padding: 3px 10px; text-align: center; }
+table.tt th { background: var(--bg-tertiary); color: var(--text-dim); } table.tt .o { color: var(--accent-lead); font-weight: 700; }

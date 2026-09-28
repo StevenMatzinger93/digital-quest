@@ -219,6 +219,10 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bdot { fill: #fff6c2; stroke: rgba(120,80,0,.8); stroke-width: 1; filter: drop-shadow(0 0 2px #ffd54a); pointer-events: none; }
 .bilabel { font: 700 11px var(--font-code); fill: #ffe9a8; text-anchor: middle; paint-order: stroke; stroke: rgba(0,0,0,.8); stroke-width: 3px; pointer-events: none; }
 .bprint.w { fill: #e8e8e8; }
+/* Wahrheitstabellen in Auftraegen und Lektionen */
+table.tt { border-collapse: collapse; margin: 8px 0; font: 13px var(--font-code); }
+table.tt th, table.tt td { border: 1px solid var(--line); padding: 3px 10px; text-align: center; }
+table.tt th { background: var(--bg-tertiary); color: var(--text-dim); } table.tt .o { color: var(--accent-lead); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -657,6 +661,21 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       if (out.res.oscillating) faults.push({ code: 'UNSTABLE' });
       if (!net.hasGround && !net.autoGround && net.parts.some(function (p) { return isDigital(def(p.type)) || p.type === 'clock'; })) faults.push({ code: 'NO_GROUND' });
       out.res.faults = faults;
+      // Nie Ausgang gegen Ausgang: zwei digitale Ausgaenge am selben Knoten mit unterschiedlichem Pegel
+      var drv = {};
+      net.parts.forEach(function (p) {
+        var d = def(p.type), r = out.res.parts[p.id]; if (state.burnt[p.id]) return;
+        function add(pin, v) { var nd = p.n[pin]; if (nd === undefined) return; (drv[nd] = drv[nd] || []).push({ id: p.id, v: !!v }); }
+        if (p.type === 'logicin') add('out', p.props.closed);
+        else if (p.type === 'clock') add('out', Math.floor(state.t * p.props.freq * 2) % 2 === 0);
+        else if (d.ff) { add('Q', r.q); add('Qn', !r.q); }
+        else if (d.logic) dOuts(d).forEach(function (pin, k) { add(pin, Array.isArray(r.out) ? r.out[k] : r.out); });
+      });
+      Object.keys(drv).forEach(function (nd) {
+        var ds = drv[nd]; if (ds.length < 2) return;
+        if (ds.some(function (x) { return x.v; }) && ds.some(function (x) { return !x.v; }))
+          faults.push({ code: 'OUTPUT_CLASH', part: ds[0].id, parts: ds.map(function (x) { return x.id; }), i: LOGIC.vcc / (2 * LOGIC.rout) });
+      });
       // Flipflops: bei steigender Flanke an C die Eingaenge uebernehmen (alle gleichzeitig aus derselben Loesung)
       var ffChanged = false; state.ff = state.ff || {};
       net.parts.forEach(function (p) {
@@ -839,6 +858,11 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     function push(ok, text, info) { results.push({ ok: ok, text: text, info: info }); if (!ok) allPass = false; }
     var net;
     try { net = buildNetlist(layout); } catch (e) { return { pass: false, results: [{ ok: false, text: e.message }] }; }
+    /* limit: hoechstens so viele Bauteile eines Typs; Schluessel 'gates' zaehlt alle Logikgatter zusammen */
+    Object.keys(task.limit || {}).forEach(function (type) {
+      var c = net.parts.filter(function (p) { return type === 'gates' ? GATES[p.type] : p.type === type; }).length;
+      push(c <= task.limit[type], (type === 'gates' ? 'Logikgatter' : def(type).label) + ': hoechstens ' + task.limit[type], { have: c });
+    });
     Object.keys(task.need || {}).forEach(function (type) {
       var c = net.parts.filter(function (p) { return p.type === type; }).length;
       push(c >= task.need[type], 'Bauteil ' + def(type).label + ': mindestens ' + task.need[type], { have: c });
@@ -901,6 +925,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     return { pass: allPass && results.length > 0, results: results };
   }
 
+  var GATES = { not: 1, and: 1, or: 1, nand: 1, nor: 1, xor: 1, xnor: 1 };
   var UNIT_SCALE = { mA: 1e-3, mV: 1e-3, 'µA': 1e-6, 'kΩ': 1e3, 'MΩ': 1e6, ms: 1e-3, mW: 1e-3 };
   /* Sollwerte fuer task.measure in der Einheit der Aufgabe (fuer Validator und „Loesung zeigen“) */
   function expectedAnswers(task, layout) {
@@ -963,6 +988,88 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 
   /* Kurzschreibweise fuer Leitungen */
   root.W = function (from, to) { return { from: from, to: to }; };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== content/_logic.js ==== */
+/* Digital Quest – Helfer fuer Logik-Aufgaben am Experimentierboard (window.LG)
+ * Konvention wie in den Unterlagen: E1 = a = niederwertigstes Bit. Kombination k: E_i = Bit (i−1) von k.
+ *   LG.io(n, outs)          Startaufbau: Pegelschalter E1…En, Logikanzeigen L1…, Masse (Schema + Werkbank-Lage)
+ *   LG.net(n, gates, outs)  Loesung: gates = [[id, typ, [Quellen]]], Quelle 'E1' | 'U1'; outs = { L1: 'U3' }
+ *   LG.truth(n, f, opt)     Tests fuer alle Kombinationen; f(bits) → 0/1 bzw. Array fuer mehrere Ausgaenge; opt.dc = Don't-Cares
+ *   LG.table(n, f, opt)     Wahrheitstabelle als HTML fuer den Auftragstext
+ *   LG.bench(layout)        Werkbank-Lagen passend zu io/net */
+(function (root) {
+  'use strict';
+  var IN_PIN = function (type, k) { return type === 'not' ? 'in' : (k === 0 ? 'in1' : 'in2'); };
+  function bits(n, k) { var b = []; for (var i = 0; i < n; i++) b.push(k >> i & 1); return b; }
+
+  function io(n, outs) {
+    outs = outs || ['L1'];
+    var parts = [{ id: 'GND1', type: 'ground', x: 120, y: 160 + 100 * n, rot: 0 }];
+    for (var i = 1; i <= n; i++) parts.push({ id: 'E' + i, type: 'logicin', x: 160, y: 60 + 100 * i, rot: 0 });
+    outs.forEach(function (id, j) { parts.push({ id: id, type: 'logicled', x: 860, y: 160 + 100 * j, rot: 0 }); });
+    return { parts: parts, wires: [] };
+  }
+  function depthOf(gates) {
+    var d = {};
+    function dep(id) {
+      if (/^E/.test(id)) return 0;
+      if (d[id] !== undefined) return d[id];
+      var g = gates.filter(function (x) { return x[0] === id; })[0];
+      d[id] = 1 + Math.max.apply(null, g[2].map(dep)); return d[id];
+    }
+    gates.forEach(function (g) { dep(g[0]); });
+    return d;
+  }
+  function net(n, gates, outs, extra) {
+    var l = io(n, Object.keys(outs)), d = depthOf(gates), col = {};
+    gates.forEach(function (g) {
+      var c = d[g[0]], k = col[c] = (col[c] || 0) + 1;
+      l.parts.push({ id: g[0], type: g[1], x: 180 + 150 * c, y: 60 + 110 * k, rot: 0 });
+      g[2].forEach(function (src, j) { l.wires.push(W(src + '.out', g[0] + '.' + IN_PIN(g[1], j))); });
+    });
+    Object.keys(outs).forEach(function (L) { l.wires.push(W(outs[L] + '.out', L + '.in')); });
+    if (extra) l.wires = l.wires.concat(extra);
+    return l;
+  }
+  function bench(layout) {
+    var p = [], d = {}, col = {}, gates = layout.parts.filter(function (x) { return /^U/.test(x.id); });
+    gates.forEach(function (g) { d[g.id] = Math.round((g.x - 180) / 150); });
+    layout.parts.forEach(function (q) {
+      if (q.type === 'ground') p.push({ id: q.id, x: 180, y: 700, rot: 0 });
+      else if (q.type === 'logicin') p.push({ id: q.id, x: 180, y: 90 + 125 * (+q.id.slice(1)), rot: 0 });
+      else if (q.type === 'logicled') p.push({ id: q.id, x: 860, y: 230 + 120 * (+q.id.slice(1) - 1), rot: 0 });
+      else if (/^U/.test(q.id)) { var c = d[q.id], k = col[c] = (col[c] || 0) + 1; p.push({ id: q.id, x: 230 + 140 * c, y: 90 + 130 * k, rot: 0 }); }
+    });
+    return { parts: p };
+  }
+  function truth(n, f, opt) {
+    opt = opt || {}; var tests = [], outs = opt.outs || ['L1'];
+    for (var k = 0; k < (1 << n); k++) {
+      if (opt.dc && opt.dc.indexOf(k) >= 0) continue;
+      var b = bits(n, k), set = {}, r = f(b), exp = [];
+      b.forEach(function (v, i) { set['E' + (i + 1)] = { closed: !!v }; });
+      (Array.isArray(r) ? r : [r]).forEach(function (v, j) { exp.push({ sel: outs[j], on: !!v }); });
+      if (!tests.length) exp.push({ noFault: true });
+      tests.push({ name: b.slice().reverse().map(function (v, i) { return 'E' + (n - i) + '=' + v; }).join(' '), set: set, expect: exp });
+    }
+    return tests;
+  }
+  function table(n, f, opt) {
+    opt = opt || {}; var outs = opt.outs || ['A'], h = '<table class="tt"><tr>';
+    for (var i = n; i >= 1; i--) h += '<th>E' + i + '</th>';
+    outs.forEach(function (o) { h += '<th class="o">' + o + '</th>'; }); h += '</tr>';
+    for (var k = 0; k < (1 << n); k++) {
+      var b = bits(n, k), r = f(b); h += '<tr>';
+      for (var j = n - 1; j >= 0; j--) h += '<td>' + b[j] + '</td>';
+      (Array.isArray(r) ? r : [r]).forEach(function (v) { h += '<td class="o">' + (opt.dc && opt.dc.indexOf(k) >= 0 ? 'X' : v ? 1 : 0) + '</td>'; });
+      h += '</tr>';
+    }
+    return h + '</table>';
+  }
+  /* Minterm-Funktion: 1 bei den genannten Kombinationen */
+  function sigma(list) { return function (b) { var k = 0; b.forEach(function (v, i) { k += v << i; }); return list.indexOf(k) >= 0 ? 1 : 0; }; }
+  root.LG = { io: io, net: net, bench: bench, truth: truth, table: table, sigma: sigma, bits: bits };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* ==== content/ch01.js ==== */
@@ -2247,6 +2354,425 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   });
 })();
 
+/* ==== content/ch06.js ==== */
+/* Kapitel 6 – Grundgatter
+ * Quelle: Digitaltechnik stationaere Vorgaenge Kap. 3.3 (nie Ausgang gegen Ausgang, keine offenen Eingaenge), Kap. 4
+ * (Symbolik, Trennstufe, NOT, AND, NAND, OR, NOR, EXOR, EXNOR mit Wahrheitstabelle, Ausdruck, Postulaten; Uebung Foerderband). */
+(function () {
+  'use strict';
+  defChapter({
+    id: 6, title: 'Grundgatter',
+    intro: 'UND, ODER, NICHT – und ihre Verwandten NAND, NOR, XOR, XNOR. Du baust jedes Gatter am Experimentierboard auf, pruefst seine Wahrheitstabelle und lernst, warum man Ausgaenge nie zusammenschaltet.',
+    sequence: ['T6A', '6.1', '6.2', '6.3', '6.4', '6.5', 'T6B', '6.6', '6.7', '6.8', '6.9', '6.10']
+  });
+  var named = function (name, l) { l.name = name; return l; };
+  function gateTask(o) { // Standardaufgabe: n Eingaenge, Ausgang L1, Loesung per LG.net
+    var ref = LG.net(o.n, o.gates, { L1: o.gates[o.gates.length - 1][0] });
+    defTask({
+      id: o.id, ch: 6, title: o.title, tags: o.tags, story: o.story,
+      brief: o.brief + (o.table === false ? '' : LG.table(o.n, o.f)),
+      learn: o.learn, take: o.take, hint: o.hint, hint2: o.hint2,
+      palette: o.palette, need: o.need || {}, limit: o.limit,
+      start: LG.io(o.n), ref: ref, bench: LG.bench(ref),
+      wrong: (o.wrong || []).map(function (w) { return named(w[0], LG.net(o.n, w[1], { L1: w[1][w[1].length - 1][0] })); }),
+      tests: LG.truth(o.n, o.f)
+    });
+  }
+
+  defTheory({
+    id: 'T6A', ch: 6, title: 'UND, ODER, NICHT', tags: ['digital.gatter', 'digital.und', 'digital.oder', 'digital.nicht'],
+    lesson:
+      '<p>Ein <b>Gatter</b> verknuepft logische Eingaenge (0/1) zu einem Ausgang. Seine Funktion beschreibt die <b>Wahrheitstabelle</b>: jede Eingangskombination mit dem zugehoerigen Ausgang.</p>' +
+      '<table class="tt"><tr><th>Gatter</th><th>Symbol (DIN)</th><th>Ausdruck</th><th>Ausgang = 1, wenn …</th></tr>' +
+      '<tr><td>UND (AND)</td><td>&amp;</td><td>a = e1 ∧ e2 = e1·e2</td><td>alle Eingaenge 1</td></tr>' +
+      '<tr><td>ODER (OR)</td><td>≥1</td><td>a = e1 ∨ e2 = e1 + e2</td><td>mindestens ein Eingang 1</td></tr>' +
+      '<tr><td>NICHT (NOT)</td><td>1 mit Kreis</td><td>a = ē</td><td>der Eingang 0 ist</td></tr></table>' +
+      '<p><b>Postulate:</b> 1 ∧ e = e · 0 ∧ e = 0 · e ∧ e = e · e ∧ ē = 0 · 1 ∨ e = 1 · 0 ∨ e = e · e ∨ ē = 1.</p>' +
+      '<p><b>Beschaltungsregeln:</b> Keine offenen Eingaenge (undefinierter Pegel) – unbenutzte Eingaenge fest auf 0 oder 1 legen. Und <b>nie Ausgang gegen Ausgang</b>: Treiben zwei Ausgaenge verschiedene Pegel auf dieselbe Leitung, fliesst ein grosser Ausgleichsstrom und die Bausteine gehen kaputt.</p>',
+    questions: [
+      { q: 'Wann liefert ein UND-Gatter mit zwei Eingaengen eine 1?', options: ['Wenn ein Eingang 1 ist', 'Wenn beide Eingaenge 1 sind', 'Wenn beide 0 sind', 'Wenn die Eingaenge verschieden sind'], correct: 1, explain: 'UND: alle Eingaenge muessen 1 sein.' },
+      { q: 'Welches Symbol steht im DIN-Kasten des ODER-Gatters?', options: ['&', '≥1', '=1', '1'], correct: 1, explain: '≥1: mindestens ein Eingang muss 1 sein.' },
+      { q: 'Was ergibt e ∧ ē?', options: ['e', 'ē', '0', '1'], correct: 2, explain: 'Etwas kann nicht gleichzeitig 1 und 0 sein – das UND ist immer 0.' },
+      { q: 'Was ergibt 0 ∨ e?', options: ['0', '1', 'e', 'ē'], correct: 2, explain: 'Eine 0 am ODER aendert nichts – der Ausgang folgt e.' },
+      { q: 'Warum darf man zwei Gatter-Ausgaenge nicht direkt verbinden?', options: ['Weil dann nichts leuchtet', 'Weil bei verschiedenen Pegeln ein grosser Ausgleichsstrom fliesst', 'Weil das Signal zu schwach wird', 'Das ist erlaubt'], correct: 1, explain: 'Ein Ausgang zieht nach 5 V, der andere nach 0 V – Kurzschluss zwischen den Ausgangsstufen.' }
+    ]
+  });
+
+  gateTask({ id: '6.1', n: 2, title: 'Das UND-Gatter', tags: ['digital.und', 'digital.gatter'], f: function (b) { return b[0] & b[1]; },
+    story: 'Die Stanzmaschine darf nur stanzen, wenn beide Haende auf den Zweihandtastern liegen.',
+    brief: 'Baue mit einem <b>UND-Gatter</b> die Zweihandsicherung: L1 soll nur leuchten, wenn E1 <b>und</b> E2 auf 1 stehen. Pruefe alle vier Kombinationen.',
+    learn: 'UND: nur wenn alle Eingaenge 1 sind, ist der Ausgang 1.', take: 'a = e1 ∧ e2 – die Zweihandsicherung ist ein UND.',
+    hint: 'E1.out → U1.in1, E2.out → U1.in2, U1.out → L1.in.', hint2: 'Das UND-Gatter liegt als Chip 74HC08 auf dem Board.',
+    palette: ['and'], need: { and: 1 }, gates: [['U1', 'and', ['E1', 'E2']]], wrong: [['ODER statt UND', [['U1', 'or', ['E1', 'E2']]]]] });
+
+  gateTask({ id: '6.2', n: 2, title: 'Das ODER-Gatter', tags: ['digital.oder', 'digital.gatter'], f: function (b) { return b[0] | b[1]; },
+    story: 'Die Hupe soll ertoenen, wenn die Tuer offen ist oder das Fenster.',
+    brief: 'Baue mit einem <b>ODER-Gatter</b> die Warnung: L1 leuchtet, sobald E1 <b>oder</b> E2 (oder beide) auf 1 stehen.',
+    learn: 'ODER: mindestens ein Eingang 1 → Ausgang 1.', take: 'a = e1 ∨ e2.',
+    hint: 'Gleiche Verdrahtung wie beim UND, nur mit dem ODER-Chip (74HC32).', hint2: 'E1 → in1, E2 → in2, out → L1.',
+    palette: ['or'], need: { or: 1 }, gates: [['U1', 'or', ['E1', 'E2']]], wrong: [['UND statt ODER', [['U1', 'and', ['E1', 'E2']]]]] });
+
+  gateTask({ id: '6.3', n: 1, title: 'Das NICHT-Gatter', tags: ['digital.nicht', 'digital.gatter'], f: function (b) { return 1 - b[0]; },
+    story: 'Die Kontrolllampe „Band steht“ soll leuchten, solange der Motor-Schalter aus ist.',
+    brief: 'Baue mit einem <b>NICHT-Gatter</b> (Inverter) die Anzeige: L1 leuchtet, wenn E1 = 0.',
+    learn: 'NICHT kehrt um: aus 0 wird 1 und umgekehrt.', take: 'a = ē – der Kreis am Symbol bedeutet Negation.',
+    hint: 'E1.out → U1.in, U1.out → L1.in.', hint2: 'Der Inverter-Chip heisst 74HC04.',
+    palette: ['not'], need: { not: 1 }, gates: [['U1', 'not', ['E1']]] });
+
+  var inhib = LG.net(2, [['U1', 'not', ['E2']], ['U2', 'and', ['E1', 'U1']]], { L1: 'U2' });
+  var fInh = function (b) { return b[0] & (1 - b[1]); };
+  defTask({
+    id: '6.4', ch: 6, title: 'Wahrheitstabelle aufnehmen', tags: ['digital.wahrheitstabelle', 'digital.gatter'],
+    story: 'Eine fremde Schaltung auf dem Board. Was macht sie? Die Werkmeisterin: „Nicht raten – alle Kombinationen durchschalten.“',
+    brief: 'Schalte E1 und E2 durch alle vier Kombinationen und notiere den Ausgang L1 (0 oder 1) im Protokoll.',
+    learn: 'Die Wahrheitstabelle beschreibt eine Schaltung vollstaendig.', take: 'Diese Schaltung ist eine Sperre (Inhibition): a = e1 ∧ ē2 – E2 verbietet E1.',
+    hint: 'Pegelschalter anklicken, Anzeige ablesen, naechste Kombination.', hint2: 'Nur bei E1 = 1 und E2 = 0 leuchtet L1.',
+    palette: [], start: inhib, ref: inhib, bench: LG.bench(inhib),
+    tests: [{ name: 'Schaltung', expect: [{ noFault: true }] }],
+    measure: [[0, 0], [0, 1], [1, 0], [1, 1]].map(function (c) { return { id: 'a' + c[0] + c[1], ask: 'L1 bei E2 = ' + c[0] + ', E1 = ' + c[1], unit: '', value: fInh([c[1], c[0]]), tol: 0, abs: 0.1 }; })
+  });
+
+  var clash = LG.io(2); clash.wires = [W('E1.out', 'L1.in'), W('E2.out', 'L1.in')];
+  var orFix = LG.net(2, [['U1', 'or', ['E1', 'E2']]], { L1: 'U1' });
+  defTask({
+    id: '6.5', ch: 6, title: 'Nie Ausgang gegen Ausgang', tags: ['digital.beschaltung', 'digital.oder', 'elektro.fehlersuche'],
+    story: 'Ein Kollege hat zwei Pegelschalter direkt auf die Anzeige gelegt. Bei E1 = 1 und E2 = 0 wird der Baustein heiss.',
+    brief: 'Schalte einmal E1 = 1, E2 = 0 und beobachte die Diagnose. Behebe den Fehler: Die Anzeige soll leuchten, wenn E1 <b>oder</b> E2 auf 1 steht – ohne dass je zwei Ausgaenge gegeneinander arbeiten.',
+    learn: 'Signale verknuepft man mit Gattern, nicht durch Zusammenschalten.', take: 'Direkt verbunden kaempfen zwei Ausgaenge gegeneinander: ~100 mA Ausgleichsstrom. Ein ODER-Gatter loest das sauber.',
+    hint: 'Loesche die beiden Leitungen zu L1 und setze ein ODER dazwischen.', hint2: 'E1 → U1.in1, E2 → U1.in2, U1.out → L1.',
+    palette: ['or'], need: { or: 1 }, start: clash, ref: orFix, bench: LG.bench(orFix),
+    wrong: [named('Ausgaenge noch verbunden', clash)],
+    tests: LG.truth(2, function (b) { return b[0] | b[1]; }).map(function (t) { t.expect.push({ noFault: true }); return t; })
+  });
+
+  defTheory({
+    id: 'T6B', ch: 6, title: 'NAND, NOR, XOR, XNOR', tags: ['digital.nand', 'digital.nor', 'digital.xor', 'digital.gatter'],
+    lesson:
+      '<p><b>NAND</b> = NICHT-UND: a = ¬(e1 ∧ e2) – nur bei 1/1 ist der Ausgang 0. <b>NOR</b> = NICHT-ODER: a = ¬(e1 ∨ e2) – nur bei 0/0 ist der Ausgang 1. Im Symbol steht der Negationskreis am Ausgang.</p>' +
+      '<p><b>XOR</b> (Antivalenz, =1): a = e1·ē2 ∨ ē1·e2 – Ausgang 1, wenn die Eingaenge <i>verschieden</i> sind. <b>XNOR</b> (Aequivalenz): Ausgang 1, wenn die Eingaenge <i>gleich</i> sind – ein 1-Bit-Vergleicher.</p>' +
+      '<p>Postulate XOR: 0 ⊕ e = e · 1 ⊕ e = ē · e ⊕ e = 0 · e ⊕ ē = 1. Mit XOR laesst sich also ein Signal wahlweise durchlassen oder invertieren.</p>' +
+      '<p>NAND und NOR heissen <b>Universalgatter</b>: Aus ihnen allein laesst sich jede andere Funktion aufbauen (Kapitel 7).</p>' +
+      '<p><b>Positive Logik</b>: High = 1. Bei negativer Logik waere Low = 1 – ein UND wird dann zum ODER. In diesem Kurs gilt positive Logik.</p>',
+    questions: [
+      { q: 'Wann ist der Ausgang eines NAND-Gatters 0?', options: ['Wenn ein Eingang 0 ist', 'Nur wenn beide Eingaenge 1 sind', 'Wenn beide 0 sind', 'Nie'], correct: 1, explain: 'NAND ist das invertierte UND.' },
+      { q: 'Wann ist der Ausgang eines NOR-Gatters 1?', options: ['Nur wenn beide Eingaenge 0 sind', 'Wenn ein Eingang 1 ist', 'Wenn beide 1 sind', 'Immer'], correct: 0, explain: 'NOR ist das invertierte ODER.' },
+      { q: 'Welches Gatter liefert 1, wenn die beiden Eingaenge verschieden sind?', options: ['UND', 'ODER', 'XOR', 'XNOR'], correct: 2, explain: 'XOR = Antivalenz: verschieden → 1.' },
+      { q: 'Was ergibt 1 ⊕ e (XOR mit 1)?', options: ['0', '1', 'e', 'ē'], correct: 3, explain: 'XOR mit 1 invertiert das Signal.' },
+      { q: 'Warum heissen NAND und NOR Universalgatter?', options: ['Sie sind am billigsten', 'Aus ihnen allein laesst sich jede Logikfunktion bauen', 'Sie haben mehr Eingaenge', 'Sie funktionieren mit jeder Spannung'], correct: 1, explain: 'NICHT, UND und ODER lassen sich nur aus NAND (oder nur aus NOR) zusammensetzen.' }
+    ]
+  });
+
+  gateTask({ id: '6.6', n: 2, title: 'Das NAND-Gatter', tags: ['digital.nand', 'digital.gatter'], f: function (b) { return 1 - (b[0] & b[1]); },
+    story: 'Die Stoermeldung „Nicht beide Pumpen bereit“ soll leuchten, ausser beide sind bereit.',
+    brief: 'Baue die Meldung mit einem <b>NAND-Gatter</b>: L1 leuchtet, ausser E1 und E2 sind beide 1.',
+    learn: 'NAND = NICHT-UND.', take: 'a = ¬(e1 ∧ e2): nur 1/1 ergibt 0.',
+    hint: 'NAND-Chip 74HC00.', hint2: 'E1 → in1, E2 → in2, out → L1.',
+    palette: ['nand'], need: { nand: 1 }, gates: [['U1', 'nand', ['E1', 'E2']]], wrong: [['UND statt NAND', [['U1', 'and', ['E1', 'E2']]]]] });
+  gateTask({ id: '6.7', n: 2, title: 'Das NOR-Gatter', tags: ['digital.nor', 'digital.gatter'], f: function (b) { return 1 - (b[0] | b[1]); },
+    story: 'Die Anzeige „Alles ruhig“ leuchtet nur, wenn weder Sensor 1 noch Sensor 2 anspricht.',
+    brief: 'Baue die Ruhe-Anzeige mit einem <b>NOR-Gatter</b>.',
+    learn: 'NOR = NICHT-ODER.', take: 'a = ¬(e1 ∨ e2): nur 0/0 ergibt 1.',
+    hint: 'NOR-Chip 74HC02.', hint2: 'E1 → in1, E2 → in2, out → L1.',
+    palette: ['nor'], need: { nor: 1 }, gates: [['U1', 'nor', ['E1', 'E2']]], wrong: [['ODER statt NOR', [['U1', 'or', ['E1', 'E2']]]]] });
+  gateTask({ id: '6.8', n: 2, title: 'Die Treppenhausschaltung', tags: ['digital.xor', 'digital.gatter'], f: function (b) { return b[0] ^ b[1]; },
+    story: 'Unten und oben an der Treppe ein Schalter. Jeder soll das Licht umschalten koennen – egal, wie der andere steht.',
+    brief: 'Baue die Wechselschaltung mit einem <b>XOR-Gatter</b>. Pruefe: Jedes Umlegen eines Schalters wechselt den Zustand von L1.',
+    learn: 'XOR: verschiedene Eingaenge → 1.', take: 'Jede Aenderung eines Eingangs kehrt den XOR-Ausgang um – genau die Wechselschaltung.',
+    hint: 'XOR-Chip 74HC86.', hint2: 'E1 → in1, E2 → in2, out → L1.',
+    palette: ['xor'], need: { xor: 1 }, gates: [['U1', 'xor', ['E1', 'E2']]], wrong: [['ODER statt XOR', [['U1', 'or', ['E1', 'E2']]]]] });
+  gateTask({ id: '6.9', n: 2, title: 'Sind beide gleich?', tags: ['digital.xnor', 'digital.vergleicher'], f: function (b) { return b[0] === b[1] ? 1 : 0; },
+    story: 'Zwei Endschalter muessen immer gleich stehen. Stimmt etwas nicht, soll die Gut-Anzeige erloeschen.',
+    brief: 'Baue einen <b>1-Bit-Vergleicher</b> mit dem XNOR-Gatter: L1 leuchtet, wenn E1 und E2 gleich sind.',
+    learn: 'XNOR (Aequivalenz): gleiche Eingaenge → 1.', take: 'Das XNOR ist der einfachste Vergleicher.',
+    hint: 'XNOR-Chip 74HC7266.', hint2: 'E1 → in1, E2 → in2, out → L1.',
+    palette: ['xnor', 'xor'], need: {}, gates: [['U1', 'xnor', ['E1', 'E2']]], wrong: [['XOR statt XNOR', [['U1', 'xor', ['E1', 'E2']]]]] });
+  gateTask({ id: '6.10', n: 3, title: 'Die Alarmanlage', tags: ['digital.gatter', 'digital.entwurf'], f: function (b) { return (b[0] | b[1]) & b[2]; },
+    story: 'Die Alarmanlage: Tuerkontakt (E1) oder Fensterkontakt (E2) loesen aus – aber nur, wenn die Anlage scharf geschaltet ist (E3).',
+    brief: 'Baue die Alarmanlage aus Grundgattern: <b>A = (E1 ∨ E2) ∧ E3</b>.',
+    learn: 'Mehrere Gatter hintereinander ergeben zusammengesetzte Funktionen.', take: 'Klammern zuerst: erst ODER, dann UND.',
+    hint: 'U1 = ODER aus E1 und E2, U2 = UND aus U1 und E3.', hint2: 'U1.out → U2.in1, E3.out → U2.in2, U2.out → L1.',
+    palette: ['and', 'or', 'not'], need: {}, gates: [['U1', 'or', ['E1', 'E2']], ['U2', 'and', ['U1', 'E3']]],
+    wrong: [['ohne Scharfschaltung', [['U1', 'or', ['E1', 'E2']]]]] });
+})();
+
+/* ==== content/ch07.js ==== */
+/* Kapitel 7 – Boolesche Algebra
+ * Quelle: Digitaltechnik stationaere Vorgaenge Kap. 5 (Kommutativ-, Assoziativ-, Distributivgesetze, De Morgan, Uebungsserie,
+ * normierte Schaltungen), Zusammenfassung Gesetze der Booleschen Algebra (inkl. Bindungsregel, Absorption). */
+(function () {
+  'use strict';
+  defChapter({
+    id: 7, title: 'Boolesche Algebra',
+    intro: 'Rechnen mit 0 und 1: Mit den Gesetzen der Booleschen Algebra machst du Schaltungen kleiner – und baust aus einem einzigen Gattertyp jede beliebige Funktion.',
+    sequence: ['T7A', '7.1', '7.2', '7.3', '7.4', '7.5', 'T7B', '7.6', '7.7', '7.8', '7.9', '7.10']
+  });
+  var named = function (name, l) { l.name = name; return l; };
+  function algTask(o) {
+    var ref = LG.net(o.n, o.gates, { L1: o.gates.length ? o.gates[o.gates.length - 1][0] : o.src });
+    defTask({
+      id: o.id, ch: 7, title: o.title, tags: o.tags, story: o.story,
+      brief: o.brief + (o.limit ? '<p class="limit">Erlaubt: hoechstens <b>' + o.limit.gates + '</b> Gatter' + (o.only ? ' – nur ' + o.only : '') + '.</p>' : '') + LG.table(o.n, o.f),
+      learn: o.learn, take: o.take, hint: o.hint, hint2: o.hint2,
+      palette: o.palette, need: o.need || {}, limit: o.limit,
+      start: LG.io(o.n), ref: ref, bench: LG.bench(ref),
+      wrong: (o.wrong || []).map(function (w) { return named(w[0], LG.net(o.n, w[1], { L1: w[1].length ? w[1][w[1].length - 1][0] : w[2] })); }),
+      tests: LG.truth(o.n, o.f)
+    });
+  }
+
+  defTheory({
+    id: 'T7A', ch: 7, title: 'Gesetze der Booleschen Algebra', tags: ['digital.boolesche_algebra'],
+    lesson:
+      '<p>Mit 0 und 1 laesst sich rechnen wie mit Zahlen – nach eigenen Gesetzen. <b>Bindungsregel:</b> UND bindet staerker als ODER (wie · vor +).</p>' +
+      '<table class="tt"><tr><th>Gesetz</th><th>ODER</th><th>UND</th></tr>' +
+      '<tr><td>Kommutativ (vertauschen)</td><td>e1 ∨ e2 = e2 ∨ e1</td><td>e1·e2 = e2·e1</td></tr>' +
+      '<tr><td>Assoziativ (verbinden)</td><td>(e1 ∨ e2) ∨ e3 = e1 ∨ (e2 ∨ e3)</td><td>(e1·e2)·e3 = e1·(e2·e3)</td></tr>' +
+      '<tr><td>Distributiv (ausklammern)</td><td>e1 ∨ e2·e3 = (e1 ∨ e2)(e1 ∨ e3)</td><td>e1(e2 ∨ e3) = e1·e2 ∨ e1·e3</td></tr></table>' +
+      '<p>Dazu die <b>Postulate</b> aus Kapitel 6 (e ∨ ē = 1, e·ē = 0, e ∨ 1 = 1, e·0 = 0 …) und die <b>Absorption</b>: e1 ∨ e1·e2 = e1 · e1(e1 ∨ e2) = e1 · e1 ∨ ē1·e2 = e1 ∨ e2.</p>' +
+      '<p><b>Vereinfachen</b> heisst: dieselbe Wahrheitstabelle mit weniger Gattern. Beispiel: e1·e2 ∨ e1·ē2 = e1·(e2 ∨ ē2) = e1·1 = e1 – kein einziges Gatter noetig.</p>' +
+      '<p>Assoziativ bedeutet praktisch: Ein UND mit drei Eingaengen baust du aus zwei UND mit je zwei Eingaengen.</p>',
+    questions: [
+      { q: 'Was ist nach der Bindungsregel mit e1 ∨ e2·e3 gemeint?', options: ['(e1 ∨ e2)·e3', 'e1 ∨ (e2·e3)', 'e1·e2 ∨ e3', 'Das ist nicht eindeutig'], correct: 1, explain: 'UND bindet staerker – zuerst e2·e3, dann ODER.' },
+      { q: 'Vereinfache e1·e2 ∨ e1·e3.', options: ['e1 ∨ e2·e3', 'e1·(e2 ∨ e3)', 'e2·e3', 'e1'], correct: 1, explain: 'e1 ausklammern (Distributivgesetz).' },
+      { q: 'Was ergibt e1 ∨ e1·e2 (Absorption)?', options: ['e1', 'e2', 'e1·e2', '1'], correct: 0, explain: 'Ist e1 = 1, ist alles 1; ist e1 = 0, ist auch e1·e2 = 0 – also bleibt e1.' },
+      { q: 'Vereinfache e1·e2 ∨ e1·ē2.', options: ['e2', 'e1', '1', 'e1·e2'], correct: 1, explain: 'e1·(e2 ∨ ē2) = e1·1 = e1.' },
+      { q: 'Wie viele UND-Gatter mit zwei Eingaengen brauchst du fuer e1·e2·e3·e4?', options: ['1', '2', '3', '4'], correct: 2, explain: 'Assoziativ: ((e1·e2)·e3)·e4 – drei Gatter.' }
+    ]
+  });
+
+  algTask({ id: '7.1', n: 3, title: 'Drei Bedingungen', tags: ['digital.boolesche_algebra', 'digital.und'], f: function (b) { return b[0] & b[1] & b[2]; },
+    story: 'Die Presse startet nur, wenn Schutztuer zu (E1), Werkstueck eingelegt (E2) und Start gedrueckt (E3).',
+    brief: 'Baue <b>A = E1 · E2 · E3</b>. Es gibt nur UND-Gatter mit zwei Eingaengen.',
+    learn: 'Assoziativgesetz: (e1·e2)·e3 = e1·(e2·e3).', take: 'Zwei Zweier-UND ergeben ein Dreier-UND – egal, welche beiden zuerst.',
+    hint: 'Erst E1 und E2 verunden, das Ergebnis mit E3.', hint2: 'U1 = E1·E2, U2 = U1·E3.',
+    palette: ['and'], limit: { gates: 2 }, gates: [['U1', 'and', ['E1', 'E2']], ['U2', 'and', ['U1', 'E3']]], wrong: [['E3 vergessen', [['U1', 'and', ['E1', 'E2']]]]] });
+
+  algTask({ id: '7.2', n: 3, title: 'Ausklammern spart Gatter', tags: ['digital.boolesche_algebra', 'digital.vereinfachen'], f: function (b) { return (b[0] & b[1]) | (b[0] & b[2]); },
+    story: 'Der Entwurf aus dem Buero: A = E1·E2 ∨ E1·E3 – drei Gatter. Der Einkauf fragt, ob es billiger geht.',
+    brief: 'Baue <b>A = E1·E2 ∨ E1·E3</b> mit nur zwei Gattern.', limit: { gates: 2 },
+    learn: 'Distributivgesetz: e1·e2 ∨ e1·e3 = e1·(e2 ∨ e3).', take: 'Ausklammern spart ein Gatter – gleiche Wahrheitstabelle, weniger Bauteile.',
+    hint: 'Was haben beide Terme gemeinsam?', hint2: 'U1 = E2 ∨ E3, U2 = E1 · U1.',
+    palette: ['and', 'or'], gates: [['U1', 'or', ['E2', 'E3']], ['U2', 'and', ['E1', 'U1']]] });
+
+  algTask({ id: '7.3', n: 2, title: 'De Morgan I', tags: ['digital.demorgan', 'digital.boolesche_algebra'], f: function (b) { return 1 - (b[0] & b[1]); },
+    story: 'Kein NAND-Chip mehr im Lager. Es gibt nur ODER- und NICHT-Gatter.',
+    brief: 'Baue <b>A = ¬(E1 · E2)</b> nur mit <b>ODER und NICHT</b>.', limit: { gates: 3 }, only: 'ODER und NICHT',
+    learn: 'De Morgan: ¬(e1·e2) = ē1 ∨ ē2.', take: 'Negation ueber den ganzen Term: UND wird zu ODER, jede Variable wird negiert.',
+    hint: 'Beide Eingaenge einzeln invertieren, dann verodern.', hint2: 'U1 = ¬E1, U2 = ¬E2, U3 = U1 ∨ U2.',
+    palette: ['or', 'not'], gates: [['U1', 'not', ['E1']], ['U2', 'not', ['E2']], ['U3', 'or', ['U1', 'U2']]],
+    wrong: [['nur ein Eingang invertiert', [['U1', 'not', ['E1']], ['U3', 'or', ['U1', 'E2']]]]] });
+
+  algTask({ id: '7.4', n: 2, title: 'De Morgan II', tags: ['digital.demorgan', 'digital.boolesche_algebra'], f: function (b) { return 1 - (b[0] | b[1]); },
+    story: 'Jetzt fehlt der NOR-Chip. Im Lager: UND und NICHT.',
+    brief: 'Baue <b>A = ¬(E1 ∨ E2)</b> nur mit <b>UND und NICHT</b>.', limit: { gates: 3 }, only: 'UND und NICHT',
+    learn: 'De Morgan: ¬(e1 ∨ e2) = ē1 · ē2.', take: 'Auch umgekehrt: ODER wird zu UND, jede Variable wird negiert.',
+    hint: 'Beide Eingaenge invertieren, dann verunden.', hint2: 'U1 = ¬E1, U2 = ¬E2, U3 = U1 · U2.',
+    palette: ['and', 'not'], gates: [['U1', 'not', ['E1']], ['U2', 'not', ['E2']], ['U3', 'and', ['U1', 'U2']]] });
+
+  algTask({ id: '7.5', n: 2, title: 'Die Nullgatter-Loesung', tags: ['digital.vereinfachen', 'digital.boolesche_algebra'], f: function (b) { return b[0]; },
+    story: 'Im alten Schaltplan steht A = E1·E2 ∨ E1·Ē2. Der Chef fragt: „Wie viele Gatter brauchen wir dafuer?“',
+    brief: 'Vereinfache <b>A = E1·E2 ∨ E1·Ē2</b> so weit wie moeglich und baue das Ergebnis auf.', limit: { gates: 0 },
+    learn: 'e2 ∨ ē2 = 1 – eine Variable, die in beiden Zustaenden vorkommt, faellt weg.', take: 'Manchmal braucht es gar kein Gatter: A = E1.',
+    hint: 'Klammere E1 aus. Was ergibt E2 ∨ Ē2?', hint2: 'A = E1 – eine Leitung von E1 zu L1 genuegt.',
+    palette: ['and', 'or', 'not'], gates: [], src: 'E1', wrong: [['E2 durchgeschaltet', [], 'E2']] });
+
+  defTheory({
+    id: 'T7B', ch: 7, title: 'De Morgan und normierte Schaltungen', tags: ['digital.demorgan', 'digital.nand', 'digital.nor'],
+    lesson:
+      '<p><b>De Morgan:</b> Eine Negation ueber einem ganzen Term wird aufgeteilt, indem man UND und ODER vertauscht und jede Variable negiert:</p>' +
+      '<div class="formula">¬(e1·e2) = ē1 ∨ ē2 &nbsp;&nbsp; ¬(e1 ∨ e2) = ē1·ē2</div>' +
+      '<p><b>Normierte Schaltungen</b> bestehen aus nur einem Gattertyp – praktisch, weil man dann nur einen Chip lagern muss.</p>' +
+      '<ul><li><b>NICHT aus NAND:</b> beide Eingaenge verbinden: ¬(e·e) = ē.</li>' +
+      '<li><b>UND aus NAND:</b> NAND und dahinter ein NAND als Inverter.</li>' +
+      '<li><b>ODER aus NAND:</b> beide Eingaenge invertieren (NAND als Inverter), dann NAND: ¬(ē1·ē2) = e1 ∨ e2.</li>' +
+      '<li><b>ODER aus NOR:</b> NOR und dahinter ein NOR als Inverter.</li></ul>' +
+      '<p>Ein <b>XOR aus vier NAND</b>: N1 = ¬(e1·e2), dann N2 = ¬(e1·N1), N3 = ¬(e2·N1), a = ¬(N2·N3).</p>',
+    questions: [
+      { q: 'Was ist ¬(e1 ∨ e2) nach De Morgan?', options: ['ē1 ∨ ē2', 'ē1 · ē2', 'e1 · e2', '¬e1 ∨ e2'], correct: 1, explain: 'ODER wird zu UND, jede Variable negiert.' },
+      { q: 'Wie wird ein NAND zum Inverter?', options: ['Einen Eingang auf 0 legen', 'Beide Eingaenge verbinden', 'Den Ausgang auf 1 legen', 'Geht nicht'], correct: 1, explain: '¬(e·e) = ē.' },
+      { q: 'Wie viele NAND braucht ein ODER?', options: ['1', '2', '3', '4'], correct: 2, explain: 'Zwei als Inverter fuer die Eingaenge, eines fuer die Verknuepfung.' },
+      { q: 'Wie viele NAND braucht ein UND?', options: ['1', '2', '3', '4'], correct: 1, explain: 'NAND plus NAND als Inverter.' },
+      { q: 'Warum baut man Schaltungen nur aus NAND?', options: ['NAND ist schneller als alle anderen', 'Ein einziger Chiptyp genuegt fuer jede Funktion', 'NAND braucht keine Versorgung', 'Weil UND verboten ist'], correct: 1, explain: 'NAND ist ein Universalgatter – weniger Lagerhaltung, einheitliche Technik.' }
+    ]
+  });
+
+  var nandOnly = { limit: { gates: 1 } };
+  algTask({ id: '7.6', n: 1, title: 'NICHT aus NAND', tags: ['digital.nand', 'digital.normiert'], f: function (b) { return 1 - b[0]; },
+    story: 'Auf der Platine ist noch ein NAND frei. Gebraucht wird ein Inverter.',
+    brief: 'Baue einen <b>Inverter nur aus einem NAND</b>.', limit: nandOnly.limit, only: 'NAND',
+    learn: '¬(e·e) = ē.', take: 'Beide Eingaenge an dasselbe Signal – das NAND invertiert.',
+    hint: 'Verbinde E1 mit beiden Eingaengen.', hint2: 'E1 → U1.in1 und E1 → U1.in2.',
+    palette: ['nand'], gates: [['U1', 'nand', ['E1', 'E1']]] });
+  algTask({ id: '7.7', n: 2, title: 'UND aus NAND', tags: ['digital.nand', 'digital.normiert'], f: function (b) { return b[0] & b[1]; },
+    story: 'Nur NAND im Lager – gebraucht wird ein UND.',
+    brief: 'Baue <b>A = E1 · E2</b> nur aus NAND-Gattern.', limit: { gates: 2 }, only: 'NAND',
+    learn: 'UND = NAND + Inverter.', take: 'Das zweite NAND hebt die Negation des ersten wieder auf.',
+    hint: 'Ein NAND verknuepft, ein zweites invertiert.', hint2: 'U1 = NAND(E1, E2), U2 = NAND(U1, U1).',
+    palette: ['nand'], gates: [['U1', 'nand', ['E1', 'E2']], ['U2', 'nand', ['U1', 'U1']]], wrong: [['nur ein NAND', [['U1', 'nand', ['E1', 'E2']]]]] });
+  algTask({ id: '7.8', n: 2, title: 'ODER aus NAND', tags: ['digital.nand', 'digital.normiert', 'digital.demorgan'], f: function (b) { return b[0] | b[1]; },
+    story: 'Die naechste Bestellung: ein ODER. Wieder nur NAND.',
+    brief: 'Baue <b>A = E1 ∨ E2</b> nur aus NAND-Gattern.', limit: { gates: 3 }, only: 'NAND',
+    learn: 'De Morgan: e1 ∨ e2 = ¬(ē1 · ē2).', take: 'Eingaenge invertieren und NAND – das ist ein ODER.',
+    hint: 'Zwei NAND als Inverter fuer E1 und E2, dann ein NAND.', hint2: 'U1 = NAND(E1,E1), U2 = NAND(E2,E2), U3 = NAND(U1,U2).',
+    palette: ['nand'], gates: [['U1', 'nand', ['E1', 'E1']], ['U2', 'nand', ['E2', 'E2']], ['U3', 'nand', ['U1', 'U2']]] });
+  algTask({ id: '7.9', n: 2, title: 'XOR aus vier NAND', tags: ['digital.nand', 'digital.normiert', 'digital.xor'], f: function (b) { return b[0] ^ b[1]; },
+    story: 'Die Profiaufgabe der Werkmeisterin: „Ein XOR. Nur NAND. Hoechstens vier.“',
+    brief: 'Baue <b>A = E1 ⊕ E2</b> aus hoechstens vier NAND-Gattern.', limit: { gates: 4 }, only: 'NAND',
+    learn: 'Das klassische XOR aus vier NAND.', take: 'N1 = ¬(e1·e2); dann ¬(e1·N1) und ¬(e2·N1); zum Schluss NAND beider.',
+    hint: 'Das erste NAND verknuepft E1 und E2; sein Ausgang geht in zwei weitere NAND.', hint2: 'U1 = NAND(E1,E2), U2 = NAND(E1,U1), U3 = NAND(E2,U1), U4 = NAND(U2,U3).',
+    palette: ['nand'], gates: [['U1', 'nand', ['E1', 'E2']], ['U2', 'nand', ['E1', 'U1']], ['U3', 'nand', ['E2', 'U1']], ['U4', 'nand', ['U2', 'U3']]] });
+  algTask({ id: '7.10', n: 2, title: 'ODER aus NOR', tags: ['digital.nor', 'digital.normiert'], f: function (b) { return b[0] | b[1]; },
+    story: 'Ein anderes Lager, ein anderer Chip: nur NOR.',
+    brief: 'Baue <b>A = E1 ∨ E2</b> nur aus NOR-Gattern.', limit: { gates: 2 }, only: 'NOR',
+    learn: 'ODER = NOR + Inverter.', take: 'Ein NOR mit verbundenen Eingaengen ist ein Inverter.',
+    hint: 'NOR verknuepft, zweites NOR invertiert.', hint2: 'U1 = NOR(E1,E2), U2 = NOR(U1,U1).',
+    palette: ['nor'], gates: [['U1', 'nor', ['E1', 'E2']], ['U2', 'nor', ['U1', 'U1']]], wrong: [['nur ein NOR', [['U1', 'nor', ['E1', 'E2']]]]] });
+})();
+
+/* ==== content/ch08.js ==== */
+/* Kapitel 8 – Schaltungsentwurf und KV-Diagramm
+ * Quelle: Digitaltechnik stationaere Vorgaenge Kap. 4.3.1 (Foerderband: Schaltung aus Wahrheitstabelle, DNF/KNF), Kap. 6
+ * (KV-Diagramm, Uebungsserie Σm4(…) + X(…), a = niederwertigstes Bit), Pruefung KV-Diagramme. */
+(function () {
+  'use strict';
+  defChapter({
+    id: 8, title: 'Schaltungsentwurf und KV-Diagramm',
+    intro: 'Vom Auftrag zur Schaltung: Wahrheitstabelle aufstellen, Ausdruck ablesen, mit dem KV-Diagramm vereinfachen – und die kleinste Schaltung bauen, die das Verlangte leistet.',
+    sequence: ['T8A', '8.1', '8.2', '8.3', '8.4', '8.5', 'T8B', '8.6', '8.7', '8.8', '8.9', '8.10']
+  });
+  var named = function (name, l) { l.name = name; return l; };
+  function designTask(o) {
+    var outSrc = o.gates.length ? o.gates[o.gates.length - 1][0] : o.src;
+    var ref = LG.net(o.n, o.gates, { L1: outSrc });
+    defTask({
+      id: o.id, ch: 8, title: o.title, tags: o.tags, story: o.story,
+      brief: o.brief + (o.limit ? '<p class="limit">Erlaubt: hoechstens <b>' + o.limit.gates + '</b> Gatter.</p>' : '') + LG.table(o.n, o.f, { dc: o.dc }) + (o.dc ? '<p class="dim small">X = beliebig (kommt nie vor) – darf fuer die Vereinfachung als 0 oder 1 genutzt werden.</p>' : ''),
+      learn: o.learn, take: o.take, hint: o.hint, hint2: o.hint2,
+      palette: o.palette || ['and', 'or', 'not'], need: {}, limit: o.limit,
+      start: LG.io(o.n), ref: ref, bench: LG.bench(ref),
+      wrong: (o.wrong || []).map(function (w) { return named(w[0], LG.net(o.n, w[1], { L1: w[1].length ? w[1][w[1].length - 1][0] : w[2] })); }),
+      tests: LG.truth(o.n, o.f, { dc: o.dc })
+    });
+  }
+
+  defTheory({
+    id: 'T8A', ch: 8, title: 'Von der Wahrheitstabelle zur Schaltung', tags: ['digital.entwurf', 'digital.dnf'],
+    lesson:
+      '<p><b>Vorgehen:</b> 1. Aufgabe verstehen, Ein- und Ausgaenge festlegen. 2. <b>Wahrheitstabelle</b> aufstellen. 3. Logischen Ausdruck ablesen. 4. Vereinfachen. 5. Schaltung bauen und mit allen Kombinationen pruefen.</p>' +
+      '<p><b>DNF</b> (disjunktive Normalform, positive Logik): Fuer jede Zeile mit <b>A = 1</b> die Eingaenge verunden (Eingang 0 → negiert) – das ist ein <b>Minterm</b>. Alle Minterme verodern.</p>' +
+      '<p><b>KNF</b> (konjunktive Normalform): Fuer jede Zeile mit <b>A = 0</b> die negierten Eingaenge verodern, alle Klammern verunden.</p>' +
+      '<p>Beispiel Foerderband (A = 1 bei 01, 10, 11): DNF = ē2·e1 ∨ e2·ē1 ∨ e2·e1, KNF = (e1 ∨ e2). Beide vereinfachen sich zu <b>A = e1 ∨ e2</b>.</p>' +
+      '<p>Die Zeilen werden dezimal nummeriert: E1 ist die niederwertigste Stelle. Eine Funktion schreibt man kurz als <b>Σm(…)</b> – die Liste der Zeilen mit A = 1.</p>',
+    questions: [
+      { q: 'Welche Zeilen der Wahrheitstabelle verwendet die DNF?', options: ['Alle', 'Die mit A = 1', 'Die mit A = 0', 'Nur die erste'], correct: 1, explain: 'DNF: jede 1-Zeile wird ein Minterm.' },
+      { q: 'Wie lautet der Minterm fuer die Zeile E2 = 1, E1 = 0?', options: ['e2 · e1', 'e2 · ē1', 'ē2 · e1', 'e2 ∨ ē1'], correct: 1, explain: 'Verunden, Eingang 0 wird negiert.' },
+      { q: 'Wie viele Zeilen hat die Wahrheitstabelle mit 3 Eingaengen?', options: ['3', '6', '8', '9'], correct: 2, explain: '2³ = 8 Kombinationen.' },
+      { q: 'Welche Zeilennummer hat E3 = 1, E2 = 0, E1 = 1?', options: ['3', '5', '6', '101'], correct: 1, explain: '4 + 1 = 5.' },
+      { q: 'Die DNF liefert A = ē2·e1 ∨ e2·ē1. Welches Gatter ist das?', options: ['UND', 'ODER', 'XOR', 'NOR'], correct: 2, explain: 'Genau ein Eingang 1 → Antivalenz (XOR).' }
+    ]
+  });
+
+  designTask({ id: '8.1', n: 2, title: 'Das Foerderband', tags: ['digital.entwurf', 'digital.dnf'], f: LG.sigma([1, 2, 3]),
+    story: 'Ein Foerderband (A) kann mit dem Taster E1 oder dem Taster E2 in Bewegung gesetzt werden. Beim Loslassen haelt es wieder an.',
+    brief: 'Setze die Wahrheitstabelle als Schaltung um. Lies die DNF ab und vereinfache so weit wie moeglich.',
+    learn: 'Aus der Tabelle ablesen, dann vereinfachen.', take: 'Die lange DNF (drei Minterme) und die kurze KNF ergeben dasselbe: A = E1 ∨ E2.',
+    hint: 'Welche Zeilen sind 1? Faellt dir ein einzelnes Gatter mit dieser Tabelle ein?', hint2: 'A = E1 ∨ E2 – ein ODER genuegt.',
+    palette: ['and', 'or', 'not'], gates: [['U1', 'or', ['E1', 'E2']]], wrong: [['UND', [['U1', 'and', ['E1', 'E2']]]]] });
+
+  designTask({ id: '8.2', n: 2, title: 'XOR ohne XOR', tags: ['digital.entwurf', 'digital.dnf', 'digital.xor'], f: LG.sigma([1, 2]),
+    story: 'Das XOR-Chip ist ausverkauft. Die Funktion wird trotzdem gebraucht.',
+    brief: 'Baue die Tabelle nur mit <b>UND, ODER, NICHT</b> – direkt aus der DNF.', limit: { gates: 5 },
+    learn: 'Jede Funktion laesst sich aus UND, ODER, NICHT bauen – die DNF zeigt wie.', take: 'A = ē2·e1 ∨ e2·ē1: zwei Minterme, zwei Inverter, ein ODER.',
+    hint: 'Zwei Minterme: E1 und nicht E2; E2 und nicht E1.', hint2: 'U1 = ¬E1, U2 = ¬E2, U3 = E1·U2, U4 = E2·U1, U5 = U3 ∨ U4.',
+    gates: [['U1', 'not', ['E1']], ['U2', 'not', ['E2']], ['U3', 'and', ['E1', 'U2']], ['U4', 'and', ['E2', 'U1']], ['U5', 'or', ['U3', 'U4']]],
+    wrong: [['ODER statt XOR', [['U1', 'or', ['E1', 'E2']]]]] });
+
+  designTask({ id: '8.3', n: 3, title: 'Zwei von drei', tags: ['digital.entwurf', 'digital.vereinfachen'], f: LG.sigma([3, 5, 6, 7]),
+    story: 'Drei Temperatursensoren. Damit ein einzelner defekter Sensor keinen Fehlalarm ausloest, soll der Alarm erst kommen, wenn mindestens zwei ansprechen.',
+    brief: 'Baue die <b>Mehrheitsschaltung</b> (2 von 3).', limit: { gates: 5 },
+    learn: 'Vereinfachte DNF: A = e1·e2 ∨ e1·e3 ∨ e2·e3.', take: 'Die Minterm-Zeile 111 wird von jedem Paar abgedeckt – sie braucht keinen eigenen Term.',
+    hint: 'Welche Paare muessen gleichzeitig 1 sein?', hint2: 'U1 = E1·E2, U2 = E1·E3, U3 = E2·E3, U4 = U1 ∨ U2, U5 = U4 ∨ U3.',
+    gates: [['U1', 'and', ['E1', 'E2']], ['U2', 'and', ['E1', 'E3']], ['U3', 'and', ['E2', 'E3']], ['U4', 'or', ['U1', 'U2']], ['U5', 'or', ['U4', 'U3']]],
+    wrong: [['nur zwei Paare', [['U1', 'and', ['E1', 'E2']], ['U2', 'and', ['E1', 'E3']], ['U4', 'or', ['U1', 'U2']]]]] });
+
+  var given = LG.net(3, [['U1', 'and', ['E2', 'E3']], ['U2', 'or', ['E1', 'U1']]], { L1: 'U2' });
+  var fGiven = function (b) { return b[0] | (b[1] & b[2]); };
+  defTask({
+    id: '8.4', ch: 8, title: 'Tabelle einer fremden Schaltung', tags: ['digital.wahrheitstabelle', 'digital.entwurf'],
+    story: 'Die Dokumentation einer alten Steuerung fehlt. Nur die Schaltung ist noch da.',
+    brief: 'Nimm die Wahrheitstabelle auf: Schalte alle acht Kombinationen und trage die <b>Zeilennummern</b> ein, bei denen L1 leuchtet – als Anzahl und als Summe der Nummern.',
+    learn: 'Messen statt raten: jede Kombination durchschalten.', take: 'A = E1 ∨ E2·E3 = Σm(1, 3, 5, 6, 7).',
+    hint: 'Zeilennummer = E3·4 + E2·2 + E1·1.', hint2: 'L1 leuchtet bei 1, 3, 5, 6, 7 → Anzahl 5, Summe 22.',
+    palette: [], start: given, ref: given, bench: LG.bench(given),
+    tests: [{ name: 'Schaltung', expect: [{ noFault: true }] }],
+    measure: [
+      { id: 'n', ask: 'Anzahl Zeilen mit A = 1', unit: '', value: [0, 1, 2, 3, 4, 5, 6, 7].filter(function (k) { return fGiven(LG.bits(3, k)); }).length, tol: 0, abs: 0.1 },
+      { id: 's', ask: 'Summe der Zeilennummern mit A = 1', unit: '', value: [0, 1, 2, 3, 4, 5, 6, 7].filter(function (k) { return fGiven(LG.bits(3, k)); }).reduce(function (a, b) { return a + b; }, 0), tol: 0, abs: 0.1 }
+    ]
+  });
+
+  designTask({ id: '8.5', n: 3, title: 'Das Garagentor', tags: ['digital.entwurf', 'digital.knf'], f: function (b) { return (1 - b[0]) & (b[1] | b[2]); },
+    story: 'Das Tor soll oeffnen, wenn der Handsender (E2) oder der Innentaster (E3) betaetigt wird – aber nie, solange die Lichtschranke (E1) unterbrochen ist.',
+    brief: 'Entwirf die Schaltung: <b>A = Ē1 · (E2 ∨ E3)</b>. Pruefe die Tabelle vollstaendig.', limit: { gates: 3 },
+    learn: 'Sicherheitsbedingungen werden mit UND und einer Negation eingebunden.', take: 'Die Lichtschranke sperrt alles – das ist die Aufgabe des Ē1 im UND.',
+    hint: 'Erst die Ausloeser verodern, dann mit der invertierten Lichtschranke verunden.', hint2: 'U1 = ¬E1, U2 = E2 ∨ E3, U3 = U1 · U2.',
+    gates: [['U1', 'not', ['E1']], ['U2', 'or', ['E2', 'E3']], ['U3', 'and', ['U1', 'U2']]],
+    wrong: [['Lichtschranke nicht invertiert', [['U2', 'or', ['E2', 'E3']], ['U3', 'and', ['E1', 'U2']]]]] });
+
+  defTheory({
+    id: 'T8B', ch: 8, title: 'Das KV-Diagramm', tags: ['digital.kv', 'digital.vereinfachen'],
+    lesson:
+      '<p>Das <b>KV-Diagramm</b> (Karnaugh-Veitch) ist die Wahrheitstabelle als Feld, so angeordnet, dass sich <b>benachbarte Felder in genau einer Variablen unterscheiden</b> (Gray-Code-Reihenfolge 0, 1, 3, 2). Auch der gegenueberliegende Rand ist benachbart.</p>' +
+      '<table class="tt"><tr><th></th><th>ē2 ē1</th><th>ē2 e1</th><th>e2 e1</th><th>e2 ē1</th></tr><tr><th>ē3</th><td>0</td><td>1</td><td>3</td><td>2</td></tr><tr><th>e3</th><td>4</td><td>5</td><td>7</td><td>6</td></tr></table>' +
+      '<p><b>Vorgehen:</b> Einsen eintragen, dann moeglichst <b>grosse Paeckchen</b> aus 1, 2, 4 oder 8 benachbarten Einsen bilden (Rechtecke, auch ueber den Rand). Jedes Paeckchen ergibt einen Term – die Variablen, die sich im Paeckchen aendern, fallen weg. Alle Terme verodern.</p>' +
+      '<p>Ein Paeckchen aus 2 Feldern spart 1 Variable, aus 4 Feldern 2, aus 8 Feldern 3. <b>X</b> (don\'t care) sind Kombinationen, die nie vorkommen – sie duerfen mit ins Paeckchen, wenn es dadurch groesser wird.</p>' +
+      '<p>Beispiel Σm3(1, 3, 5, 7): alle Einsen haben e1 = 1 → ein Paeckchen aus 4 Feldern → <b>A = e1</b>.</p>',
+    questions: [
+      { q: 'Wie unterscheiden sich benachbarte Felder im KV-Diagramm?', options: ['In allen Variablen', 'In genau einer Variablen', 'In zwei Variablen', 'Gar nicht'], correct: 1, explain: 'Deshalb kann man sie zusammenfassen: Die eine Variable faellt weg.' },
+      { q: 'Wie viele Felder darf ein Paeckchen haben?', options: ['Beliebig viele', '1, 2, 4, 8 …', '3, 6, 9 …', 'Nur 2'], correct: 1, explain: 'Nur Zweierpotenzen – rechteckig angeordnet.' },
+      { q: 'Wie viele Variablen fallen bei einem Paeckchen aus 4 Feldern weg?', options: ['1', '2', '3', '4'], correct: 1, explain: '4 = 2² → zwei Variablen fallen weg.' },
+      { q: 'Was bedeutet ein X im KV-Diagramm?', options: ['Fehler', 'Die Kombination kommt nie vor – beliebig nutzbar', 'Immer 1', 'Immer 0'], correct: 1, explain: 'Don\'t care: darf als 0 oder 1 verwendet werden, wenn es das Paeckchen vergroessert.' },
+      { q: 'Die Einsen liegen bei Σm3(0, 2, 4, 6). Ergebnis?', options: ['A = e1', 'A = ē1', 'A = e3', 'A = ē2'], correct: 1, explain: 'In allen vier Feldern ist e1 = 0 → A = ē1.' }
+    ]
+  });
+
+  designTask({ id: '8.6', n: 3, title: 'Das grosse Paeckchen', tags: ['digital.kv', 'digital.vereinfachen'], f: LG.sigma([1, 3, 5, 7]),
+    story: 'Die DNF hat vier Minterme mit je drei Variablen. Geht es kleiner?',
+    brief: 'Vereinfache <b>Σm3(1, 3, 5, 7)</b> mit dem KV-Diagramm und baue das Ergebnis.', limit: { gates: 0 },
+    learn: 'Vier benachbarte Einsen → zwei Variablen fallen weg.', take: 'Alle Einsen haben E1 = 1 – A = E1, ganz ohne Gatter.',
+    hint: 'Welche Variable ist in allen vier 1-Zeilen gleich?', hint2: 'A = E1 → E1.out direkt an L1.',
+    gates: [], src: 'E1', wrong: [['E3 statt E1', [], 'E3']] });
+
+  designTask({ id: '8.7', n: 3, title: 'Randfelder', tags: ['digital.kv', 'digital.vereinfachen'], f: LG.sigma([0, 2, 4, 6]),
+    story: 'Im KV-Diagramm liegen die Einsen ganz links und ganz rechts. Gehoeren sie zusammen?',
+    brief: 'Vereinfache <b>Σm3(0, 2, 4, 6)</b> und baue das Ergebnis.', limit: { gates: 1 },
+    learn: 'Linker und rechter Rand sind benachbart.', take: 'Die vier Randfelder bilden ein Paeckchen: A = Ē1.',
+    hint: 'In welchem Eingang sind alle 1-Zeilen gleich?', hint2: 'A = ¬E1 – ein Inverter.',
+    gates: [['U1', 'not', ['E1']]], wrong: [['E1 statt Ē1', [], 'E1']] });
+
+  designTask({ id: '8.8', n: 3, title: 'Zwei Paeckchen', tags: ['digital.kv', 'digital.vereinfachen'], f: LG.sigma([2, 3, 5, 6, 7]),
+    story: 'Fuenf Einsen im Diagramm – wie viele Gatter braucht es wirklich?',
+    brief: 'Vereinfache <b>Σm3(2, 3, 5, 6, 7)</b> und baue mit hoechstens zwei Gattern.', limit: { gates: 2 },
+    learn: 'Ueberlappende Paeckchen sind erlaubt und oft noetig.', take: 'Paeckchen 2, 3, 6, 7 → E2; Paeckchen 5, 7 → E1·E3. A = E2 ∨ E1·E3.',
+    hint: 'Ein Viererpaeckchen und ein Zweierpaeckchen.', hint2: 'U1 = E1·E3, U2 = E2 ∨ U1.',
+    gates: [['U1', 'and', ['E1', 'E3']], ['U2', 'or', ['E2', 'U1']]], wrong: [['nur E2', [], 'E2']] });
+
+  designTask({ id: '8.9', n: 4, title: 'Don\'t care nutzen', tags: ['digital.kv', 'digital.dontcare'], f: LG.sigma([5, 7]), dc: [1, 3, 8, 9, 10, 11],
+    story: 'Aus der Uebungsserie: Z = Σm4(5, 7) + X(1, 3, 8, 9, 10, 11). Die X-Kombinationen kommen in der Anlage nie vor.',
+    brief: 'Vereinfache mit Hilfe der X-Felder und baue mit hoechstens zwei Gattern. (Die X-Zeilen werden nicht geprueft.)', limit: { gates: 2 },
+    learn: 'X-Felder vergroessern Paeckchen.', take: 'Mit X(1, 3): Paeckchen 1, 3, 5, 7 → Z = E1 · Ē4.',
+    hint: 'Nimm die X-Felder 1 und 3 zu den Einsen 5 und 7 dazu. Was ist in allen vier gleich?', hint2: 'E1 = 1 und E4 = 0 → U1 = ¬E4, U2 = E1·U1.',
+    gates: [['U1', 'not', ['E4']], ['U2', 'and', ['E1', 'U1']]], wrong: [['E1 allein', [], 'E1']] });
+
+  designTask({ id: '8.10', n: 4, title: 'Die grosse Vereinfachung', tags: ['digital.kv', 'digital.vereinfachen'], f: LG.sigma([0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 12, 13, 14, 15]),
+    story: 'Aus der Uebungsserie: Z = Σm4(0 … 7, 9, 11, 12 … 15). Vierzehn Einsen!',
+    brief: 'Vereinfache und baue mit hoechstens drei Gattern. Tipp: Oft ist es einfacher, die <b>Nullen</b> zu betrachten.', limit: { gates: 3 },
+    learn: 'Achter-Paeckchen sparen drei Variablen.', take: 'Z = Ē4 ∨ E3 ∨ E1 – nur die Zeilen 8 und 10 sind 0.',
+    hint: 'Null ist Z nur bei 8 und 10: E4 = 1, E3 = 0, E1 = 0.', hint2: 'U1 = ¬E4, U2 = U1 ∨ E3, U3 = U2 ∨ E1.',
+    gates: [['U1', 'not', ['E4']], ['U2', 'or', ['U1', 'E3']], ['U3', 'or', ['U2', 'E1']]],
+    wrong: [['E4 nicht invertiert', [['U2', 'or', ['E4', 'E3']], ['U3', 'or', ['U2', 'E1']]]]] });
+})();
+
 /* ==== content/manual.js ==== */
 /* Handbuch – Seiten {id, title, html}. Wird mit den Themen erweitert. */
 (function (root) {
@@ -3249,7 +3775,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     this.dirty = false;
     var self = this, core = this.core, L = core.layout, res = this.sim && this.sim.res, pinNode = this.sim && this.sim.pinNode;
     var vmax = 0; if (res) Object.keys(res.nodeV).forEach(function (n) { vmax = Math.max(vmax, res.nodeV[n]); });
-    var hot = {}; ((res && res.faults) || []).forEach(function (f) { if (f.part && /SHORT|OVERLOAD/.test(f.code)) hot[f.part] = f.code; });
+    var hot = {}; ((res && res.faults) || []).forEach(function (f) { if (f.part && /SHORT|OVERLOAD/.test(f.code)) hot[f.part] = f.code; if (f.code === 'OUTPUT_CLASH') f.parts.forEach(function (id) { hot[id] = f.code; }); });
     function nodeV(pid) { return res && pinNode && pinNode[pid] !== undefined ? res.nodeV[pinNode[pid]] || 0 : undefined; }
     function wcol(pid) { var v = self.showVolt ? nodeV(pid) : undefined; return v === undefined ? null : Ed.voltColor(v, vmax); }
     var byId = {}; L.parts.forEach(function (p) { byId[p.id] = p; });
@@ -3739,7 +4265,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       var ids = Object.keys(g);
       return 'Die Logikschaltung kommt nicht zur Ruhe' + (ids.length ? ': ' + ids.join(' und ') + ' schalten sich gegenseitig immer wieder um' : '') + ' (Rueckkopplung ohne Ruhelage). Die Zeitlupe zeigt die einzelnen Schritte.';
     },
-    NO_GROUND: function () { return 'Logikbausteine und Taktgeber brauchen eine Masse-Verbindung (⏚).'; }
+    NO_GROUND: function () { return 'Logikbausteine und Taktgeber brauchen eine Masse-Verbindung (⏚).'; },
+    OUTPUT_CLASH: function (f) { return 'Ausgang gegen Ausgang: ' + f.parts.join(' und ') + ' treiben denselben Knoten mit unterschiedlichem Pegel (1 gegen 0). Es fliessen rund ' + E.fmt(f.i, 'A') + ' Ausgleichsstrom – die Ausgangsstufen werden heiss und gehen kaputt. Zwei Signale verknuepft man mit einem Gatter (z. B. ODER), nie durch direktes Zusammenschalten.'; }
   };
   function diagnose(faults) { return (faults || []).map(function (f) { return { cls: 'err', text: (FAULT_TEXT[f.code] || function () { return f.code; })(f) }; }); }
   function status(items) {
