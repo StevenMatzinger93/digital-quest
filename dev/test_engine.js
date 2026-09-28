@@ -150,5 +150,17 @@ const s1 = cu.addPart('switch', 600, 300); cu.pressPart('S1', [s1.x, s1.y]); cu.
 ok(s1.props.closed === true && kinds[kinds.length - 1] === 'toggle', 'Schalter per Klick umlegen');
 ok(views.n > 0, 'Angehaengte Ansicht wird neu gezeichnet');
 
+// 15 Werkbank-Raum im Kern: eigene Lage je Bauteil, Schema bleibt unberuehrt
+const cb = new Circuit({});
+cb.load({ parts: [{ id: 'B1', type: 'battery', value: 9, x: 160, y: 300, rot: 0 }, { id: 'D1', type: 'led', x: 500, y: 300, rot: 90 }], wires: [] }, ['B1'],
+  { parts: [{ id: 'B1', x: 300, y: 450 }, { id: 'R1', x: 560, y: 290, rot: 0 }] });
+ok(cb.part('B1').bench.x === 300 && !cb.part('D1').bench, 'bench-Layout wird uebernommen, fehlende Lage bleibt offen');
+const dAuto = cb.pos(cb.part('D1'), 'bench'); ok(dAuto.x % 10 === 0 && dAuto.rot === 90, 'Auto-Anordnung aus Schema-Lage', dAuto);
+cb.pressPart('D1', [dAuto.x, dAuto.y], 'bench'); cb.dragTo([dAuto.x + 33, dAuto.y - 21]); cb.release();
+const d1 = cb.part('D1'); ok(d1.bench && d1.bench.x === dAuto.x + 30 && d1.bench.y === dAuto.y - 20 && d1.x === 500 && d1.y === 300, 'Ziehen auf der Werkbank aendert nur die Werkbank-Lage', d1);
+cb.space = 'bench'; cb.rotateSelected(); ok(d1.bench.rot === 180 && d1.rot === 90, 'Drehen auf der Werkbank aendert nur die Werkbank-Lage', d1);
+const rb = cb.addPart('resistor', 600, 300, 'bench'); ok(rb.id === 'R1' && rb.bench.x === 560 && rb.bench.y === 290 && rb.x % 20 === 0, 'Neues Bauteil nimmt Werkbank-Lage aus dem bench-Layout', rb);
+const rs = cb.addPart('resistor', 400, 200); ok(rs.id === 'R2' && !rs.bench, 'Im Schema hinzugefuegt: Werkbank-Lage automatisch');
+
 console.log(`Engine-Tests: ${pass} ok, ${fail} Fehler`);
 process.exit(fail ? 1 : 0);

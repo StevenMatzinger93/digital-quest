@@ -88,6 +88,23 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .tb:hover, .tb.on { border-color: var(--accent-lead); color: var(--accent-lead); }
 .boardwrap { background: var(--bg-editor); border: 1px solid #262626; border-radius: 12px; overflow: hidden; flex: 1; min-height: 380px; }
 #board { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; outline: none; }
+/* Werkbank (bench.js) – feste Laborfarben, unabhaengig vom Thema */
+#bench { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; outline: none; background: #1b1612; }
+#board.off, #bench.off { display: none; }
+.bblock { fill: url(#bBlock); stroke: rgba(0,0,0,.45); stroke-width: 1.5; } .bbevel { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 1.2; }
+.bpart { cursor: grab; } .bsel { fill: none; stroke: #ffb000; stroke-width: 2.5; stroke-dasharray: 7 5; }
+.blead { fill: none; stroke: #b9b9b9; stroke-width: 2.6; stroke-linecap: round; }
+.bprint { font: 700 12px var(--font-code); fill: #2b2b2b; text-anchor: middle; pointer-events: none; } .bprint.red { fill: #c62828; } .bprint.dark { fill: #222; font-size: 11px; }
+.bbig { font: 800 22px var(--font-ui); fill: #fff; text-anchor: middle; pointer-events: none; }
+.bchip { font: 600 11px var(--font-code); fill: #cfcfcf; text-anchor: middle; pointer-events: none; }
+.blbl { font: 600 13px var(--font-code); fill: #e8f0ec; text-anchor: middle; paint-order: stroke; stroke: rgba(0,0,0,.55); stroke-width: 3px; pointer-events: none; }
+.bpart.locked .blbl { fill: #9fe0b8; }
+.bwirehit { fill: none; stroke: transparent; stroke-width: 16; cursor: pointer; }
+.bwire.pending { fill: none; stroke: #ffb000; stroke-width: 5; stroke-dasharray: 8 6; stroke-linecap: round; opacity: .85; pointer-events: none; }
+.bpinhit { fill: transparent; cursor: crosshair; }
+.bpin { fill: none; stroke: transparent; stroke-width: 3; pointer-events: none; }
+[data-pin]:hover .bpin { stroke: #ffb000; } .bpin.active { stroke: #ffb000; stroke-width: 4; filter: drop-shadow(0 0 4px #ffb000); }
+.bprobe { pointer-events: none; }
 #statusbar { min-height: 36px; }
 
 /* Schaltplan-Symbole (Arbeitsflaeche bleibt immer dunkel) */

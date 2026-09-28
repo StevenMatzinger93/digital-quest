@@ -23,6 +23,7 @@
     start: { parts: [bat9], wires: [] },
     ref: { parts: [bat9, { id: 'S1', type: 'switch', x: 300, y: 200, rot: 0 }, { id: 'H1', type: 'lamp', x: 500, y: 300, rot: 90 }],
       wires: [W('B1.p', 'S1.a'), W('S1.b', 'H1.a'), W('H1.b', 'B1.n')] },
+    bench: { parts: [{ id: 'B1', x: 300, y: 450, rot: 0 }, { id: 'S1', x: 560, y: 290, rot: 0 }, { id: 'H1', x: 820, y: 450, rot: 0 }] },
     wrong: [
       { name: 'Schalter nicht im Kreis', parts: [bat9, { id: 'S1', type: 'switch', x: 300, y: 120, rot: 0 }, { id: 'H1', type: 'lamp', x: 500, y: 300, rot: 90 }],
         wires: [W('B1.p', 'H1.a'), W('H1.b', 'B1.n')] }
@@ -47,6 +48,7 @@
     start: { parts: [bat9, led], wires: [] },
     ref: { parts: [bat9, led, { id: 'R1', type: 'resistor', value: 470, x: 300, y: 200, rot: 0 }],
       wires: [W('B1.p', 'R1.a'), W('R1.b', 'D1.a'), W('D1.k', 'B1.n')] },
+    bench: { parts: [{ id: 'B1', x: 300, y: 450, rot: 0 }, { id: 'R1', x: 560, y: 290, rot: 0 }, { id: 'D1', x: 820, y: 450, rot: 0 }] },
     wrong: [
       { name: 'zu kleiner Widerstand', parts: [bat9, led, { id: 'R1', type: 'resistor', value: 100, x: 300, y: 200, rot: 0 }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'D1.a'), W('D1.k', 'B1.n')] },
       { name: 'zu grosser Widerstand', parts: [bat9, led, { id: 'R1', type: 'resistor', value: 10000, x: 300, y: 200, rot: 0 }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'D1.a'), W('D1.k', 'B1.n')] },
@@ -72,6 +74,7 @@
     hint2: 'Oder setze einen Strommesser (Bauteil) in Reihe ein.',
     palette: ['ammeter'],
     start: divider, ref: divider,
+    bench: { parts: [{ id: 'B1', x: 300, y: 450, rot: 0 }, { id: 'R1', x: 560, y: 290, rot: 0 }, { id: 'R2', x: 820, y: 450, rot: 0 }] },
     tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
     measure: [
       { id: 'i', ask: 'Strom im Kreis', unit: 'mA', truth: { sel: 'R1', q: 'i' }, tol: 0.03 },

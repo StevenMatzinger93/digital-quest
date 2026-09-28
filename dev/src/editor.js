@@ -112,13 +112,13 @@
     this.core.attach(this);
     this._bind();
   }
-  Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal;
+  Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText;
   // Zustand liegt im Kern; die bisherigen Eigenschaften bleiben fuer app.js erhalten
   ['layout', 'locked', 'sel', 'wireStart', 'tool', 'probes', 'drag'].forEach(function (k) {
     Object.defineProperty(Editor.prototype, k, { get: function () { return this.core[k]; }, set: function (v) { this.core[k] = v; } });
   });
 
-  Editor.prototype.load = function (layout, lockedIds) { this.core.load(layout, lockedIds); this.fit(); };
+  Editor.prototype.load = function (layout, lockedIds, bench) { this.core.load(layout, lockedIds, bench); this.fit(); };
   /* Ansicht auf die Bauteile einpassen (mind. 640 × 400, Rand 140) – nur beim Laden und auf Wunsch, nie waehrend des Ziehens */
   Editor.prototype.fit = function () {
     var ps = this.layout.parts, x0 = 300, y0 = 200, x1 = 700, y1 = 420;
@@ -139,7 +139,7 @@
   /* Neues Bauteil in der Mitte des sichtbaren Ausschnitts */
   Editor.prototype.addPart = function (type) { var v = this.view || [0, 0, W, H]; return this.core.addPart(type, v[0] + v[2] / 2, v[1] + v[3] / 2); };
   Editor.prototype.removeSelected = function () { return this.core.removeSelected(); };
-  Editor.prototype.rotateSelected = function () { this.core.rotateSelected(); };
+  Editor.prototype.rotateSelected = function () { this.core.rotateSelected('schema'); };
 
   Editor.prototype._pt = function (ev) {
     var pt = this.svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;

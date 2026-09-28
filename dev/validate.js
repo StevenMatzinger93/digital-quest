@@ -31,6 +31,16 @@ DQ.tasks.forEach(t => {
   const allowed = new Set([...types(t.start), ...t.palette]);
   types(t.ref).forEach(ty => { if (!allowed.has(ty)) err(t.id, 'Referenz nutzt ' + ty + ', das weder im Start noch in der Palette ist'); });
   t.ref.parts.forEach(p => { if (p.x === undefined || p.y === undefined) warn(t.id, p.id + ' ohne Position'); });
+  if (t.bench) { // Werkbank-Layout: nur IDs aus start/ref, keine Doppelten, gueltige Lage; Startbauteile vollstaendig
+    const ids = new Set([...t.start.parts, ...t.ref.parts].map(p => p.id)), bseen = new Set();
+    (t.bench.parts || []).forEach(b => {
+      if (!ids.has(b.id)) err(t.id, 'bench: ' + b.id + ' gibt es weder in start noch in ref');
+      if (bseen.has(b.id)) err(t.id, 'bench: ' + b.id + ' doppelt'); bseen.add(b.id);
+      if (!(isFinite(b.x) && isFinite(b.y))) err(t.id, 'bench: ' + b.id + ' ohne x/y');
+      if (b.rot !== undefined && [0, 90, 180, 270].indexOf(b.rot) < 0) err(t.id, 'bench: ' + b.id + ' rot muss 0/90/180/270 sein');
+    });
+    t.start.parts.forEach(p => { if (!bseen.has(p.id)) warn(t.id, 'bench: Startbauteil ' + p.id + ' ohne Werkbank-Lage (Auto-Anordnung)'); });
+  }
   let ans;
   try { ans = E.expectedAnswers(t, t.ref); } catch (e) { err(t.id, 'Sollwerte: ' + e.message); return; }
   const r = E.runTask(t, t.ref, ans);

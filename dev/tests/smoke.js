@@ -56,8 +56,30 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   await page.click('[data-mm="A"]'); await pin('B1.p'); await pin('B1.n');
   if (await page.textContent('#lcd') !== 'FUSE') errors.push('Sicherung sollte durchbrennen');
 
+  // Werkbank: 1.1 komplett auf der Werkbank bauen (gleicher Kern, eigene Darstellung)
+  const bpin = id => page.click(`#bench [data-pin="${id}"] .bpinhit`, { force: true });
+  await page.evaluate(() => { delete DigitalQuest.state.drafts['1.1']; delete DigitalQuest.state.drafts['1.2']; DigitalQuest.setView('bench'); DigitalQuest.openItem('1.1'); });
+  if (!await page.isVisible('#bench') || await page.isVisible('#board')) errors.push('Werkbank: Ansicht nicht umgeschaltet');
+  await page.click('[data-add="switch"]'); await page.click('[data-add="lamp"]');
+  const bpos = await page.evaluate(() => ['S1', 'H1'].map(id => DigitalQuest.core.part(id).bench));
+  if (!bpos[0] || bpos[0].x !== 560 || !bpos[1] || bpos[1].x !== 820) errors.push('Werkbank: bench-Layout der Aufgabe nicht verwendet ' + JSON.stringify(bpos));
+  await bpin('B1.p'); await bpin('S1.a'); await bpin('S1.b'); await bpin('H1.a'); await bpin('H1.b'); await bpin('B1.n');
+  await page.click('#bench [data-part="S1"] .bblock', { force: true });
+  if (!await page.evaluate(() => DigitalQuest.core.part('S1').props.closed)) errors.push('Werkbank: Schalter nicht umgelegt');
+  await page.screenshot({ path: shots + '/6_werkbank_lampe.png' });
+  await check('1.1 Werkbank');
+  await page.evaluate(() => DigitalQuest.openItem('1.2'));
+  await page.click('[data-add="resistor"]');
+  await page.fill('[data-prop="value"]', '470'); await page.dispatchEvent('[data-prop="value"]', 'change');
+  await bpin('B1.p'); await bpin('R1.a'); await bpin('R1.b'); await bpin('D1.a'); await bpin('D1.k'); await bpin('B1.n');
+  await page.click('[data-mm="V"]'); await bpin('D1.a'); await bpin('D1.k');
+  await page.fill('[data-ans="uled"]', String(parseFloat(await page.textContent('#lcd'))));
+  await page.screenshot({ path: shots + '/7_werkbank_led.png' });
+  await check('1.2 Werkbank');
+  await page.evaluate(() => DigitalQuest.setView('schema'));
+
   // Handy
-  const m = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const m =await browser.newPage({ viewport: { width: 390, height: 844 } });
   m.on('pageerror', e => errors.push('mobil: ' + e.message));
   await m.goto(url); await m.evaluate(() => DigitalQuest.openItem('1.2')); await m.screenshot({ path: shots + '/5_handy.png', fullPage: true });
   const overflow = await m.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1); if (overflow) errors.push('mobil: horizontaler Scroll');

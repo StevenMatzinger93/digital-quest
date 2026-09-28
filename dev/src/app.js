@@ -1,7 +1,7 @@
 /* Digital Quest – Spielsteuerung (window.DigitalQuest) */
 (function () {
   'use strict';
-  var E = window.DQEngine, DQ = window.DQ, Editor = window.DQEditor;
+  var E = window.DQEngine, DQ = window.DQ, Editor = window.DQEditor, Circuit = window.DQCircuit, Bench = window.DQBench;
   var KEY = 'digitalquest_state_v1';
   var UNLOCK_ALL = /[?&]alle\b/.test(location.search);
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -88,7 +88,8 @@
   function openItem(id) { var it = DQ.byId[id]; if (!it) return; if (it.kind === 'theory') openTheory(it); else openTask(it); }
 
   /* ================= Aufgabe ================= */
-  var ed = null, live = { net: null, state: E.newState(), dynamic: false, raf: 0, last: 0, res: null };
+  /* Ein Schaltungszustand (core), zwei Darstellungen: Schema (ed) und Werkbank (bench) */
+  var core = null, ed = null, bench = null, viewMode = /[?&]werkbank\b/.test(location.search) ? 'bench' : 'schema', live = { net: null, state: E.newState(), dynamic: false, raf: 0, last: 0, res: null };
   var meter = { mode: 'OFF', a: null, b: null, next: 'a' };
 
   function parseVal(str) {
@@ -109,15 +110,18 @@
     meter = { mode: 'OFF', a: null, b: null, next: 'a' };
     renderTaskPanels(t, draft);
     if (!ed) {
-      ed = new Editor($('#board'), {
+      core = new Circuit({
         onChange: function () { persistDraft(); rebuild(); renderInspector(); },
         onSelect: function () { renderInspector(); },
         onProbe: setProbe,
         onMessage: function (m) { status([{ cls: 'info', text: m }]); }
       });
+      ed = new Editor($('#board'), { core: core });
+      bench = new Bench($('#bench'), { core: core });
+      setView(viewMode);
     }
     ed.showVolt = false; $('#btnVolt').classList.remove('on');
-    ed.load(layout, lockedIds);
+    ed.load(layout, lockedIds, t.bench); bench.fit();
     setMeterMode('OFF');
     rebuild(); renderInspector();
     log('task_open', { id: t.id });
@@ -151,7 +155,7 @@
       pal += '<button class="palbtn" data-add="' + type + '" title="' + esc(E.PARTS[type].label) + ' hinzufuegen"><svg viewBox="-46 -46 92 92"><g>' + Editor.symbol({ type: type, props: {} }) + '</g></svg><span>' + esc(E.PARTS[type].label) + '</span></button>';
     });
     $('#palette').innerHTML = pal || '<span class="dim small">Keine neuen Bauteile – nur messen.</span>';
-    $$('[data-add]').forEach(function (b) { b.onclick = function () { ed.addPart(b.dataset.add); renderInspector(); }; });
+    $$('[data-add]').forEach(function (b) { b.onclick = function () { view().addPart(b.dataset.add); renderInspector(); }; });
     void ch;
   }
 
@@ -185,13 +189,24 @@
     return a === undefined || b === undefined ? null : { a: a, b: b };
   }
   function tick(dt) {
-    if (!live.net) { ed.setSim(null); status([{ cls: 'err', text: live.err }]); return; }
+    if (!live.net) { setSim(null); status([{ cls: 'err', text: live.err }]); return; }
     var mn = meterNodes(), mopt = mn && (meter.mode === 'V' || meter.mode === 'A') ? { mode: meter.mode, a: mn.a, b: mn.b } : null;
     var r = E.step(live.net, live.state, { dt: live.dynamic && dt > 0 ? dt : null, meter: mopt });
     live.res = r;
-    ed.setSim({ res: r, pinNode: live.net.pinNode });
+    setSim({ res: r, pinNode: live.net.pinNode });
     updateMeter(r, mn);
     status(diagnose(r.faults));
+  }
+
+  function setSim(sim) { ed.setSim(sim); bench.setSim(sim); }
+  function view() { return viewMode === 'bench' ? bench : ed; }
+  /* Darstellung wechseln – Schaltung, Auswahl und Messspitzen bleiben (gemeinsamer Kern) */
+  function setView(mode) {
+    viewMode = mode === 'bench' ? 'bench' : 'schema';
+    if (!core) return;
+    core.space = viewMode; core.wireStart = null;
+    $('#board').classList.toggle('off', viewMode !== 'schema'); $('#bench').classList.toggle('off', viewMode !== 'bench');
+    view().fit();
   }
 
   var FAULT_TEXT = {
@@ -215,7 +230,7 @@
   function setMeterMode(mode) {
     meter.mode = mode;
     $$('[data-mm]').forEach(function (b) { b.classList.toggle('on', b.dataset.mm === mode); });
-    if (ed) { ed.tool = mode === 'OFF' ? 'wire' : 'probe'; if (mode === 'OFF') { ed.probes = { a: null, b: null }; meter.a = meter.b = null; meter.next = 'a'; } ed.render(); }
+    if (ed) { ed.tool = mode === 'OFF' ? 'wire' : 'probe'; if (mode === 'OFF') { ed.probes = { a: null, b: null }; meter.a = meter.b = null; meter.next = 'a'; } core.redraw(); }
     $('#mmHelp').textContent = mode === 'OFF' ? 'Messgeraet aus. Klick auf Anschluesse verbindet Leitungen.' :
       'Klick auf einen Anschluss setzt die ' + (meter.next === 'a' ? 'rote (+)' : 'schwarze (COM)') + ' Messspitze.';
     if (ed) tick(0);
@@ -276,7 +291,7 @@
         var k = inp.dataset.prop, v = inp.value;
         if (k === 'value' || k === 'freq') { var n = parseVal(v); if (!(n > 0)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; v = n; if (k === 'value') { p.value = n; delete q.value; } else q[k] = n; }
         else if (k === 'pos') q.pos = +v; else q[k] = v;
-        persistDraft(); rebuild(); ed.render(); if (k !== 'pos') renderInspector();
+        persistDraft(); rebuild(); core.redraw(); if (k !== 'pos') renderInspector();
       };
     });
     var tg = $('#tgl'); if (tg) tg.onclick = function () { q.closed = !q.closed; persistDraft(); rebuild(); renderInspector(); };
@@ -404,11 +419,11 @@
         show(g);
       };
     });
-    $('#btnRot').onclick = function () { ed.rotateSelected(); };
-    $('#btnFit').onclick = function () { ed.fit(); };
-    window.addEventListener('resize', function () { if (ed && current.screen === 'task') ed.fit(); });
+    $('#btnRot').onclick = function () { view().rotateSelected(); };
+    $('#btnFit').onclick = function () { view().fit(); };
+    window.addEventListener('resize', function () { if (ed && current.screen === 'task') view().fit(); });
     $('#btnDel').onclick = function () { ed.removeSelected(); renderInspector(); };
-    $('#btnVolt').onclick = function () { ed.showVolt = !ed.showVolt; this.classList.toggle('on', ed.showVolt); ed.render(); };
+    $('#btnVolt').onclick = function () { ed.showVolt = !ed.showVolt; this.classList.toggle('on', ed.showVolt); core.redraw(); };
     $('#btnRepair').onclick = function () { live.state = E.newState(); rebuild(); status([{ cls: 'info', text: 'Defekte Bauteile ersetzt.' }]); };
     $('#btnReset').onclick = function () {
       modal('<h2>Aufgabe zuruecksetzen?</h2><p>Deine Schaltung wird auf den Startzustand gesetzt.</p>', [{ label: 'Abbrechen' }, { label: 'Zuruecksetzen', primary: true, action: function () { delete S.drafts[current.task.id]; save(); openTask(current.task); } }]);
@@ -424,6 +439,6 @@
     renderMap(); show('map');
   }
 
-  window.DigitalQuest = { get state() { return S; }, openItem: openItem, get editor() { return ed; }, engine: E, parseVal: parseVal };
+  window.DigitalQuest = { get state() { return S; }, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, engine: E, parseVal: parseVal };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

@@ -14,6 +14,7 @@
    * id ('1.1'), ch, title, story, brief, learn, take, hint, hint2, tags[]
    * palette: erlaubte Bauteiltypen; start / ref: Layouts {parts, wires}; wrong: [{name, parts, wires}]
    * need, tests, measure: siehe engine.js runTask
+   * bench (optional): Werkbank-Layout {parts:[{id, x, y, rot}]} – eigene Lage je Bauteil-ID aus start/ref (siehe bench.js)
    * boss: true fuer Abschlussaufgabe */
   root.defTask = function (t) {
     ['id', 'ch', 'title', 'brief', 'start', 'ref'].forEach(function (k) { if (t[k] === undefined) throw new Error('defTask ' + t.id + ': ' + k + ' fehlt'); });

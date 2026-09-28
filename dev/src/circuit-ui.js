@@ -1,21 +1,42 @@
 /* Digital Quest – Interaktionskern (window.DQCircuit)
  * Ansichtsneutrale Bedienlogik ueber dem Schaltungszustand: Bauteil hinzufuegen/bewegen/drehen/loeschen,
  * Leitung ziehen, Messspitzen, Auswahl, ID-Vergabe. Kein DOM, kein Rendering – Renderer (editor.js,
- * spaeter bench.js) machen das Hit-Testing selbst und melden abstrakte Ereignisse in Modellkoordinaten
- * (Raster 20, Flaeche 1000 × 620). Nach jeder Aenderung werden alle angehaengten Ansichten neu gezeichnet.
+ * bench.js) machen das Hit-Testing selbst und melden abstrakte Ereignisse in Modellkoordinaten ihres Raums.
+ * Nach jeder Aenderung werden alle angehaengten Ansichten neu gezeichnet.
+ * Zwei Koordinatenraeume: 'schema' (p.x, p.y, p.rot; Raster 20, 1000 × 620) und 'bench' (p.bench = {x, y, rot};
+ * Raster 10, 1200 × 760). Topologie (Leitungen) ist fuer beide gleich. Fehlt p.bench, gilt eine
+ * Auto-Anordnung aus der Schema-Lage (Uebergangsloesung); gespeichert wird p.bench erst beim Verschieben/Drehen.
  * App-Rueckmeldungen: opts.onChange(kind), onSelect(part|null), onProbe(pin), onMessage(text). */
 (function (root) {
   'use strict';
   var E = root.DQEngine;
-  var GRID = 20, W = 1000, H = 620;
+  var SPACES = {
+    schema: { grid: 20, w: 1000, h: 620, edge: 40, clamp: 60, free: [90, 70], step: [120, 90] },
+    bench: { grid: 10, w: 1200, h: 760, edge: 70, clamp: 90, free: [130, 100], step: [150, 110] }
+  };
 
   function Circuit(opts) {
-    this.opts = opts || {}; this.views = [];
-    this.layout = { parts: [], wires: [] }; this.locked = {};
+    this.opts = opts || {}; this.views = []; this.space = 'schema';
+    this.layout = { parts: [], wires: [] }; this.locked = {}; this.benchHints = {};
     this.sel = null; this.wireStart = null; this.tool = 'wire';
     this.probes = { a: null, b: null }; this.drag = null;
   }
-  Circuit.GRID = GRID; Circuit.W = W; Circuit.H = H;
+  Circuit.SPACES = SPACES; Circuit.GRID = SPACES.schema.grid; Circuit.W = SPACES.schema.w; Circuit.H = SPACES.schema.h;
+
+  /* Werkbank-Lage ohne eigenes bench-Layout: Schema-Lage gestreckt und aufs Werkbank-Raster gesetzt */
+  function autoBench(p) {
+    var g = SPACES.bench.grid;
+    return { x: Math.round((p.x * 1.1 + 50) / g) * g, y: Math.round((p.y * 1.1 + 40) / g) * g, rot: p.rot || 0 };
+  }
+  Circuit.autoBench = autoBench;
+  /* Lage eines Bauteils im Raum (nur lesen) */
+  Circuit.prototype.pos = function (p, space) { return (space || 'schema') === 'bench' ? (p.bench || autoBench(p)) : p; };
+  /* Lage zum Veraendern – legt p.bench bei Bedarf an */
+  Circuit.prototype._own = function (p, space) {
+    if ((space || 'schema') !== 'bench') return p;
+    if (!p.bench) p.bench = autoBench(p);
+    return p.bench;
+  };
 
   /* Ansichten: Objekte mit render() */
   Circuit.prototype.attach = function (view) { if (this.views.indexOf(view) < 0) this.views.push(view); };
@@ -23,9 +44,13 @@
   Circuit.prototype.changed = function (kind) { this.redraw(); if (this.opts.onChange) this.opts.onChange(kind || 'edit'); };
   Circuit.prototype._select = function (p) { if (this.opts.onSelect) this.opts.onSelect(p); };
 
-  Circuit.prototype.load = function (layout, lockedIds) {
-    this.layout = E.clone(layout); this.locked = {};
+  /* bench: optionales Werkbank-Layout der Aufgabe {parts:[{id,x,y,rot}]} – gilt fuer vorhandene Bauteile
+   * ohne eigene Werkbank-Lage und fuer spaeter hinzugefuegte Bauteile mit derselben ID */
+  Circuit.prototype.load = function (layout, lockedIds, bench) {
+    this.layout = E.clone(layout); this.locked = {}; this.benchHints = {};
     (lockedIds || []).forEach(function (id) { this.locked[id] = true; }, this);
+    ((bench && bench.parts) || []).forEach(function (b) { this.benchHints[b.id] = { x: b.x, y: b.y, rot: b.rot || 0 }; }, this);
+    this.layout.parts.forEach(function (p) { var h = this.benchHints[p.id]; if (!p.bench && h) p.bench = E.clone(h); }, this);
     this.sel = null; this.wireStart = null; this.probes = { a: null, b: null };
   };
   Circuit.prototype.part = function (id) { return this.layout.parts.filter(function (p) { return p.id === id; })[0]; };
@@ -35,17 +60,33 @@
     this.layout.parts.forEach(function (p) { used[p.id] = true; });
     while (used[pre + n]) n++; return pre + n;
   };
-  /* Neues Bauteil moeglichst nahe (cx, cy) auf freiem Platz */
-  Circuit.prototype.addPart = function (type, cx, cy) {
-    var id = this.nextId(type), parts = this.layout.parts, cx0 = Math.round(cx / GRID) * GRID, cy0 = Math.round(cy / GRID) * GRID, x = cx0, y = cy0, ring = 0, k = 0;
-    function free(x, y) { return parts.every(function (p) { return Math.abs(p.x - x) > 90 || Math.abs(p.y - y) > 70; }); }
-    while (!free(x, y) && ring < 12) { // spiralfoermig freien Platz suchen
+  /* Freien Rasterplatz nahe (cx, cy) im Raum suchen, spiralfoermig */
+  Circuit.prototype._place = function (cx, cy, space) {
+    var S = SPACES[space], self = this, g = S.grid, cx0 = Math.round(cx / g) * g, cy0 = Math.round(cy / g) * g, x = cx0, y = cy0, ring = 0, k = 0;
+    function free(x, y) { return self.layout.parts.every(function (p) { var q = self.pos(p, space); return Math.abs(q.x - x) > S.free[0] || Math.abs(q.y - y) > S.free[1]; }); }
+    while (!free(x, y) && ring < 12) {
       k++; var ang = k * 0.9; ring = Math.floor(k / 7) + 1;
-      x = Math.round((cx0 + Math.cos(ang) * 120 * ring) / GRID) * GRID; y = Math.round((cy0 + Math.sin(ang) * 90 * ring) / GRID) * GRID;
-      x = Math.max(60, Math.min(W - 60, x)); y = Math.max(60, Math.min(H - 60, y));
+      x = Math.round((cx0 + Math.cos(ang) * S.step[0] * ring) / g) * g; y = Math.round((cy0 + Math.sin(ang) * S.step[1] * ring) / g) * g;
+      x = Math.max(S.clamp, Math.min(S.w - S.clamp, x)); y = Math.max(S.clamp, Math.min(S.h - S.clamp, y));
     }
-    var p = { id: id, type: type, x: x, y: y, rot: 0, props: {} };
-    parts.push(p); this.sel = id; this.changed('add');
+    return [x, y];
+  };
+  /* Neues Bauteil moeglichst nahe (cx, cy) im Raum der aufrufenden Ansicht. Auf der Werkbank bekommt es
+   * zusaetzlich einen freien Platz im Schema (Mitte der vorhandenen Bauteile). */
+  Circuit.prototype.addPart = function (type, cx, cy, space) {
+    space = space || 'schema';
+    var id = this.nextId(type), p = { id: id, type: type, x: 0, y: 0, rot: 0, props: {} }, xy;
+    if (space === 'bench') {
+      var ps = this.layout.parts, sx = 500, sy = 310;
+      if (ps.length) { sx = ps.reduce(function (s, q) { return s + q.x; }, 0) / ps.length; sy = ps.reduce(function (s, q) { return s + q.y; }, 0) / ps.length; }
+      xy = this._place(sx, sy, 'schema'); p.x = xy[0]; p.y = xy[1];
+      xy = this.benchHints[id] ? [this.benchHints[id].x, this.benchHints[id].y] : this._place(cx, cy, 'bench');
+      p.bench = { x: xy[0], y: xy[1], rot: this.benchHints[id] ? this.benchHints[id].rot : 0 };
+    } else {
+      xy = this._place(cx, cy, 'schema'); p.x = xy[0]; p.y = xy[1];
+      if (this.benchHints[id]) p.bench = E.clone(this.benchHints[id]);
+    }
+    this.layout.parts.push(p); this.sel = id; this.changed('add');
     return p;
   };
   Circuit.prototype.removeSelected = function () {
@@ -59,9 +100,11 @@
     }
     this.sel = null; this.changed('delete'); return true;
   };
-  Circuit.prototype.rotateSelected = function () {
+  /* Drehen im Raum (Standard: aktive Ansicht) – Schema- und Werkbank-Lage sind unabhaengig */
+  Circuit.prototype.rotateSelected = function (space) {
     var p = this.sel && this.part(this.sel); if (!p) return;
-    p.rot = ((p.rot || 0) + 90) % 360; this.changed('rotate');
+    var q = this._own(p, space || this.space);
+    q.rot = ((q.rot || 0) + 90) % 360; this.changed('rotate');
   };
 
   /* Ereignisse der Ansichten (Hit-Testing macht der Renderer) */
@@ -77,24 +120,28 @@
   };
   Circuit.prototype.clickWire = function (i) { this.sel = 'w:' + i; this.wireStart = null; this.redraw(); this._select(null); };
   Circuit.prototype.clickEmpty = function () { this.sel = null; this.wireStart = null; this.redraw(); this._select(null); };
-  /* Bauteil angefasst bei xy (Modellkoordinaten): auswaehlen, Ziehen vorbereiten, Taster druecken */
-  Circuit.prototype.pressPart = function (id, xy) {
+  /* Bauteil angefasst bei xy (Modellkoordinaten des Raums): auswaehlen, Ziehen vorbereiten, Taster druecken */
+  Circuit.prototype.pressPart = function (id, xy, space) {
     var p = this.part(id); if (!p) return null;
+    space = space || 'schema';
+    var q = this.pos(p, space);
     this.sel = p.id; this.wireStart = null;
-    this.drag = { id: p.id, ox: xy[0] - p.x, oy: xy[1] - p.y, sx: xy[0], sy: xy[1], moved: false };
+    this.drag = { id: p.id, space: space, ox: xy[0] - q.x, oy: xy[1] - q.y, sx: xy[0], sy: xy[1], moved: false };
     if (p.type === 'button') { p.props = p.props || {}; p.props.closed = true; this.changed('toggle'); }
     this.redraw(); this._select(p);
     return p;
   };
-  /* Zeiger bewegt: ab 6 px gilt es als Ziehen, Position auf Raster und Flaeche begrenzt */
+  /* Zeiger bewegt: ab 6 Einheiten gilt es als Ziehen, Position auf Raster und Flaeche des Raums begrenzt */
   Circuit.prototype.dragTo = function (xy) {
     var d = this.drag; if (!d) return false;
     var p = this.part(d.id); if (!p) return false;
     if (Math.abs(xy[0] - d.sx) + Math.abs(xy[1] - d.sy) > 6) d.moved = true;
     if (!d.moved) return false;
-    var nx = Math.round((xy[0] - d.ox) / GRID) * GRID, ny = Math.round((xy[1] - d.oy) / GRID) * GRID;
-    nx = Math.max(40, Math.min(W - 40, nx)); ny = Math.max(40, Math.min(H - 40, ny));
-    if (nx !== p.x || ny !== p.y) { p.x = nx; p.y = ny; this.redraw(); }
+    var S = SPACES[d.space], g = S.grid;
+    var nx = Math.round((xy[0] - d.ox) / g) * g, ny = Math.round((xy[1] - d.oy) / g) * g;
+    nx = Math.max(S.edge, Math.min(S.w - S.edge, nx)); ny = Math.max(S.edge, Math.min(S.h - S.edge, ny));
+    var q = this.pos(p, d.space);
+    if (nx !== q.x || ny !== q.y) { q = this._own(p, d.space); q.x = nx; q.y = ny; this.redraw(); }
     return true;
   };
   /* Zeiger losgelassen: Taster loesen, Schalter umlegen (nur ohne Ziehen), sonst Verschiebung melden */
