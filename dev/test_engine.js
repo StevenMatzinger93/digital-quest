@@ -213,5 +213,45 @@ const chain3 = { parts: [{ id: 'B1', type: 'battery', value: 9 }, { id: 'H1', ty
 const rc3 = E.analyze(chain3);
 ok(Math.abs(rc3.parts.H1.i) < 1e-6 && Math.abs(rc3.parts.H2.v) > 8.9 && !rc3.parts.H2.burnt, 'Unterbrechung: kein Strom, volle Spannung an der defekten Lampe', rc3.parts.H2);
 
+// 20 Experimentierboard: Pegelschalter, Logikanzeige, XNOR, Decoder + 7-Segment
+const G0 = { id: 'GND1', type: 'ground' };
+const xn = (a, b) => ({ parts: [G0, { id: 'E1', type: 'logicin', props: { closed: a } }, { id: 'E2', type: 'logicin', props: { closed: b } }, { id: 'U1', type: 'xnor' }, { id: 'L1', type: 'logicled' }],
+  wires: [W('E1.out', 'U1.in1'), W('E2.out', 'U1.in2'), W('U1.out', 'L1.in')] });
+ok(E.analyze(xn(true, true)).parts.L1.on && !E.analyze(xn(true, false)).parts.L1.on && E.analyze(xn(false, false)).parts.L1.on, 'XNOR mit Pegelschaltern und Logikanzeige');
+ok(E.analyze({ parts: [{ id: 'E1', type: 'logicin' }], wires: [] }).faults.some(f => f.code === 'NO_GROUND'), 'Pegelschalter ohne Masse: NO_GROUND');
+const bcd = n => ({ parts: [G0, { id: 'IC1', type: 'dec7' }, { id: 'AZ1', type: 'seg7' }].concat(['A', 'B', 'C', 'D'].map((x, i) => ({ id: 'E' + (i + 1), type: 'logicin', props: { closed: !!(n >> i & 1) } }))),
+  wires: ['A', 'B', 'C', 'D'].map((x, i) => W('E' + (i + 1) + '.out', 'IC1.' + x)).concat('abcdefg'.split('').map(s => W('IC1.' + s, 'AZ1.' + s))) });
+const tb = { tests: [{ name: '5', expect: [{ sel: 'AZ1', digit: 5 }] }] };
+ok(E.runTask(tb, bcd(5), {}).pass && !E.runTask(tb, bcd(6), {}).pass, 'BCD-Decoder zeigt 5, nicht 6');
+
+// 21 Flipflops mit Taktflanke (Schrittfolge), 2-Bit-Zaehler aus T-Flipflops
+const ctr = { parts: [G0, { id: 'E1', type: 'logicin' }, { id: 'E2', type: 'logicin', props: { closed: true } }, { id: 'FF1', type: 'tff' }, { id: 'FF2', type: 'tff' }],
+  wires: [W('E2.out', 'FF1.T'), W('E2.out', 'FF2.T'), W('E1.out', 'FF1.C'), W('FF1.Qn', 'FF2.C')] };
+const pulse = n => { const s = []; for (let k = 0; k < n; k++) s.push({ set: { E1: { closed: true } } }, { set: { E1: { closed: false } } }); return s; };
+const cnt = n => { const st = pulse(n); st[st.length - 1].expect = [{ sel: 'FF1', out: !!(n & 1) }, { sel: 'FF2', out: !!(n >> 1 & 1) }]; return { tests: [{ name: n + ' Takte', steps: st }] }; };
+ok([1, 2, 3, 4].every(n => E.runTask(cnt(n), ctr, {}).pass), 'Asynchroner 2-Bit-Zaehler zaehlt 1, 2, 3, 0', [1, 2, 3, 4].map(n => E.runTask(cnt(n), ctr, {}).results.filter(r => !r.ok).map(r => r.text)));
+const dff = { parts: [G0, { id: 'E1', type: 'logicin' }, { id: 'E2', type: 'logicin' }, { id: 'FF1', type: 'dff' }], wires: [W('E1.out', 'FF1.D'), W('E2.out', 'FF1.C')] };
+ok(E.runTask({ tests: [{ steps: [{ set: { E1: { closed: true } } }, { set: { E2: { closed: true } } }, { set: { E1: { closed: false } }, expect: [{ sel: 'FF1', out: true }] }] }] }, dff, {}).pass, 'D-Flipflop speichert bei Flanke, nicht bei D-Aenderung');
+
+// 22 NPN als Schalter und im aktiven Bereich, Z-Diode
+const npn = rb => ({ parts: [{ id: 'B1', type: 'battery', value: 5 }, { id: 'R1', type: 'resistor', value: rb }, { id: 'Q1', type: 'npn' }, { id: 'R2', type: 'resistor', value: 1000 }],
+  wires: [W('B1.p', 'R1.a'), W('R1.b', 'Q1.b'), W('B1.p', 'R2.a'), W('R2.b', 'Q1.c'), W('Q1.e', 'B1.n')] });
+const qs = E.analyze(npn(10000)).parts.Q1, qa = E.analyze(npn(1e6)).parts.Q1;
+ok(qs.state === 'sat' && qs.v < 0.3 && qs.i > 4.5e-3, 'NPN mit 10 kΩ Basiswiderstand schaltet durch (Saettigung)', qs);
+ok(qa.state === 'on' && Math.abs(qa.i - 100 * qa.ib) < 1e-6 && qa.v > 1, 'NPN mit 1 MΩ: aktiv, Ic = β·Ib', qa);
+ok(E.analyze(npn(1e12)).parts.Q1.state === 'off' || Math.abs(E.analyze(npn(1e12)).parts.Q1.i) < 1e-6, 'NPN ohne Basisstrom sperrt');
+const zd = { parts: [{ id: 'B1', type: 'battery', value: 12 }, { id: 'R1', type: 'resistor', value: 470 }, { id: 'Z1', type: 'zener' }, { id: 'R2', type: 'resistor', value: 2200 }],
+  wires: [W('B1.p', 'R1.a'), W('R1.b', 'Z1.k'), W('Z1.a', 'B1.n'), W('R2.a', 'Z1.k'), W('R2.b', 'B1.n')] };
+const rz = E.analyze(zd).parts;
+near(-rz.Z1.v, 5.1 + 5 * Math.abs(rz.Z1.i), 0.02, 'Z-Diode stabilisiert auf U_Z (+ r_Z · I)'); ok(rz.Z1.mode === 'z', 'Z-Diode im Durchbruch');
+
+// 23 Anschlussstroeme (fuer die Stromfluss-Anzeige): Knotenregel an jedem Knoten
+function kcl(layout) {
+  const net = E.buildNetlist(layout), r = E.analyze(layout), sum = {};
+  net.parts.forEach(p => Object.keys(r.parts[p.id].pin || {}).forEach(pin => { const n = net.pinNode[p.id + '.' + pin]; sum[n] = (sum[n] || 0) + r.parts[p.id].pin[pin]; }));
+  return Object.keys(sum).filter(n => n !== '0').every(n => Math.abs(sum[n]) < 1e-6);
+}
+ok(kcl(divider) && kcl(npn(10000)) && kcl(zd) && kcl(led(470, true)), 'Anschlussstroeme erfuellen die Knotenregel');
+
 console.log(`Engine-Tests: ${pass} ok, ${fail} Fehler`);
 process.exit(fail ? 1 : 0);

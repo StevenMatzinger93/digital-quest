@@ -212,6 +212,13 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bpart-tiny { font: 700 5.5px var(--font-code); fill: #9a9a9a; text-anchor: middle; pointer-events: none; } .bpart-tiny.w { fill: #f0f0f0; } .bpart-tiny.g { fill: #555; }
 .bmatprint { font: 800 14px var(--font-ui); letter-spacing: 3px; fill: rgba(255,255,255,.14); pointer-events: none; }
 .bdevtxt.small { font-size: 6.5px; fill: #b9b9b9; }
+
+.symtxt.small { font-size: 10px; }
+.seg { fill: none; stroke: #3a1d1d; stroke-width: 4; stroke-linecap: round; } .seg.on { stroke: #ff3b30; filter: drop-shadow(0 0 3px #ff3b30); }
+
+.bdot { fill: #fff6c2; stroke: rgba(120,80,0,.8); stroke-width: 1; filter: drop-shadow(0 0 2px #ffd54a); pointer-events: none; }
+.bilabel { font: 700 11px var(--font-code); fill: #ffe9a8; text-anchor: middle; paint-order: stroke; stroke: rgba(0,0,0,.8); stroke-width: 3px; pointer-events: none; }
+.bprint.w { fill: #e8e8e8; }
 </style>
 </head>
 <body>
@@ -231,6 +238,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         <button class="tb" id="btnDel" title="Loeschen (Entf)">✕ Loeschen</button>
         <button class="tb" id="btnFit" title="Ansicht einpassen">⤢ Einpassen</button>
         <button class="tb" id="btnVolt" title="Knotenspannungen einfaerben">U anzeigen</button>
+        <button class="tb" id="btnFlow" title="Stromfluss zeigen: Punkte wandern in technischer Stromrichtung (+ → −), je schneller, desto mehr Strom; Stromwert an jedem Kabel">⇢ Strom</button>
         <button class="tb" id="btnReplay" title="Rechenschritte bzw. Zeitverlauf Schritt fuer Schritt ansehen">⏱ Zeitlupe</button>
         <button class="tb view" id="btnView" title="Darstellung wechseln: Schaltplan oder Werkbank">Werkbank</button>
         <button class="tb" id="btnRepair" title="Defekte Bauteile ersetzen">Reparieren</button>
@@ -308,8 +316,28 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     or:   { label: 'ODER', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] || i[1]; } },
     nand: { label: 'NAND', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return !(i[0] && i[1]); } },
     nor:  { label: 'NOR', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return !(i[0] || i[1]); } },
-    xor:  { label: 'XOR', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] !== i[1]; } }
+    xor:  { label: 'XOR', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] !== i[1]; } },
+    xnor: { label: 'XNOR', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] === i[1]; } },
+    /* Experimentierboard: Pegelschalter (closed = 1 → 5 V) und Logikanzeige (leuchtet ab 2,5 V); Versorgung implizit wie bei Gattern */
+    logicin:  { label: 'Pegelschalter', prefix: 'E', pins: ['out'], props: { closed: false }, digital: true },
+    logicled: { label: 'Logikanzeige', prefix: 'L', pins: ['in'], props: { color: 'rot' }, digital: true },
+    seg7:     { label: '7-Segment-Anzeige', prefix: 'AZ', pins: ['a', 'b', 'c', 'd', 'e', 'f', 'g'], props: {}, digital: true },
+    dec7:     { label: 'BCD-7-Segment-Decoder', prefix: 'IC', pins: ['A', 'B', 'C', 'D', 'a', 'b', 'c', 'd', 'e', 'f', 'g'], ins: ['A', 'B', 'C', 'D'], outs: ['a', 'b', 'c', 'd', 'e', 'f', 'g'], props: {},
+      logic: function (i) { var n = (i[0] ? 1 : 0) + (i[1] ? 2 : 0) + (i[2] ? 4 : 0) + (i[3] ? 8 : 0); return (SEG7[n] || '0000000').split('').map(function (c) { return c === '1'; }); } },
+    /* Flipflops: uebernehmen bei steigender Flanke an C (ffIns = Dateneingaenge), Ausgaenge Q und /Q */
+    dff:  { label: 'D-Flipflop', prefix: 'FF', pins: ['D', 'C', 'Q', 'Qn'], ffIns: ['D'], props: {}, ff: function (q, i) { return i[0]; } },
+    jkff: { label: 'JK-Flipflop', prefix: 'FF', pins: ['J', 'K', 'C', 'Q', 'Qn'], ffIns: ['J', 'K'], props: {}, ff: function (q, i) { return i[0] && i[1] ? !q : i[0] ? true : i[1] ? false : q; } },
+    tff:  { label: 'T-Flipflop', prefix: 'FF', pins: ['T', 'C', 'Q', 'Qn'], ffIns: ['T'], props: {}, ff: function (q, i) { return i[0] ? !q : q; } },
+    /* Halbleiter: NPN-Transistor (sperrt / aktiv: Ic = β·Ib / Saettigung: U_CE ≈ 0,2 V), Z-Diode (Durchbruch bei U_Z in Sperrrichtung) */
+    npn:   { label: 'NPN-Transistor', prefix: 'Q', pins: ['b', 'c', 'e'], props: { beta: 100, vbe: 0.7, rbe: 50, vsat: 0.2, pmax: 0.5 } },
+    zener: { label: 'Z-Diode', prefix: 'Z', pins: ['a', 'k'], props: { vz: 5.1, vf: 0.7, rs: 5, pmax: 0.5 } },
+    motor: { label: 'Motor', prefix: 'M', pins: ['a', 'b'], props: { value: 20, inom: 0.3 }, unit: 'Ω' }
   };
+  /* Segmente a…g fuer 0–9 (BCD), darueber dunkel */
+  var SEG7 = ['1111110', '0110000', '1101101', '1111001', '0110011', '1011011', '1011111', '1110000', '1111111', '1111011'];
+  function dIns(d) { return d.ins || (d.ffIns ? d.ffIns.concat(['C']) : d.pins.filter(function (p) { return p !== 'out'; })); }
+  function dOuts(d) { return d.outs || (d.ff ? ['Q', 'Qn'] : ['out']); }
+  function isDigital(d) { return !!(d.logic || d.digital || d.ff); }
   var SOURCES = { battery: 1, clock: 1, acsource: 1 };
   /* Momentanwert einer Wechselspannungsquelle zur Zeit t (Kurvenform sine | square | triangle, Scheitelwert value, Gleichanteil offset) */
   function wave(q, t) {
@@ -382,7 +410,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   }
 
   /* burnInfo: Werte im Moment des Durchbrennens (fuer die Diagnose), fuseInfo: Strom beim Ausloesen der Multimeter-Sicherung */
-  function newState() { return { burnt: {}, vC: {}, logic: {}, diode: {}, fuse: false, t: 0, burnInfo: {}, fuseInfo: null }; }
+  /* tr: Transistor-Zustand ('off'|'on'|'sat'), zen: Z-Dioden-Zustand ('off'|'f'|'z'), ff: Flipflops {q, c (letzter Taktpegel)} */
+  function newState() { return { burnt: {}, vC: {}, logic: {}, diode: {}, tr: {}, zen: {}, ff: {}, fuse: false, t: 0, burnInfo: {}, fuseInfo: null }; }
 
   /* ---------- Loeser fuer einen Arbeitspunkt / Zeitschritt ----------
    * opts: { state, dt (null = Gleichstrom-Arbeitspunkt), t, meter:{mode,a,b} (Knoten), zeroSources, inject:{a,b,i},
@@ -393,11 +422,16 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     var idx = {}; net.nodes.forEach(function (n, i) { idx[n] = i; });
     var N = net.nodes.length;
     var dt = opts.dt || null, t = opts.t || 0;
-    var diode = {}, logic = {};
+    var diode = {}, logic = {}, tr = {}, zen = {};
     net.parts.forEach(function (p) {
+      var d = def(p.type);
       if (p.type === 'led' || p.type === 'diode') diode[p.id] = !!st.diode[p.id];
-      if (def(p.type).logic) logic[p.id] = st.logic[p.id] !== undefined ? st.logic[p.id] : false;
+      if (p.type === 'npn') tr[p.id] = (st.tr || {})[p.id] || 'off';
+      if (p.type === 'zener') zen[p.id] = (st.zen || {})[p.id] || 'off';
+      if (d.logic) logic[p.id] = st.logic[p.id] !== undefined ? st.logic[p.id] : (dOuts(d).length > 1 ? dOuts(d).map(function () { return false; }) : false);
     });
+    function outVal(p, k) { var v = logic[p.id]; return Array.isArray(v) ? !!v[k] : !!v; }
+    function ffQ(p) { return !!((st.ff || {})[p.id] || {}).q; }
     var V = null, iter = 0, converged = false, oscillating = false;
 
     function build() {
@@ -414,12 +448,28 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         if (idx[b] !== undefined) z[idx[b]] -= cur;
       }
       function norton(p, n, v, r) { var g = 1 / r; G(p, n, g); I(p, n, v * g); }
+      function vccs(op, on, cp, cn, gm, voff) { // Strom gm·(V(cp) − V(cn) − voff) fliesst von op durch das Bauteil nach on
+        var io = idx[op], jo = idx[on], ic = idx[cp], jc = idx[cn];
+        if (io !== undefined) { if (ic !== undefined) A[io][ic] += gm; if (jc !== undefined) A[io][jc] -= gm; z[io] += gm * voff; }
+        if (jo !== undefined) { if (ic !== undefined) A[jo][ic] -= gm; if (jc !== undefined) A[jo][jc] += gm; z[jo] -= gm * voff; }
+      }
+      function drive(node, high) { norton(node, '0', high && !opts.zeroSources ? LOGIC.vcc : 0, LOGIC.rout); }
       net.parts.forEach(function (p) {
         var q = p.props, n = p.n;
         if (st.burnt[p.id]) { return; }
         switch (p.type) {
-          case 'resistor': case 'lamp': // props.defect: verdeckte Unterbrechung (Fehlersuche) – von aussen nicht sichtbar
+          case 'resistor': case 'lamp': case 'motor': // props.defect: verdeckte Unterbrechung (Fehlersuche) – von aussen nicht sichtbar
             G(n.a, n.b, q.defect ? G_OPEN : 1 / Math.max(q.value, 1e-3)); break;
+          case 'npn':
+            if (tr[p.id] === 'off') { G(n.b, n.e, G_OPEN); G(n.c, n.e, G_OPEN); break; }
+            norton(n.b, n.e, q.vbe, q.rbe);
+            if (tr[p.id] === 'sat') norton(n.c, n.e, q.vsat, 1);
+            else { G(n.c, n.e, G_OPEN); vccs(n.c, n.e, n.b, n.e, q.beta / q.rbe, q.vbe); }
+            break;
+          case 'zener':
+            if (zen[p.id] === 'f') norton(n.a, n.k, q.vf, q.rs); else if (zen[p.id] === 'z') norton(n.k, n.a, q.vz, q.rs); else G(n.a, n.k, G_OPEN);
+            break;
+          case 'logicin': drive(n.out, !!q.closed); break;
           case 'pot': G(n.a, n.w, 1 / Math.max(q.value * q.pos, 1e-3)); G(n.w, n.b, 1 / Math.max(q.value * (1 - q.pos), 1e-3)); break;
           case 'switch': case 'button': G(n.a, n.b, q.closed ? G_CLOSED : G_OPEN); break;
           case 'ammeter': G(n.a, n.b, 1 / METER.rA); break;
@@ -438,10 +488,12 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
             norton(n.out, '0', high ? LOGIC.vcc : 0, LOGIC.rout);
             break;
           default:
-            if (def(p.type).logic) {
-              def(p.type).pins.forEach(function (pin) { if (pin !== 'out') G(n[pin], '0', G_OPEN); });
-              norton(n.out, '0', (logic[p.id] && !opts.zeroSources) ? LOGIC.vcc : 0, LOGIC.rout);
-            }
+            var dd = def(p.type);
+            if (dd.logic || dd.ff) {
+              dIns(dd).forEach(function (pin) { G(n[pin], '0', G_OPEN); });
+              if (dd.ff) { drive(n.Q, ffQ(p)); drive(n.Qn, !ffQ(p)); }
+              else dOuts(dd).forEach(function (pin, k) { drive(n[pin], outVal(p, k)); });
+            } else if (dd.digital) dd.pins.forEach(function (pin) { if (p.type !== 'logicin') G(n[pin], '0', G_OPEN); });
         }
       });
       if (opts.meter) {
@@ -473,15 +525,39 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         if (!diode[p.id] && vak > vf + 1e-9) changed.push({ id: p.id, to: true });
         else if (diode[p.id] && vak < vf - 1e-9) changed.push({ id: p.id, to: false });
       });
-      if (changed.length) { record('diode', changed); changed.forEach(function (c) { diode[c.id] = c.to; }); continue; }
+      // Transistoren und Z-Dioden: Arbeitsbereich pruefen (wie Dioden, mit kleiner Hysterese)
+      net.parts.forEach(function (p) {
+        if (st.burnt[p.id]) return;
+        var q = p.props, n = p.n;
+        if (p.type === 'npn') {
+          var vbe = volt(n.b) - volt(n.e), vce = volt(n.c) - volt(n.e), s0 = tr[p.id], s1 = s0;
+          if (s0 === 'off') { if (vbe > q.vbe + 1e-6) s1 = 'on'; }
+          else if (vbe < q.vbe - 1e-6) s1 = 'off';
+          else if (s0 === 'on' && vce < q.vsat - 1e-4) s1 = 'sat';
+          else if (s0 === 'sat') { var ib = (vbe - q.vbe) / q.rbe, ic = (vce - q.vsat) / 1; if (ic > q.beta * ib * 1.02) s1 = 'on'; }
+          if (s1 !== s0) changed.push({ id: p.id, to: s1 });
+        }
+        if (p.type === 'zener') {
+          var vak = volt(n.a) - volt(n.k), z0 = zen[p.id], z1 = z0;
+          if (z0 === 'off') { if (vak > q.vf + 1e-9) z1 = 'f'; else if (-vak > q.vz + 1e-9) z1 = 'z'; }
+          else if (z0 === 'f' && vak < q.vf - 1e-9) z1 = 'off';
+          else if (z0 === 'z' && -vak < q.vz - 1e-9) z1 = 'off';
+          if (z1 !== z0) changed.push({ id: p.id, to: z1 });
+        }
+      });
+      if (changed.length) {
+        record('diode', changed);
+        changed.forEach(function (c) { if (tr[c.id] !== undefined) tr[c.id] = c.to; else if (zen[c.id] !== undefined) zen[c.id] = c.to; else diode[c.id] = c.to; });
+        continue;
+      }
       // Gatter einzeln nachfuehren (Gauss-Seidel) – stabil fuer Speicherschaltungen
       var gateChanged = null;
       for (var gi = 0; gi < net.parts.length && !gateChanged; gi++) {
         var g = net.parts[gi], d = def(g.type);
         if (!d.logic || st.burnt[g.id]) continue;
-        var ins = d.pins.filter(function (pin) { return pin !== 'out'; }).map(function (pin) { return volt(g.n[pin]) > LOGIC.vth; });
-        var out = !!d.logic(ins);
-        if (out !== logic[g.id]) gateChanged = { id: g.id, to: out };
+        var ins = dIns(d).map(function (pin) { return volt(g.n[pin]) > LOGIC.vth; });
+        var out = d.logic(ins); out = Array.isArray(out) ? out.map(Boolean) : !!out;
+        if (JSON.stringify(out) !== JSON.stringify(logic[g.id])) gateChanged = { id: g.id, to: out };
       }
       if (gateChanged) { record('gate', [gateChanged]); logic[gateChanged.id] = gateChanged.to; continue; }
       converged = true; break;
@@ -489,7 +565,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     if (!converged) oscillating = true;
     var res = evaluate();
     record(converged ? 'done' : 'unstable', []);
-    return { res: res, V: res.nodeV, diode: diode, logic: logic };
+    return { res: res, V: res.nodeV, diode: diode, logic: logic, tr: tr, zen: zen };
 
     // ---------- Auswertung (auch fuer jeden Zwischenschritt der Zeitlupe) ----------
     function evaluate() {
@@ -499,7 +575,23 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       var q = p.props, n = p.n, r = { burnt: !!st.burnt[p.id] };
       function across(a, b) { return volt(a) - volt(b); }
       switch (p.type) {
-        case 'resistor': case 'lamp': r.v = across(n.a, n.b); r.i = r.burnt || q.defect ? r.v * G_OPEN : r.v / Math.max(q.value, 1e-3); r.p = r.v * r.i; break;
+        case 'resistor': case 'lamp': case 'motor': r.v = across(n.a, n.b); r.i = r.burnt || q.defect ? r.v * G_OPEN : r.v / Math.max(q.value, 1e-3); r.p = r.v * r.i;
+          if (p.type === 'motor') r.speed = Math.min(1.5, Math.abs(r.i) / q.inom) * (r.i < 0 ? -1 : 1);
+          break;
+        case 'npn':
+          r.vbe = across(n.b, n.e); r.v = across(n.c, n.e); r.state = tr[p.id];
+          r.ib = r.state === 'off' ? 0 : (r.vbe - q.vbe) / q.rbe;
+          r.i = r.state === 'off' ? 0 : r.state === 'sat' ? (r.v - q.vsat) / 1 : q.beta * r.ib;
+          r.p = r.v * r.i + r.vbe * r.ib; r.on = r.state !== 'off';
+          r.pin = { b: -r.ib, c: -r.i, e: r.ib + r.i };
+          break;
+        case 'zener':
+          r.v = across(n.a, n.k); r.mode = zen[p.id];
+          r.i = r.mode === 'f' ? (r.v - q.vf) / q.rs : r.mode === 'z' ? (r.v + q.vz) / q.rs : 0; r.p = r.v * r.i;
+          break;
+        case 'logicin': r.out = !!q.closed; r.v = volt(n.out); r.pin = { out: ((r.out ? LOGIC.vcc : 0) - r.v) / LOGIC.rout }; break;
+        case 'logicled': r.v = volt(n.in); r.on = r.v > LOGIC.vth; break;
+        case 'seg7': r.seg = def(p.type).pins.map(function (pin) { return volt(n[pin]) > LOGIC.vth; }); r.on = r.seg.some(Boolean); break;
         case 'pot': r.v = across(n.a, n.b); r.vw = across(n.w, n.b); r.i = across(n.a, n.w) / Math.max(q.value * q.pos, 1e-3); r.p = Math.abs(r.v * r.i); break;
         case 'switch': case 'button': r.v = across(n.a, n.b); r.i = r.v * (q.closed ? G_CLOSED : G_OPEN); break;
         case 'ammeter': r.v = across(n.a, n.b); r.i = r.v / METER.rA; break;
@@ -513,8 +605,20 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
           if (p.type === 'led') r.brightness = r.on ? Math.min(1, r.i / q.inom) : 0;
           break;
         case 'capacitor': r.v = across(n.a, n.b); r.i = dt ? q.value / dt * (r.v - (st.vC[p.id] || 0)) : 0; break;
-        case 'clock': r.v = volt(n.out); r.high = r.v > LOGIC.vth; break;
-        default: if (def(p.type).logic) { r.out = logic[p.id]; r.v = volt(n.out); }
+        case 'clock': r.v = volt(n.out); r.high = r.v > LOGIC.vth; r.pin = { out: ((r.high && !opts.zeroSources ? LOGIC.vcc : 0) - r.v) / LOGIC.rout }; break;
+        default:
+          var dd = def(p.type);
+          if (dd.ff) { r.q = ffQ(p); r.out = r.q; r.v = volt(n.Q); r.pin = { Q: ((r.q ? LOGIC.vcc : 0) - volt(n.Q)) / LOGIC.rout, Qn: ((r.q ? 0 : LOGIC.vcc) - volt(n.Qn)) / LOGIC.rout }; }
+          else if (dd.logic) {
+            r.out = logic[p.id]; r.pin = {};
+            dOuts(dd).forEach(function (pin, k) { r.pin[pin] = ((outVal(p, k) ? LOGIC.vcc : 0) - volt(n[pin])) / LOGIC.rout; });
+            if (!Array.isArray(r.out)) r.v = volt(n.out);
+          }
+      }
+      if (!r.pin) { // Zweipole: r.i fliesst im Bauteil von a nach b (Quellen: von n nach p)
+        if (p.type === 'battery' || p.type === 'acsource') r.pin = { p: r.i || 0, n: -(r.i || 0) };
+        else if (p.type === 'pot') { var iaw = across(n.a, n.w) / Math.max(q.value * q.pos, 1e-3), iwb = across(n.w, n.b) / Math.max(q.value * (1 - q.pos), 1e-3); r.pin = { a: -iaw, w: iaw - iwb, b: iwb }; }
+        else if (r.i !== undefined && n.a !== undefined) { var bpin = n.b !== undefined ? 'b' : 'k'; r.pin = { a: -r.i }; r.pin[bpin] = r.i; }
       }
       res.parts[p.id] = r;
     });
@@ -545,12 +649,28 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         var im = (out.V[opts.meter.a] - out.V[opts.meter.b]) / METER.rA;
         if (Math.abs(im) > METER.fuseA) { state.fuse = true; state.fuseInfo = { i: im, imax: METER.fuseA }; newDamage = true; }
       }
+
+      net.parts.forEach(function (p) { // Transistor/Z-Diode ueberlastet
+        var r = out.res.parts[p.id], q = p.props;
+        if ((p.type === 'npn' || p.type === 'zener') && Math.abs(r.p) > q.pmax) faults.push({ code: 'OVERLOAD', part: p.id, p: r.p, pmax: q.pmax, v: r.v, i: r.i });
+      });
       if (out.res.oscillating) faults.push({ code: 'UNSTABLE' });
-      if (!net.hasGround && !net.autoGround && net.parts.some(function (p) { return def(p.type).logic || p.type === 'clock'; })) faults.push({ code: 'NO_GROUND' });
+      if (!net.hasGround && !net.autoGround && net.parts.some(function (p) { return isDigital(def(p.type)) || p.type === 'clock'; })) faults.push({ code: 'NO_GROUND' });
       out.res.faults = faults;
-      if (!newDamage || ++guard > 20) break;
+      // Flipflops: bei steigender Flanke an C die Eingaenge uebernehmen (alle gleichzeitig aus derselben Loesung)
+      var ffChanged = false; state.ff = state.ff || {};
+      net.parts.forEach(function (p) {
+        var d = def(p.type); if (!d.ff || state.burnt[p.id]) return;
+        var f = state.ff[p.id] || (state.ff[p.id] = { q: false, c: null }), c = (out.V[p.n.C] || 0) > LOGIC.vth;
+        if (f.c === false && c) {
+          var nq = !!d.ff(f.q, d.ffIns.map(function (pin) { return (out.V[p.n[pin]] || 0) > LOGIC.vth; }));
+          if (nq !== f.q) { f.q = nq; ffChanged = true; }
+        }
+        f.c = c;
+      });
+      state.diode = out.diode; state.logic = out.logic; state.tr = out.tr; state.zen = out.zen;
+      if (!(newDamage || ffChanged) || ++guard > 20) break;
     }
-    state.diode = out.diode; state.logic = out.logic;
     if (opts.dt) {
       net.parts.forEach(function (p) { if (p.type === 'capacitor') state.vC[p.id] = out.res.parts[p.id].v; });
       state.t += opts.dt;
@@ -723,16 +843,28 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       var c = net.parts.filter(function (p) { return p.type === type; }).length;
       push(c >= task.need[type], 'Bauteil ' + def(type).label + ': mindestens ' + task.need[type], { have: c });
     });
+    /* Test = ein Zustand {set, expect} oder eine Schrittfolge {steps:[{set?, run?, dt?, expect?, name?}]} mit durchgehendem Zustand
+     * (Flipflops, Zaehler, Kondensatoren). run = Sekunden Zeitsimulation mit dt (Standard 1 ms). */
+    var n2, lay2;
     (task.tests || []).forEach(function (t) {
-      var lay = clone(layout), n2 = buildNetlist(lay), state = newState();
-      try { applySet(n2, t.set); } catch (e) { push(false, (t.name || 'Test') + ': ' + e.message); return; }
-      var r = step(n2, state, {});
-      (t.expect || []).forEach(function (e) {
-        var label = (t.name ? t.name + ' – ' : '');
+      var lay = clone(layout), state = newState(); n2 = buildNetlist(lay); lay2 = lay;
+      var steps = t.steps || [{ set: t.set, expect: t.expect }];
+      if (t.steps) step(n2, state, {}); // Einschalten: Ausgangszustand (Taktpegel der Flipflops) festhalten
+      for (var si = 0; si < steps.length; si++) {
+        var sp = steps[si], r;
+        var label = (t.name ? t.name : 'Test') + (t.steps ? ' · ' + (sp.name || 'Schritt ' + (si + 1)) : '') + ' – ';
+        try { applySet(n2, sp.set); } catch (e) { push(false, label + e.message); return; }
+        r = step(n2, state, {});
+        if (sp.run) { var dtr = sp.dt || 1e-3; for (var k = 0; k * dtr < sp.run - 1e-12 && k < 50000; k++) r = step(n2, state, { dt: dtr }); }
+        checkAll(sp.expect || [], r, label);
+      }
+    });
+    function checkAll(expects, r, label) {
+      expects.forEach(function (e) {
         if (e.noFault) { push(r.faults.length === 0, label + 'keine Stoerung', { faults: r.faults }); return; }
         if (e.fault) { push(r.faults.some(function (f) { return f.code === e.fault; }), label + 'Stoerung ' + e.fault); return; }
         if (e.a && e.ac) {
-          var acr = acMeasure(lay, { a: e.a, b: e.b }), av = acr.ok ? acr[e.ac] : NaN;
+          var acr = acMeasure(lay2, { a: e.a, b: e.b }), av = acr.ok ? acr[e.ac] : NaN;
           push(acr.ok && inRange(av, e.range), label + ({ dc: 'Gleichanteil', rms: 'Effektivwert', avg: 'AVG-Anzeige', peak: 'Scheitelwert', pp: 'Spitze-Spitze' }[e.ac] || e.ac) + ' ' + e.a + '→' + e.b + ' im Bereich ' + fmt(e.range[0], 'V') + '…' + fmt(e.range[1], 'V'), { got: av });
           return;
         }
@@ -750,9 +882,11 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
           if (e.v) push(inRange(Math.abs(pr.v), e.v), label + 'Spannung ' + p.id + ' ' + fmt(e.v[0], 'V') + '…' + fmt(e.v[1], 'V'), { got: pr.v });
           if (e.out !== undefined) push(pr.out === e.out, label + p.id + ' Ausgang ' + (e.out ? '1' : '0'), { got: pr.out });
           if (e.brightness) push(inRange(pr.brightness || 0, e.brightness), label + p.id + ' Helligkeit', { got: pr.brightness });
+          if (e.state !== undefined) push(pr.state === e.state, label + p.id + ' Arbeitsbereich ' + ({ off: 'gesperrt', on: 'aktiv', sat: 'Saettigung' }[e.state] || e.state), { got: pr.state });
+          if (e.digit !== undefined) push(!!pr.seg && pr.seg.map(function (x) { return x ? '1' : '0'; }).join('') === (SEG7[e.digit] || '0000000'), label + p.id + ' zeigt ' + e.digit, { got: pr.seg });
         });
       });
-    });
+    }
     (task.measure || []).forEach(function (m) {
       var truth, ml = clone(layout);
       applyMeasureSet(m, ml);
@@ -1874,6 +2008,245 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   });
 })();
 
+/* ==== content/ch05.js ==== */
+/* Kapitel 5 – Zahlensysteme
+ * Quelle: Zahlensysteme Umrechnung (Stellenwertsystem, Dezimal→Binaer per Division mit Rest, Fremdsystem→Dezimal, verwandte
+ * Systeme 2/8/16, Horner-Schema), Digitaltechnik stationaere Vorgaenge Kap. 2 (Bin – Hex – Dez, Bitbreite, MSB/LSB),
+ * Kap. 7.1 (BCD-Code). Umgesetzt am Experimentierboard: Pegelschalter = Bits, Logikanzeigen = Bitreihe. */
+(function () {
+  'use strict';
+
+  defChapter({
+    id: 5, title: 'Zahlensysteme',
+    intro: 'Computer kennen nur 0 und 1. Am Experimentierboard stellst du Zahlen mit Pegelschaltern ein, liest Bitmuster an Logikanzeigen ab und bringst eine 7-Segment-Anzeige zum Zaehlen.',
+    sequence: ['T5A', '5.1', '5.2', '5.3', '5.4', '5.5', 'T5B', '5.6', '5.7', '5.8', '5.9', '5.10']
+  });
+
+  /* Bitreihe: n Pegelschalter (E1 = Bit 0, rechts) mit n Logikanzeigen darueber, MSB links. value = eingestellte Zahl, wired = verdrahtet */
+  function row(n, value, wired, ledsWired) {
+    var parts = [{ id: 'GND1', type: 'ground', x: 120 + 100 * n, y: 440, rot: 0 }], wires = [];
+    for (var b = 0; b < n; b++) {
+      var x = 120 + 100 * (n - 1 - b);
+      var e = { id: 'E' + (b + 1), type: 'logicin', x: x, y: 420, rot: 270 };
+      if (value >> b & 1) e.props = { closed: true };
+      parts.push(e, { id: 'L' + (b + 1), type: 'logicled', x: x, y: 200, rot: 270 });
+      if (wired !== false && (ledsWired === undefined || ledsWired)) wires.push(W('E' + (b + 1) + '.out', 'L' + (b + 1) + '.in'));
+    }
+    return { parts: parts, wires: wires };
+  }
+  function benchRow(n) {
+    var p = [{ id: 'GND1', x: 170 + 120 * n, y: 640, rot: 0 }], s = n > 6 ? 105 : 120;
+    for (var b = 0; b < n; b++) { var x = 180 + s * (n - 1 - b); p.push({ id: 'E' + (b + 1), x: x, y: 470, rot: 270 }, { id: 'L' + (b + 1), x: x, y: 230, rot: 270 }); }
+    return { parts: p };
+  }
+  function ledsShow(n, value) { var e = []; for (var b = 0; b < n; b++) e.push({ sel: 'L' + (b + 1), on: !!(value >> b & 1) }); return e; }
+  var named = function (name, l) { l.name = name; return l; };
+
+  /* BCD-Anzeige: 4 Pegelschalter → Decoder → 7-Segment */
+  function bcdBoard(value, outWired) {
+    var parts = [{ id: 'GND1', type: 'ground', x: 120, y: 520, rot: 0 }, { id: 'IC1', type: 'dec7', x: 380, y: 300, rot: 0 }, { id: 'AZ1', type: 'seg7', x: 600, y: 300, rot: 0 }], wires = [];
+    ['A', 'B', 'C', 'D'].forEach(function (k, i) {
+      var e = { id: 'E' + (i + 1), type: 'logicin', x: 180, y: 240 + 40 * i, rot: 0 }; if (value >> i & 1) e.props = { closed: true };
+      parts.push(e); wires.push(W('E' + (i + 1) + '.out', 'IC1.' + k));
+    });
+    if (outWired !== false) 'abcdefg'.split('').forEach(function (k) { wires.push(W('IC1.' + k, 'AZ1.' + k)); });
+    return { parts: parts, wires: wires };
+  }
+  var bcdBench = { parts: [{ id: 'GND1', x: 170, y: 690, rot: 0 }, { id: 'E1', x: 190, y: 250, rot: 0 }, { id: 'E2', x: 190, y: 350, rot: 0 }, { id: 'E3', x: 190, y: 450, rot: 0 }, { id: 'E4', x: 190, y: 550, rot: 0 },
+    { id: 'IC1', x: 470, y: 400, rot: 0 }, { id: 'AZ1', x: 740, y: 400, rot: 0 }] };
+  var setBits = function (n, v) { var s = {}; for (var b = 0; b < n; b++) s['E' + (b + 1)] = { closed: !!(v >> b & 1) }; return s; };
+
+  /* ================= Theorie A ================= */
+  defTheory({
+    id: 'T5A', ch: 5, title: 'Stellenwertsystem und Dualzahlen', tags: ['digital.zahlensysteme', 'digital.binaer'],
+    lesson:
+      '<p>In einem <b>Stellenwertsystem</b> haengt der Wert einer Ziffer von ihrer Stelle ab: <b>Wert = Ziffer · Basis<sup>Stelle</sup></b>, gelesen von rechts (Stelle 0) nach links. Die Basis bestimmt die Ziffern: dezimal (Basis 10) 0–9, dual/binaer (Basis 2) nur 0 und 1.</p>' +
+      '<div class="formula">125₁₀ = 1·10² + 2·10¹ + 5·10⁰</div>' +
+      '<p>Ein <b>Bit</b> ist eine Binaerstelle. Die <b>Bitbreite</b> ist die Anzahl Stellen. Das Bit ganz rechts ist das <b>niederwertigste Bit</b> (LSB, Wert 2⁰ = 1), das ganz links das <b>hoechstwertige</b> (MSB). Mit n Bits lassen sich die Zahlen 0 … 2ⁿ − 1 darstellen (4 Bit: 0 … 15).</p>' +
+      '<p><b>Binaer → dezimal:</b> Stellenwerte der Einsen addieren: 110001₂ = 32 + 16 + 1 = 49.</p>' +
+      '<p><b>Dezimal → binaer:</b> fortlaufend durch 2 teilen, die Reste von unten nach oben lesen: 49 : 2 = 24 R1, 24 : 2 = 12 R0, 12 : 2 = 6 R0, 6 : 2 = 3 R0, 3 : 2 = 1 R1, 1 : 2 = 0 R1 → 110001₂.</p>' +
+      '<p>Im Labor ist ein Bit eine <b>Spannung</b>: 0 V (Low, 0) oder 5 V (High, 1). Ein Pegelschalter erzeugt den Pegel, eine Logikanzeige macht ihn sichtbar.</p>',
+    questions: [
+      { q: 'Welche Dezimalzahl ist 1010₂?', options: ['5', '10', '12', '20'], correct: 1, explain: '8 + 2 = 10.' },
+      { q: 'Wie lautet 49₁₀ im Dualsystem?', options: ['100011', '110001', '101001', '111000'], correct: 1, explain: '32 + 16 + 1 = 49 → 110001₂.' },
+      { q: 'Welche groesste Zahl kann eine 4-Bit-Dualzahl darstellen?', options: ['4', '8', '15', '16'], correct: 2, explain: '2⁴ − 1 = 15 (1111₂).' },
+      { q: 'Welchen Stellenwert hat das MSB einer 8-Bit-Zahl?', options: ['8', '64', '128', '256'], correct: 2, explain: 'Stelle 7 → 2⁷ = 128.' },
+      { q: 'Welche Spannung entspricht bei 5-V-Logik einer 1?', options: ['0 V', 'ca. 1 V', 'ca. 2,5 V', 'ca. 5 V'], correct: 3, explain: 'High = nahe der Versorgungsspannung, Low = nahe 0 V; die Schwelle liegt bei 2,5 V.' }
+    ]
+  });
+
+  /* ================= Aufgaben 1–5 ================= */
+  defTask({
+    id: '5.1', ch: 5, title: 'Die erste Dualzahl', tags: ['digital.binaer', 'digital.pegel'],
+    story: 'Das Experimentierboard liegt bereit: vier Pegelschalter, vier Logikanzeigen. Die Laborassistenz sagt: „Zeig mir die Fuenf.“',
+    brief: 'Stelle mit den Pegelschaltern die Zahl <b>5</b> ein. E1 ist das niederwertigste Bit (ganz rechts, Wert 1), E4 das hoechstwertige (Wert 8).',
+    learn: 'Jedes Bit hat einen Stellenwert: 8 – 4 – 2 – 1.',
+    take: '5 = 4 + 1 → 0101₂: E3 und E1 auf 1.',
+    hint: 'Welche Stellenwerte (8, 4, 2, 1) ergeben zusammen 5?',
+    hint2: '4 + 1 = 5 → E3 = 1, E1 = 1, die anderen 0. Pegelschalter anklicken schaltet um.',
+    palette: [], start: row(4, 0), ref: row(4, 5), bench: benchRow(4),
+    wrong: [named('Bitreihenfolge verkehrt (1010)', row(4, 10))],
+    tests: [{ name: 'Anzeige', expect: ledsShow(4, 5).concat([{ noFault: true }]) }]
+  });
+
+  defTask({
+    id: '5.2', ch: 5, title: 'Bitmuster lesen', tags: ['digital.binaer', 'digital.zahlensysteme'],
+    story: 'Ein Sensor meldet seinen Zaehlerstand als Bitmuster auf vier Anzeigen.',
+    brief: 'Lies das Bitmuster an den Logikanzeigen ab und trage die <b>Dezimalzahl</b> ein. Miss zur Kontrolle den <b>Pegel</b> am hoechstwertigen Bit (E4 gegen Masse).',
+    learn: 'Binaer → dezimal: Stellenwerte der Einsen addieren.',
+    take: '1011₂ = 8 + 2 + 1 = 11. Eine 1 ist im Labor eine Spannung von ca. 5 V.',
+    hint: 'Leuchtet eine Anzeige, ist das Bit 1. Von rechts: 1, 2, 4, 8.',
+    hint2: 'V⎓, rote Spitze an E4.out, schwarze an GND1.',
+    palette: [], start: row(4, 11), ref: row(4, 11), bench: benchRow(4),
+    tests: [{ name: 'Muster', expect: ledsShow(4, 11) }],
+    measure: [
+      { id: 'dez', ask: 'Angezeigte Zahl (dezimal)', unit: '', value: 11, tol: 0.001 },
+      { id: 'u', ask: 'Pegel am MSB (E4 gegen Masse)', unit: 'V', mode: 'V', a: 'E4.out', b: 'GND1.g', tol: 0.03 }
+    ]
+  });
+
+  defTask({
+    id: '5.3', ch: 5, title: 'Division mit Rest', tags: ['digital.binaer', 'digital.zahlensysteme'],
+    story: 'Die Maschine soll 13 Teile zaehlen. Die Steuerung braucht die Zahl als Bitmuster.',
+    brief: 'Rechne <b>13</b> ins Dualsystem um (fortlaufend durch 2 teilen) und stelle das Ergebnis mit den Pegelschaltern ein.',
+    learn: 'Dezimal → binaer: durch 2 teilen, Reste von unten nach oben lesen.',
+    take: '13 : 2 = 6 R1, 6 : 2 = 3 R0, 3 : 2 = 1 R1, 1 : 2 = 0 R1 → 1101₂.',
+    hint: 'Der erste Rest ist das niederwertigste Bit (E1).',
+    hint2: '1101₂: E4 = 1, E3 = 1, E2 = 0, E1 = 1.',
+    palette: [], start: row(4, 0), ref: row(4, 13), bench: benchRow(4),
+    wrong: [named('Reste falsch herum gelesen (1011)', row(4, 11))],
+    tests: [{ name: 'Anzeige', expect: ledsShow(4, 13) }]
+  });
+
+  defTask({
+    id: '5.4', ch: 5, title: 'Die Anzeige verdrahten', tags: ['digital.bcd', 'digital.7segment'],
+    story: 'Die 7-Segment-Anzeige ist montiert, aber nicht angeschlossen. Der Decoder uebersetzt die Dualzahl in Segmente.',
+    brief: 'Verbinde die Ausgaenge <b>a … g</b> des BCD-Decoders IC1 mit den gleichnamigen Eingaengen der 7-Segment-Anzeige AZ1. Die Anzeige soll die eingestellte Zahl richtig zeigen – pruefe mit 7 und 9.',
+    learn: 'Ein Decoder wandelt einen Binaercode in ein anderes Muster um – hier BCD in 7 Segmente.',
+    take: 'Jedes Segment hat seinen Buchstaben: a oben, dann im Uhrzeigersinn b … f, g in der Mitte.',
+    hint: 'IC1.a → AZ1.a, IC1.b → AZ1.b … bis g.',
+    hint2: 'Zum Testen die Pegelschalter umlegen: 0111 = 7, 1001 = 9.',
+    palette: [], start: bcdBoard(7, false), ref: bcdBoard(7), bench: bcdBench,
+    wrong: [named('b und c vertauscht', { parts: bcdBoard(7).parts, wires: bcdBoard(7, false).wires.concat('adefg'.split('').map(function (k) { return W('IC1.' + k, 'AZ1.' + k); }), [W('IC1.b', 'AZ1.c'), W('IC1.c', 'AZ1.b')]) })],
+    tests: [
+      { name: 'Sieben', set: setBits(4, 7), expect: [{ sel: 'AZ1', digit: 7 }] },
+      { name: 'Neun', set: setBits(4, 9), expect: [{ sel: 'AZ1', digit: 9 }] },
+      { name: 'Zwei', set: setBits(4, 2), expect: [{ sel: 'AZ1', digit: 2 }] }
+    ]
+  });
+
+  defTask({
+    id: '5.5', ch: 5, title: 'High und Low messen', tags: ['digital.pegel', 'messen.spannung'],
+    story: 'Die Werkmeisterin fragt: „Woher weisst du, dass eine 1 wirklich eine 1 ist?“ – „Messen!“',
+    brief: 'Das Board zeigt 1001₂. Miss die Pegel an <b>E4</b> (Bit = 1) und <b>E3</b> (Bit = 0) gegen Masse und am Eingang der Logikanzeige <b>L1</b>.',
+    learn: 'Logische Zustaende sind Spannungsbereiche: Low nahe 0 V, High nahe 5 V.',
+    take: 'Die Logikanzeige vergleicht die Spannung mit der Schwelle (2,5 V) – darueber leuchtet sie.',
+    hint: 'Schwarze Spitze bleibt an GND1.g, rote wandert.',
+    hint2: 'Erwartet ca. 5 V, 0 V und 5 V.',
+    palette: [], start: row(4, 9), ref: row(4, 9), bench: benchRow(4),
+    tests: [{ name: 'Muster', expect: ledsShow(4, 9) }],
+    measure: [
+      { id: 'h', ask: 'Pegel an E4 (Bit = 1)', unit: 'V', mode: 'V', a: 'E4.out', b: 'GND1.g', tol: 0.03 },
+      { id: 'l', ask: 'Pegel an E3 (Bit = 0)', unit: 'V', mode: 'V', a: 'E3.out', b: 'GND1.g', tol: 0.03, abs: 0.05 },
+      { id: 'l1', ask: 'Spannung am Eingang von L1', unit: 'V', mode: 'V', a: 'L1.in', b: 'GND1.g', tol: 0.03 }
+    ]
+  });
+
+  /* ================= Theorie B ================= */
+  defTheory({
+    id: 'T5B', ch: 5, title: 'Hexadezimal, BCD und Horner-Schema', tags: ['digital.hex', 'digital.bcd', 'digital.zahlensysteme'],
+    lesson:
+      '<p>Das <b>Hexadezimalsystem</b> (Basis 16) hat die Ziffern 0–9 und A–F (A = 10 … F = 15). Weil 2⁴ = 16, entspricht <b>genau eine Hex-Ziffer vier Bits</b> (einem Nibble). Umrechnen binaer ↔ hex heisst: in Vierergruppen von rechts aufteilen.</p>' +
+      '<div class="formula">1011 0110₂ = B6₁₆ = 182₁₀</div>' +
+      '<p>Genauso ist das <b>Oktalsystem</b> (Basis 8 = 2³) mit Dreiergruppen verwandt: 110 001₂ = 61₈.</p>' +
+      '<p><b>Horner-Schema</b> (Fremdsystem → dezimal): von links beginnen, Zwischenergebnis mal Basis plus naechste Ziffer. 110001₂: 1 → 1·2+1 = 3 → 6 → 12 → 24 → 24·2+1 = 49.</p>' +
+      '<p><b>BCD-Code</b> (Binary Coded Decimal): jede Dezimalziffer einzeln mit 4 Bit. 59 → 0101 1001. Die Kombinationen 1010 … 1111 sind in BCD <b>ungueltig</b> – ein BCD-Decoder zeigt dann nichts an. BCD passt direkt zu 7-Segment-Anzeigen.</p>',
+    questions: [
+      { q: 'Welche Dezimalzahl ist EF₁₆?', options: ['215', '239', '254', '255'], correct: 1, explain: '14·16 + 15 = 239.' },
+      { q: 'Wie lautet 1111₂ hexadezimal?', options: ['E', 'F', '10', '15'], correct: 1, explain: '1111₂ = 15 = F.' },
+      { q: 'Wie viele Bits entsprechen einer Hex-Ziffer?', options: ['2', '3', '4', '8'], correct: 2, explain: '16 = 2⁴ – eine Hex-Ziffer ist ein Nibble.' },
+      { q: 'Wie wird die Dezimalzahl 59 im BCD-Code dargestellt?', options: ['0011 1011', '0101 1001', '0111 0011', '1001 0101'], correct: 1, explain: '5 → 0101, 9 → 1001.' },
+      { q: 'Was zeigt ein BCD-7-Segment-Decoder bei der Eingabe 1100₂?', options: ['12', 'C', 'Nichts – ungueltiger BCD-Code', '0'], correct: 2, explain: 'BCD kennt nur 0000 … 1001. 1100 ist ungueltig, die Anzeige bleibt dunkel.' }
+    ]
+  });
+
+  /* ================= Aufgaben 6–10 ================= */
+  defTask({
+    id: '5.6', ch: 5, title: 'Eine Hex-Ziffer', tags: ['digital.hex', 'digital.binaer'],
+    story: 'Im Datenblatt steht die Adresse als „C“. Die Anzeige erwartet das Bitmuster.',
+    brief: 'Stelle die Hex-Ziffer <b>C</b> mit den vier Pegelschaltern ein und trage ihren Dezimalwert ein.',
+    learn: 'Eine Hex-Ziffer = 4 Bit.',
+    take: 'C₁₆ = 12₁₀ = 1100₂.',
+    hint: 'A = 10, B = 11, C = 12 …',
+    hint2: '12 = 8 + 4 → E4 = 1, E3 = 1.',
+    palette: [], start: row(4, 0), ref: row(4, 12), bench: benchRow(4),
+    wrong: [named('B statt C (1011)', row(4, 11))],
+    tests: [{ name: 'Anzeige', expect: ledsShow(4, 12) }],
+    measure: [{ id: 'dez', ask: 'C₁₆ als Dezimalzahl', unit: '', value: 12, tol: 0.001 }]
+  });
+
+  defTask({
+    id: '5.7', ch: 5, title: 'Ein ganzes Byte', tags: ['digital.hex', 'digital.binaer'],
+    story: 'Ein Byte, acht Bits: Das Pruefprogramm sendet den Wert 2D₁₆. Stell ihn nach.',
+    brief: 'Stelle <b>2D₁₆</b> auf den acht Pegelschaltern ein (E8 = MSB links, E1 = LSB rechts) und trage den Dezimalwert ein.',
+    learn: 'Jede Hex-Ziffer ergibt eine Vierergruppe: 2 → 0010, D → 1101.',
+    take: '2D₁₆ = 0010 1101₂ = 32 + 8 + 4 + 1 = 45.',
+    hint: 'Linke Hex-Ziffer (2) → obere vier Bits E8…E5, rechte (D) → untere vier Bits E4…E1.',
+    hint2: '0010 1101: E6, E4, E3 und E1 auf 1.',
+    palette: [], start: row(8, 0), ref: row(8, 45), bench: benchRow(8),
+    wrong: [named('Nibbles vertauscht (D2)', row(8, 0xD2))],
+    tests: [{ name: 'Anzeige', expect: ledsShow(8, 45) }],
+    measure: [{ id: 'dez', ask: '2D₁₆ als Dezimalzahl', unit: '', value: 45, tol: 0.001 }]
+  });
+
+  defTask({
+    id: '5.8', ch: 5, title: 'Ungueltiger BCD-Code', tags: ['digital.bcd', 'digital.7segment'],
+    story: 'Die Anzeige bleibt manchmal dunkel. Ein Kollege vermutet einen Wackelkontakt.',
+    brief: 'Verdrahte die Pegelschalter mit den Decoder-Eingaengen (<b>E1 → A (1), E2 → B (2), E3 → C (4), E4 → D (8)</b>). Probiere danach 3, 8 und 12 aus.',
+    learn: 'BCD kennt nur 0 … 9 – ab 1010₂ bleibt die Anzeige dunkel.',
+    take: 'Kein Wackelkontakt: 12 ist im BCD-Code ungueltig. Zweistellige Zahlen brauchen zwei Ziffern (zwei Decoder).',
+    hint: 'Die Wertigkeiten stehen am Decoder: 1, 2, 4, 8.',
+    hint2: 'E1.out → IC1.A, E2.out → IC1.B, E3.out → IC1.C, E4.out → IC1.D.',
+    palette: [],
+    start: { parts: bcdBoard(0).parts, wires: 'abcdefg'.split('').map(function (k) { return W('IC1.' + k, 'AZ1.' + k); }) }, ref: bcdBoard(0), bench: bcdBench,
+    wrong: [named('Wertigkeiten verdreht (E1 → D)', { parts: bcdBoard(0).parts, wires: [W('E1.out', 'IC1.D'), W('E2.out', 'IC1.C'), W('E3.out', 'IC1.B'), W('E4.out', 'IC1.A')].concat('abcdefg'.split('').map(function (k) { return W('IC1.' + k, 'AZ1.' + k); })) })],
+    tests: [
+      { name: 'Drei', set: setBits(4, 3), expect: [{ sel: 'AZ1', digit: 3 }] },
+      { name: 'Acht', set: setBits(4, 8), expect: [{ sel: 'AZ1', digit: 8 }] },
+      { name: 'Zwoelf', set: setBits(4, 12), expect: [{ sel: 'AZ1', on: false }] }
+    ]
+  });
+
+  defTask({
+    id: '5.9', ch: 5, title: 'Verwandte Systeme', tags: ['digital.hex', 'digital.zahlensysteme'],
+    story: 'Im Speicherauszug steht 1011 0110. Der Techniker will den Wert dezimal – und die hohe Hex-Ziffer.',
+    brief: 'Lies das Byte auf den Anzeigen ab. Trage den <b>Dezimalwert</b> ein und den Wert der <b>oberen Hex-Ziffer</b> (als Dezimalzahl, A = 10 … F = 15).',
+    learn: 'Vierergruppen machen aus Binaer im Kopf Hex.',
+    take: '1011 0110₂ = B6₁₆ = 11·16 + 6 = 182.',
+    hint: 'Teile in 1011 | 0110 auf.',
+    hint2: '1011 = 11 = B, 0110 = 6 → B6₁₆ = 182₁₀.',
+    palette: [], start: row(8, 182), ref: row(8, 182), bench: benchRow(8),
+    tests: [{ name: 'Muster', expect: ledsShow(8, 182) }],
+    measure: [
+      { id: 'dez', ask: 'Byte als Dezimalzahl', unit: '', value: 182, tol: 0.001 },
+      { id: 'hi', ask: 'Obere Hex-Ziffer (Wert 0–15)', unit: '', value: 11, tol: 0.001 }
+    ]
+  });
+
+  defTask({
+    id: '5.10', ch: 5, title: 'Horner am Board', tags: ['digital.binaer', 'digital.zahlensysteme'],
+    story: 'Das Beispiel aus dem Unterricht: 49. Jetzt mit sechs echten Bits.',
+    brief: 'Rechne <b>49</b> in eine 6-Bit-Dualzahl um und stelle sie ein. Kontrolliere mit dem Horner-Schema.',
+    learn: 'Horner: von links, mal 2 plus naechstes Bit.',
+    take: '110001₂: 1 → 3 → 6 → 12 → 24 → 49.',
+    hint: '49 = 32 + 16 + 1.',
+    hint2: 'E6 = 1, E5 = 1, E1 = 1, der Rest 0.',
+    palette: [], start: row(6, 0), ref: row(6, 49), bench: benchRow(6),
+    wrong: [named('100011 (35)', row(6, 35))],
+    tests: [{ name: 'Anzeige', expect: ledsShow(6, 49) }]
+  });
+})();
+
 /* ==== content/manual.js ==== */
 /* Handbuch – Seiten {id, title, html}. Wird mit den Themen erweitert. */
 (function (root) {
@@ -2058,7 +2431,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     var d = this.drag; this.drag = null; if (!d) return;
     var p = this.part(d.id); if (!p) return;
     if (p.type === 'button') { p.props.closed = false; this.changed('toggle'); return; }
-    if (!d.moved && p.type === 'switch') { p.props = p.props || {}; p.props.closed = !p.props.closed; this.changed('toggle'); return; }
+    if (!d.moved && (p.type === 'switch' || p.type === 'logicin')) { p.props = p.props || {}; p.props.closed = !p.props.closed; this.changed('toggle'); return; }
     if (d.moved) this.changed('move');
   };
   Circuit.prototype.cancel = function () { this.wireStart = null; this.sel = null; this.redraw(); };
@@ -2087,10 +2460,21 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     resistor: TWO, lamp: TWO, switch: TWO, button: TWO, capacitor: TWO, ammeter: TWO,
     led: { a: [-40, 0], k: [40, 0] }, diode: { a: [-40, 0], k: [40, 0] },
     pot: { a: [-40, 0], b: [40, 0], w: [0, 40] }, clock: { out: [40, 0] },
-    not: { in: [-40, 0], out: [40, 0] }
+    not: { in: [-40, 0], out: [40, 0] },
+    logicin: { out: [40, 0] }, logicled: { in: [-40, 0] },
+    zener: { a: [-40, 0], k: [40, 0] }, motor: TWO,
+    npn: { b: [-40, 0], c: [20, -40], e: [20, 40] },
+    dff: { D: [-40, -20], C: [-40, 20], Q: [40, -20], Qn: [40, 20] },
+    tff: { T: [-40, -20], C: [-40, 20], Q: [40, -20], Qn: [40, 20] },
+    jkff: { J: [-40, -20], C: [-40, 0], K: [-40, 20], Q: [40, -20], Qn: [40, 20] },
+    seg7: {}, dec7: { A: [-40, -60], B: [-40, -40], C: [-40, -20], D: [-40, 0] }
   };
-  ['and', 'or', 'nand', 'nor', 'xor'].forEach(function (g) { GEO[g] = { in1: [-40, -20], in2: [-40, 20], out: [40, 0] }; });
-  var GATE_SIGN = { and: '&amp;', nand: '&amp;', or: '≥1', nor: '≥1', xor: '=1', not: '1' };
+  'abcdefg'.split('').forEach(function (k, i) { GEO.seg7[k] = [-40, -60 + 20 * i]; GEO.dec7[k] = [40, -60 + 20 * i]; });
+  ['and', 'or', 'nand', 'nor', 'xor', 'xnor'].forEach(function (g) { GEO[g] = { in1: [-40, -20], in2: [-40, 20], out: [40, 0] }; });
+  var GATE_SIGN = { and: '&amp;', nand: '&amp;', or: '≥1', nor: '≥1', xor: '=1', xnor: '=1', not: '1' };
+  var FF_SIGN = { dff: ['1D', 'C1'], tff: ['1T', 'C1'], jkff: ['1J', 'C1', '1K'] };
+  /* 7-Segment: Segment-Pfade a…g in einem Feld von 24 × 40 um den Ursprung */
+  var SEGP = ['M-8-20h16', 'M10-18v16', 'M10 2v16', 'M-8 20h16', 'M-10 2v16', 'M-10-18v16', 'M-8 0h16'];
 
   function rotPt(p, rot) {
     var x = p[0], y = p[1];
@@ -2113,6 +2497,10 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       case 'resistor': case 'pot': case 'lamp': return fmtVal(v) + ' Ω';
       case 'capacitor': return fmtVal(v) + 'F';
       case 'clock': return fmtVal(q.freq || d.props.freq) + ' Hz';
+      case 'zener': return 'U_Z ' + fmtVal(q.vz || d.props.vz) + ' V';
+      case 'motor': return fmtVal(v) + ' Ω';
+      case 'npn': return 'β ' + (q.beta || d.props.beta);
+      case 'logicin': return q.closed ? '1' : '0';
       case 'led': return q.color || d.props.color;
       default: return '';
     }
@@ -2153,13 +2541,46 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         s = '<path ' + c + ' d="M0-20V0M-14 0H14M-9 6H9M-4 12H4"/>'; break;
       case 'acsource':
         s = '<path ' + c + ' d="M0-40V-16M0 16V40"/><circle ' + c + ' r="16"/><path class="sym thin" d="M-10 0C-6-10-2-10 0 0S6 10 10 0"/><text class="plus" x="12" y="-20">+</text>'; break;
+      case 'logicin': // Pegelschalter: Schiebeschalter mit Pegelanzeige
+        var hi1 = !!q.closed;
+        s = '<rect ' + c + ' x="-22" y="-16" width="44" height="32" rx="4"/><text class="symtxt small" x="-12" y="-4">0</text><text class="symtxt small" x="12" y="-4">1</text>' +
+          '<rect class="sym fillsym" x="' + (hi1 ? 2 : -16) + '" y="2" width="14" height="8" rx="2"/><path ' + c + ' d="M22 0H40"/>' +
+          '<rect class="hit" x="-22" y="-16" width="44" height="32"/>'; break;
+      case 'logicled': // Logikanzeige: LED mit Bezug auf Masse
+        var on1 = r.on;
+        s = '<path ' + c + ' d="M-40 0H-12"/><circle r="12" class="' + (on1 ? 'lamp-on' : 'sym') + '"/><path class="sym thin" d="M-6-6L6 0L-6 6ZM6-6V6"/><path class="sym thin" d="M0 12V20M-6 20H6M-3 24H3"/>'; break;
+      case 'zener':
+        s = '<path ' + c + ' d="M-40 0H-12M12 0H40"/><path class="sym fillsym" d="M-12-12L12 0L-12 12Z"/><path ' + c + ' d="M6-16L12-12V12L18 16"/>'; break;
+      case 'motor':
+        s = '<path ' + c + ' d="M-40 0H-16M16 0H40"/><circle ' + c + ' r="16"/><text class="symtxt" y="6">M</text>'; break;
+      case 'npn': // NPN: Kreis, Basisbalken, Kollektor, Emitter mit Pfeil nach aussen
+        s = '<circle ' + c + ' cx="4" r="22"/><path ' + c + ' d="M-40 0H-6M-6-14V14M-6-6L20-28V-40M-6 6L20 28V40"/><path class="sym fillsym" d="M20 28L10 26L15 19Z"/>'; break;
+      case 'seg7': // 7-Segment-Anzeige: leuchtende Segmente nach Simulation
+        s = '<rect ' + c + ' x="-26" y="-70" width="56" height="140" rx="3"/>';
+        'abcdefg'.split('').forEach(function (k, i) { s += '<path ' + c + ' d="M-40 ' + (-60 + 20 * i) + 'H-26"/><text class="symtxt small" x="-20" y="' + (-56 + 20 * i) + '">' + k + '</text>'; });
+        s += '<g transform="translate(10 0) scale(1.1)">' + SEGP.map(function (d, i) { return '<path d="' + d + '" class="seg' + (r.seg && r.seg[i] ? ' on' : '') + '"/>'; }).join('') + '</g>'; break;
+      case 'dec7': // BCD-Decoder: Eingaenge 1/2/4/8, Ausgaenge a…g
+        s = '<rect ' + c + ' x="-26" y="-70" width="52" height="140" rx="2"/><text class="symtxt small" y="-52">BCD</text><text class="symtxt small" y="-38">/7SEG</text>';
+        ['1', '2', '4', '8'].forEach(function (k, i) { s += '<path ' + c + ' d="M-40 ' + (-60 + 20 * i) + 'H-26"/><text class="symtxt small" x="-18" y="' + (-56 + 20 * i) + '">' + k + '</text>'; });
+        'abcdefg'.split('').forEach(function (k, i) { s += '<path ' + c + ' d="M26 ' + (-60 + 20 * i) + 'H40"/><text class="symtxt small" x="18" y="' + (-56 + 20 * i) + '">' + k + '</text>'; });
+        break;
       case 'clock':
         var hi = r.high;
         s = '<rect ' + c + ' x="-22" y="-18" width="44" height="36" rx="3"/><path class="sym thin" d="M-14 8H-7V-8H0V8H7V-8H14"/><path ' + c + ' d="M22 0H40"/>' +
           '<circle cx="15" cy="-12" r="3" class="' + (hi ? 'lamp-on' : 'lamp-off') + '"/>'; break;
       default:
+        if (FF_SIGN[p.type]) { // Flipflop: Kasten mit Abhaengigkeitsnotation, Takteingang mit Dreieck
+          var fs = FF_SIGN[p.type], fy = p.type === 'jkff' ? [-20, 0, 20] : [-20, 20], qv = r.q;
+          s = '<rect ' + c + ' x="-26" y="-36" width="52" height="72" rx="2"/>';
+          fy.forEach(function (y, k) { s += '<path ' + c + ' d="M-40 ' + y + 'H-26"/><text class="symtxt small" x="-14" y="' + (y + 4) + '">' + fs[k] + '</text>'; });
+          var cy = p.type === 'jkff' ? 0 : 20;
+          s += '<path class="sym thin" d="M-26 ' + (cy - 5) + 'L-20 ' + cy + 'L-26 ' + (cy + 5) + '"/>' +
+            '<path ' + c + ' d="M26-20H40M31 20H40"/><circle ' + c + ' cx="28.5" cy="20" r="2.5"/>' +
+            (qv !== undefined ? '<circle cx="34" cy="-30" r="3" class="' + (qv ? 'lamp-on' : 'lamp-off') + '"/>' : '');
+          break;
+        }
         if (GATE_SIGN[p.type]) {
-          var inv = /^n|not/.test(p.type), two = p.type !== 'not';
+          var inv = /^n|not|xnor/.test(p.type), two = p.type !== 'not';
           s = '<rect ' + c + ' x="-22" y="-30" width="44" height="60" rx="2"/><text class="symtxt" y="6">' + GATE_SIGN[p.type] + '</text>' +
             (two ? '<path ' + c + ' d="M-40-20H-22M-40 20H-22"/>' : '<path ' + c + ' d="M-40 0H-22"/>') +
             (inv ? '<circle ' + c + ' cx="27" r="5"/><path ' + c + ' d="M32 0H40"/>' : '<path ' + c + ' d="M22 0H40"/>') +
@@ -2171,10 +2592,11 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   }
 
   function labels(p) { // Beschriftung neben senkrechten, ueber/unter waagrechten Bauteilen
+    if (p.type === 'seg7' || p.type === 'dec7') return '<text class="lbl" y="-78">' + esc(p.id) + '</text>';
     var vert = (p.type === 'battery' || p.type === 'ground' || p.type === 'acsource') ? (p.rot || 0) % 180 === 0 : (p.rot || 0) % 180 === 90;
     var v = esc(valueText(p));
     if (vert) return '<text class="lbl" x="24" y="-4" text-anchor="start">' + esc(p.id) + '</text><text class="val" x="24" y="12" text-anchor="start">' + v + '</text>';
-    var up = GATE_SIGN[p.type] ? -38 : -24, dn = GATE_SIGN[p.type] ? 48 : 30;
+    var big = GATE_SIGN[p.type] || FF_SIGN[p.type] || p.type === 'npn', up = big ? -44 : -24, dn = big ? 52 : 30;
     return '<text class="lbl" y="' + up + '">' + esc(p.id) + '</text><text class="val" y="' + dn + '">' + v + '</text>';
   }
   /* Tooltip eines Bauteils mit Simulationswerten (auch fuer die Werkbank) */
@@ -2290,9 +2712,10 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       '<filter id="blur" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="6"/></filter></defs>');
     h.push('<rect width="' + W + '" height="' + H + '" fill="url(#grid)"/>');
     // Leitungen
+    var wi = self.showFlow && root.DQBench ? root.DQBench.wireCurrents(L, res) : [];
     L.wires.forEach(function (w, i) {
-      var col = wcol(w.from), d = route(w.from, w.to);
-      h.push('<g data-wire="' + i + '"><path class="wirehit" d="' + d + '"/><path class="wire' + (self.sel === 'w:' + i ? ' selected' : '') + '" d="' + d + '"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
+      var col = wcol(w.from), d = route(w.from, w.to), iw = wi[i] || 0;
+      h.push('<g data-wire="' + i + '"><path class="wirehit" d="' + d + '"/><path class="wire bcore' + (self.sel === 'w:' + i ? ' selected' : '') + '" data-i="' + iw.toExponential(3) + '" d="' + d + '"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
     });
     // Bauteile
     L.parts.forEach(function (p) {
@@ -2303,6 +2726,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         '<g transform="rotate(' + (p.rot || 0) + ')">' + symbol(p, r) + '</g>' +
         labels(p) + '</g>');
     });
+    if (self.showFlow) h.push('<g class="bflow" pointer-events="none"></g>');
     // Anschluesse
     L.parts.forEach(function (p) {
       Object.keys(GEO[p.type]).forEach(function (pin) {
@@ -2325,6 +2749,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       h.push('<g class="probe ' + k[1] + '"><path d="M' + xy[0] + ' ' + xy[1] + 'l14 -30"/><circle cx="' + (xy[0] + 14) + '" cy="' + (xy[1] - 36) + '" r="9"/><text x="' + (xy[0] + 14) + '" y="' + (xy[1] - 32) + '">' + (k[0] === 'a' ? '+' : '−') + '</text></g>');
     });
     this.svg.innerHTML = h.join('');
+    if (root.DQBench) root.DQBench.prototype._animSetup.call(this); // Stromfluss-Punkte wie auf der Werkbank
   };
 
   root.DQEditor = Editor;
@@ -2352,11 +2777,22 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     resistor: TWO, lamp: TWO, switch: TWO, button: TWO, capacitor: TWO, ammeter: TWO,
     led: { a: [-45, 0], k: [45, 0] }, diode: { a: [-45, 0], k: [45, 0] },
     pot: { a: [-50, -8], b: [50, -8], w: [0, 32] }, clock: { out: [48, 0] },
-    not: { in: [-50, 0], out: [50, 0] }
+    not: { in: [-50, 0], out: [50, 0] },
+    logicin: { out: [45, 0] }, logicled: { in: [-35, 0] },
+    zener: { a: [-45, 0], k: [45, 0] }, motor: { a: [-55, 34], b: [55, 34] },
+    npn: { b: [-50, 0], c: [35, -38], e: [35, 38] },
+    dff: { D: [-60, -30], C: [-60, 30], Q: [60, -24], Qn: [60, 24] },
+    tff: { T: [-60, -30], C: [-60, 30], Q: [60, -24], Qn: [60, 24] },
+    jkff: { J: [-60, -32], C: [-60, 0], K: [-60, 32], Q: [60, -24], Qn: [60, 24] },
+    seg7: {}, dec7: { A: [-72, -66], B: [-72, -44], C: [-72, -22], D: [-72, 0] }
   };
-  var SIZE = { battery: [150, 112], acsource: [150, 112], ground: [60, 70], pot: [130, 94], clock: [124, 80], lamp: [130, 70], ammeter: [130, 72] };
-  ['and', 'or', 'nand', 'nor', 'xor'].forEach(function (g) { GEO[g] = { in1: [-50, -22], in2: [-50, 22], out: [50, 0] }; });
-  var CHIP = { and: '7408', or: '7432', nand: '7400', nor: '7402', xor: '7486', not: '7404' };
+  'abcdefg'.split('').forEach(function (k, i) { GEO.seg7[k] = [-62, -66 + 22 * i]; GEO.dec7[k] = [72, -66 + 22 * i]; });
+  var SIZE = { logicin: [112, 78], logicled: [92, 70], motor: [150, 110], npn: [130, 110], dff: [150, 110], tff: [150, 110], jkff: [150, 110], seg7: [150, 176], dec7: [176, 180],
+    battery: [150, 112], acsource: [150, 112], ground: [60, 70], pot: [130, 94], clock: [124, 80], lamp: [130, 70], ammeter: [130, 72] };
+  ['and', 'or', 'nand', 'nor', 'xor', 'xnor'].forEach(function (g) { GEO[g] = { in1: [-50, -22], in2: [-50, 22], out: [50, 0] }; });
+  var CHIP = { and: '7408', or: '7432', nand: '7400', nor: '7402', xor: '7486', xnor: '7266', not: '7404' };
+  var FFCHIP = { dff: '74HC74', jkff: '74HC107', tff: 'T-FF' };
+  var SEGP = ['M-8-20h16', 'M10-18v16', 'M10 2v16', 'M-8 20h16', 'M-10 2v16', 'M-10-18v16', 'M-8 0h16'];
   function size(type) { return SIZE[type] || (CHIP[type] ? [130, 92] : [130, 64]); }
 
   function rotPt(p, rot) {
@@ -2397,6 +2833,10 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     if (type === 'battery' || type === 'acsource') return [0, 38, 0.2];
     if (type === 'ground') return null;
     if (CHIP[type]) return [0, -36, 0.17];
+    if (FFCHIP[type]) return [-40, -42, 0.15];
+    if (type === 'seg7' || type === 'dec7' || type === 'logicled' || type === 'logicin') return null;
+    if (type === 'npn') return [-44, -40, 0.15];
+    if (type === 'motor') return [-58, -40, 0.15];
     if (type === 'clock') return [36, -30, 0.15];
     return [-w / 2 + 22, -h / 2 + 14, 0.17];
   }
@@ -2492,6 +2932,48 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
           '<circle cx="17" cy="-15" r="4.5" fill="' + (r.high ? '#39ff14' : '#243024') + '"' + (r.high ? ' filter="url(#bSoft)"' : '') + '/><text class="bpart-tiny w" x="-12" y="22">TAKT</text>'; break;
       case 'ground':
         s += '<path d="M0 12V18M-11 18H11M-7 23H7M-3 28H3" fill="none" stroke="#2b2b2b" stroke-width="2"/>'; break;
+      case 'logicin': // Pegelschalter des Experimentierboards: Schiebeschalter 0/1 mit Pegel-LED
+        var hiL = !!q.closed;
+        s += lead(34, 18) + '<rect x="-44" y="-24" width="62" height="40" rx="5" fill="#1f2a36" stroke="#000"/>' +
+          '<rect x="-38" y="-9" width="50" height="16" rx="8" fill="#0d1116" stroke="#000"/>' +
+          '<rect x="' + (hiL ? -6 : -36) + '" y="-11" width="22" height="20" rx="4" fill="url(#bMetalV)" stroke="rgba(0,0,0,.5)"/>' +
+          '<text class="bprint w" x="-30" y="-14">0</text><text class="bprint w" x="6" y="-14">1</text>' +
+          '<circle cx="4" cy="-30" r="4.5" fill="' + (hiL ? '#ff3b30' : '#3a1c1c') + '"' + (hiL ? ' filter="url(#bSoft)"' : '') + '/>' +
+          '<text class="bpart-tiny" x="-30" y="30">PEGEL</text>'; break;
+      case 'logicled': // Logikanzeige: LED mit eingebautem Vorwiderstand gegen Masse
+        var onL = !!r.on, colL = (E.LED_COLORS[q.color || 'rot'] || {}).rgb || '#ff3b30';
+        s += lead(-24, -12) + (onL ? '<circle r="30" fill="' + colL + '" opacity=".5" filter="url(#bBlur)"/>' : '') +
+          '<circle r="12" fill="' + colL + '" opacity=".8" stroke="rgba(0,0,0,.45)"/><circle r="9.5" fill="' + colL + '" opacity="' + (onL ? 1 : 0.35) + '"/><circle r="9.5" fill="url(#bLens)"/>' +
+          (onL ? '<circle r="4" fill="#fff" opacity=".8" filter="url(#bSoft)"/>' : '') +
+          '<text class="bpart-tiny" x="16" y="26">⏚ intern</text>'; break;
+      case 'zener': // Z-Diode: orange Glaskoerper mit Kathodenring und Aufdruck
+        s += lead(-34, -17) + lead(34, 17) + shadowEl(2, 9, 18, 3) + '<rect x="-17" y="-7" width="34" height="14" rx="6" fill="#d9772b" opacity=".92"/>' +
+          '<rect x="8" y="-7" width="4.5" height="14" fill="#1b1b1b"/><text class="bpart-tiny" x="-3" y="2.5">Z' + esc(String(q.vz || 5.1).replace('.', 'V')) + '</text>' +
+          '<rect x="-17" y="-7" width="34" height="14" rx="6" fill="url(#bCyl)"/>'; break;
+      case 'motor': // Gleichstrommotor mit Luefterrad (dreht je nach Strom)
+        var sp = r.speed || 0;
+        s += '<path class="blead" d="M-55 24V10H-26M55 24V10H26"/>' + shadowEl(4, 4, 34, 30) +
+          '<rect x="-34" y="-30" width="68" height="44" rx="6" fill="#5c6670" stroke="#20262b"/><rect x="-34" y="-30" width="68" height="44" rx="6" fill="url(#bCylV)"/>' +
+          '<circle cy="-8" r="26" fill="rgba(20,20,20,.35)"/>' +
+          '<g class="bspin" data-spin="' + sp.toFixed(3) + '" transform="translate(0 -8)"><g>' +
+          [0, 72, 144, 216, 288].map(function (a) { return '<path transform="rotate(' + a + ')" d="M0-4C8-8 14-20 6-24C0-26-4-14 0-4Z" fill="#e0b400" stroke="rgba(0,0,0,.4)"/>'; }).join('') +
+          '<circle r="5" fill="url(#bMetal)"/></g></g><text class="bpart-tiny w" y="22">M · ' + esc(Ed.valueText(p)) + '</text>'; break;
+      case 'npn': // Transistor im TO-92-Gehaeuse mit drei Beinchen
+        s += '<path class="blead" d="M-40 0H-14M35-28V-14H6M35 28V14H6"/>' + shadowEl(2, 6, 18, 16) +
+          '<path d="M-14-16H10A16 16 0 0 1 10 16H-14Z" fill="#1b1b1b" stroke="#000"/><path d="M-14-16H10A16 16 0 0 1 22-10" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="2"/>' +
+          '<text class="bpart-tiny" x="-1" y="1.5">BC547</text>' +
+          '<text class="bprint" x="-50" y="-18">B</text><text class="bprint" x="52" y="-42">C</text><text class="bprint" x="52" y="44">E</text>' +
+          (r.state && r.state !== 'off' ? '<circle cx="-22" cy="-24" r="3.5" fill="' + (r.state === 'sat' ? '#39ff14' : '#ffb000') + '" filter="url(#bSoft)"/>' : ''); break;
+      case 'seg7': // 7-Segment-Anzeige (gemeinsame Kathode intern auf Masse)
+        s += '<rect x="-38" y="-72" width="96" height="140" rx="6" fill="#141414" stroke="#000"/>' +
+          '<g transform="translate(10 -4) scale(2.3)">' + SEGP.map(function (d, i) { var o = r.seg && r.seg[i]; return (o ? '<path d="' + d + '" stroke="#ff3b30" stroke-width="9" stroke-linecap="round" opacity=".3"/>' : '') + '<path d="' + d + '" stroke="' + (o ? '#ff5a4f' : '#2b1414') + '" stroke-width="4.6" stroke-linecap="round"/>'; }).join('') + '</g>' +
+          'abcdefg'.split('').map(function (k, i) { return '<text class="bprint w" x="-46" y="' + (-62 + 22 * i) + '">' + k + '</text>'; }).join(''); break;
+      case 'dec7': // BCD-7-Segment-Decoder 4511 (DIP-16)
+        var pins16 = ''; for (var j = 0; j < 8; j++) pins16 += '<rect x="-30" y="' + (-58 + j * 15) + '" width="7" height="5" fill="url(#bMetalV)"/><rect x="23" y="' + (-58 + j * 15) + '" width="7" height="5" fill="url(#bMetalV)"/>';
+        s += ['A', 'B', 'C', 'D'].map(function (k, i) { return lead(-62, -30, -66 + 22 * i) + '<text class="bprint" x="-72" y="' + (-78 + 22 * i + 24) + '">' + ['1', '2', '4', '8'][i] + '</text>'; }).join('') +
+          'abcdefg'.split('').map(function (k, i) { return lead(62, 30, -66 + 22 * i); }).join('') + pins16 +
+          '<rect x="-24" y="-66" width="48" height="126" rx="3" fill="#1a1a1a" stroke="#000"/><path d="M-6-66A6 6 0 0 0 6-66" fill="#2c2c2c"/>' +
+          '<text class="bchip" transform="rotate(90)" x="-4" y="3">HC4511</text>'; break;
       case 'battery': // 9-V-Block: Kontaktseite mit Druckknoepfen, Banderole, Clip mit rot/schwarzen Litzen
         s += shadowEl(4, -14, 64, 34) + '<rect x="-62" y="-48" width="124" height="62" rx="6" fill="#161616"/>' +
           '<rect x="-36" y="-48" width="98" height="62" fill="url(#bBatWrap)"/><rect x="-36" y="-48" width="98" height="62" fill="url(#bCylV)"/>' +
@@ -2513,6 +2995,16 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
           '<path d="M-52 18C-50 26-40 28-32 28M52 18C50 26 40 28 32 28" fill="none" stroke="#666" stroke-width="2"/>' +
           '<text class="bprint red" x="-32" y="58">+</text><text class="bprint" x="32" y="58">−</text>'; break;
       default:
+        if (FFCHIP[p.type]) { // Flipflop-IC mit Q-Anzeige
+          var fins = p.type === 'jkff' ? [['J', -32], ['C', 0], ['K', 32]] : [[p.type === 'dff' ? 'D' : 'T', -30], ['C', 30]], qOn = !!r.q, pinsF = '';
+          for (var f2 = 0; f2 < 7; f2++) pinsF += '<rect x="' + (-33 + f2 * 10) + '" y="-26" width="5" height="7" rx="1" fill="url(#bMetalV)"/><rect x="' + (-33 + f2 * 10) + '" y="19" width="5" height="7" rx="1" fill="url(#bMetalV)"/>';
+          s += fins.map(function (fi) { return lead(-50, -36, fi[1]) + '<text class="bprint" x="-44" y="' + (fi[1] - 12) + '">' + fi[0] + '</text>'; }).join('') + lead(50, 36, -24) + lead(50, 36, 24) +
+            '<text class="bprint" x="44" y="-36">Q</text><text class="bprint" x="44" y="42">/Q</text>' + shadowEl(3, 4, 38, 22) + pinsF +
+            '<rect x="-36" y="-20" width="72" height="40" rx="2" fill="#1a1a1a" stroke="#000"/><path d="M-36-5A5 5 0 0 1-36 5" fill="#2c2c2c"/>' +
+            '<text class="bchip" y="4">' + FFCHIP[p.type] + '</text>' +
+            '<circle cx="48" cy="-46" r="4.5" fill="' + (qOn ? '#39ff14' : '#243024') + '"' + (qOn ? ' filter="url(#bSoft)"' : '') + '/>';
+          break;
+        }
         if (CHIP[p.type]) { // DIP-14 im Sockel: Kerbe, Pin-1-Punkt, Beinchen, Typenbezeichnung
           var two = p.type !== 'not', pins = '';
           for (var i = 0; i < 7; i++) pins += '<rect x="' + (-33 + i * 10) + '" y="-24" width="5" height="7" rx="1" fill="url(#bMetalV)"/><rect x="' + (-33 + i * 10) + '" y="17" width="5" height="7" rx="1" fill="url(#bMetalV)"/>';
@@ -2544,6 +3036,28 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     return '<g transform="translate(' + x + ' ' + y + ')"><circle r="10" cy="2" fill="rgba(0,0,0,.35)"/><circle r="9.5" fill="' + col + '" stroke="rgba(0,0,0,.7)" stroke-width="1.3"/>' +
       '<circle r="7.2" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1"/><circle r="9.5" fill="url(#bRingShine)"/>' +
       '<circle r="3.6" cy="-1" fill="url(#bBrass)" stroke="rgba(0,0,0,.4)" stroke-width=".6"/><circle r="1.4" cy="-1" fill="#111"/></g>';
+  }
+
+  /* Strom in jeder Leitung: je Knoten Spannbaum ueber die Leitungen, Einspeisung je Anschluss = Strom aus dem Bauteil
+   * (res.parts[id].pin); von den Blaettern her aufsummiert. Ergebnis: Strom je Leitung in Richtung from → to (A). */
+  function wireCurrents(L, res) {
+    var inj = {}, adj = {}, cur = L.wires.map(function () { return 0; });
+    if (!res) return cur;
+    L.parts.forEach(function (p) { var pr = res.parts[p.id]; if (pr && pr.pin) Object.keys(pr.pin).forEach(function (k) { inj[p.id + '.' + k] = pr.pin[k]; }); });
+    L.wires.forEach(function (w, i) { (adj[w.from] = adj[w.from] || []).push([w.to, i, 1]); (adj[w.to] = adj[w.to] || []).push([w.from, i, -1]); });
+    var seen = {};
+    Object.keys(adj).forEach(function (root) {
+      if (seen[root]) return;
+      var order = [], parent = {}, queue = [root]; seen[root] = true;
+      while (queue.length) { var v = queue.shift(); order.push(v); adj[v].forEach(function (e) { if (!seen[e[0]]) { seen[e[0]] = true; parent[e[0]] = [v, e[1], e[2]]; queue.push(e[0]); } }); }
+      var flow = {}; // Strom, den ein Anschluss (mit seinem Teilbaum) Richtung Elternteil abgibt
+      for (var k = order.length - 1; k > 0; k--) {
+        var v2 = order[k], f = (inj[v2] || 0) + (flow[v2] || 0), pa = parent[v2];
+        flow[pa[0]] = (flow[pa[0]] || 0) + f;
+        cur[pa[1]] = pa[2] === 1 ? -f : f; // Leitung from→to: Richtung Kind→Elternteil ist to→from, wenn das Kind am to-Ende haengt
+      }
+    });
+    return cur;
   }
 
   /* ---------- Messgeraete ----------
@@ -2608,13 +3122,13 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     this.svg = svg; this.opts = opts || {};
     this.core = this.opts.core || new Circuit(this.opts);
     this.sim = null; this.showVolt = false; this.mouse = [0, 0]; this.dirty = true;
-    this.meter = { mode: 'OFF', text: 'OFF' }; this.scope = null;
+    this.meter = { mode: 'OFF', text: 'OFF' }; this.scope = null; this.showFlow = false; this._anim = 0; this._phase = 0;
     this.view = [0, 0, W, W * 0.62]; // gleiches Seitenverhaeltnis wie das Schema (1000 × 620), damit die Flaeche gleich gross bleibt
     svg.setAttribute('viewBox', this.view.join(' '));
     this.core.attach(this);
     this._bind();
   }
-  Bench.GEO = GEO; Bench.K = K; Bench.illus = illus; Bench.DEV = DEV;
+  Bench.GEO = GEO; Bench.K = K; Bench.illus = illus; Bench.DEV = DEV; Bench.wireCurrents = wireCurrents;
 
   Bench.prototype._hidden = function () { return !this.svg.getClientRects().length; };
   Bench.prototype.pinPos = function (part, pin) {
@@ -2739,6 +3253,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     function nodeV(pid) { return res && pinNode && pinNode[pid] !== undefined ? res.nodeV[pinNode[pid]] || 0 : undefined; }
     function wcol(pid) { var v = self.showVolt ? nodeV(pid) : undefined; return v === undefined ? null : Ed.voltColor(v, vmax); }
     var byId = {}; L.parts.forEach(function (p) { byId[p.id] = p; });
+    var wi = this.showFlow ? wireCurrents(L, res) : [];
     var used = {}; L.wires.forEach(function (w) { used[w.from] = (used[w.from] || 0) + 1; used[w.to] = (used[w.to] || 0) + 1; });
     function pp(pid) { var s = pid.split('.'); return byId[s[0]] ? self.pinPos(byId[s[0]], s[1]) : [0, 0]; }
     var h = [];
@@ -2803,14 +3318,24 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     });
     // Laborkabel
     L.wires.forEach(function (w, i) {
-      var a = pp(w.from), b = pp(w.to), d = cablePath(a, b), col = wcol(w.from) || cableColor(w, i, byId), sel = core.sel === 'w:' + i;
+      var a = pp(w.from), b = pp(w.to), d = cablePath(a, b), col = wcol(w.from) || cableColor(w, i, byId), sel = core.sel === 'w:' + i, iw = wi[i] || 0;
       h.push('<g data-wire="' + i + '" class="bwire' + (sel ? ' selected' : '') + '"><path class="bwirehit" d="' + d + '"/>' +
         '<g filter="url(#bCable)">' + (sel ? '<path d="' + d + '" fill="none" stroke="#ffb000" stroke-width="14" stroke-linecap="round" opacity=".8"/>' : '') +
         '<path d="' + d + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="8" stroke-linecap="round"/>' +
-        '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="5.5" stroke-linecap="round"/>' +
+        '<path class="bcore" data-i="' + iw.toExponential(3) + '" d="' + d + '" fill="none" stroke="' + col + '" stroke-width="5.5" stroke-linecap="round"/>' +
         '<path d="' + d + '" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5" transform="translate(-1 -1.5)"/>' +
         plug(a, col) + plug(b, col) + '</g></g>');
     });
+    // Stromfluss: Punkte (werden animiert) und Stromwert an jedem Kabel
+    if (this.showFlow) {
+      h.push('<g class="bflow" pointer-events="none"></g>');
+      L.wires.forEach(function (w, i) {
+        if (Math.abs(wi[i] || 0) < 1e-6) return;
+        var a = pp(w.from), b = pp(w.to), dx = b[0] - a[0], dy = b[1] - a[1], sag = Math.min(110, 18 + Math.sqrt(dx * dx + dy * dy) * 0.22);
+        var mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2 + sag * 0.75;
+        h.push('<g transform="translate(' + mx + ' ' + my + ') scale(1 ' + (1 / K) + ')" pointer-events="none"><text class="bilabel">' + E.fmt(Math.abs(wi[i]), 'A') + '</text></g>');
+      });
+    }
     // Buchsen (Klickflaechen, oben)
     L.parts.forEach(function (p) {
       Object.keys(GEO[p.type]).forEach(function (pin) {
@@ -2836,6 +3361,42 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     h.push('</g>');
     h.push('<rect x="' + this.view[0] + '" y="' + this.view[1] + '" width="' + this.view[2] + '" height="' + this.view[3] + '" fill="url(#bVignette)" pointer-events="none"/>');
     this.svg.innerHTML = h.join('');
+    this._animSetup();
+  };
+  /* Animationen ohne Neuzeichnen: wandernde Punkte auf den Kabeln (technische Stromrichtung, Tempo ~ log(Strom)),
+   * drehende Motoren. Laeuft nur, solange es etwas zu bewegen gibt. */
+  Bench.prototype._animSetup = function () {
+    var self = this, svg = this.svg;
+    if (!this._phase) this._phase = 0;
+    var flows = [], spins = [];
+    if (this.showFlow) {
+      var layer = svg.querySelector('.bflow');
+      svg.querySelectorAll('.bcore').forEach(function (p) {
+        var i = parseFloat(p.getAttribute('data-i')); if (!(Math.abs(i) >= 1e-6)) return;
+        var len = p.getTotalLength(), n = Math.max(2, Math.round(len / 36)), dots = [];
+        for (var k = 0; k < n; k++) { var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); c.setAttribute('r', '3.2'); c.setAttribute('class', 'bdot'); layer.appendChild(c); dots.push(c); }
+        flows.push({ p: p, len: len, dots: dots, dir: i > 0 ? 1 : -1, v: 25 + 30 * Math.log10(1 + Math.abs(i) / 1e-4) });
+      });
+    }
+    svg.querySelectorAll('.bspin').forEach(function (g) { var v = parseFloat(g.getAttribute('data-spin')); if (Math.abs(v) > 0.02) spins.push({ g: g.firstChild, v: v }); });
+    this._flows = flows; this._spins = spins;
+    if ((flows.length || spins.length) && !this._anim) {
+      var last = performance.now();
+      var tick = function (now) {
+        var dt = Math.min(0.1, (now - last) / 1000); last = now; self._phase += dt;
+        if ((!self._flows.length && !self._spins.length) || !svg.getClientRects().length) { self._anim = 0; return; } // nichts zu tun oder ausgeblendet
+        self._flows.forEach(function (f) {
+          var gap = f.len / f.dots.length, off = (self._phase * f.v) % gap;
+          f.dots.forEach(function (c, k) {
+            var d = (k * gap + off) % f.len; if (f.dir < 0) d = f.len - d;
+            var pt = f.p.getPointAtLength(d); c.setAttribute('cx', pt.x.toFixed(1)); c.setAttribute('cy', pt.y.toFixed(1));
+          });
+        });
+        self._spins.forEach(function (sp) { sp.g.setAttribute('transform', 'rotate(' + ((self._phase * 720 * sp.v) % 360).toFixed(1) + ')'); });
+        self._anim = requestAnimationFrame(tick);
+      };
+      this._anim = requestAnimationFrame(tick);
+    }
   };
 
   root.DQBench = Bench;
@@ -2987,6 +3548,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     setView(t.sandbox ? 'bench' : preferredView(), t.sandbox);
     bench.scope = null;
     ed.showVolt = bench.showVolt = false; $('#btnVolt').classList.remove('on');
+    ed.showFlow = bench.showFlow = !!S.settings.flow; $('#btnFlow').classList.toggle('on', ed.showFlow);
     ed.load(layout, lockedIds, t.bench); bench.fit();
     setMeterMode('OFF');
     rebuild(); renderInspector();
@@ -3106,6 +3668,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     return tr.map(function (x, i) {
       var what = x.kind === 'done' ? 'Ruhelage erreicht – so bleibt die Schaltung.' : x.kind === 'unstable' ? 'Keine Ruhelage – die Gatter schalten sich immer wieder um.' :
         'Knotenspannungen berechnet → ' + x.changed.map(function (c) {
+          if (typeof c.to === 'string') return c.id + ' ' + ({ on: 'leitet (aktiver Bereich)', sat: 'geht in Saettigung', off: 'sperrt', f: 'leitet', z: 'bricht durch (Z-Betrieb)' }[c.to] || c.to);
+          if (Array.isArray(c.to)) return c.id + ' Ausgaenge ' + c.to.map(function (b) { return b ? 1 : 0; }).join('');
           return x.kind === 'diode' ? c.id + (c.to ? ' wird leitend' : ' sperrt') : c.id + ' schaltet auf ' + (c.to ? '1' : '0');
         }).join(', ');
       return { res: x.res, label: 'Rechenschritt ' + (i + 1) + ' von ' + tr.length + ': ' + what };
@@ -3165,7 +3729,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     LED_REVERSE: function (f) { return 'LED ' + f.part + ' liegt mit ' + E.fmt(Math.abs(f.v), 'V') + ' in Sperrrichtung (verkraftet ca. ' + E.fmt(f.vmax, 'V') + '). Anode (+, langes Bein) gehoert Richtung Pluspol.'; },
     OVERLOAD: function (f) {
       var rMin = f.v * f.v / f.pmax;
-      return 'Widerstand ' + f.part + ' wird zu heiss: P = U · I = ' + E.fmt(Math.abs(f.v), 'V') + ' · ' + E.fmt(Math.abs(f.i), 'A') + ' = ' + E.fmt(Math.abs(f.p), 'W') +
+      return (live.net && live.net.byId[f.part] ? E.PARTS[live.net.byId[f.part].type].label : 'Bauteil') + ' ' + f.part + ' wird zu heiss: P = U · I = ' + E.fmt(Math.abs(f.v), 'V') + ' · ' + E.fmt(Math.abs(f.i), 'A') + ' = ' + E.fmt(Math.abs(f.p), 'W') +
         ', belastbar ist er mit ' + E.fmt(f.pmax, 'W') + '. Bei dieser Spannung braucht es mindestens ' + ohm(rMin) + ' (P = U² / R).';
     },
     LAMP_BURNT: function (f) { return f.p ? 'Lampe ' + f.part + ' ist durchgebrannt: Sie nahm ' + E.fmt(Math.abs(f.p), 'W') + ' auf bei ' + E.fmt(Math.abs(f.v), 'V') + ' – ausgelegt ist sie fuer ' + E.fmt(f.pnom, 'W') + '. Spannung zu hoch.' : 'Lampe ' + f.part + ' ist durchgebrannt – Ueberspannung.'; },
@@ -3249,7 +3813,9 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     var h = '<div class="insp-head"><b>' + esc(p.id) + '</b> ' + esc(d.label) + (lock ? ' <span class="tag">Aufgabe</span>' : '') + '</div>';
     function field(label, key, v, unit) { return '<label class="fld"><span>' + label + '</span><input data-prop="' + key + '" value="' + esc(v) + '"' + (lock ? ' disabled' : '') + '><em>' + unit + '</em></label>'; }
     if (p.type === 'battery') h += field('Spannung', 'value', Editor.fmtVal(val), 'V');
-    if (p.type === 'resistor' || p.type === 'lamp' || p.type === 'pot') h += field('Widerstand', 'value', Editor.fmtVal(val), 'Ω');
+    if (p.type === 'resistor' || p.type === 'lamp' || p.type === 'pot' || p.type === 'motor') h += field('Widerstand', 'value', Editor.fmtVal(val), 'Ω');
+    if (p.type === 'zener') h += field('Z-Spannung', 'vz', q.vz || d.props.vz, 'V');
+    if (p.type === 'npn') h += field('Stromverstaerkung β', 'beta', q.beta || d.props.beta, '');
     if (p.type === 'capacitor') h += field('Kapazitaet', 'value', Editor.fmtVal(val), 'F');
     if (p.type === 'clock') h += field('Frequenz', 'freq', q.freq || d.props.freq, 'Hz');
     if (p.type === 'acsource') {
@@ -3263,6 +3829,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       h += '<label class="fld"><span>Farbe</span><select data-prop="color"' + (lock ? ' disabled' : '') + '>' + Object.keys(E.LED_COLORS).map(function (c) { return '<option' + ((q.color || 'rot') === c ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select></label>';
     }
     if (p.type === 'switch') h += '<button class="btn small" id="tgl">' + (q.closed ? 'Oeffnen' : 'Schliessen') + '</button>';
+    if (p.type === 'logicin') h += '<button class="btn small" id="tgl">Pegel auf ' + (q.closed ? '0' : '1') + ' schalten</button>';
     if (r) {
       h += '<dl class="readout">';
       if (r.v !== undefined) h += '<dt>U</dt><dd>' + E.fmt(Math.abs(r.v), 'V') + '</dd>';
@@ -3276,7 +3843,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       inp.onchange = inp.oninput = function (ev) {
         var k = inp.dataset.prop, v = inp.value;
         if (k === 'offset') { var o = parseFloat(String(v).replace(',', '.')); if (!isFinite(o)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; q.offset = o; }
-        else if (k === 'value' || k === 'freq') { var n = parseVal(v); if (!(n > 0)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; v = n; if (k === 'value') { p.value = n; delete q.value; } else q[k] = n; }
+        else if (k === 'value' || k === 'freq' || k === 'vz' || k === 'beta') { var n = parseVal(v); if (!(n > 0)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; v = n; if (k === 'value') { p.value = n; delete q.value; } else q[k] = n; }
         else if (k === 'pos') q.pos = +v; else q[k] = v;
         persistDraft(); rebuild(); core.redraw(); if (k !== 'pos') renderInspector();
       };
@@ -3416,6 +3983,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     $('#btnDel').onclick = function () { ed.removeSelected(); renderInspector(); };
     $('#btnView').onclick = function () { setView(viewMode === 'bench' ? 'schema' : 'bench'); log('view', { id: current.task && current.task.id, view: viewMode }); };
     setView(viewMode, true);
+    $('#btnFlow').onclick = function () { S.settings.flow = !S.settings.flow; save(); if (ed) { ed.showFlow = bench.showFlow = S.settings.flow; core.redraw(); } this.classList.toggle('on', S.settings.flow); log('flow', { on: S.settings.flow }); };
     $('#btnReplay').onclick = function () { if (live.replay) closeReplay(); else openReplay(); };
     $('#rpSlider').oninput = function () { showStep(+this.value); };
     $('#rpPrev').onclick = function () { if (live.replay) showStep(live.replay.i - 1); };

@@ -40,8 +40,28 @@
     or:   { label: 'ODER', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] || i[1]; } },
     nand: { label: 'NAND', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return !(i[0] && i[1]); } },
     nor:  { label: 'NOR', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return !(i[0] || i[1]); } },
-    xor:  { label: 'XOR', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] !== i[1]; } }
+    xor:  { label: 'XOR', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] !== i[1]; } },
+    xnor: { label: 'XNOR', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] === i[1]; } },
+    /* Experimentierboard: Pegelschalter (closed = 1 → 5 V) und Logikanzeige (leuchtet ab 2,5 V); Versorgung implizit wie bei Gattern */
+    logicin:  { label: 'Pegelschalter', prefix: 'E', pins: ['out'], props: { closed: false }, digital: true },
+    logicled: { label: 'Logikanzeige', prefix: 'L', pins: ['in'], props: { color: 'rot' }, digital: true },
+    seg7:     { label: '7-Segment-Anzeige', prefix: 'AZ', pins: ['a', 'b', 'c', 'd', 'e', 'f', 'g'], props: {}, digital: true },
+    dec7:     { label: 'BCD-7-Segment-Decoder', prefix: 'IC', pins: ['A', 'B', 'C', 'D', 'a', 'b', 'c', 'd', 'e', 'f', 'g'], ins: ['A', 'B', 'C', 'D'], outs: ['a', 'b', 'c', 'd', 'e', 'f', 'g'], props: {},
+      logic: function (i) { var n = (i[0] ? 1 : 0) + (i[1] ? 2 : 0) + (i[2] ? 4 : 0) + (i[3] ? 8 : 0); return (SEG7[n] || '0000000').split('').map(function (c) { return c === '1'; }); } },
+    /* Flipflops: uebernehmen bei steigender Flanke an C (ffIns = Dateneingaenge), Ausgaenge Q und /Q */
+    dff:  { label: 'D-Flipflop', prefix: 'FF', pins: ['D', 'C', 'Q', 'Qn'], ffIns: ['D'], props: {}, ff: function (q, i) { return i[0]; } },
+    jkff: { label: 'JK-Flipflop', prefix: 'FF', pins: ['J', 'K', 'C', 'Q', 'Qn'], ffIns: ['J', 'K'], props: {}, ff: function (q, i) { return i[0] && i[1] ? !q : i[0] ? true : i[1] ? false : q; } },
+    tff:  { label: 'T-Flipflop', prefix: 'FF', pins: ['T', 'C', 'Q', 'Qn'], ffIns: ['T'], props: {}, ff: function (q, i) { return i[0] ? !q : q; } },
+    /* Halbleiter: NPN-Transistor (sperrt / aktiv: Ic = β·Ib / Saettigung: U_CE ≈ 0,2 V), Z-Diode (Durchbruch bei U_Z in Sperrrichtung) */
+    npn:   { label: 'NPN-Transistor', prefix: 'Q', pins: ['b', 'c', 'e'], props: { beta: 100, vbe: 0.7, rbe: 50, vsat: 0.2, pmax: 0.5 } },
+    zener: { label: 'Z-Diode', prefix: 'Z', pins: ['a', 'k'], props: { vz: 5.1, vf: 0.7, rs: 5, pmax: 0.5 } },
+    motor: { label: 'Motor', prefix: 'M', pins: ['a', 'b'], props: { value: 20, inom: 0.3 }, unit: 'Ω' }
   };
+  /* Segmente a…g fuer 0–9 (BCD), darueber dunkel */
+  var SEG7 = ['1111110', '0110000', '1101101', '1111001', '0110011', '1011011', '1011111', '1110000', '1111111', '1111011'];
+  function dIns(d) { return d.ins || (d.ffIns ? d.ffIns.concat(['C']) : d.pins.filter(function (p) { return p !== 'out'; })); }
+  function dOuts(d) { return d.outs || (d.ff ? ['Q', 'Qn'] : ['out']); }
+  function isDigital(d) { return !!(d.logic || d.digital || d.ff); }
   var SOURCES = { battery: 1, clock: 1, acsource: 1 };
   /* Momentanwert einer Wechselspannungsquelle zur Zeit t (Kurvenform sine | square | triangle, Scheitelwert value, Gleichanteil offset) */
   function wave(q, t) {
@@ -114,7 +134,8 @@
   }
 
   /* burnInfo: Werte im Moment des Durchbrennens (fuer die Diagnose), fuseInfo: Strom beim Ausloesen der Multimeter-Sicherung */
-  function newState() { return { burnt: {}, vC: {}, logic: {}, diode: {}, fuse: false, t: 0, burnInfo: {}, fuseInfo: null }; }
+  /* tr: Transistor-Zustand ('off'|'on'|'sat'), zen: Z-Dioden-Zustand ('off'|'f'|'z'), ff: Flipflops {q, c (letzter Taktpegel)} */
+  function newState() { return { burnt: {}, vC: {}, logic: {}, diode: {}, tr: {}, zen: {}, ff: {}, fuse: false, t: 0, burnInfo: {}, fuseInfo: null }; }
 
   /* ---------- Loeser fuer einen Arbeitspunkt / Zeitschritt ----------
    * opts: { state, dt (null = Gleichstrom-Arbeitspunkt), t, meter:{mode,a,b} (Knoten), zeroSources, inject:{a,b,i},
@@ -125,11 +146,16 @@
     var idx = {}; net.nodes.forEach(function (n, i) { idx[n] = i; });
     var N = net.nodes.length;
     var dt = opts.dt || null, t = opts.t || 0;
-    var diode = {}, logic = {};
+    var diode = {}, logic = {}, tr = {}, zen = {};
     net.parts.forEach(function (p) {
+      var d = def(p.type);
       if (p.type === 'led' || p.type === 'diode') diode[p.id] = !!st.diode[p.id];
-      if (def(p.type).logic) logic[p.id] = st.logic[p.id] !== undefined ? st.logic[p.id] : false;
+      if (p.type === 'npn') tr[p.id] = (st.tr || {})[p.id] || 'off';
+      if (p.type === 'zener') zen[p.id] = (st.zen || {})[p.id] || 'off';
+      if (d.logic) logic[p.id] = st.logic[p.id] !== undefined ? st.logic[p.id] : (dOuts(d).length > 1 ? dOuts(d).map(function () { return false; }) : false);
     });
+    function outVal(p, k) { var v = logic[p.id]; return Array.isArray(v) ? !!v[k] : !!v; }
+    function ffQ(p) { return !!((st.ff || {})[p.id] || {}).q; }
     var V = null, iter = 0, converged = false, oscillating = false;
 
     function build() {
@@ -146,12 +172,28 @@
         if (idx[b] !== undefined) z[idx[b]] -= cur;
       }
       function norton(p, n, v, r) { var g = 1 / r; G(p, n, g); I(p, n, v * g); }
+      function vccs(op, on, cp, cn, gm, voff) { // Strom gm·(V(cp) − V(cn) − voff) fliesst von op durch das Bauteil nach on
+        var io = idx[op], jo = idx[on], ic = idx[cp], jc = idx[cn];
+        if (io !== undefined) { if (ic !== undefined) A[io][ic] += gm; if (jc !== undefined) A[io][jc] -= gm; z[io] += gm * voff; }
+        if (jo !== undefined) { if (ic !== undefined) A[jo][ic] -= gm; if (jc !== undefined) A[jo][jc] += gm; z[jo] -= gm * voff; }
+      }
+      function drive(node, high) { norton(node, '0', high && !opts.zeroSources ? LOGIC.vcc : 0, LOGIC.rout); }
       net.parts.forEach(function (p) {
         var q = p.props, n = p.n;
         if (st.burnt[p.id]) { return; }
         switch (p.type) {
-          case 'resistor': case 'lamp': // props.defect: verdeckte Unterbrechung (Fehlersuche) – von aussen nicht sichtbar
+          case 'resistor': case 'lamp': case 'motor': // props.defect: verdeckte Unterbrechung (Fehlersuche) – von aussen nicht sichtbar
             G(n.a, n.b, q.defect ? G_OPEN : 1 / Math.max(q.value, 1e-3)); break;
+          case 'npn':
+            if (tr[p.id] === 'off') { G(n.b, n.e, G_OPEN); G(n.c, n.e, G_OPEN); break; }
+            norton(n.b, n.e, q.vbe, q.rbe);
+            if (tr[p.id] === 'sat') norton(n.c, n.e, q.vsat, 1);
+            else { G(n.c, n.e, G_OPEN); vccs(n.c, n.e, n.b, n.e, q.beta / q.rbe, q.vbe); }
+            break;
+          case 'zener':
+            if (zen[p.id] === 'f') norton(n.a, n.k, q.vf, q.rs); else if (zen[p.id] === 'z') norton(n.k, n.a, q.vz, q.rs); else G(n.a, n.k, G_OPEN);
+            break;
+          case 'logicin': drive(n.out, !!q.closed); break;
           case 'pot': G(n.a, n.w, 1 / Math.max(q.value * q.pos, 1e-3)); G(n.w, n.b, 1 / Math.max(q.value * (1 - q.pos), 1e-3)); break;
           case 'switch': case 'button': G(n.a, n.b, q.closed ? G_CLOSED : G_OPEN); break;
           case 'ammeter': G(n.a, n.b, 1 / METER.rA); break;
@@ -170,10 +212,12 @@
             norton(n.out, '0', high ? LOGIC.vcc : 0, LOGIC.rout);
             break;
           default:
-            if (def(p.type).logic) {
-              def(p.type).pins.forEach(function (pin) { if (pin !== 'out') G(n[pin], '0', G_OPEN); });
-              norton(n.out, '0', (logic[p.id] && !opts.zeroSources) ? LOGIC.vcc : 0, LOGIC.rout);
-            }
+            var dd = def(p.type);
+            if (dd.logic || dd.ff) {
+              dIns(dd).forEach(function (pin) { G(n[pin], '0', G_OPEN); });
+              if (dd.ff) { drive(n.Q, ffQ(p)); drive(n.Qn, !ffQ(p)); }
+              else dOuts(dd).forEach(function (pin, k) { drive(n[pin], outVal(p, k)); });
+            } else if (dd.digital) dd.pins.forEach(function (pin) { if (p.type !== 'logicin') G(n[pin], '0', G_OPEN); });
         }
       });
       if (opts.meter) {
@@ -205,15 +249,39 @@
         if (!diode[p.id] && vak > vf + 1e-9) changed.push({ id: p.id, to: true });
         else if (diode[p.id] && vak < vf - 1e-9) changed.push({ id: p.id, to: false });
       });
-      if (changed.length) { record('diode', changed); changed.forEach(function (c) { diode[c.id] = c.to; }); continue; }
+      // Transistoren und Z-Dioden: Arbeitsbereich pruefen (wie Dioden, mit kleiner Hysterese)
+      net.parts.forEach(function (p) {
+        if (st.burnt[p.id]) return;
+        var q = p.props, n = p.n;
+        if (p.type === 'npn') {
+          var vbe = volt(n.b) - volt(n.e), vce = volt(n.c) - volt(n.e), s0 = tr[p.id], s1 = s0;
+          if (s0 === 'off') { if (vbe > q.vbe + 1e-6) s1 = 'on'; }
+          else if (vbe < q.vbe - 1e-6) s1 = 'off';
+          else if (s0 === 'on' && vce < q.vsat - 1e-4) s1 = 'sat';
+          else if (s0 === 'sat') { var ib = (vbe - q.vbe) / q.rbe, ic = (vce - q.vsat) / 1; if (ic > q.beta * ib * 1.02) s1 = 'on'; }
+          if (s1 !== s0) changed.push({ id: p.id, to: s1 });
+        }
+        if (p.type === 'zener') {
+          var vak = volt(n.a) - volt(n.k), z0 = zen[p.id], z1 = z0;
+          if (z0 === 'off') { if (vak > q.vf + 1e-9) z1 = 'f'; else if (-vak > q.vz + 1e-9) z1 = 'z'; }
+          else if (z0 === 'f' && vak < q.vf - 1e-9) z1 = 'off';
+          else if (z0 === 'z' && -vak < q.vz - 1e-9) z1 = 'off';
+          if (z1 !== z0) changed.push({ id: p.id, to: z1 });
+        }
+      });
+      if (changed.length) {
+        record('diode', changed);
+        changed.forEach(function (c) { if (tr[c.id] !== undefined) tr[c.id] = c.to; else if (zen[c.id] !== undefined) zen[c.id] = c.to; else diode[c.id] = c.to; });
+        continue;
+      }
       // Gatter einzeln nachfuehren (Gauss-Seidel) – stabil fuer Speicherschaltungen
       var gateChanged = null;
       for (var gi = 0; gi < net.parts.length && !gateChanged; gi++) {
         var g = net.parts[gi], d = def(g.type);
         if (!d.logic || st.burnt[g.id]) continue;
-        var ins = d.pins.filter(function (pin) { return pin !== 'out'; }).map(function (pin) { return volt(g.n[pin]) > LOGIC.vth; });
-        var out = !!d.logic(ins);
-        if (out !== logic[g.id]) gateChanged = { id: g.id, to: out };
+        var ins = dIns(d).map(function (pin) { return volt(g.n[pin]) > LOGIC.vth; });
+        var out = d.logic(ins); out = Array.isArray(out) ? out.map(Boolean) : !!out;
+        if (JSON.stringify(out) !== JSON.stringify(logic[g.id])) gateChanged = { id: g.id, to: out };
       }
       if (gateChanged) { record('gate', [gateChanged]); logic[gateChanged.id] = gateChanged.to; continue; }
       converged = true; break;
@@ -221,7 +289,7 @@
     if (!converged) oscillating = true;
     var res = evaluate();
     record(converged ? 'done' : 'unstable', []);
-    return { res: res, V: res.nodeV, diode: diode, logic: logic };
+    return { res: res, V: res.nodeV, diode: diode, logic: logic, tr: tr, zen: zen };
 
     // ---------- Auswertung (auch fuer jeden Zwischenschritt der Zeitlupe) ----------
     function evaluate() {
@@ -231,7 +299,23 @@
       var q = p.props, n = p.n, r = { burnt: !!st.burnt[p.id] };
       function across(a, b) { return volt(a) - volt(b); }
       switch (p.type) {
-        case 'resistor': case 'lamp': r.v = across(n.a, n.b); r.i = r.burnt || q.defect ? r.v * G_OPEN : r.v / Math.max(q.value, 1e-3); r.p = r.v * r.i; break;
+        case 'resistor': case 'lamp': case 'motor': r.v = across(n.a, n.b); r.i = r.burnt || q.defect ? r.v * G_OPEN : r.v / Math.max(q.value, 1e-3); r.p = r.v * r.i;
+          if (p.type === 'motor') r.speed = Math.min(1.5, Math.abs(r.i) / q.inom) * (r.i < 0 ? -1 : 1);
+          break;
+        case 'npn':
+          r.vbe = across(n.b, n.e); r.v = across(n.c, n.e); r.state = tr[p.id];
+          r.ib = r.state === 'off' ? 0 : (r.vbe - q.vbe) / q.rbe;
+          r.i = r.state === 'off' ? 0 : r.state === 'sat' ? (r.v - q.vsat) / 1 : q.beta * r.ib;
+          r.p = r.v * r.i + r.vbe * r.ib; r.on = r.state !== 'off';
+          r.pin = { b: -r.ib, c: -r.i, e: r.ib + r.i };
+          break;
+        case 'zener':
+          r.v = across(n.a, n.k); r.mode = zen[p.id];
+          r.i = r.mode === 'f' ? (r.v - q.vf) / q.rs : r.mode === 'z' ? (r.v + q.vz) / q.rs : 0; r.p = r.v * r.i;
+          break;
+        case 'logicin': r.out = !!q.closed; r.v = volt(n.out); r.pin = { out: ((r.out ? LOGIC.vcc : 0) - r.v) / LOGIC.rout }; break;
+        case 'logicled': r.v = volt(n.in); r.on = r.v > LOGIC.vth; break;
+        case 'seg7': r.seg = def(p.type).pins.map(function (pin) { return volt(n[pin]) > LOGIC.vth; }); r.on = r.seg.some(Boolean); break;
         case 'pot': r.v = across(n.a, n.b); r.vw = across(n.w, n.b); r.i = across(n.a, n.w) / Math.max(q.value * q.pos, 1e-3); r.p = Math.abs(r.v * r.i); break;
         case 'switch': case 'button': r.v = across(n.a, n.b); r.i = r.v * (q.closed ? G_CLOSED : G_OPEN); break;
         case 'ammeter': r.v = across(n.a, n.b); r.i = r.v / METER.rA; break;
@@ -245,8 +329,20 @@
           if (p.type === 'led') r.brightness = r.on ? Math.min(1, r.i / q.inom) : 0;
           break;
         case 'capacitor': r.v = across(n.a, n.b); r.i = dt ? q.value / dt * (r.v - (st.vC[p.id] || 0)) : 0; break;
-        case 'clock': r.v = volt(n.out); r.high = r.v > LOGIC.vth; break;
-        default: if (def(p.type).logic) { r.out = logic[p.id]; r.v = volt(n.out); }
+        case 'clock': r.v = volt(n.out); r.high = r.v > LOGIC.vth; r.pin = { out: ((r.high && !opts.zeroSources ? LOGIC.vcc : 0) - r.v) / LOGIC.rout }; break;
+        default:
+          var dd = def(p.type);
+          if (dd.ff) { r.q = ffQ(p); r.out = r.q; r.v = volt(n.Q); r.pin = { Q: ((r.q ? LOGIC.vcc : 0) - volt(n.Q)) / LOGIC.rout, Qn: ((r.q ? 0 : LOGIC.vcc) - volt(n.Qn)) / LOGIC.rout }; }
+          else if (dd.logic) {
+            r.out = logic[p.id]; r.pin = {};
+            dOuts(dd).forEach(function (pin, k) { r.pin[pin] = ((outVal(p, k) ? LOGIC.vcc : 0) - volt(n[pin])) / LOGIC.rout; });
+            if (!Array.isArray(r.out)) r.v = volt(n.out);
+          }
+      }
+      if (!r.pin) { // Zweipole: r.i fliesst im Bauteil von a nach b (Quellen: von n nach p)
+        if (p.type === 'battery' || p.type === 'acsource') r.pin = { p: r.i || 0, n: -(r.i || 0) };
+        else if (p.type === 'pot') { var iaw = across(n.a, n.w) / Math.max(q.value * q.pos, 1e-3), iwb = across(n.w, n.b) / Math.max(q.value * (1 - q.pos), 1e-3); r.pin = { a: -iaw, w: iaw - iwb, b: iwb }; }
+        else if (r.i !== undefined && n.a !== undefined) { var bpin = n.b !== undefined ? 'b' : 'k'; r.pin = { a: -r.i }; r.pin[bpin] = r.i; }
       }
       res.parts[p.id] = r;
     });
@@ -277,12 +373,28 @@
         var im = (out.V[opts.meter.a] - out.V[opts.meter.b]) / METER.rA;
         if (Math.abs(im) > METER.fuseA) { state.fuse = true; state.fuseInfo = { i: im, imax: METER.fuseA }; newDamage = true; }
       }
+
+      net.parts.forEach(function (p) { // Transistor/Z-Diode ueberlastet
+        var r = out.res.parts[p.id], q = p.props;
+        if ((p.type === 'npn' || p.type === 'zener') && Math.abs(r.p) > q.pmax) faults.push({ code: 'OVERLOAD', part: p.id, p: r.p, pmax: q.pmax, v: r.v, i: r.i });
+      });
       if (out.res.oscillating) faults.push({ code: 'UNSTABLE' });
-      if (!net.hasGround && !net.autoGround && net.parts.some(function (p) { return def(p.type).logic || p.type === 'clock'; })) faults.push({ code: 'NO_GROUND' });
+      if (!net.hasGround && !net.autoGround && net.parts.some(function (p) { return isDigital(def(p.type)) || p.type === 'clock'; })) faults.push({ code: 'NO_GROUND' });
       out.res.faults = faults;
-      if (!newDamage || ++guard > 20) break;
+      // Flipflops: bei steigender Flanke an C die Eingaenge uebernehmen (alle gleichzeitig aus derselben Loesung)
+      var ffChanged = false; state.ff = state.ff || {};
+      net.parts.forEach(function (p) {
+        var d = def(p.type); if (!d.ff || state.burnt[p.id]) return;
+        var f = state.ff[p.id] || (state.ff[p.id] = { q: false, c: null }), c = (out.V[p.n.C] || 0) > LOGIC.vth;
+        if (f.c === false && c) {
+          var nq = !!d.ff(f.q, d.ffIns.map(function (pin) { return (out.V[p.n[pin]] || 0) > LOGIC.vth; }));
+          if (nq !== f.q) { f.q = nq; ffChanged = true; }
+        }
+        f.c = c;
+      });
+      state.diode = out.diode; state.logic = out.logic; state.tr = out.tr; state.zen = out.zen;
+      if (!(newDamage || ffChanged) || ++guard > 20) break;
     }
-    state.diode = out.diode; state.logic = out.logic;
     if (opts.dt) {
       net.parts.forEach(function (p) { if (p.type === 'capacitor') state.vC[p.id] = out.res.parts[p.id].v; });
       state.t += opts.dt;
@@ -455,16 +567,28 @@
       var c = net.parts.filter(function (p) { return p.type === type; }).length;
       push(c >= task.need[type], 'Bauteil ' + def(type).label + ': mindestens ' + task.need[type], { have: c });
     });
+    /* Test = ein Zustand {set, expect} oder eine Schrittfolge {steps:[{set?, run?, dt?, expect?, name?}]} mit durchgehendem Zustand
+     * (Flipflops, Zaehler, Kondensatoren). run = Sekunden Zeitsimulation mit dt (Standard 1 ms). */
+    var n2, lay2;
     (task.tests || []).forEach(function (t) {
-      var lay = clone(layout), n2 = buildNetlist(lay), state = newState();
-      try { applySet(n2, t.set); } catch (e) { push(false, (t.name || 'Test') + ': ' + e.message); return; }
-      var r = step(n2, state, {});
-      (t.expect || []).forEach(function (e) {
-        var label = (t.name ? t.name + ' – ' : '');
+      var lay = clone(layout), state = newState(); n2 = buildNetlist(lay); lay2 = lay;
+      var steps = t.steps || [{ set: t.set, expect: t.expect }];
+      if (t.steps) step(n2, state, {}); // Einschalten: Ausgangszustand (Taktpegel der Flipflops) festhalten
+      for (var si = 0; si < steps.length; si++) {
+        var sp = steps[si], r;
+        var label = (t.name ? t.name : 'Test') + (t.steps ? ' · ' + (sp.name || 'Schritt ' + (si + 1)) : '') + ' – ';
+        try { applySet(n2, sp.set); } catch (e) { push(false, label + e.message); return; }
+        r = step(n2, state, {});
+        if (sp.run) { var dtr = sp.dt || 1e-3; for (var k = 0; k * dtr < sp.run - 1e-12 && k < 50000; k++) r = step(n2, state, { dt: dtr }); }
+        checkAll(sp.expect || [], r, label);
+      }
+    });
+    function checkAll(expects, r, label) {
+      expects.forEach(function (e) {
         if (e.noFault) { push(r.faults.length === 0, label + 'keine Stoerung', { faults: r.faults }); return; }
         if (e.fault) { push(r.faults.some(function (f) { return f.code === e.fault; }), label + 'Stoerung ' + e.fault); return; }
         if (e.a && e.ac) {
-          var acr = acMeasure(lay, { a: e.a, b: e.b }), av = acr.ok ? acr[e.ac] : NaN;
+          var acr = acMeasure(lay2, { a: e.a, b: e.b }), av = acr.ok ? acr[e.ac] : NaN;
           push(acr.ok && inRange(av, e.range), label + ({ dc: 'Gleichanteil', rms: 'Effektivwert', avg: 'AVG-Anzeige', peak: 'Scheitelwert', pp: 'Spitze-Spitze' }[e.ac] || e.ac) + ' ' + e.a + '→' + e.b + ' im Bereich ' + fmt(e.range[0], 'V') + '…' + fmt(e.range[1], 'V'), { got: av });
           return;
         }
@@ -482,9 +606,11 @@
           if (e.v) push(inRange(Math.abs(pr.v), e.v), label + 'Spannung ' + p.id + ' ' + fmt(e.v[0], 'V') + '…' + fmt(e.v[1], 'V'), { got: pr.v });
           if (e.out !== undefined) push(pr.out === e.out, label + p.id + ' Ausgang ' + (e.out ? '1' : '0'), { got: pr.out });
           if (e.brightness) push(inRange(pr.brightness || 0, e.brightness), label + p.id + ' Helligkeit', { got: pr.brightness });
+          if (e.state !== undefined) push(pr.state === e.state, label + p.id + ' Arbeitsbereich ' + ({ off: 'gesperrt', on: 'aktiv', sat: 'Saettigung' }[e.state] || e.state), { got: pr.state });
+          if (e.digit !== undefined) push(!!pr.seg && pr.seg.map(function (x) { return x ? '1' : '0'; }).join('') === (SEG7[e.digit] || '0000000'), label + p.id + ' zeigt ' + e.digit, { got: pr.seg });
         });
       });
-    });
+    }
     (task.measure || []).forEach(function (m) {
       var truth, ml = clone(layout);
       applyMeasureSet(m, ml);

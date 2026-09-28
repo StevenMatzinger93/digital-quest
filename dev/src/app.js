@@ -143,6 +143,7 @@
     setView(t.sandbox ? 'bench' : preferredView(), t.sandbox);
     bench.scope = null;
     ed.showVolt = bench.showVolt = false; $('#btnVolt').classList.remove('on');
+    ed.showFlow = bench.showFlow = !!S.settings.flow; $('#btnFlow').classList.toggle('on', ed.showFlow);
     ed.load(layout, lockedIds, t.bench); bench.fit();
     setMeterMode('OFF');
     rebuild(); renderInspector();
@@ -262,6 +263,8 @@
     return tr.map(function (x, i) {
       var what = x.kind === 'done' ? 'Ruhelage erreicht – so bleibt die Schaltung.' : x.kind === 'unstable' ? 'Keine Ruhelage – die Gatter schalten sich immer wieder um.' :
         'Knotenspannungen berechnet → ' + x.changed.map(function (c) {
+          if (typeof c.to === 'string') return c.id + ' ' + ({ on: 'leitet (aktiver Bereich)', sat: 'geht in Saettigung', off: 'sperrt', f: 'leitet', z: 'bricht durch (Z-Betrieb)' }[c.to] || c.to);
+          if (Array.isArray(c.to)) return c.id + ' Ausgaenge ' + c.to.map(function (b) { return b ? 1 : 0; }).join('');
           return x.kind === 'diode' ? c.id + (c.to ? ' wird leitend' : ' sperrt') : c.id + ' schaltet auf ' + (c.to ? '1' : '0');
         }).join(', ');
       return { res: x.res, label: 'Rechenschritt ' + (i + 1) + ' von ' + tr.length + ': ' + what };
@@ -321,7 +324,7 @@
     LED_REVERSE: function (f) { return 'LED ' + f.part + ' liegt mit ' + E.fmt(Math.abs(f.v), 'V') + ' in Sperrrichtung (verkraftet ca. ' + E.fmt(f.vmax, 'V') + '). Anode (+, langes Bein) gehoert Richtung Pluspol.'; },
     OVERLOAD: function (f) {
       var rMin = f.v * f.v / f.pmax;
-      return 'Widerstand ' + f.part + ' wird zu heiss: P = U · I = ' + E.fmt(Math.abs(f.v), 'V') + ' · ' + E.fmt(Math.abs(f.i), 'A') + ' = ' + E.fmt(Math.abs(f.p), 'W') +
+      return (live.net && live.net.byId[f.part] ? E.PARTS[live.net.byId[f.part].type].label : 'Bauteil') + ' ' + f.part + ' wird zu heiss: P = U · I = ' + E.fmt(Math.abs(f.v), 'V') + ' · ' + E.fmt(Math.abs(f.i), 'A') + ' = ' + E.fmt(Math.abs(f.p), 'W') +
         ', belastbar ist er mit ' + E.fmt(f.pmax, 'W') + '. Bei dieser Spannung braucht es mindestens ' + ohm(rMin) + ' (P = U² / R).';
     },
     LAMP_BURNT: function (f) { return f.p ? 'Lampe ' + f.part + ' ist durchgebrannt: Sie nahm ' + E.fmt(Math.abs(f.p), 'W') + ' auf bei ' + E.fmt(Math.abs(f.v), 'V') + ' – ausgelegt ist sie fuer ' + E.fmt(f.pnom, 'W') + '. Spannung zu hoch.' : 'Lampe ' + f.part + ' ist durchgebrannt – Ueberspannung.'; },
@@ -405,7 +408,9 @@
     var h = '<div class="insp-head"><b>' + esc(p.id) + '</b> ' + esc(d.label) + (lock ? ' <span class="tag">Aufgabe</span>' : '') + '</div>';
     function field(label, key, v, unit) { return '<label class="fld"><span>' + label + '</span><input data-prop="' + key + '" value="' + esc(v) + '"' + (lock ? ' disabled' : '') + '><em>' + unit + '</em></label>'; }
     if (p.type === 'battery') h += field('Spannung', 'value', Editor.fmtVal(val), 'V');
-    if (p.type === 'resistor' || p.type === 'lamp' || p.type === 'pot') h += field('Widerstand', 'value', Editor.fmtVal(val), 'Ω');
+    if (p.type === 'resistor' || p.type === 'lamp' || p.type === 'pot' || p.type === 'motor') h += field('Widerstand', 'value', Editor.fmtVal(val), 'Ω');
+    if (p.type === 'zener') h += field('Z-Spannung', 'vz', q.vz || d.props.vz, 'V');
+    if (p.type === 'npn') h += field('Stromverstaerkung β', 'beta', q.beta || d.props.beta, '');
     if (p.type === 'capacitor') h += field('Kapazitaet', 'value', Editor.fmtVal(val), 'F');
     if (p.type === 'clock') h += field('Frequenz', 'freq', q.freq || d.props.freq, 'Hz');
     if (p.type === 'acsource') {
@@ -419,6 +424,7 @@
       h += '<label class="fld"><span>Farbe</span><select data-prop="color"' + (lock ? ' disabled' : '') + '>' + Object.keys(E.LED_COLORS).map(function (c) { return '<option' + ((q.color || 'rot') === c ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select></label>';
     }
     if (p.type === 'switch') h += '<button class="btn small" id="tgl">' + (q.closed ? 'Oeffnen' : 'Schliessen') + '</button>';
+    if (p.type === 'logicin') h += '<button class="btn small" id="tgl">Pegel auf ' + (q.closed ? '0' : '1') + ' schalten</button>';
     if (r) {
       h += '<dl class="readout">';
       if (r.v !== undefined) h += '<dt>U</dt><dd>' + E.fmt(Math.abs(r.v), 'V') + '</dd>';
@@ -432,7 +438,7 @@
       inp.onchange = inp.oninput = function (ev) {
         var k = inp.dataset.prop, v = inp.value;
         if (k === 'offset') { var o = parseFloat(String(v).replace(',', '.')); if (!isFinite(o)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; q.offset = o; }
-        else if (k === 'value' || k === 'freq') { var n = parseVal(v); if (!(n > 0)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; v = n; if (k === 'value') { p.value = n; delete q.value; } else q[k] = n; }
+        else if (k === 'value' || k === 'freq' || k === 'vz' || k === 'beta') { var n = parseVal(v); if (!(n > 0)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; v = n; if (k === 'value') { p.value = n; delete q.value; } else q[k] = n; }
         else if (k === 'pos') q.pos = +v; else q[k] = v;
         persistDraft(); rebuild(); core.redraw(); if (k !== 'pos') renderInspector();
       };
@@ -572,6 +578,7 @@
     $('#btnDel').onclick = function () { ed.removeSelected(); renderInspector(); };
     $('#btnView').onclick = function () { setView(viewMode === 'bench' ? 'schema' : 'bench'); log('view', { id: current.task && current.task.id, view: viewMode }); };
     setView(viewMode, true);
+    $('#btnFlow').onclick = function () { S.settings.flow = !S.settings.flow; save(); if (ed) { ed.showFlow = bench.showFlow = S.settings.flow; core.redraw(); } this.classList.toggle('on', S.settings.flow); log('flow', { on: S.settings.flow }); };
     $('#btnReplay').onclick = function () { if (live.replay) closeReplay(); else openReplay(); };
     $('#rpSlider').oninput = function () { showStep(+this.value); };
     $('#rpPrev').onclick = function () { if (live.replay) showStep(live.replay.i - 1); };

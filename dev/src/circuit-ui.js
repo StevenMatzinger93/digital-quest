@@ -153,7 +153,7 @@
     var d = this.drag; this.drag = null; if (!d) return;
     var p = this.part(d.id); if (!p) return;
     if (p.type === 'button') { p.props.closed = false; this.changed('toggle'); return; }
-    if (!d.moved && p.type === 'switch') { p.props = p.props || {}; p.props.closed = !p.props.closed; this.changed('toggle'); return; }
+    if (!d.moved && (p.type === 'switch' || p.type === 'logicin')) { p.props = p.props || {}; p.props.closed = !p.props.closed; this.changed('toggle'); return; }
     if (d.moved) this.changed('move');
   };
   Circuit.prototype.cancel = function () { this.wireStart = null; this.sel = null; this.redraw(); };

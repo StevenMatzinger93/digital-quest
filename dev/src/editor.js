@@ -12,10 +12,21 @@
     resistor: TWO, lamp: TWO, switch: TWO, button: TWO, capacitor: TWO, ammeter: TWO,
     led: { a: [-40, 0], k: [40, 0] }, diode: { a: [-40, 0], k: [40, 0] },
     pot: { a: [-40, 0], b: [40, 0], w: [0, 40] }, clock: { out: [40, 0] },
-    not: { in: [-40, 0], out: [40, 0] }
+    not: { in: [-40, 0], out: [40, 0] },
+    logicin: { out: [40, 0] }, logicled: { in: [-40, 0] },
+    zener: { a: [-40, 0], k: [40, 0] }, motor: TWO,
+    npn: { b: [-40, 0], c: [20, -40], e: [20, 40] },
+    dff: { D: [-40, -20], C: [-40, 20], Q: [40, -20], Qn: [40, 20] },
+    tff: { T: [-40, -20], C: [-40, 20], Q: [40, -20], Qn: [40, 20] },
+    jkff: { J: [-40, -20], C: [-40, 0], K: [-40, 20], Q: [40, -20], Qn: [40, 20] },
+    seg7: {}, dec7: { A: [-40, -60], B: [-40, -40], C: [-40, -20], D: [-40, 0] }
   };
-  ['and', 'or', 'nand', 'nor', 'xor'].forEach(function (g) { GEO[g] = { in1: [-40, -20], in2: [-40, 20], out: [40, 0] }; });
-  var GATE_SIGN = { and: '&amp;', nand: '&amp;', or: '≥1', nor: '≥1', xor: '=1', not: '1' };
+  'abcdefg'.split('').forEach(function (k, i) { GEO.seg7[k] = [-40, -60 + 20 * i]; GEO.dec7[k] = [40, -60 + 20 * i]; });
+  ['and', 'or', 'nand', 'nor', 'xor', 'xnor'].forEach(function (g) { GEO[g] = { in1: [-40, -20], in2: [-40, 20], out: [40, 0] }; });
+  var GATE_SIGN = { and: '&amp;', nand: '&amp;', or: '≥1', nor: '≥1', xor: '=1', xnor: '=1', not: '1' };
+  var FF_SIGN = { dff: ['1D', 'C1'], tff: ['1T', 'C1'], jkff: ['1J', 'C1', '1K'] };
+  /* 7-Segment: Segment-Pfade a…g in einem Feld von 24 × 40 um den Ursprung */
+  var SEGP = ['M-8-20h16', 'M10-18v16', 'M10 2v16', 'M-8 20h16', 'M-10 2v16', 'M-10-18v16', 'M-8 0h16'];
 
   function rotPt(p, rot) {
     var x = p[0], y = p[1];
@@ -38,6 +49,10 @@
       case 'resistor': case 'pot': case 'lamp': return fmtVal(v) + ' Ω';
       case 'capacitor': return fmtVal(v) + 'F';
       case 'clock': return fmtVal(q.freq || d.props.freq) + ' Hz';
+      case 'zener': return 'U_Z ' + fmtVal(q.vz || d.props.vz) + ' V';
+      case 'motor': return fmtVal(v) + ' Ω';
+      case 'npn': return 'β ' + (q.beta || d.props.beta);
+      case 'logicin': return q.closed ? '1' : '0';
       case 'led': return q.color || d.props.color;
       default: return '';
     }
@@ -78,13 +93,46 @@
         s = '<path ' + c + ' d="M0-20V0M-14 0H14M-9 6H9M-4 12H4"/>'; break;
       case 'acsource':
         s = '<path ' + c + ' d="M0-40V-16M0 16V40"/><circle ' + c + ' r="16"/><path class="sym thin" d="M-10 0C-6-10-2-10 0 0S6 10 10 0"/><text class="plus" x="12" y="-20">+</text>'; break;
+      case 'logicin': // Pegelschalter: Schiebeschalter mit Pegelanzeige
+        var hi1 = !!q.closed;
+        s = '<rect ' + c + ' x="-22" y="-16" width="44" height="32" rx="4"/><text class="symtxt small" x="-12" y="-4">0</text><text class="symtxt small" x="12" y="-4">1</text>' +
+          '<rect class="sym fillsym" x="' + (hi1 ? 2 : -16) + '" y="2" width="14" height="8" rx="2"/><path ' + c + ' d="M22 0H40"/>' +
+          '<rect class="hit" x="-22" y="-16" width="44" height="32"/>'; break;
+      case 'logicled': // Logikanzeige: LED mit Bezug auf Masse
+        var on1 = r.on;
+        s = '<path ' + c + ' d="M-40 0H-12"/><circle r="12" class="' + (on1 ? 'lamp-on' : 'sym') + '"/><path class="sym thin" d="M-6-6L6 0L-6 6ZM6-6V6"/><path class="sym thin" d="M0 12V20M-6 20H6M-3 24H3"/>'; break;
+      case 'zener':
+        s = '<path ' + c + ' d="M-40 0H-12M12 0H40"/><path class="sym fillsym" d="M-12-12L12 0L-12 12Z"/><path ' + c + ' d="M6-16L12-12V12L18 16"/>'; break;
+      case 'motor':
+        s = '<path ' + c + ' d="M-40 0H-16M16 0H40"/><circle ' + c + ' r="16"/><text class="symtxt" y="6">M</text>'; break;
+      case 'npn': // NPN: Kreis, Basisbalken, Kollektor, Emitter mit Pfeil nach aussen
+        s = '<circle ' + c + ' cx="4" r="22"/><path ' + c + ' d="M-40 0H-6M-6-14V14M-6-6L20-28V-40M-6 6L20 28V40"/><path class="sym fillsym" d="M20 28L10 26L15 19Z"/>'; break;
+      case 'seg7': // 7-Segment-Anzeige: leuchtende Segmente nach Simulation
+        s = '<rect ' + c + ' x="-26" y="-70" width="56" height="140" rx="3"/>';
+        'abcdefg'.split('').forEach(function (k, i) { s += '<path ' + c + ' d="M-40 ' + (-60 + 20 * i) + 'H-26"/><text class="symtxt small" x="-20" y="' + (-56 + 20 * i) + '">' + k + '</text>'; });
+        s += '<g transform="translate(10 0) scale(1.1)">' + SEGP.map(function (d, i) { return '<path d="' + d + '" class="seg' + (r.seg && r.seg[i] ? ' on' : '') + '"/>'; }).join('') + '</g>'; break;
+      case 'dec7': // BCD-Decoder: Eingaenge 1/2/4/8, Ausgaenge a…g
+        s = '<rect ' + c + ' x="-26" y="-70" width="52" height="140" rx="2"/><text class="symtxt small" y="-52">BCD</text><text class="symtxt small" y="-38">/7SEG</text>';
+        ['1', '2', '4', '8'].forEach(function (k, i) { s += '<path ' + c + ' d="M-40 ' + (-60 + 20 * i) + 'H-26"/><text class="symtxt small" x="-18" y="' + (-56 + 20 * i) + '">' + k + '</text>'; });
+        'abcdefg'.split('').forEach(function (k, i) { s += '<path ' + c + ' d="M26 ' + (-60 + 20 * i) + 'H40"/><text class="symtxt small" x="18" y="' + (-56 + 20 * i) + '">' + k + '</text>'; });
+        break;
       case 'clock':
         var hi = r.high;
         s = '<rect ' + c + ' x="-22" y="-18" width="44" height="36" rx="3"/><path class="sym thin" d="M-14 8H-7V-8H0V8H7V-8H14"/><path ' + c + ' d="M22 0H40"/>' +
           '<circle cx="15" cy="-12" r="3" class="' + (hi ? 'lamp-on' : 'lamp-off') + '"/>'; break;
       default:
+        if (FF_SIGN[p.type]) { // Flipflop: Kasten mit Abhaengigkeitsnotation, Takteingang mit Dreieck
+          var fs = FF_SIGN[p.type], fy = p.type === 'jkff' ? [-20, 0, 20] : [-20, 20], qv = r.q;
+          s = '<rect ' + c + ' x="-26" y="-36" width="52" height="72" rx="2"/>';
+          fy.forEach(function (y, k) { s += '<path ' + c + ' d="M-40 ' + y + 'H-26"/><text class="symtxt small" x="-14" y="' + (y + 4) + '">' + fs[k] + '</text>'; });
+          var cy = p.type === 'jkff' ? 0 : 20;
+          s += '<path class="sym thin" d="M-26 ' + (cy - 5) + 'L-20 ' + cy + 'L-26 ' + (cy + 5) + '"/>' +
+            '<path ' + c + ' d="M26-20H40M31 20H40"/><circle ' + c + ' cx="28.5" cy="20" r="2.5"/>' +
+            (qv !== undefined ? '<circle cx="34" cy="-30" r="3" class="' + (qv ? 'lamp-on' : 'lamp-off') + '"/>' : '');
+          break;
+        }
         if (GATE_SIGN[p.type]) {
-          var inv = /^n|not/.test(p.type), two = p.type !== 'not';
+          var inv = /^n|not|xnor/.test(p.type), two = p.type !== 'not';
           s = '<rect ' + c + ' x="-22" y="-30" width="44" height="60" rx="2"/><text class="symtxt" y="6">' + GATE_SIGN[p.type] + '</text>' +
             (two ? '<path ' + c + ' d="M-40-20H-22M-40 20H-22"/>' : '<path ' + c + ' d="M-40 0H-22"/>') +
             (inv ? '<circle ' + c + ' cx="27" r="5"/><path ' + c + ' d="M32 0H40"/>' : '<path ' + c + ' d="M22 0H40"/>') +
@@ -96,10 +144,11 @@
   }
 
   function labels(p) { // Beschriftung neben senkrechten, ueber/unter waagrechten Bauteilen
+    if (p.type === 'seg7' || p.type === 'dec7') return '<text class="lbl" y="-78">' + esc(p.id) + '</text>';
     var vert = (p.type === 'battery' || p.type === 'ground' || p.type === 'acsource') ? (p.rot || 0) % 180 === 0 : (p.rot || 0) % 180 === 90;
     var v = esc(valueText(p));
     if (vert) return '<text class="lbl" x="24" y="-4" text-anchor="start">' + esc(p.id) + '</text><text class="val" x="24" y="12" text-anchor="start">' + v + '</text>';
-    var up = GATE_SIGN[p.type] ? -38 : -24, dn = GATE_SIGN[p.type] ? 48 : 30;
+    var big = GATE_SIGN[p.type] || FF_SIGN[p.type] || p.type === 'npn', up = big ? -44 : -24, dn = big ? 52 : 30;
     return '<text class="lbl" y="' + up + '">' + esc(p.id) + '</text><text class="val" y="' + dn + '">' + v + '</text>';
   }
   /* Tooltip eines Bauteils mit Simulationswerten (auch fuer die Werkbank) */
@@ -215,9 +264,10 @@
       '<filter id="blur" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="6"/></filter></defs>');
     h.push('<rect width="' + W + '" height="' + H + '" fill="url(#grid)"/>');
     // Leitungen
+    var wi = self.showFlow && root.DQBench ? root.DQBench.wireCurrents(L, res) : [];
     L.wires.forEach(function (w, i) {
-      var col = wcol(w.from), d = route(w.from, w.to);
-      h.push('<g data-wire="' + i + '"><path class="wirehit" d="' + d + '"/><path class="wire' + (self.sel === 'w:' + i ? ' selected' : '') + '" d="' + d + '"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
+      var col = wcol(w.from), d = route(w.from, w.to), iw = wi[i] || 0;
+      h.push('<g data-wire="' + i + '"><path class="wirehit" d="' + d + '"/><path class="wire bcore' + (self.sel === 'w:' + i ? ' selected' : '') + '" data-i="' + iw.toExponential(3) + '" d="' + d + '"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
     });
     // Bauteile
     L.parts.forEach(function (p) {
@@ -228,6 +278,7 @@
         '<g transform="rotate(' + (p.rot || 0) + ')">' + symbol(p, r) + '</g>' +
         labels(p) + '</g>');
     });
+    if (self.showFlow) h.push('<g class="bflow" pointer-events="none"></g>');
     // Anschluesse
     L.parts.forEach(function (p) {
       Object.keys(GEO[p.type]).forEach(function (pin) {
@@ -250,6 +301,7 @@
       h.push('<g class="probe ' + k[1] + '"><path d="M' + xy[0] + ' ' + xy[1] + 'l14 -30"/><circle cx="' + (xy[0] + 14) + '" cy="' + (xy[1] - 36) + '" r="9"/><text x="' + (xy[0] + 14) + '" y="' + (xy[1] - 32) + '">' + (k[0] === 'a' ? '+' : '−') + '</text></g>');
     });
     this.svg.innerHTML = h.join('');
+    if (root.DQBench) root.DQBench.prototype._animSetup.call(this); // Stromfluss-Punkte wie auf der Werkbank
   };
 
   root.DQEditor = Editor;

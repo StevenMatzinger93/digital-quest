@@ -201,3 +201,10 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bpart-tiny { font: 700 5.5px var(--font-code); fill: #9a9a9a; text-anchor: middle; pointer-events: none; } .bpart-tiny.w { fill: #f0f0f0; } .bpart-tiny.g { fill: #555; }
 .bmatprint { font: 800 14px var(--font-ui); letter-spacing: 3px; fill: rgba(255,255,255,.14); pointer-events: none; }
 .bdevtxt.small { font-size: 6.5px; fill: #b9b9b9; }
+
+.symtxt.small { font-size: 10px; }
+.seg { fill: none; stroke: #3a1d1d; stroke-width: 4; stroke-linecap: round; } .seg.on { stroke: #ff3b30; filter: drop-shadow(0 0 3px #ff3b30); }
+
+.bdot { fill: #fff6c2; stroke: rgba(120,80,0,.8); stroke-width: 1; filter: drop-shadow(0 0 2px #ffd54a); pointer-events: none; }
+.bilabel { font: 700 11px var(--font-code); fill: #ffe9a8; text-anchor: middle; paint-order: stroke; stroke: rgba(0,0,0,.8); stroke-width: 3px; pointer-events: none; }
+.bprint.w { fill: #e8e8e8; }

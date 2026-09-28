@@ -23,7 +23,8 @@ async function atomicClick(page, sel, key) {
     const want = key ? el.closest('[' + key + ']') : el, got = key ? t.closest('[' + key + ']') : t;
     if (key && (!got || got.getAttribute(key) !== want.getAttribute(key))) return 'verdeckt (' + (got ? key + '=' + got.getAttribute(key) : t.tagName + '.' + t.getAttribute('class')) + '): ' + sel;
     const o = { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1, pointerType: 'mouse', isPrimary: true };
-    t.dispatchEvent(new PointerEvent('pointerdown', o)); t.dispatchEvent(new PointerEvent('pointerup', o)); t.dispatchEvent(new MouseEvent('click', o));
+    const host = t.closest('svg') || document.body; // nach dem Neuzeichnen haengt t nicht mehr im Dokument (echte Maus: Pointer Capture am SVG)
+    t.dispatchEvent(new PointerEvent('pointerdown', o)); (t.isConnected ? t : host).dispatchEvent(new PointerEvent('pointerup', o));
     return 'ok';
   }, [sel, key]);
   if (r !== 'ok') throw new Error(r);
@@ -40,7 +41,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
   const tasks = await page.evaluate(() => window.DQ.tasks.map(t => ({ id: t.id, start: t.start, ref: t.ref, measure: t.measure, unitScale: DigitalQuest.engine.UNIT_SCALE,
     expected: DigitalQuest.engine.expectedAnswers(t, t.ref) })));
 
-  for (const t of tasks.filter(x => !only || x.id === only || (only.endsWith('.') && x.id.startsWith(only)))) for (const view of ['schema', 'bench']) {
+  for (const t of tasks.filter(x => only !== 'katalog' && (!only || x.id === only || (only.endsWith('.') && x.id.startsWith(only))))) for (const view of ['schema', 'bench']) {
     const tag = t.id + ' [' + (view === 'bench' ? 'Werkbank' : 'Schaltplan') + ']', fail = m => errors.push(tag + ': ' + m);
     const svg = view === 'bench' ? '#bench' : '#board', hit = view === 'bench' ? '.bpinhit' : '.pinhit', whit = view === 'bench' ? '.bwirehit' : '.wirehit';
     const pin = id => atomicClick(page, `${svg} [data-pin="${id}"] ${hit}`, 'data-pin');
@@ -66,7 +67,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
       // Startbauteile, deren Schalterstellung in der Loesung anders ist: anklicken (Schalter/Taster schalten per Klick)
       for (const rp of t.ref.parts.filter(p => startIds.has(p.id))) {
         const sp = t.start.parts.find(p => p.id === rp.id);
-        if (!!(rp.props || {}).closed !== !!(sp.props || {}).closed && rp.type === 'switch')
+        if (!!(rp.props || {}).closed !== !!(sp.props || {}).closed && (rp.type === 'switch' || rp.type === 'logicin'))
           await atomicClick(page, `${svg} [data-part="${rp.id}"] ${view === 'bench' ? '.bblock' : '.hit'}`, 'data-part');
       }
       const idOf = pid => { const [a, b] = pid.split('.'); return (map[a] || a) + '.' + b; };
@@ -140,8 +141,8 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
   }
   // ===== Bauteilkatalog in beiden Ansichten (Freie Werkbank mit ?alle) =====
   const catalog = await page.evaluate(() => Object.keys(DigitalQuest.engine.PARTS).map(k => ({ type: k, pins: DigitalQuest.engine.PARTS[k].pins })));
-  const FIELDS = { battery: ['value'], resistor: ['value'], lamp: ['value'], pot: ['value', 'pos'], capacitor: ['value'], clock: ['freq'], led: ['color'], acsource: ['value', 'freq', 'shape'], switch: [] };
-  if (!only) for (const view of ['schema', 'bench']) {
+  const FIELDS = { battery: ['value'], resistor: ['value'], lamp: ['value'], pot: ['value', 'pos'], capacitor: ['value'], clock: ['freq'], led: ['color'], acsource: ['value', 'freq', 'shape', 'offset'], switch: [], zener: ['vz'], npn: ['beta'], motor: ['value'] };
+  if (!only || only === 'katalog') for (const view of ['schema', 'bench']) {
     const svg = view === 'bench' ? '#bench' : '#board', hit = view === 'bench' ? '.bpinhit' : '.pinhit';
     await page.evaluate(v => { delete DigitalQuest.state.drafts.sandbox; DigitalQuest.openItem('sandbox'); DigitalQuest.setView(v); }, view);
     for (const c of catalog) {
