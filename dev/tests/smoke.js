@@ -108,6 +108,15 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   if (!await page.locator('#bench [data-part="B1"] .bsmoke').count()) errors.push('Werkbank: Kurzschluss nicht sichtbar');
   if (!/zulaessig 3\.000 A/.test(await page.textContent('#statusbar'))) errors.push('Diagnose ohne Werte: ' + await page.textContent('#statusbar'));
   await page.screenshot({ path: shots + '/9_werkbank_kurzschluss.png' });
+  // Zoom (Mausrad), Verschieben (Ziehen auf leerer Flaeche), Einpassen
+  const bb = await page.locator('#bench').boundingBox(), v0 = await page.evaluate(() => DigitalQuest.bench.view.slice());
+  await page.mouse.move(bb.x + bb.width * 0.3, bb.y + bb.height * 0.5); await page.mouse.wheel(0, -300); await page.waitForTimeout(50);
+  const v1 = await page.evaluate(() => DigitalQuest.bench.view.slice());
+  await page.mouse.move(bb.x + 20, bb.y + bb.height - 20); await page.mouse.down(); await page.mouse.move(bb.x + 120, bb.y + bb.height - 60, { steps: 5 }); await page.mouse.up();
+  const v2 = await page.evaluate(() => DigitalQuest.bench.view.slice());
+  if (!(v1[2] < v0[2] * 0.9) || Math.abs(v2[0] - v1[0]) < 5) errors.push('Werkbank: Zoom/Verschieben wirkt nicht ' + JSON.stringify([v0, v1, v2].map(v => v.map(Math.round))));
+  await page.screenshot({ path: shots + '/9b_werkbank_zoom.png' });
+  await page.click('#btnFit');
 
   // ===== Freie Werkbank (Sandbox): Rechteckspannung, V~ mit TRMS und AVG =====
   await page.evaluate(() => { delete DigitalQuest.state.drafts.sandbox; });

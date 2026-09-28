@@ -33,8 +33,9 @@ node test_engine.js      # Engine-Tests
 node validate.js         # muss "OK — keine Fehler" ausgeben
 node build.js            # erzeugt ../index.html und ../web/
 node tests/smoke.js      # Browser-Durchlauf (Playwright/Chromium), Screenshots in tests/shots
+node tests/tasks.js      # jede Aufgabe + jedes Bauteil in Schaltplan UND Werkbank nur ueber die Bedienung loesbar
 ```
-Fertig heisst: Tests gruen, Validator 0 Fehler, Browser-Durchlauf fehlerfrei, Handy ok, offline spielbar. Nach jedem Abschnitt `docs/STAND.md` aktualisieren.
+Fertig heisst: Tests gruen, Validator 0 Fehler, Browser-Durchlauf fehlerfrei, `tests/tasks.js` gruen (Regel: **jede Aufgabe muss im Schaltplan und auf der Werkbank loesbar sein**), Handy ok, offline spielbar. Nach jedem Abschnitt `docs/STAND.md` aktualisieren.
 
 ## Engine-Semantik (engine.js)
 - Knotenanalyse; alle Quellen als Norton-Ersatz (Spannungsquelle mit Innenwiderstand `ri`, Standard 0,05 Ω) → keine Zusatzzeilen, Kurzschluss bleibt loesbar und wird ueber `imax` erkannt.

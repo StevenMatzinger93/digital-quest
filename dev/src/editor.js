@@ -149,7 +149,11 @@
 
   Editor.prototype.nextId = function (type) { return this.core.nextId(type); };
   /* Neues Bauteil in der Mitte des sichtbaren Ausschnitts */
-  Editor.prototype.addPart = function (type) { var v = this.view || [0, 0, W, H]; return this.core.addPart(type, v[0] + v[2] / 2, v[1] + v[3] / 2); };
+  Editor.prototype.addPart = function (type) {
+    var v = this.view || [0, 0, W, H], p = this.core.addPart(type, v[0] + v[2] / 2, v[1] + v[3] / 2);
+    if (p.x - 50 < v[0] || p.x + 50 > v[0] + v[2] || p.y - 50 < v[1] || p.y + 50 > v[1] + v[3]) this.fit(); // neues Bauteil ausserhalb des Ausschnitts: einpassen
+    return p;
+  };
   Editor.prototype.removeSelected = function () { return this.core.removeSelected(); };
   Editor.prototype.rotateSelected = function () { this.core.rotateSelected('schema'); };
 

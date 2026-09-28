@@ -104,7 +104,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 #board.off, #bench.off { display: none; }
 .bblock { fill: url(#bBlock); stroke: rgba(0,0,0,.45); stroke-width: 1.5; } .bbevel { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 1.2; }
 .bpart { cursor: grab; } .bsel { fill: none; stroke: #ffb000; stroke-width: 2.5; stroke-dasharray: 7 5; }
-.blead { fill: none; stroke: #b9b9b9; stroke-width: 2.6; stroke-linecap: round; }
+.blead { fill: none; stroke: #9ea3a6; stroke-width: 2.8; stroke-linecap: round; } .bleadhi { fill: none; stroke: rgba(255,255,255,.55); stroke-width: .9; stroke-linecap: round; }
 .bprint { font: 700 12px var(--font-code); fill: #2b2b2b; text-anchor: middle; pointer-events: none; } .bprint.red { fill: #c62828; } .bprint.dark { fill: #222; font-size: 11px; }
 .bbig { font: 800 22px var(--font-ui); fill: #fff; text-anchor: middle; pointer-events: none; }
 .bchip { font: 600 11px var(--font-code); fill: #cfcfcf; text-anchor: middle; pointer-events: none; }
@@ -203,6 +203,15 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 #rpLabel { font: 12px var(--font-code); color: var(--accent-lead); flex-basis: 100%; }
 .tb.view { border-color: var(--accent-lead-dim); }
 .map-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* Werkbank-Details */
+.bside { fill: url(#bSide); stroke: rgba(0,0,0,.45); stroke-width: 1.2; }
+.bgloss { fill: rgba(255,255,255,.28); pointer-events: none; }
+.bsym .sym { stroke: #46505a; stroke-width: 5; } .bsym .sym.fillsym, .bsym .fillsym { fill: #46505a; } .bsym .symtxt, .bsym .plus { fill: #46505a; font-size: 26px; }
+.bsym .hit, .bsym .lamp-on, .bsym .lamp-off { display: none; } .bsym { pointer-events: none; }
+.bpart-tiny { font: 700 5.5px var(--font-code); fill: #9a9a9a; text-anchor: middle; pointer-events: none; } .bpart-tiny.w { fill: #f0f0f0; } .bpart-tiny.g { fill: #555; }
+.bmatprint { font: 800 14px var(--font-ui); letter-spacing: 3px; fill: rgba(255,255,255,.14); pointer-events: none; }
+.bdevtxt.small { font-size: 6.5px; fill: #b9b9b9; }
 </style>
 </head>
 <body>
@@ -949,7 +958,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       '<p><b>Leitung ziehen:</b> Anschluss anklicken, dann den Ziel-Anschluss. Leitung anklicken und <kbd>Entf</kbd> entfernt sie.</p>' +
       '<p><b>Schalter</b> schaltest du per Klick, <b>Taster</b> sind nur gedrueckt, solange du sie haeltst.</p>' +
       '<p>Die Schaltung wird <b>laufend simuliert</b>. „U anzeigen“ faerbt alle Knoten nach ihrer Spannung (blau = 0 V, rot = hoechste Spannung). Faehrst du ueber ein Bauteil, siehst du U, I und P.</p>' +
-      '<p><b>Schaltplan oder Werkbank:</b> Der Knopf „Werkbank“ / „Schaltplan“ wechselt die Darstellung. Es ist dieselbe Schaltung – auf der Werkbank stecken die Bauteile auf Steckbausteinen und werden mit Laborkabeln verbunden. Bauen, Messen und Pruefen funktionieren in beiden Ansichten gleich.</p>' +
+      '<p><b>Schaltplan oder Werkbank:</b> Der Knopf „Werkbank“ / „Schaltplan“ wechselt die Darstellung. Es ist dieselbe Schaltung – auf der Werkbank stecken die Bauteile auf Steckbausteinen und werden mit Laborkabeln verbunden. Bauen, Messen und Pruefen funktionieren in beiden Ansichten gleich. Auf der Werkbank zoomst du mit dem Mausrad (Handy: zwei Finger) und verschiebst den Tisch, indem du auf einer freien Stelle ziehst; „Einpassen“ zeigt wieder alles.</p>' +
       '<p><b>Zeitlupe:</b> zeigt Schritt fuer Schritt, wie die Simulation zum Ergebnis kommt – welche LED leitend wird, welches Gatter umschaltet, wie sich ein Kondensator ueber die Zeit laedt. Mit dem Schieberegler oder den Pfeiltasten blaettern, „Live“ kehrt zurueck.</p>' +
       '<p><b>Freie Werkbank:</b> auf der Karte. Bauen und messen ohne Auftrag, mit allen bisher freigeschalteten Bauteilen.</p>' },
     { id: 'multimeter', title: 'Multimeter', html:
@@ -1289,7 +1298,11 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 
   Editor.prototype.nextId = function (type) { return this.core.nextId(type); };
   /* Neues Bauteil in der Mitte des sichtbaren Ausschnitts */
-  Editor.prototype.addPart = function (type) { var v = this.view || [0, 0, W, H]; return this.core.addPart(type, v[0] + v[2] / 2, v[1] + v[3] / 2); };
+  Editor.prototype.addPart = function (type) {
+    var v = this.view || [0, 0, W, H], p = this.core.addPart(type, v[0] + v[2] / 2, v[1] + v[3] / 2);
+    if (p.x - 50 < v[0] || p.x + 50 > v[0] + v[2] || p.y - 50 < v[1] || p.y + 50 > v[1] + v[3]) this.fit(); // neues Bauteil ausserhalb des Ausschnitts: einpassen
+    return p;
+  };
   Editor.prototype.removeSelected = function () { return this.core.removeSelected(); };
   Editor.prototype.rotateSelected = function () { this.core.rotateSelected('schema'); };
 
@@ -1437,103 +1450,150 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   }
   function val(p) { var d = E.PARTS[p.type], q = p.props || {}; return p.value !== undefined ? p.value : (q.value !== undefined ? q.value : d.props.value); }
 
+  /* 4-mm-Buchse: farbiger Isolierring mit Glanz, Messinghuelse, Bohrung */
   function socket(xy, ring) {
-    return '<g transform="translate(' + xy[0] + ' ' + xy[1] + ')"><circle r="10" fill="' + (ring || '#262626') + '" stroke="rgba(0,0,0,.55)"/><circle r="6" fill="url(#bBrass)"/><circle r="2.6" fill="#0b0b0b"/></g>';
+    return '<g transform="translate(' + xy[0] + ' ' + xy[1] + ')"><circle r="11.5" cy="1.8" fill="rgba(0,0,0,.35)"/>' +
+      '<circle r="10.5" fill="' + (ring || '#262626') + '" stroke="rgba(0,0,0,.65)"/><circle r="10.5" fill="url(#bRingShine)"/>' +
+      '<circle r="6.2" fill="url(#bBrass)" stroke="rgba(60,40,0,.6)" stroke-width=".8"/><circle r="2.9" fill="#050505"/><circle r="1" cx="-.9" cy="-.9" fill="#4a4a4a"/></g>';
   }
-  function lead(x0, x1, y) { return '<path class="blead" d="M' + x0 + ' ' + (y || 0) + 'H' + x1 + '"/>'; }
+  function screw(x, y, a) {
+    return '<g transform="translate(' + x + ' ' + y + ') rotate(' + a + ')"><circle r="3.8" fill="url(#bMetal)" stroke="rgba(0,0,0,.55)" stroke-width=".7"/><path d="M-2.6 0H2.6" stroke="#3b3b3b" stroke-width="1.1"/></g>';
+  }
+  /* Draht vom Bauteil zur Buchse, mit Loetpunkt an der Buchse */
+  function lead(x0, x1, y) {
+    y = y || 0;
+    return '<path class="blead" d="M' + x0 + ' ' + y + 'H' + x1 + '"/><path class="bleadhi" d="M' + x0 + ' ' + (y - 0.8) + 'H' + x1 + '"/>' +
+      '<circle cx="' + x0 + '" cy="' + y + '" r="2.4" fill="#cfd2d4" stroke="rgba(0,0,0,.35)" stroke-width=".6"/>';
+  }
+  function shadowEl(cx, cy, rx, ry) { return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry + '" fill="rgba(0,0,0,.28)" filter="url(#bSoft2)"/>'; }
+  /* Lage des aufgedruckten Schaltzeichens [x, y, Massstab] auf dem Baustein */
+  function symSpot(type, w, h) {
+    if (type === 'battery' || type === 'acsource') return [0, 38, 0.2];
+    if (type === 'ground') return null;
+    if (CHIP[type]) return [0, -36, 0.17];
+    if (type === 'clock') return [36, -30, 0.15];
+    return [-w / 2 + 22, -h / 2 + 14, 0.17];
+  }
 
   /* Bauteil-Illustration um den Ursprung, unrotiert. r = Simulationsergebnis, hot = Stoerungscode des Bauteils (beides optional) */
   function illus(p, r, hot) {
     var q = p.props || {}, sz = size(p.type), w = sz[0], h = sz[1], g = GEO[p.type], s = '';
     r = r || {};
-    // Baustein
+    // Baustein: Kunststoffoberseite mit Fase, Schrauben, aufgedrucktes Schaltzeichen
     s += '<rect class="bblock" x="' + (-w / 2) + '" y="' + (-h / 2) + '" width="' + w + '" height="' + h + '" rx="9"/>' +
-      '<rect class="bbevel" x="' + (-w / 2 + 3) + '" y="' + (-h / 2 + 3) + '" width="' + (w - 6) + '" height="' + (h - 6) + '" rx="7"/>';
+      '<rect class="bbevel" x="' + (-w / 2 + 3) + '" y="' + (-h / 2 + 3) + '" width="' + (w - 6) + '" height="' + (h - 6) + '" rx="7"/>' +
+      '<rect class="bgloss" x="' + (-w / 2 + 4) + '" y="' + (-h / 2 + 4) + '" width="' + (w - 8) + '" height="' + Math.min(14, h / 4) + '" rx="6"/>';
+    s += screw(-w / 2 + 8, -h / 2 + 8, 20) + screw(w / 2 - 8, -h / 2 + 8, 70) + screw(-w / 2 + 8, h / 2 - 8, 110) + screw(w / 2 - 8, h / 2 - 8, 160);
+    var sp = symSpot(p.type, w, h);
+    if (sp) s += '<g class="bsym" transform="translate(' + sp[0] + ' ' + sp[1] + ') scale(' + sp[2] + ')">' + Ed.symbol({ type: p.type, props: { closed: q.closed, color: q.color } }) + '</g>';
     // Buchsen
     Object.keys(g).forEach(function (pin) {
-      var ring = p.type === 'battery' || p.type === 'acsource' ? (pin === 'p' ? '#c62828' : '#1a1a1a') : p.type === 'ground' ? '#2e9d44' : null;
+      var ring = p.type === 'battery' || p.type === 'acsource' ? (pin === 'p' ? '#c62828' : '#1a1a1a') : p.type === 'ground' ? 'url(#bGY)' : null;
       s += socket(g[pin], ring);
     });
     if (hot) s += '<circle r="' + (Math.min(w, h) / 2 + 6) + '" fill="#ff5a1f" opacity=".55" filter="url(#bBlur)"/>'; // Hitze (Kurzschluss, Ueberlast)
     switch (p.type) {
-      case 'resistor':
-        var bd = bands(val(p));
-        s += lead(-35, -26) + lead(26, 35) + '<rect x="-26" y="-8" width="52" height="16" rx="8" fill="' + (hot ? '#7a4a28' : 'url(#bResBody)') + '" stroke="rgba(0,0,0,.35)"/>' +
-          '<rect x="-17" y="-8" width="4" height="16" fill="' + bd[0] + '"/><rect x="-9" y="-8" width="4" height="16" fill="' + bd[1] + '"/>' +
-          '<rect x="-1" y="-8" width="4" height="16" fill="' + bd[2] + '"/><rect x="13" y="-8" width="4" height="16" fill="#c9a227"/>' +
-          '<rect x="-24" y="-6" width="48" height="3" rx="1.5" fill="rgba(255,255,255,.35)"/>'; break;
+      case 'resistor': // Kohleschichtwiderstand: Knochenform, Farbringe, Zylinder-Schattierung
+        var bd = bands(val(p)), body = 'M-24-6Q-24-9.5-20-9.5H-16Q-13-7.5-10-7.5H10Q13-7.5 16-9.5H20Q24-9.5 24-6V6Q24 9.5 20 9.5H16Q13 7.5 10 7.5H-10Q-13 7.5-16 9.5H-20Q-24 9.5-24 6Z';
+        s += lead(-34, -23) + lead(34, 23) + shadowEl(2, 11, 25, 3.5) +
+          '<path d="' + body + '" fill="' + (hot ? '#7a4a28' : 'url(#bResBody)') + '" stroke="rgba(60,40,10,.45)" stroke-width=".8"/>' +
+          '<rect x="-19.5" y="-9.5" width="4" height="19" fill="' + bd[0] + '"/><rect x="-8" y="-7.5" width="3.5" height="15" fill="' + bd[1] + '"/>' +
+          '<rect x="-1" y="-7.5" width="3.5" height="15" fill="' + bd[2] + '"/><rect x="15.5" y="-9.5" width="4" height="19" fill="#c9a227"/>' +
+          '<path d="' + body + '" fill="url(#bCyl)"/>'; break;
       case 'led': case 'diode':
-        if (p.type === 'diode') {
-          s += lead(-35, -18) + lead(18, 35) + '<rect x="-18" y="-7" width="36" height="14" rx="3" fill="#1b1b1b" stroke="#000"/><rect x="9" y="-7" width="4" height="14" fill="#cfcfcf"/>';
-        } else {
+        if (p.type === 'diode') { // 1N4007: schwarzer Koerper, silberner Ring an der Kathode
+          s += lead(-34, -17) + lead(34, 17) + shadowEl(2, 9, 18, 3) +
+            '<rect x="-17" y="-7" width="34" height="14" rx="3" fill="#1b1b1b"/><rect x="8" y="-7" width="4.5" height="14" fill="#d8d8d8"/>' +
+            '<text class="bpart-tiny" x="-3" y="2.5">4007</text><rect x="-17" y="-7" width="34" height="14" rx="3" fill="url(#bCyl)"/>';
+        } else { // 5-mm-LED von schraeg oben: Beinchen, Kragen mit Abflachung an der Kathode, Linse mit Reflektor
           var col = (E.LED_COLORS[q.color || 'rot'] || {}).rgb || '#f33', b = r.burnt ? 0 : (r.brightness || 0);
           if (r.burnt) col = '#3b2b25';
-          s += lead(-35, -8) + lead(8, 35) +
-            (b > 0.02 ? '<circle r="' + (22 + 40 * b) + '" fill="' + col + '" opacity="' + (0.3 + 0.5 * b).toFixed(2) + '" filter="url(#bBlur)"/>' : '') +
-            '<path d="M-12 0A12 12 0 1 1 10 6.6V-6.6A12 12 0 0 1-12 0Z" fill="' + col + '" opacity=".75" stroke="rgba(0,0,0,.4)"/>' +
-            '<circle r="9.5" fill="' + col + '" opacity="' + (0.45 + 0.55 * b).toFixed(2) + '"/>' +
-            (r.burnt ? '<path d="M-6-6L-1 0L-4 3M2-7L1-1L6 4" fill="none" stroke="#111" stroke-width="1.5"/>' : '<ellipse cx="-3.5" cy="-4" rx="3.5" ry="2.4" fill="rgba(255,255,255,.7)"/>') +
-            '<text class="bprint" x="-45" y="-17">+</text>';
+          s += lead(-34, -9) + '<path class="blead" d="M34 0H9"/>' + shadowEl(3, 10, 13, 4) +
+            (b > 0.02 ? '<circle r="' + (24 + 44 * b) + '" fill="' + col + '" opacity="' + (0.3 + 0.5 * b).toFixed(2) + '" filter="url(#bBlur)"/>' : '') +
+            '<path d="M-12.5 0A12.5 12.5 0 1 1 10.5 6.8V-6.8A12.5 12.5 0 0 1-12.5 0Z" fill="' + col + '" opacity=".8" stroke="rgba(0,0,0,.45)"/>' +
+            '<circle r="9.8" fill="' + col + '" opacity="' + (0.5 + 0.5 * b).toFixed(2) + '"/><circle r="9.8" fill="url(#bLens)"/>' +
+            '<path d="M-3-1.5h6v3h-6z" fill="rgba(0,0,0,.35)"/><path d="M-1 1.5l-1.5 3M1 1.5l1.5 3" stroke="rgba(0,0,0,.3)" stroke-width=".8"/>' +
+            (b > 0.05 ? '<circle r="' + (2.5 + 4 * b).toFixed(1) + '" fill="#fff" opacity="' + (0.4 + 0.6 * b).toFixed(2) + '" filter="url(#bSoft)"/>' : '') +
+            (r.burnt ? '<path d="M-6-6L-1 0L-4 3M2-7L1-1L6 4" fill="none" stroke="#111" stroke-width="1.5"/>' : '<ellipse cx="-4" cy="-4.5" rx="3.6" ry="2.3" fill="rgba(255,255,255,.75)" transform="rotate(-30 -4 -4.5)"/>') +
+            '<text class="bprint" x="-45" y="-17">+</text><text class="bprint" x="45" y="-17">−</text>';
         }
         break;
-      case 'lamp':
+      case 'lamp': // Gluehlampe in E10-Fassung: Sechskant, Gewinde, Glaskolben, Wendel
         var gl = r.burnt ? 0 : Math.min(1, Math.abs(r.p || 0) / ((q.pnom) || 1.35));
-        s += lead(-35, -21) + lead(21, 35) +
-          '<circle r="21" fill="url(#bMetal)" stroke="rgba(0,0,0,.5)"/>' +
-          (gl > 0.02 ? '<circle r="' + (30 + 60 * gl) + '" fill="#ffc940" opacity="' + (0.25 + 0.45 * gl).toFixed(2) + '" filter="url(#bBlur)"/><circle r="' + (24 + 40 * gl) + '" fill="url(#bGlow)" opacity="' + Math.min(1, 0.3 + gl).toFixed(2) + '"/>' : '') +
-          '<circle r="15" fill="' + (r.burnt ? 'rgba(70,64,58,.7)' : gl > 0.02 ? 'rgba(255,214,120,' + (0.35 + 0.6 * gl).toFixed(2) + ')' : 'rgba(230,240,245,.35)') + '" stroke="rgba(255,255,255,.55)"/>' +
-          '<path d="' + (r.burnt ? 'M-7 3L-4-3L-2 0M2-1L2-3L5 3' : 'M-7 3L-4-3L-1 3L2-3L5 3') + '" fill="none" stroke="' + (gl > 0.05 ? '#fff6d0' : '#6d6d6d') + '" stroke-width="1.4"/>' +
-          '<ellipse cx="-5" cy="-6" rx="4" ry="2.5" fill="rgba(255,255,255,.6)"/>'; break;
-      case 'switch':
-        var on = !!q.closed;
-        s += lead(-35, -16) + lead(16, 35) + '<rect x="-17" y="-14" width="34" height="28" rx="3" fill="#2a2a2a" stroke="#000"/>' +
-          '<text class="bprint" x="-24" y="-20">0</text><text class="bprint" x="24" y="-20">I</text>' +
-          '<circle r="9" fill="url(#bMetal)" stroke="rgba(0,0,0,.5)"/>' +
-          '<path d="M0 0L' + (on ? '22' : '-22') + ' 0" stroke="#d9d9d9" stroke-width="6" stroke-linecap="round"/>' +
-          '<circle cx="' + (on ? 22 : -22) + '" r="4.5" fill="#f0f0f0" stroke="#777"/>'; break;
-      case 'button':
+        s += lead(-34, -22) + lead(34, 22) + shadowEl(3, 6, 23, 16) +
+          '<path d="M22 0L11 19H-11L-22 0L-11-19H11Z" fill="url(#bMetal)" stroke="rgba(0,0,0,.55)"/>' +
+          '<circle r="17" fill="#8d9296" stroke="rgba(0,0,0,.4)"/><circle r="15.5" fill="none" stroke="rgba(255,255,255,.35)" stroke-width=".8"/><circle r="14" fill="none" stroke="rgba(0,0,0,.3)" stroke-width=".8"/>' +
+          (gl > 0.02 ? '<circle r="' + (26 + 44 * gl) + '" fill="#ffc940" opacity="' + (0.15 + 0.3 * gl).toFixed(2) + '" filter="url(#bBlur)"/><circle r="' + (20 + 26 * gl) + '" fill="url(#bGlow)" opacity="' + Math.min(0.9, 0.3 + 0.6 * gl).toFixed(2) + '"/>' : '') +
+          '<circle r="13" fill="' + (r.burnt ? 'rgba(70,64,58,.75)' : gl > 0.02 ? 'rgba(255,214,120,' + (0.35 + 0.6 * gl).toFixed(2) + ')' : 'rgba(225,235,242,.45)') + '" stroke="rgba(255,255,255,.6)"/>' +
+          '<path d="M-5 7V-1M5 7V-1" stroke="#888" stroke-width="1.1"/>' +
+          '<path d="' + (r.burnt ? 'M-5-1l1.2-2 1.2 2 1-1.5M1.5-2l1.2 2 1.2-2 1.1 2' : 'M-5-1l1.2-2 1.2 2 1.2-2 1.2 2 1.2-2 1.2 2 1.2-2 1.1 2') + '" fill="none" stroke="' + (gl > 0.05 ? '#fff6d0' : '#5d5d5d') + '" stroke-width="1.3"' + (gl > 0.05 ? ' filter="url(#bSoft)"' : '') + '/>' +
+          '<path d="M-9-6A11 11 0 0 1-2-10.5" stroke="rgba(255,255,255,.85)" stroke-width="2.2" fill="none" stroke-linecap="round"/>'; break;
+      case 'switch': // Kippschalter: Sechskantmutter, Gewindehuelse, Hebel mit Kugel und Schatten
+        var on = !!q.closed, dx = on ? 1 : -1;
+        s += lead(-34, -17) + lead(34, 17) + '<rect x="-18" y="-15" width="36" height="30" rx="3" fill="#232323" stroke="#000"/><rect x="-16" y="-13" width="32" height="7" rx="2" fill="rgba(255,255,255,.08)"/>' +
+          '<text class="bprint" x="-26" y="-20">0</text><text class="bprint" x="26" y="-20">I</text>' +
+          '<path d="M10 0L5 8.7H-5L-10 0L-5-8.7H5Z" fill="url(#bMetal)" stroke="rgba(0,0,0,.6)"/><circle r="6" fill="#b9bdc0" stroke="rgba(0,0,0,.45)"/>' +
+          '<path d="M' + (dx * 2) + ' 4L' + (dx * 25) + ' 7" stroke="rgba(0,0,0,.35)" stroke-width="6" stroke-linecap="round"/>' +
+          '<path d="M0-3.2L' + (dx * 22) + '-2.2V2.2L0 3.2Z" fill="url(#bMetalV)" stroke="rgba(0,0,0,.45)" stroke-width=".7"/>' +
+          '<circle cx="' + (dx * 23) + '" r="4.8" fill="url(#bMetal)" stroke="rgba(0,0,0,.5)"/>'; break;
+      case 'button': // Drucktaster: Sockel mit Ring, rote Kappe (gedrueckt: tiefer und dunkler)
         var pr = !!q.closed;
-        s += lead(-35, -16) + lead(16, 35) + '<rect x="-16" y="-16" width="32" height="32" rx="4" fill="#2a2a2a" stroke="#000"/>' +
-          '<circle r="' + (pr ? 9 : 11) + '" fill="' + (pr ? '#9e1b1b' : '#d32f2f') + '" stroke="rgba(0,0,0,.5)"/>' +
-          (pr ? '' : '<ellipse cx="-3" cy="-4" rx="4" ry="2.4" fill="rgba(255,255,255,.4)"/>'); break;
-      case 'capacitor':
-        s += lead(-35, -20) + lead(20, 35) + '<rect x="-20" y="-12" width="40" height="24" rx="5" fill="#27498a" stroke="rgba(0,0,0,.4)"/>' +
-          '<rect x="10" y="-12" width="6" height="24" fill="#aab4c8"/><rect x="-18" y="-9" width="36" height="4" rx="2" fill="rgba(255,255,255,.25)"/>'; break;
-      case 'ammeter':
-        s += lead(-35, -28) + lead(28, 35) + '<rect x="-28" y="-24" width="56" height="44" rx="4" fill="#1d1d1d"/><rect x="-24" y="-20" width="48" height="22" rx="2" fill="#b9c6a2"/>' +
-          '<text class="blcd" y="-4">' + (r.i !== undefined ? esc(E.fmt(Math.abs(r.i), 'A')) : '- - -') + '</text><text class="bchip" y="15">A</text>'; break;
-      case 'pot':
-        var ang = -135 + 270 * (q.pos !== undefined ? q.pos : 0.5);
-        s += lead(-40, -24, -8) + lead(24, 40, -8) + '<path class="blead" d="M0 22V10"/>' +
-          '<circle cy="-8" r="19" fill="#2a2a2a" stroke="#000"/><circle cy="-8" r="13" fill="url(#bMetal)"/>' +
-          '<path transform="translate(0 -8) rotate(' + ang + ')" d="M0 0V-12" stroke="#111" stroke-width="3" stroke-linecap="round"/>'; break;
-      case 'clock':
-        s += lead(24, 38) + '<rect x="-46" y="-26" width="70" height="52" rx="4" fill="#232323" stroke="#000"/>' +
-          '<path d="M-36 10H-26V-8H-14V10H-2V-8H10" fill="none" stroke="#ffb000" stroke-width="2"/>' +
-          '<circle cx="16" cy="-14" r="4" fill="' + (r.high ? '#39ff14' : '#243024') + '"' + (r.high ? ' filter="url(#bSoft)"' : '') + '/>'; break;
+        s += lead(-34, -17) + lead(34, 17) + '<rect x="-17" y="-17" width="34" height="34" rx="4" fill="#232323" stroke="#000"/>' +
+          '<circle r="13" fill="#3a3a3a" stroke="rgba(0,0,0,.6)"/><circle r="13" fill="url(#bRingShine)"/>' +
+          '<circle r="' + (pr ? 8.5 : 10.5) + '" cy="' + (pr ? 1 : -1) + '" fill="' + (pr ? '#8e1717' : 'url(#bRedCap)') + '" stroke="rgba(0,0,0,.5)"/>' +
+          (pr ? '' : '<ellipse cx="-3.5" cy="-5" rx="4" ry="2.3" fill="rgba(255,255,255,.45)"/>'); break;
+      case 'capacitor': // Elko liegend: Becher mit Schrumpfschlauch, Minus-Streifen, Aluminium-Boden
+        s += lead(-34, -21) + lead(34, 21) + shadowEl(2, 12, 22, 4) +
+          '<rect x="-21" y="-12" width="42" height="24" rx="4" fill="#27498a"/><rect x="9" y="-12" width="8" height="24" fill="#a9b6cf"/>' +
+          '<text class="bpart-tiny w" x="-5" y="3">' + esc(Ed.fmtVal(val(p))) + 'F</text><text class="bpart-tiny" x="13" y="3">−</text>' +
+          '<rect x="17" y="-12" width="4" height="24" rx="1.5" fill="url(#bMetalV)"/><rect x="-21" y="-12" width="42" height="24" rx="4" fill="url(#bCyl)"/>'; break;
+      case 'ammeter': // Einbau-Messinstrument mit Digitalanzeige
+        s += lead(-34, -29) + lead(34, 29) + '<rect x="-29" y="-25" width="58" height="46" rx="4" fill="#1d1d1d" stroke="#000"/>' +
+          '<rect x="-25" y="-21" width="50" height="23" rx="2" fill="#b9c6a2"/><rect x="-25" y="-21" width="50" height="6" fill="rgba(255,255,255,.2)"/>' +
+          '<text class="blcd" y="-5">' + (r.i !== undefined ? esc(E.fmt(Math.abs(r.i), 'A')) : '- - -') + '</text><text class="bchip" y="15">A</text>' +
+          screw(-24, 15, 30) + screw(24, 15, 80); break;
+      case 'pot': // Drehpotentiometer: Rippenknopf mit Zeiger, Skala
+        var ang = -135 + 270 * (q.pos !== undefined ? q.pos : 0.5), ticks = '';
+        for (var ti = 0; ti <= 10; ti++) { var ta = (-135 + 27 * ti) * Math.PI / 180; ticks += 'M' + (Math.sin(ta) * 23).toFixed(1) + ' ' + (-8 - Math.cos(ta) * 23).toFixed(1) + 'L' + (Math.sin(ta) * 26).toFixed(1) + ' ' + (-8 - Math.cos(ta) * 26).toFixed(1); }
+        var ribs = ''; for (var ri = 0; ri < 18; ri++) { var ra = ri * 20 * Math.PI / 180; ribs += 'M' + (Math.sin(ra) * 15.5).toFixed(1) + ' ' + (-8 - Math.cos(ra) * 15.5).toFixed(1) + 'L' + (Math.sin(ra) * 19).toFixed(1) + ' ' + (-8 - Math.cos(ra) * 19).toFixed(1); }
+        s += lead(-40, -25, -8) + lead(40, 25, -8) + '<path class="blead" d="M0 22V11"/>' + '<path d="' + ticks + '" stroke="#3d464d" stroke-width="1.3"/>' + shadowEl(3, -2, 20, 17) +
+          '<circle cy="-8" r="19" fill="#262626" stroke="#000"/><path d="' + ribs + '" stroke="#444" stroke-width="1.5"/><circle cy="-8" r="13" fill="url(#bMetal)" stroke="rgba(0,0,0,.4)"/>' +
+          '<path transform="translate(0 -8) rotate(' + ang + ')" d="M0-2V-13" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>'; break;
+      case 'clock': // Taktgeber-Platine: Quarz, Takt-LED, Beschriftung
+        s += lead(26, 38) + '<rect x="-48" y="-27" width="74" height="54" rx="4" fill="#1f5130" stroke="#0e2a18"/>' +
+          '<path d="M-40 12H-30V-6H-18V12H-6V-6H6" fill="none" stroke="#e8c33a" stroke-width="1.8"/>' +
+          '<rect x="-40" y="-21" width="22" height="10" rx="5" fill="url(#bMetalV)" stroke="rgba(0,0,0,.4)"/><text class="bpart-tiny w" x="4" y="-13">' + esc(Ed.fmtVal(q.freq || 1)) + 'Hz</text>' +
+          '<circle cx="17" cy="-15" r="4.5" fill="' + (r.high ? '#39ff14' : '#243024') + '"' + (r.high ? ' filter="url(#bSoft)"' : '') + '/><text class="bpart-tiny w" x="-12" y="22">TAKT</text>'; break;
       case 'ground':
         s += '<path d="M0 12V18M-11 18H11M-7 23H7M-3 28H3" fill="none" stroke="#2b2b2b" stroke-width="2"/>'; break;
+      case 'battery': // 9-V-Block: Kontaktseite mit Druckknoepfen, Banderole, Clip mit rot/schwarzen Litzen
+        s += shadowEl(4, -14, 64, 34) + '<rect x="-62" y="-48" width="124" height="62" rx="6" fill="#161616"/>' +
+          '<rect x="-36" y="-48" width="98" height="62" fill="url(#bBatWrap)"/><rect x="-36" y="-48" width="98" height="62" fill="url(#bCylV)"/>' +
+          '<text class="bbig" x="13" y="-12">' + esc(Ed.valueText(p).replace(' ', '')) + '</text><text class="bpart-tiny w" x="13" y="3">ALKALINE · DQ POWER</text>' +
+          '<path d="M-36-48V14" stroke="#c9a227" stroke-width="2"/>' +
+          '<circle cx="-50" cy="-32" r="6.5" fill="url(#bMetal)" stroke="rgba(0,0,0,.5)"/><circle cx="-50" cy="-32" r="3" fill="#777"/>' +
+          '<path d="M-50-7l6 3.5v7l-6 3.5-6-3.5v-7z" fill="url(#bMetal)" stroke="rgba(0,0,0,.5)"/>' +
+          '<path d="M-50-26C-72-10-52 22-32 28" fill="none" stroke="#b71c1c" stroke-width="3.4"/><path d="M-50-26C-72-10-52 22-32 28" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1"/>' +
+          '<path d="M-50 7C-38 26 10 16 32 28" fill="none" stroke="#111" stroke-width="3.4"/><path d="M-50 7C-38 26 10 16 32 28" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1"/>' +
+          '<text class="bprint red" x="-32" y="58">+</text><text class="bprint" x="32" y="58">−</text>'; break;
       case 'acsource': // kleiner Funktionsgenerator
         var wf = { square: 'M-46-22h7v-12h8v12h8v-12h8', triangle: 'M-46-22l6-12 6 12 6-12 6 12 3-6' }[q.shape] || 'M-46-28c3-9 6-9 8 0s5 9 8 0 6-9 8 0 5 9 8 0';
-        s += '<rect x="-62" y="-50" width="124" height="66" rx="6" fill="#2a2f36" stroke="#000"/><rect x="-54" y="-42" width="80" height="34" rx="3" fill="#0d1a12"/>' +
+        s += shadowEl(4, -14, 64, 34) + '<rect x="-62" y="-50" width="124" height="68" rx="6" fill="#2a2f36" stroke="#000"/><rect x="-62" y="-50" width="124" height="10" rx="6" fill="rgba(255,255,255,.07)"/>' +
+          '<rect x="-54" y="-42" width="80" height="34" rx="3" fill="#0d1a12" stroke="#000"/><rect x="-54" y="-42" width="80" height="12" fill="rgba(255,255,255,.05)"/>' +
           '<path d="' + wf + '" fill="none" stroke="#39ff14" stroke-width="1.6"/><text class="bgen" x="-8" y="-14">' + esc(Ed.fmtVal(val(p))) + 'V ' + esc(Ed.fmtVal(q.freq || 50)) + 'Hz</text>' +
-          '<circle cx="44" cy="-24" r="12" fill="url(#bMetal)" stroke="#000"/><path d="M44-24l6-7" stroke="#222" stroke-width="2.5"/>' +
-          '<path d="M-52 16C-50 26-40 28-32 28M52 16C50 26 40 28 32 28" fill="none" stroke="#666" stroke-width="2"/>' +
-          '<text class="bprint red" x="-32" y="56">+</text><text class="bprint" x="32" y="56">−</text>'; break;
-      case 'battery':
-        s += '<rect x="-62" y="-48" width="124" height="60" rx="6" fill="#1c1c1c" stroke="#000"/>' +
-          '<rect x="-38" y="-48" width="100" height="60" fill="#2f6fd6"/><rect x="-38" y="-48" width="100" height="8" fill="rgba(255,255,255,.18)"/>' +
-          '<text class="bbig" x="12" y="-10">' + esc(Ed.valueText(p).replace(' ', '')) + '</text>' +
-          '<circle cx="-52" cy="-32" r="6" fill="url(#bMetal)"/><path d="M-52-6l5 3v6l-5 3-5-3v-6z" fill="url(#bMetal)"/>' +
-          '<path d="M-52-26C-70-10-50 20-32 28" fill="none" stroke="#c62828" stroke-width="3"/><path d="M-52 6C-40 24 10 16 32 28" fill="none" stroke="#111" stroke-width="3"/>' +
-          '<text class="bprint red" x="-32" y="56">+</text><text class="bprint" x="32" y="56">−</text>'; break;
+          '<circle cx="44" cy="-26" r="12" fill="#1b1b1b" stroke="#000"/><circle cx="44" cy="-26" r="9" fill="url(#bMetal)"/><path d="M44-26l5-6" stroke="#222" stroke-width="2.5"/>' +
+          '<rect x="-52" y="-2" width="12" height="7" rx="2" fill="#555"/><rect x="-36" y="-2" width="12" height="7" rx="2" fill="#555"/><rect x="-20" y="-2" width="12" height="7" rx="2" fill="#3a6"/>' +
+          '<text class="bpart-tiny w" x="36" y="6">DQ-FG1</text>' +
+          '<path d="M-52 18C-50 26-40 28-32 28M52 18C50 26 40 28 32 28" fill="none" stroke="#666" stroke-width="2"/>' +
+          '<text class="bprint red" x="-32" y="58">+</text><text class="bprint" x="32" y="58">−</text>'; break;
       default:
-        if (CHIP[p.type]) {
+        if (CHIP[p.type]) { // DIP-14 im Sockel: Kerbe, Pin-1-Punkt, Beinchen, Typenbezeichnung
           var two = p.type !== 'not', pins = '';
-          for (var i = 0; i < 7; i++) pins += '<rect x="' + (-33 + i * 10) + '" y="-24" width="5" height="6" fill="#bdbdbd"/><rect x="' + (-33 + i * 10) + '" y="18" width="5" height="6" fill="#bdbdbd"/>';
-          s += (two ? lead(-40, -36, -22) + lead(-40, -36, 22) : lead(-40, -36)) + lead(36, 40) + pins +
-            '<rect x="-36" y="-18" width="72" height="36" rx="2" fill="#1a1a1a" stroke="#000"/><circle cx="-28" r="3" fill="#2c2c2c"/>' +
-            '<text class="bchip" y="4">' + CHIP[p.type] + '</text>' +
+          for (var i = 0; i < 7; i++) pins += '<rect x="' + (-33 + i * 10) + '" y="-24" width="5" height="7" rx="1" fill="url(#bMetalV)"/><rect x="' + (-33 + i * 10) + '" y="17" width="5" height="7" rx="1" fill="url(#bMetalV)"/>';
+          s += (two ? lead(-40, -36, -22) + lead(-40, -36, 22) : lead(-40, -36)) + lead(40, 36) + shadowEl(3, 4, 38, 20) + pins +
+            '<rect x="-36" y="-18" width="72" height="36" rx="2" fill="#1a1a1a" stroke="#000"/><rect x="-36" y="-18" width="72" height="6" fill="rgba(255,255,255,.07)"/>' +
+            '<path d="M-36-5A5 5 0 0 1-36 5" fill="#2c2c2c" stroke="#000" stroke-width=".6"/><circle cx="-29" cy="11" r="1.8" fill="#333"/>' +
+            '<text class="bchip" y="2">74HC' + CHIP[p.type].slice(2) + '</text><text class="bpart-tiny g" y="12">DQ</text>' +
             (r.out !== undefined ? '<circle cx="46" cy="-30" r="4" fill="' + (r.out ? '#39ff14' : '#243024') + '"' + (r.out ? ' filter="url(#bSoft)"' : '') + '/>' : '');
         }
     }
@@ -1552,8 +1612,12 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     var dx = b[0] - a[0], dy = b[1] - a[1], sag = Math.min(110, 18 + Math.sqrt(dx * dx + dy * dy) * 0.22);
     return 'M' + a[0] + ' ' + a[1] + 'C' + (a[0] + dx * 0.15) + ' ' + (a[1] + sag) + ' ' + (b[0] - dx * 0.15) + ' ' + (b[1] + sag) + ' ' + b[0] + ' ' + b[1];
   }
+  /* Bananenstecker von oben: Griffhuelse mit Rippen, stapelbare Buchse oben drauf */
   function plug(xy, col) {
-    return '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="9" fill="' + col + '" stroke="rgba(0,0,0,.6)" stroke-width="1.5"/><circle cx="' + (xy[0] - 2.5) + '" cy="' + (xy[1] - 3) + '" r="3" fill="rgba(255,255,255,.3)"/>';
+    var x = xy[0], y = xy[1];
+    return '<g transform="translate(' + x + ' ' + y + ')"><circle r="10" cy="2" fill="rgba(0,0,0,.35)"/><circle r="9.5" fill="' + col + '" stroke="rgba(0,0,0,.7)" stroke-width="1.3"/>' +
+      '<circle r="7.2" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1"/><circle r="9.5" fill="url(#bRingShine)"/>' +
+      '<circle r="3.6" cy="-1" fill="url(#bBrass)" stroke="rgba(0,0,0,.4)" stroke-width=".6"/><circle r="1.4" cy="-1" fill="#111"/></g>';
   }
 
   /* ---------- Messgeraete ----------
@@ -1563,11 +1627,16 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   function devXY(dev, lx, ly) { return [DEV[dev].x + lx, DEV[dev].y + ly / K]; } // Geraete-Koordinate → Werkbank
   function meterSvg(m) {
     var s = '<g class="bdev" data-dev="meter" transform="translate(' + DEV.meter.x + ' ' + DEV.meter.y + ') scale(1 ' + (1 / K) + ')">' +
-      '<rect x="-75" y="-120" width="150" height="240" rx="16" fill="#f2b705" stroke="#7a5a00" stroke-width="2"/>' +
-      '<rect x="-64" y="-108" width="128" height="216" rx="10" fill="#2b2d31"/><text class="bdevtxt" y="-95">DQ-6000 TRMS</text>' +
-      '<rect x="-54" y="-88" width="108" height="42" rx="4" fill="' + (m.mode === 'OFF' ? '#8d977e' : '#b9c6a2') + '"/>' +
+      '<ellipse cx="6" cy="124" rx="74" ry="9" fill="rgba(0,0,0,.35)" filter="url(#bSoft2)"/>' +
+      '<rect x="-75" y="-120" width="150" height="240" rx="16" fill="url(#bHolster)" stroke="#7a5a00" stroke-width="2"/>' +
+      '<path d="M-68-112h20M48-112h20M-68 112h20M48 112h20" stroke="rgba(0,0,0,.18)" stroke-width="5" stroke-linecap="round"/>' +
+      '<rect x="-64" y="-108" width="128" height="216" rx="10" fill="#2b2d31" stroke="#1a1b1d"/><rect x="-64" y="-108" width="128" height="20" rx="10" fill="rgba(255,255,255,.05)"/>' +
+      '<text class="bdevtxt" y="-95">DQ-6000 TRMS</text>' +
+      '<rect x="-56" y="-90" width="112" height="46" rx="5" fill="#15171a"/>' +
+      '<rect x="-54" y="-88" width="108" height="42" rx="4" fill="' + (m.mode === 'OFF' ? '#8d977e' : '#b9c6a2') + '"/><path d="M-52-86L20-86L-10-48H-52Z" fill="rgba(255,255,255,.12)"/>' +
       '<text class="bmlcd" x="48" y="-58">' + esc(m.mode === 'OFF' ? '' : m.text) + '</text><text class="bmsub" x="-50" y="-78">' + esc(m.sub || '') + '</text>' +
-      '<circle cy="10" r="36" fill="#141414" stroke="#555" stroke-width="2"/>';
+      (m.mode !== 'OFF' ? '<text class="bmsub" x="-50" y="-50">AUTO</text><path d="M34-84h12v6h-12zM46-82h1.5v2H46z" fill="none" stroke="#2f3a24" stroke-width=".9"/>' : '') +
+      '<circle cy="10" r="46" fill="none" stroke="#3a3c40" stroke-width="1"/><circle cy="10" r="38" fill="#101010" stroke="#555" stroke-width="2"/><circle cy="10" r="38" fill="url(#bRingShine)"/>';
     DIAL.forEach(function (d) {
       var a = d[1] * Math.PI / 180, lx = Math.sin(a) * 52, ly = 10 - Math.cos(a) * 52;
       s += '<g data-dial="' + d[0] + '" class="bdial' + (m.mode === d[0] ? ' on' : '') + '"><circle class="bdialhit" cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="13"/>' +
@@ -1578,26 +1647,35 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     [['A', -40, '#c62828'], ['COM', 0, '#1a1a1a'], ['VΩ', 40, '#c62828']].forEach(function (j) {
       s += socket([j[1], 88], j[2]) + '<text class="bdevtxt" x="' + j[1] + '" y="112">' + j[0] + '</text>';
     });
+    s += '<text class="bdevtxt small" x="-40" y="72">10A MAX</text><text class="bdevtxt small" x="40" y="72">600V CAT III</text>';
     if (m.fuse) s += '<text class="bdevwarn" y="-34">Sicherung!</text>';
     return s + '</g>';
   }
   function scopeSvg(sc) {
     var s = '<g class="bdev" data-dev="scope" transform="translate(' + DEV.scope.x + ' ' + DEV.scope.y + ') scale(1 ' + (1 / K) + ')">' +
-      '<rect x="-122" y="-76" width="244" height="152" rx="10" fill="#3a4452" stroke="#1d232b" stroke-width="2"/>' +
-      '<rect x="-110" y="-64" width="150" height="112" rx="4" fill="#07110c"/>';
+      '<ellipse cx="6" cy="80" rx="120" ry="9" fill="rgba(0,0,0,.35)" filter="url(#bSoft2)"/>' +
+      '<rect x="-122" y="-76" width="244" height="152" rx="10" fill="url(#bScopeBody)" stroke="#1d232b" stroke-width="2"/><rect x="-122" y="-76" width="244" height="14" rx="10" fill="rgba(255,255,255,.08)"/>' +
+      '<text class="bdevtxt small" x="-35" y="-67">DQ-SCOPE · 20 MHz</text>' +
+      '<rect x="-114" y="-68" width="158" height="120" rx="6" fill="#1a1f25"/><rect x="-110" y="-64" width="150" height="112" rx="4" fill="#07110c"/>';
     for (var i = 1; i < 10; i++) s += '<path d="M' + (-110 + i * 15) + ' -64V48" class="bscgrid"/>';
     for (i = 1; i < 8; i++) s += '<path d="M-110 ' + (-64 + i * 14) + 'H40" class="bscgrid"/>';
     if (sc && sc.pts && sc.pts.length) s += '<polyline class="bsctrace" points="' + sc.pts.map(function (p) { return (-110 + p[0] * 150).toFixed(1) + ',' + (48 - p[1] * 112).toFixed(1); }).join(' ') + '"/>';
     s += '<text class="bscinfo" x="-105" y="44">' + esc(sc && sc.info ? sc.info : 'CH1 = Messspitzen · RUN') + '</text>' +
-      '<circle cx="70" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><circle cx="102" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/>' +
+      '<path d="M-110-64L-30-64L-95 48H-110Z" fill="rgba(255,255,255,.04)"/>' +
+      '<circle cx="70" cy="-44" r="13" fill="#1b1b1b"/><circle cx="70" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M70-44l0-9" stroke="#222" stroke-width="2"/>' +
+      '<circle cx="102" cy="-44" r="13" fill="#1b1b1b"/><circle cx="102" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M102-44l6-6" stroke="#222" stroke-width="2"/>' +
+      '<rect x="56" y="-14" width="12" height="6" rx="1.5" fill="#666"/><rect x="72" y="-14" width="12" height="6" rx="1.5" fill="#666"/><rect x="88" y="-14" width="12" height="6" rx="1.5" fill="#666"/><rect x="104" y="-14" width="12" height="6" rx="1.5" fill="#c9a227"/>' +
       '<text class="bdevtxt" x="70" y="-24">Y</text><text class="bdevtxt" x="102" y="-24">X</text>' +
-      '<g data-scope="run" class="bscrun"><rect x="56" y="-6" width="58" height="26" rx="5"/><text x="85" y="12">RUN</text></g>' +
+      '<g data-scope="run" class="bscrun"><rect x="56" y="0" width="58" height="24" rx="5"/><text x="85" y="16">RUN</text></g>' +
       socket([85, 50], '#1a1a1a') + '<text class="bdevtxt" x="60" y="54">CH1</text>';
     return s + '</g>';
   }
-  function probeSvg(tip, col, park) { // Pruefspitze: Metallspitze am Anschluss, Griff schraeg nach oben rechts
-    return '<g class="bprobe' + (park ? ' parked' : '') + '"><path d="M' + tip[0] + ' ' + tip[1] + 'l18 -34" stroke="#c8c8c8" stroke-width="3"/>' +
-      '<path d="M' + (tip[0] + 16) + ' ' + (tip[1] - 30) + 'l22 -40" stroke="' + col + '" stroke-width="11" stroke-linecap="round"/></g>';
+  function probeSvg(tip, col, park) { // Pruefspitze: Metallspitze am Anschluss, Fingerschutz, Griff schraeg nach oben rechts
+    var x = tip[0], y = tip[1];
+    return '<g class="bprobe' + (park ? ' parked' : '') + '"><path d="M' + x + ' ' + y + 'l17 -32" stroke="#d0d4d6" stroke-width="2.6" stroke-linecap="round"/>' +
+      '<path d="M' + (x + 12) + ' ' + (y - 27) + 'l10 -5" stroke="' + col + '" stroke-width="5" stroke-linecap="round"/>' +
+      '<path d="M' + (x + 16) + ' ' + (y - 30) + 'l22 -40" stroke="' + col + '" stroke-width="11" stroke-linecap="round"/>' +
+      '<path d="M' + (x + 15) + ' ' + (y - 33) + 'l20 -36" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round"/></g>';
   }
 
   function Bench(svg, opts) {
@@ -1664,19 +1742,66 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         if (dv.dataset.scope && self.opts.onScope) self.opts.onScope();
         return;
       }
+      if (ev.isPrimary !== false) touches = {}; // neue Geste: haengengebliebene Zeiger vergessen
+      if (ev.pointerType === 'touch') touches[ev.pointerId] = [ev.clientX, ev.clientY]; // Zoom nur mit zwei Fingern, nie mit der Maus
+      if (Object.keys(touches).length === 2) { // zweiter Finger: Zoom statt Bedienung
+        pan = null; if (core.drag) { core.drag = null; }
+        var tp = Object.keys(touches).map(function (k) { return touches[k]; });
+        pinch = { d: Math.hypot(tp[0][0] - tp[1][0], tp[0][1] - tp[1][1]), view: self.view.slice(), c: [(tp[0][0] + tp[1][0]) / 2, (tp[0][1] + tp[1][1]) / 2] };
+        return;
+      }
       var t = ev.target.closest('[data-pin],[data-part],[data-wire]'), xy = self._pt(ev);
       if (t && t.dataset.pin) { ev.preventDefault(); core.clickPin(t.dataset.pin); return; }
       if (t && t.dataset.wire !== undefined) { core.clickWire(+t.dataset.wire); return; }
       if (t && t.dataset.part) { if (core.pressPart(t.dataset.part, xy, 'bench')) svg.setPointerCapture(ev.pointerId); return; }
-      core.clickEmpty();
+      // leere Tischflaeche: Ziehen verschiebt den Ausschnitt, ein Klick hebt die Auswahl auf
+      pan = { x: ev.clientX, y: ev.clientY, view: self.view.slice(), moved: false };
+      try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ }
     });
     svg.addEventListener('pointermove', function (ev) {
+      if (touches[ev.pointerId]) touches[ev.pointerId] = [ev.clientX, ev.clientY];
+      if (pinch && Object.keys(touches).length === 2) {
+        var tp = Object.keys(touches).map(function (k) { return touches[k]; }), d = Math.hypot(tp[0][0] - tp[1][0], tp[0][1] - tp[1][1]);
+        if (d > 10) { self.view = pinch.view.slice(); self.zoomAt(pinch.d / d, pinch.c[0], pinch.c[1]); }
+        return;
+      }
+      if (pan) {
+        var dx = ev.clientX - pan.x, dy = ev.clientY - pan.y;
+        if (Math.abs(dx) + Math.abs(dy) > 5) pan.moved = true;
+        if (pan.moved) { var f = pan.view[2] / (svg.getBoundingClientRect().width || 1); self.setView([pan.view[0] - dx * f, pan.view[1] - dy * f, pan.view[2], pan.view[3]]); }
+        return;
+      }
       var xy = self._pt(ev); self.mouse = xy;
       if (core.drag) core.dragTo(xy);
       else if (core.wireStart) self.render();
     });
-    function up() { core.release(); }
+    function up(ev) {
+      delete touches[ev.pointerId];
+      if (pinch) { if (Object.keys(touches).length < 2) pinch = null; return; }
+      if (pan) { var wasPan = pan.moved; pan = null; if (!wasPan) core.clickEmpty(); return; }
+      core.release();
+    }
+    var pan = null, pinch = null, touches = {};
     svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
+    svg.addEventListener('wheel', function (ev) { // Mausrad: zur Mausposition hin zoomen
+      ev.preventDefault();
+      self.zoomAt(Math.exp(ev.deltaY * 0.0015), ev.clientX, ev.clientY);
+    }, { passive: false });
+  };
+  /* Ausschnitt setzen (Bildschirm-Koordinaten der Szene), in sinnvollen Grenzen */
+  Bench.prototype.setView = function (v) {
+    var w = Math.max(360, Math.min(2600, v[2])), h = v[3] * w / v[2];
+    var x = Math.max(-600, Math.min(W + 600 - w, v[0])), y = Math.max(-500, Math.min(H * K + 300 - h, v[1]));
+    this.view = [x, y, w, h];
+    this.svg.setAttribute('viewBox', this.view.join(' '));
+    this.render();
+  };
+  /* Zoomen um Faktor f (>1 = weiter weg) mit festem Punkt unter dem Zeiger (Client-Koordinaten) */
+  Bench.prototype.zoomAt = function (f, cx, cy) {
+    var box = this.svg.getBoundingClientRect(), v = this.view; if (!box.width) return;
+    var px = v[0] + (cx - box.left) / box.width * v[2], py = v[1] + (cy - box.top) / box.height * v[3];
+    var w = Math.max(360, Math.min(2600, v[2] * f)), k = w / v[2];
+    this.setView([px - (px - v[0]) * k, py - (py - v[1]) * k, w, v[3] * k]);
   };
 
   Bench.prototype.render = function () {
@@ -1692,23 +1817,50 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     function pp(pid) { var s = pid.split('.'); return byId[s[0]] ? self.pinPos(byId[s[0]], s[1]) : [0, 0]; }
     var h = [];
     h.push('<defs>' +
-      '<linearGradient id="bBlock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dfe5ea"/><stop offset="1" stop-color="#b3bec7"/></linearGradient>' +
+      '<linearGradient id="bBlock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6ebef"/><stop offset=".55" stop-color="#cbd3d9"/><stop offset="1" stop-color="#b0bbc3"/></linearGradient>' +
+      '<linearGradient id="bSide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8e99a1"/><stop offset="1" stop-color="#6b757c"/></linearGradient>' +
       '<linearGradient id="bResBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ecd9b8"/><stop offset="1" stop-color="#c7aa7c"/></linearGradient>' +
+      '<linearGradient id="bCyl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".3" stop-color="#fff" stop-opacity="0"/><stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>' +
+      '<linearGradient id="bCylV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset=".4" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>' +
+      '<linearGradient id="bBatWrap" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1f4fa8"/><stop offset=".6" stop-color="#2f6fd6"/><stop offset="1" stop-color="#244f9e"/></linearGradient>' +
+      '<linearGradient id="bMetalV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2f2f2"/><stop offset=".5" stop-color="#a4aaaf"/><stop offset="1" stop-color="#666b6f"/></linearGradient>' +
+      '<linearGradient id="bHolster" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffc928"/><stop offset=".5" stop-color="#f2b705"/><stop offset="1" stop-color="#c99600"/></linearGradient>' +
+      '<linearGradient id="bScopeBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#48546a"/><stop offset="1" stop-color="#2f3847"/></linearGradient>' +
       '<radialGradient id="bBrass" cx=".35" cy=".35"><stop offset="0" stop-color="#fff1b8"/><stop offset=".6" stop-color="#c9a227"/><stop offset="1" stop-color="#7a5e10"/></radialGradient>' +
       '<radialGradient id="bMetal" cx=".35" cy=".35"><stop offset="0" stop-color="#f4f4f4"/><stop offset=".7" stop-color="#9da3a8"/><stop offset="1" stop-color="#5d6266"/></radialGradient>' +
+      '<radialGradient id="bRedCap" cx=".35" cy=".35"><stop offset="0" stop-color="#ff7a6e"/><stop offset=".6" stop-color="#d32f2f"/><stop offset="1" stop-color="#8e1717"/></radialGradient>' +
+      '<radialGradient id="bLens" cx=".35" cy=".3"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></radialGradient>' +
+      '<radialGradient id="bRingShine" cx=".35" cy=".3"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></radialGradient>' +
       '<radialGradient id="bGlow"><stop offset="0" stop-color="#fff3c4" stop-opacity=".95"/><stop offset=".45" stop-color="#ffcf4a" stop-opacity=".55"/><stop offset="1" stop-color="#ffb000" stop-opacity="0"/></radialGradient>' +
-      '<pattern id="bMat" width="50" height="50" patternUnits="userSpaceOnUse"><rect width="50" height="50" fill="#35645a"/><path d="M50 0H0V50" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1.5"/></pattern>' +
+      '<radialGradient id="bVignette" cx=".5" cy=".45" r=".75"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></radialGradient>' +
+      '<pattern id="bGY" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#2e9d44"/><rect width="3" height="6" fill="#e3c21b"/></pattern>' +
+      '<pattern id="bMat" width="50" height="50" patternUnits="userSpaceOnUse"><rect width="50" height="50" fill="#35645a"/>' +
+        '<path d="M50 0H0V50" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1.5"/><path d="M25 0V50M0 25H50" stroke="rgba(255,255,255,.03)" stroke-width="1"/>' +
+        '<circle cx="12" cy="37" r=".8" fill="rgba(0,0,0,.18)"/><circle cx="38" cy="14" r=".7" fill="rgba(255,255,255,.06)"/></pattern>' +
+      '<pattern id="bGrain" width="420" height="90" patternUnits="userSpaceOnUse"><rect width="420" height="90" fill="url(#bWood)"/>' +
+        '<path d="M0 12C80 6 160 20 240 12S380 4 420 12M0 34C90 40 170 28 260 36S370 42 420 34M0 58C70 52 150 64 230 56S360 50 420 58M0 80C100 86 190 74 280 82S380 88 420 80" fill="none" stroke="rgba(60,35,15,.22)" stroke-width="1.6"/>' +
+        '<path d="M0 22C110 18 200 28 300 22S400 18 420 22M0 70C120 74 220 64 320 70S400 74 420 70" fill="none" stroke="rgba(255,230,190,.08)" stroke-width="2.5"/>' +
+        '<ellipse cx="300" cy="46" rx="14" ry="5" fill="none" stroke="rgba(60,35,15,.25)" stroke-width="1.2"/></pattern>' +
       '<linearGradient id="bWood" x1="0" y1="0" x2="1" y2=".3"><stop offset="0" stop-color="#8b6a47"/><stop offset=".5" stop-color="#a07c55"/><stop offset="1" stop-color="#7d5e3e"/></linearGradient>' +
+      '<linearGradient id="bEdge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b4c2f"/><stop offset="1" stop-color="#3e2a18"/></linearGradient>' +
       '<filter id="bShadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="5" dy="10" stdDeviation="5" flood-color="#000" flood-opacity=".45"/></filter>' +
       '<filter id="bCable" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="2" dy="6" stdDeviation="3" flood-color="#000" flood-opacity=".4"/></filter>' +
       '<filter id="bBlur" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="9"/></filter>' +
       '<filter id="bSoft" x="-2" y="-2" width="5" height="5"><feGaussianBlur stdDeviation="1.5"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
+      '<filter id="bSoft2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5"/></filter>' +
       '</defs>');
-    // Tisch (Holz) und Tischkante vorne, darauf die Laborunterlage
-    h.push('<rect class="btable" x="-2000" y="-2000" width="' + (W + 4000) + '" height="' + (2000 + H * K + 20) + '" fill="url(#bWood)"/>' +
-      '<rect x="-2000" y="' + (H * K + 20) + '" width="' + (W + 4000) + '" height="26" fill="#5a4129"/><rect x="-2000" y="' + (H * K + 46) + '" width="' + (W + 4000) + '" height="2000" fill="#1b1612"/>');
+    // Tisch (Holz mit Maserung) und Tischkante vorne
+    h.push('<rect class="btable" x="-2000" y="-2000" width="' + (W + 4000) + '" height="' + (2000 + H * K + 20) + '" fill="url(#bGrain)"/>' +
+      '<rect x="-2000" y="' + (H * K + 20) + '" width="' + (W + 4000) + '" height="28" fill="url(#bEdge)"/><path d="M-2000 ' + (H * K + 20.5) + 'H' + (W + 2000) + '" stroke="rgba(255,220,170,.25)" stroke-width="1.5"/>' +
+      '<rect x="-2000" y="' + (H * K + 48) + '" width="' + (W + 4000) + '" height="2000" fill="#1b1612"/>');
     h.push('<g class="bscene" transform="scale(1 ' + K + ')">');
-    h.push('<rect x="0" y="0" width="' + W + '" height="' + H + '" rx="14" fill="url(#bMat)" stroke="#23443c" stroke-width="3"/>');
+    var rl = ''; for (var rx = 50; rx < W; rx += 10) rl += 'M' + rx + ' 8V' + (rx % 100 === 0 ? 22 : rx % 50 === 0 ? 17 : 13);
+    h.push('<rect x="6" y="10" width="' + W + '" height="' + H + '" rx="14" fill="rgba(0,0,0,.35)" filter="url(#bSoft2)"/>' +
+      '<rect x="0" y="0" width="' + W + '" height="' + H + '" rx="14" fill="url(#bMat)" stroke="#23443c" stroke-width="3"/>' +
+      '<rect x="10" y="10" width="' + (W - 20) + '" height="' + (H - 20) + '" rx="10" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-dasharray="2 6"/>' +
+      '<path d="' + rl + '" stroke="rgba(255,255,255,.25)" stroke-width="1.2"/>' +
+      '<text class="bmatprint" x="24" y="' + (H - 22) + '">DIGITAL QUEST · LABOR · ESD</text>' +
+      '<g transform="translate(' + (W - 30) + ' ' + (H - 28) + ')"><circle r="9" fill="url(#bMetal)" stroke="rgba(0,0,0,.5)"/><circle r="4" fill="#8a8f93"/></g>');
     // Bausteine
     L.parts.forEach(function (p) {
       var q = core.pos(p, 'bench'), r = res && res.parts[p.id], sel = core.sel === p.id, sz = size(p.type), rot = q.rot || 0;
@@ -1716,6 +1868,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       var tip = Ed.partTip(p, r);
       h.push('<g class="bpart' + (sel ? ' selected' : '') + (core.locked[p.id] ? ' locked' : '') + '" data-part="' + p.id + '" transform="translate(' + q.x + ' ' + q.y + ')">' +
         '<title>' + esc(tip) + '</title>' +
+        '<rect class="bside" x="' + (-hw) + '" y="' + (-hh + 10) + '" width="' + (2 * hw) + '" height="' + (2 * hh) + '" rx="9"/>' +
         '<g filter="url(#bShadow)" transform="rotate(' + rot + ')">' + illus(p, r, hot[p.id]) + '</g>' +
         (hot[p.id] ? '<g class="bsmoke" transform="scale(1 ' + (1 / K) + ')"><path d="M-8 ' + (-hh * K) + 'c-8-14 8-22 0-36s8-22 0-34"/><path d="M8 ' + (-hh * K) + 'c8-12-6-20 2-32s-6-18 2-28"/></g>' : '') +
         (sel ? '<rect class="bsel" x="' + (-hw - 7) + '" y="' + (-hh - 7) + '" width="' + (2 * hw + 14) + '" height="' + (2 * hh + 14) + '" rx="12"/>' : '') +
@@ -1755,6 +1908,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         '<path d="' + cablePath(jack, grip) + '" fill="none" stroke="' + k[1] + '" stroke-width="4" stroke-linecap="round"/>' + plug(jack, k[1]) + probeSvg(tip, k[1], !set) + '</g>');
     });
     h.push('</g>');
+    h.push('<rect x="' + this.view[0] + '" y="' + this.view[1] + '" width="' + this.view[2] + '" height="' + this.view[3] + '" fill="url(#bVignette)" pointer-events="none"/>');
     this.svg.innerHTML = h.join('');
   };
 

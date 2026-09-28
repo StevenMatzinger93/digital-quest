@@ -7,7 +7,7 @@
       '<p><b>Leitung ziehen:</b> Anschluss anklicken, dann den Ziel-Anschluss. Leitung anklicken und <kbd>Entf</kbd> entfernt sie.</p>' +
       '<p><b>Schalter</b> schaltest du per Klick, <b>Taster</b> sind nur gedrueckt, solange du sie haeltst.</p>' +
       '<p>Die Schaltung wird <b>laufend simuliert</b>. „U anzeigen“ faerbt alle Knoten nach ihrer Spannung (blau = 0 V, rot = hoechste Spannung). Faehrst du ueber ein Bauteil, siehst du U, I und P.</p>' +
-      '<p><b>Schaltplan oder Werkbank:</b> Der Knopf „Werkbank“ / „Schaltplan“ wechselt die Darstellung. Es ist dieselbe Schaltung – auf der Werkbank stecken die Bauteile auf Steckbausteinen und werden mit Laborkabeln verbunden. Bauen, Messen und Pruefen funktionieren in beiden Ansichten gleich.</p>' +
+      '<p><b>Schaltplan oder Werkbank:</b> Der Knopf „Werkbank“ / „Schaltplan“ wechselt die Darstellung. Es ist dieselbe Schaltung – auf der Werkbank stecken die Bauteile auf Steckbausteinen und werden mit Laborkabeln verbunden. Bauen, Messen und Pruefen funktionieren in beiden Ansichten gleich. Auf der Werkbank zoomst du mit dem Mausrad (Handy: zwei Finger) und verschiebst den Tisch, indem du auf einer freien Stelle ziehst; „Einpassen“ zeigt wieder alles.</p>' +
       '<p><b>Zeitlupe:</b> zeigt Schritt fuer Schritt, wie die Simulation zum Ergebnis kommt – welche LED leitend wird, welches Gatter umschaltet, wie sich ein Kondensator ueber die Zeit laedt. Mit dem Schieberegler oder den Pfeiltasten blaettern, „Live“ kehrt zurueck.</p>' +
       '<p><b>Freie Werkbank:</b> auf der Karte. Bauen und messen ohne Auftrag, mit allen bisher freigeschalteten Bauteilen.</p>' },
     { id: 'multimeter', title: 'Multimeter', html:
