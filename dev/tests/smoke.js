@@ -56,10 +56,11 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   await page.click('[data-mm="A"]'); await pin('B1.p'); await pin('B1.n');
   if (await page.textContent('#lcd') !== 'FUSE') errors.push('Sicherung sollte durchbrennen');
 
-  // Werkbank: 1.1 komplett auf der Werkbank bauen (gleicher Kern, eigene Darstellung)
+  // ===== Werkbank (Umschalt-Button in der Toolbar): 1.1 komplett auf der Werkbank bauen =====
   const bpin = id => page.click(`#bench [data-pin="${id}"] .bpinhit`, { force: true });
-  await page.evaluate(() => { delete DigitalQuest.state.drafts['1.1']; delete DigitalQuest.state.drafts['1.2']; DigitalQuest.setView('bench'); DigitalQuest.openItem('1.1'); });
-  if (!await page.isVisible('#bench') || await page.isVisible('#board')) errors.push('Werkbank: Ansicht nicht umgeschaltet');
+  await page.evaluate(() => { delete DigitalQuest.state.drafts['1.1']; delete DigitalQuest.state.drafts['1.2']; DigitalQuest.openItem('1.1'); });
+  await page.click('#btnView');
+  if (!await page.isVisible('#bench') || await page.isVisible('#board')) errors.push('Werkbank: Umschalt-Button wirkt nicht');
   await page.click('[data-add="switch"]'); await page.click('[data-add="lamp"]');
   const bpos = await page.evaluate(() => ['S1', 'H1'].map(id => DigitalQuest.core.part(id).bench));
   if (!bpos[0] || bpos[0].x !== 560 || !bpos[1] || bpos[1].x !== 820) errors.push('Werkbank: bench-Layout der Aufgabe nicht verwendet ' + JSON.stringify(bpos));
@@ -67,13 +68,24 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   await page.click('#bench [data-part="S1"] .bblock', { force: true });
   if (!await page.evaluate(() => DigitalQuest.core.part('S1').props.closed)) errors.push('Werkbank: Schalter nicht umgelegt');
   await page.screenshot({ path: shots + '/6_werkbank_lampe.png' });
+  // gleiche Schaltung im Schema: hin- und herschalten aendert nichts
+  await page.click('#btnView'); const wiresSchema = await page.locator('#board [data-wire]').count();
+  if (wiresSchema !== 3 || !await page.isVisible('#board')) errors.push('Schema nach Umschalten: ' + wiresSchema + ' Leitungen');
+  await page.click('#btnView');
   await check('1.1 Werkbank');
+
+  // 1.2 auf der Werkbank, gemessen mit dem Werkbank-Multimeter (Drehschalter) + Oszilloskop (RUN)
   await page.evaluate(() => DigitalQuest.openItem('1.2'));
+  if (!await page.isVisible('#bench')) errors.push('Werkbank: Ansicht nicht gemerkt');
   await page.click('[data-add="resistor"]');
   await page.fill('[data-prop="value"]', '470'); await page.dispatchEvent('[data-prop="value"]', 'change');
   await bpin('B1.p'); await bpin('R1.a'); await bpin('R1.b'); await bpin('D1.a'); await bpin('D1.k'); await bpin('B1.n');
-  await page.click('[data-mm="V"]'); await bpin('D1.a'); await bpin('D1.k');
-  await page.fill('[data-ans="uled"]', String(parseFloat(await page.textContent('#lcd'))));
+  await page.click('#bench [data-dial="V"] .bdialhit', { force: true }); await bpin('D1.a'); await bpin('D1.k');
+  const lcdB = await page.textContent('#bench .bmlcd'), lcdP = await page.textContent('#lcd');
+  if (lcdB !== lcdP || !/^1\.9\d\d V$/.test(lcdP)) errors.push('Werkbank-Multimeter: ' + lcdB + ' / ' + lcdP);
+  await page.fill('[data-ans="uled"]', String(parseFloat(lcdP)));
+  await page.click('#bench [data-scope] rect', { force: true });
+  if (!await page.locator('#bench .bsctrace').count()) errors.push('Werkbank-Oszilloskop: keine Kurve');
   await page.screenshot({ path: shots + '/7_werkbank_led.png' });
   // Live-Anzeige: Knotenspannungen und Tooltips mit Simulationswerten
   await page.click('#btnVolt');
@@ -82,19 +94,48 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   if (!/U = .*\n?I = /s.test(tipD1)) errors.push('Werkbank: Tooltip ohne U/I: ' + tipD1);
   await page.screenshot({ path: shots + '/8_werkbank_spannungen.png' });
   await page.click('#btnVolt');
+  // Zeitlupe: Rechenschritte des Arbeitspunkts (LED wird leitend)
+  await page.click('#btnReplay');
+  const labels = [];
+  for (let k = 0; k < 6; k++) { labels.push(await page.textContent('#rpLabel')); await page.click('#rpNext'); }
+  if (!labels.some(l => /D1 wird leitend/.test(l)) || !labels.some(l => /Ruhelage/.test(l))) errors.push('Zeitlupe: ' + labels.join(' | '));
+  await page.click('#rpClose');
   await check('1.2 Werkbank');
-  // Kurzschluss auf der Werkbank: Batterie wird heiss
+
+  // Kurzschluss auf der Werkbank: Batterie wird heiss, Diagnose mit echten Werten
   await page.evaluate(() => DigitalQuest.openItem('1.1'));
   await bpin('B1.p'); await bpin('B1.n');
   if (!await page.locator('#bench [data-part="B1"] .bsmoke').count()) errors.push('Werkbank: Kurzschluss nicht sichtbar');
+  if (!/zulaessig 3\.000 A/.test(await page.textContent('#statusbar'))) errors.push('Diagnose ohne Werte: ' + await page.textContent('#statusbar'));
   await page.screenshot({ path: shots + '/9_werkbank_kurzschluss.png' });
-  await page.evaluate(() => DigitalQuest.setView('schema'));
+
+  // ===== Freie Werkbank (Sandbox): Rechteckspannung, V~ mit TRMS und AVG =====
+  await page.evaluate(() => { delete DigitalQuest.state.drafts.sandbox; });
+  await page.click('[data-go="map"]'); await page.click('[data-open="sandbox"]');
+  if (!await page.isVisible('#bench') || await page.isVisible('#btnCheck')) errors.push('Sandbox: nicht als freie Werkbank geoeffnet');
+  // Wechselquelle laeuft live (60 Bilder/s): Klicks atomar per pointerdown ausloesen
+  const bdown = sel => page.dispatchEvent('#bench ' + sel, 'pointerdown');
+  await page.click('[data-add="acsource"]');
+  await page.selectOption('[data-prop="shape"]', 'square');
+  await page.click('[data-add="resistor"]');
+  for (const x of ['G1.p', 'R1.a', 'R1.b', 'G1.n']) await bdown(`[data-pin="${x}"] .bpinhit`);
+  await bdown('[data-dial="VAC"] .bdialhit'); await bdown('[data-pin="R1.a"] .bpinhit'); await bdown('[data-pin="R1.b"] .bpinhit');
+  await page.click('[data-mt="trms"]'); const trms = parseFloat(await page.textContent('#lcd'));
+  await page.click('[data-mt="avg"]'); const avg = parseFloat(await page.textContent('#lcd'));
+  if (!(Math.abs(trms - 10) < 0.2 && Math.abs(avg - 11.1) < 0.2)) errors.push('V~ Rechteck: TRMS ' + trms + ' / AVG ' + avg);
+  await page.screenshot({ path: shots + '/10_sandbox_wechselspannung.png' });
+  await bdown('[data-dial="V"] .bdialhit');
+  if (Math.abs(parseFloat(await page.textContent('#lcd'))) > 0.2) errors.push('V⎓ an Wechselspannung sollte ~0 zeigen: ' + await page.textContent('#lcd'));
+  await page.click('[data-mt="trms"]');
+  await page.click('#btnView'); // zurueck ins Schema fuer die folgenden Tests
 
   // Handy
   const m =await browser.newPage({ viewport: { width: 390, height: 844 } });
   m.on('pageerror', e => errors.push('mobil: ' + e.message));
   await m.goto(url); await m.evaluate(() => DigitalQuest.openItem('1.2')); await m.screenshot({ path: shots + '/5_handy.png', fullPage: true });
   const overflow = await m.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1); if (overflow) errors.push('mobil: horizontaler Scroll');
+  await m.click('#btnView'); await m.screenshot({ path: shots + '/11_handy_werkbank.png' });
+  if (await m.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) errors.push('mobil Werkbank: horizontaler Scroll');
 
   const st = await page.evaluate(() => DigitalQuest.state);
   console.log('Erledigt:', Object.keys(st.done).join(', '), '| Ereignisse:', st.events.length);

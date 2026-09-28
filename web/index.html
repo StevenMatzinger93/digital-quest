@@ -116,6 +116,17 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bpin { fill: none; stroke: transparent; stroke-width: 3; pointer-events: none; }
 [data-pin]:hover .bpin { stroke: #ffb000; } .bpin.active { stroke: #ffb000; stroke-width: 4; filter: drop-shadow(0 0 4px #ffb000); }
 .bprobe { pointer-events: none; }
+.bgen { font: 700 10px var(--font-code); fill: #39ff14; text-anchor: middle; pointer-events: none; }
+.bdev { cursor: default; } .bdevtxt { font: 700 9px var(--font-code); fill: #d8d8d8; text-anchor: middle; pointer-events: none; }
+.bmlcd { font: 700 21px var(--font-code); fill: #1b2413; text-anchor: end; pointer-events: none; } .bmsub { font: 700 8px var(--font-code); fill: #2f3a24; pointer-events: none; }
+.bdevwarn { font: 800 11px var(--font-ui); fill: #ff5a3c; text-anchor: middle; pointer-events: none; }
+.bdial { cursor: pointer; } .bdial text { font: 700 10px var(--font-code); fill: #e0e0e0; text-anchor: middle; pointer-events: none; }
+.bdial.on text { fill: #ffb000; } .bdialhit { fill: transparent; } .bdial:hover .bdialhit { fill: rgba(255,176,0,.18); }
+.bscgrid { stroke: rgba(57,255,20,.13); stroke-width: 1; } .bsctrace { fill: none; stroke: #ffb000; stroke-width: 2; filter: drop-shadow(0 0 3px #ffb000); }
+.bscinfo { font: 8px var(--font-code); fill: #7fd98a; pointer-events: none; }
+.bscrun { cursor: pointer; } .bscrun rect { fill: #2e7d32; stroke: #0f3a12; } .bscrun:hover rect { fill: #43a047; } .bscrun text { font: 700 11px var(--font-code); fill: #fff; text-anchor: middle; pointer-events: none; }
+/* Touch: groessere Klickflaechen fuer Buchsen/Anschluesse */
+@media (pointer: coarse) { .bpinhit { r: 22px; } .pinhit { r: 17px; } .bdialhit { r: 17px; } }
 .bvlabel { font: 600 12px var(--font-code); fill: #7fe6ff; paint-order: stroke; stroke: rgba(0,0,0,.75); stroke-width: 3px; pointer-events: none; }
 .blcd { font: 700 10px var(--font-code); fill: #1d2416; text-anchor: middle; pointer-events: none; }
 .bsmoke path { fill: none; stroke: rgba(200,200,200,.55); stroke-width: 4; stroke-linecap: round; pointer-events: none; animation: bsmoke 1.6s ease-in-out infinite; }
@@ -146,7 +157,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 /* Messgeraete */
 .meter { background: linear-gradient(#2b2a22, #1e1d17); border: 2px solid #3a3625; border-radius: 14px; padding: 10px; margin-bottom: 12px; }
 .lcd { background: #9fb28a; color: #1b2413; font-size: 28px; font-weight: 700; text-align: right; padding: 6px 10px; border-radius: 6px; box-shadow: inset 0 2px 6px rgba(0,0,0,.4); min-height: 48px; letter-spacing: 1px; }
-.mm-modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 8px 0; }
+.mm-modes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 8px 0; }
 .mm-modes button { background: #111; border: 1px solid #444; color: #ddd; border-radius: 6px; padding: 5px 0; cursor: pointer; font-family: var(--font-code); }
 .mm-modes button.on { background: var(--accent-lead); color: #111; border-color: var(--accent-lead); }
 #mmProbes { display: flex; justify-content: space-between; font-family: var(--font-code); font-size: 12px; } .pr.red { color: #ff6b61; } .pr.black { color: #bbb; }
@@ -182,6 +193,16 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   .top { padding: 8px 10px; gap: 8px; } .brand span { display: none; } .top nav button { padding: 6px 8px; font-size: 13px; } #saveInd { display: none; }
   .manual { grid-template-columns: 1fr; } .progress .bar { width: 140px; }
 }
+
+/* Multimeter-Verfahren, Zeitlupe, Ansichtswechsel */
+.mm-type { display: flex; gap: 4px; align-items: center; margin: 0 0 8px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; }
+.mm-type button { background: #111; border: 1px solid #444; color: #ccc; border-radius: 6px; padding: 3px 6px; cursor: pointer; font: 11px var(--font-code); }
+.mm-type button.on { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+#replay { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: var(--bg-secondary); border: 1px solid var(--accent-lead-dim); border-radius: 12px; padding: 6px 8px; }
+#replay[hidden] { display: none; } #rpSlider { flex: 1; min-width: 120px; accent-color: var(--accent-lead); }
+#rpLabel { font: 12px var(--font-code); color: var(--accent-lead); flex-basis: 100%; }
+.tb.view { border-color: var(--accent-lead-dim); }
+.map-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -201,17 +222,22 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         <button class="tb" id="btnDel" title="Loeschen (Entf)">✕ Loeschen</button>
         <button class="tb" id="btnFit" title="Ansicht einpassen">⤢ Einpassen</button>
         <button class="tb" id="btnVolt" title="Knotenspannungen einfaerben">U anzeigen</button>
+        <button class="tb" id="btnReplay" title="Rechenschritte bzw. Zeitverlauf Schritt fuer Schritt ansehen">⏱ Zeitlupe</button>
+        <button class="tb view" id="btnView" title="Darstellung wechseln: Schaltplan oder Werkbank">Werkbank</button>
         <button class="tb" id="btnRepair" title="Defekte Bauteile ersetzen">Reparieren</button>
         <button class="tb" id="btnReset" title="Startzustand">Neu</button>
       </div>
       <div class="boardwrap"><svg id="board" tabindex="0" aria-label="Schaltplan"></svg><svg id="bench" class="off" tabindex="0" aria-label="Werkbank"></svg></div>
+      <div id="replay" hidden><button class="tb" id="rpPrev" title="Schritt zurueck">◀</button><button class="tb" id="rpPlay" title="Abspielen">▶</button><button class="tb" id="rpNext" title="Schritt vor">▶|</button>
+        <input type="range" id="rpSlider" min="0" max="0" value="0" aria-label="Schritt"><span id="rpLabel"></span><button class="tb" id="rpClose">✕ Live</button></div>
       <div id="statusbar"></div>
     </div>
     <aside class="panel">
       <h3>Multimeter</h3>
       <div class="meter">
         <div class="lcd" id="lcd">OFF</div>
-        <div class="mm-modes"><button data-mm="OFF">OFF</button><button data-mm="V">V⎓</button><button data-mm="A">A⎓</button><button data-mm="R">Ω</button></div>
+        <div class="mm-modes"><button data-mm="OFF">OFF</button><button data-mm="V">V⎓</button><button data-mm="VAC">V~</button><button data-mm="A">A⎓</button><button data-mm="R">Ω</button></div>
+        <div class="mm-type" title="Wie das Geraet Wechselspannung auswertet"><span>V~ misst</span><button data-mt="avg">Mittelwert (AVG)</button><button data-mt="trms">Echt-Effektivwert (TRMS)</button></div>
         <div id="mmProbes"></div><p id="mmHelp"></p><p id="mmWarn"></p>
         <button class="btn small" id="btnFuse" hidden>Sicherung ersetzen</button>
       </div>
@@ -234,7 +260,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 /* Digital Quest – Schaltungs-Engine (window.DQEngine)
  * Knotenanalyse (Nodal Analysis) mit Norton-Ersatz fuer alle Quellen, stueckweise-lineare
  * Dioden/LEDs, Logikgatter (5-V-Logik, implizite Versorgung), Kondensator (Backward Euler),
- * Multimeter (V, A, Ohm) mit realistischen Fehlbedienungen.
+ * Multimeter (V, A, Ohm, V~ mit AVG/TRMS) mit realistischen Fehlbedienungen und Anzeige wie ein 6000-Digit-DMM,
+ * Wechselspannungsquelle (Sinus/Rechteck/Dreieck), Rechenschritt-Verlauf fuer die Zeitlupe.
  * Einheiten: V, A, Ohm, F, s, Hz. Kein DOM – laeuft in Node und im Browser.
  */
 (function (root) {
@@ -244,7 +271,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   var G_OPEN = 1e-12;         // offener Schalter, gesperrte Diode, Gattereingang
   var G_CLOSED = 1e3;         // geschlossener Schalter (1 mOhm)
   var LOGIC = { vcc: 5, vth: 2.5, rout: 25 };
-  var METER = { rV: 1e7, rA: 0.1, fuseA: 10, iOhm: 1e-3, olOhm: 40e6 };
+  var METER = { rV: 1e7, rA: 0.1, fuseA: 10, iOhm: 1e-3, olOhm: 40e6, cal: 0.002 }; // cal: Verstaerkungsfehler des Geraets (+0,2 %)
+  var TRACE_MAX = 200;        // Zeitlupe: hoechstens so viele Rechenschritte pro Arbeitspunkt speichern
 
   var LED_COLORS = {
     rot: { vf: 1.8, rgb: '#ff3b30' }, gelb: { vf: 2.0, rgb: '#ffd60a' },
@@ -265,6 +293,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     capacitor: { label: 'Kondensator', prefix: 'C', pins: ['a', 'b'], props: { value: 100e-6 }, unit: 'F' },
     ammeter:   { label: 'Strommesser', prefix: 'A', pins: ['a', 'b'], props: {} },
     clock:     { label: 'Taktgeber', prefix: 'CLK', pins: ['out'], props: { freq: 1 }, unit: 'Hz' },
+    acsource:  { label: 'Wechselspannungsquelle', prefix: 'G', pins: ['p', 'n'], props: { value: 10, freq: 50, shape: 'sine', offset: 0, ri: 0.05, imax: 3 }, unit: 'V' }, // value = Scheitelwert Û
     not:  { label: 'NICHT', prefix: 'U', pins: ['in', 'out'], props: {}, logic: function (i) { return !i[0]; } },
     and:  { label: 'UND', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] && i[1]; } },
     or:   { label: 'ODER', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] || i[1]; } },
@@ -272,7 +301,15 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     nor:  { label: 'NOR', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return !(i[0] || i[1]); } },
     xor:  { label: 'XOR', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] !== i[1]; } }
   };
-  var SOURCES = { battery: 1, clock: 1 };
+  var SOURCES = { battery: 1, clock: 1, acsource: 1 };
+  /* Momentanwert einer Wechselspannungsquelle zur Zeit t (Kurvenform sine | square | triangle, Scheitelwert value, Gleichanteil offset) */
+  function wave(q, t) {
+    var ph = ((t * q.freq) % 1 + 1) % 1, w;
+    if (q.shape === 'square') w = ph < 0.5 ? 1 : -1;
+    else if (q.shape === 'triangle') w = ph < 0.25 ? 4 * ph : ph < 0.75 ? 2 - 4 * ph : 4 * ph - 4;
+    else w = Math.sin(2 * Math.PI * ph);
+    return (q.offset || 0) + q.value * w;
+  }
 
   function def(type) { var d = PARTS[type]; if (!d) throw new Error('Unbekanntes Bauteil: ' + type); return d; }
   function props(p) { var o = {}, d = def(p.type).props, k; for (k in d) o[k] = d[k]; for (k in (p.props || {})) o[k] = p.props[k]; if (p.value !== undefined) o.value = p.value; return o; }
@@ -300,7 +337,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     var groundRoots = {}, autoGround = false;
     parts.forEach(function (p) { if (p.type === 'ground') groundRoots[find(p.id + '.g')] = true; });
     if (!Object.keys(groundRoots).length) { // ohne Masse-Symbol: Minuspol der ersten Quelle ist Bezugspunkt 0 V
-      var src = parts.filter(function (p) { return p.type === 'battery'; })[0];
+      var src = parts.filter(function (p) { return p.type === 'battery' || p.type === 'acsource'; })[0];
       if (src) { groundRoots[find(src.id + '.n')] = true; autoGround = true; }
     }
     var names = {}, count = 0, pinNode = {};
@@ -335,10 +372,12 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     return x;
   }
 
-  function newState() { return { burnt: {}, vC: {}, logic: {}, diode: {}, fuse: false, t: 0 }; }
+  /* burnInfo: Werte im Moment des Durchbrennens (fuer die Diagnose), fuseInfo: Strom beim Ausloesen der Multimeter-Sicherung */
+  function newState() { return { burnt: {}, vC: {}, logic: {}, diode: {}, fuse: false, t: 0, burnInfo: {}, fuseInfo: null }; }
 
   /* ---------- Loeser fuer einen Arbeitspunkt / Zeitschritt ----------
-   * opts: { state, dt (null = Gleichstrom-Arbeitspunkt), t, meter:{mode,a,b} (Knoten), zeroSources, inject:{a,b,i} } */
+   * opts: { state, dt (null = Gleichstrom-Arbeitspunkt), t, meter:{mode,a,b} (Knoten), zeroSources, inject:{a,b,i},
+   *         trace: [] – nimmt jeden Rechenschritt auf: {iter, kind:'diode'|'gate'|'done'|'unstable', changed:[{id,to}], res} (max. TRACE_MAX) } */
   function solve(net, opts) {
     opts = opts || {};
     var st = opts.state || newState();
@@ -376,6 +415,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
           case 'switch': case 'button': G(n.a, n.b, q.closed ? G_CLOSED : G_OPEN); break;
           case 'ammeter': G(n.a, n.b, 1 / METER.rA); break;
           case 'battery': norton(n.p, n.n, opts.zeroSources ? 0 : q.value, q.ri); break;
+          case 'acsource': norton(n.p, n.n, opts.zeroSources ? 0 : wave(q, t), q.ri); break;
           case 'led': case 'diode':
             var vf = p.type === 'led' ? LED_COLORS[q.color].vf : q.vf;
             if (diode[p.id]) norton(n.a, n.k, vf, q.rs); else G(n.a, n.k, G_OPEN);
@@ -405,34 +445,45 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     }
     function volt(node) { return node === '0' || idx[node] === undefined ? 0 : V[idx[node]]; }
 
+    var trace = opts.trace;
+    function record(kind, changed) { // Zustand dieses Rechenschritts fuer die Zeitlupe festhalten
+      if (!trace) return;
+      trace.push({ iter: iter, kind: kind, changed: changed, res: evaluate() });
+      if (trace.length > TRACE_MAX) trace.shift();
+    }
     for (iter = 0; iter < 400; iter++) {
       var sys = build();
       var x = solveLinear(sys.A, sys.z);
       if (!x) throw new Error('Gleichungssystem nicht loesbar');
       V = x;
-      var changed = false;
+      var changed = [];
       net.parts.forEach(function (p) {
         if (st.burnt[p.id] || diode[p.id] === undefined) return;
         var q = p.props, vf = p.type === 'led' ? LED_COLORS[q.color].vf : q.vf;
         var vak = volt(p.n.a) - volt(p.n.k);
-        if (!diode[p.id] && vak > vf + 1e-9) { diode[p.id] = true; changed = true; }
-        else if (diode[p.id] && vak < vf - 1e-9) { diode[p.id] = false; changed = true; }
+        if (!diode[p.id] && vak > vf + 1e-9) changed.push({ id: p.id, to: true });
+        else if (diode[p.id] && vak < vf - 1e-9) changed.push({ id: p.id, to: false });
       });
-      if (changed) continue;
+      if (changed.length) { record('diode', changed); changed.forEach(function (c) { diode[c.id] = c.to; }); continue; }
       // Gatter einzeln nachfuehren (Gauss-Seidel) – stabil fuer Speicherschaltungen
-      var gateChanged = false;
+      var gateChanged = null;
       for (var gi = 0; gi < net.parts.length && !gateChanged; gi++) {
         var g = net.parts[gi], d = def(g.type);
         if (!d.logic || st.burnt[g.id]) continue;
         var ins = d.pins.filter(function (pin) { return pin !== 'out'; }).map(function (pin) { return volt(g.n[pin]) > LOGIC.vth; });
         var out = !!d.logic(ins);
-        if (out !== logic[g.id]) { logic[g.id] = out; gateChanged = true; }
+        if (out !== logic[g.id]) gateChanged = { id: g.id, to: out };
       }
-      if (!gateChanged) { converged = true; break; }
+      if (gateChanged) { record('gate', [gateChanged]); logic[gateChanged.id] = gateChanged.to; continue; }
+      converged = true; break;
     }
     if (!converged) oscillating = true;
+    var res = evaluate();
+    record(converged ? 'done' : 'unstable', []);
+    return { res: res, V: res.nodeV, diode: diode, logic: logic };
 
-    // ---------- Auswertung ----------
+    // ---------- Auswertung (auch fuer jeden Zwischenschritt der Zeitlupe) ----------
+    function evaluate() {
     var nodeV = { '0': 0 }; net.nodes.forEach(function (n) { nodeV[n] = volt(n); });
     var res = { nodeV: nodeV, parts: {}, faults: [], converged: converged, oscillating: oscillating };
     net.parts.forEach(function (p) {
@@ -444,10 +495,11 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         case 'switch': case 'button': r.v = across(n.a, n.b); r.i = r.v * (q.closed ? G_CLOSED : G_OPEN); break;
         case 'ammeter': r.v = across(n.a, n.b); r.i = r.v / METER.rA; break;
         case 'battery': r.v = across(n.p, n.n); r.i = r.burnt ? 0 : (q.value - r.v) / q.ri; r.p = r.v * r.i; break;
+        case 'acsource': r.u0 = opts.zeroSources ? 0 : wave(q, t); r.v = across(n.p, n.n); r.i = (r.u0 - r.v) / q.ri; r.p = r.v * r.i; break;
         case 'led': case 'diode':
           var vf = p.type === 'led' ? LED_COLORS[q.color].vf : q.vf;
           r.v = across(n.a, n.k);
-          r.i = (!r.burnt && diode[p.id]) ? (r.v - vf) / q.rs : 0; r.p = r.v * r.i;
+          r.i = (!r.burnt && diode[p.id]) ? (r.v - vf) / q.rs : 0; r.p = r.v * r.i; r.vf = vf;
           r.on = r.i > 1e-5; // leitend und mehr als 10 uA
           if (p.type === 'led') r.brightness = r.on ? Math.min(1, r.i / q.inom) : 0;
           break;
@@ -457,30 +509,32 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       }
       res.parts[p.id] = r;
     });
-    return { res: res, V: nodeV, diode: diode, logic: logic };
+    return res;
+    }
   }
 
   /* Pruefen auf Schaeden, Zustand fortschreiben. Gibt Ergebnis zurueck (wird ggf. mehrfach geloest). */
   function step(net, state, opts) {
     opts = opts || {};
     state = state || newState();
-    var out, guard = 0;
+    var out, guard = 0, trace = opts.trace ? [] : null;
     for (;;) {
-      out = solve(net, { state: state, dt: opts.dt, t: state.t, meter: opts.meter });
+      out = solve(net, { state: state, dt: opts.dt, t: state.t, meter: opts.meter, trace: trace });
       var newDamage = false, faults = [];
       net.parts.forEach(function (p) {
         var r = out.res.parts[p.id], q = p.props;
-        if (state.burnt[p.id]) { if (p.type === 'led') faults.push({ code: 'LED_BURNT', part: p.id }); return; }
-        if (p.type === 'led' && r.i > q.imax) { state.burnt[p.id] = true; newDamage = true; faults.push({ code: 'LED_BURNT', part: p.id, i: r.i }); }
-        if (p.type === 'led' && r.v < -5) faults.push({ code: 'LED_REVERSE', part: p.id, v: r.v });
-        if (p.type === 'battery' && Math.abs(r.i) > q.imax) faults.push({ code: 'SHORT', part: p.id, i: r.i });
-        if ((p.type === 'resistor' || p.type === 'pot') && Math.abs(r.p) > q.pmax) faults.push({ code: 'OVERLOAD', part: p.id, p: r.p });
-        if (p.type === 'lamp' && Math.abs(r.p) > q.pnom * 2) { state.burnt[p.id] = true; newDamage = true; faults.push({ code: 'LAMP_BURNT', part: p.id }); }
-        if (p.type === 'ammeter' && Math.abs(r.i) > METER.fuseA) faults.push({ code: 'AMMETER_OVERLOAD', part: p.id });
+        var bi = state.burnInfo || (state.burnInfo = {});
+        if (state.burnt[p.id]) { if (p.type === 'led' || p.type === 'lamp') faults.push(Object.assign({ code: p.type === 'led' ? 'LED_BURNT' : 'LAMP_BURNT', part: p.id }, bi[p.id] || {})); return; }
+        if (p.type === 'led' && r.i > q.imax) { state.burnt[p.id] = true; newDamage = true; bi[p.id] = { i: r.i, v: r.v, imax: q.imax, vf: r.vf }; faults.push(Object.assign({ code: 'LED_BURNT', part: p.id }, bi[p.id])); }
+        if (p.type === 'led' && r.v < -5) faults.push({ code: 'LED_REVERSE', part: p.id, v: r.v, vmax: 5 });
+        if ((p.type === 'battery' || p.type === 'acsource') && Math.abs(r.i) > q.imax) faults.push({ code: 'SHORT', part: p.id, i: r.i, imax: q.imax, u: q.value, ri: q.ri });
+        if ((p.type === 'resistor' || p.type === 'pot') && Math.abs(r.p) > q.pmax) faults.push({ code: 'OVERLOAD', part: p.id, p: r.p, pmax: q.pmax, v: r.v, i: r.i, r: q.value });
+        if (p.type === 'lamp' && Math.abs(r.p) > q.pnom * 2) { state.burnt[p.id] = true; newDamage = true; bi[p.id] = { p: r.p, v: r.v, pnom: q.pnom }; faults.push(Object.assign({ code: 'LAMP_BURNT', part: p.id }, bi[p.id])); }
+        if (p.type === 'ammeter' && Math.abs(r.i) > METER.fuseA) faults.push({ code: 'AMMETER_OVERLOAD', part: p.id, i: r.i, imax: METER.fuseA });
       });
       if (opts.meter && opts.meter.mode === 'A' && !state.fuse) {
         var im = (out.V[opts.meter.a] - out.V[opts.meter.b]) / METER.rA;
-        if (Math.abs(im) > METER.fuseA) { state.fuse = true; newDamage = true; }
+        if (Math.abs(im) > METER.fuseA) { state.fuse = true; state.fuseInfo = { i: im, imax: METER.fuseA }; newDamage = true; }
       }
       if (out.res.oscillating) faults.push({ code: 'UNSTABLE' });
       if (!net.hasGround && !net.autoGround && net.parts.some(function (p) { return def(p.type).logic || p.type === 'clock'; })) faults.push({ code: 'NO_GROUND' });
@@ -493,6 +547,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       state.t += opts.dt;
     }
     out.res.t = state.t;
+    if (trace) out.res.trace = trace;
     return out.res;
   }
 
@@ -501,10 +556,56 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   function fmt(v, unit) {
     if (!isFinite(v)) return 'OL';
     var a = Math.abs(v), pre = [[1e6, 'M'], [1e3, 'k'], [1, ''], [1e-3, 'm'], [1e-6, 'µ']];
+    if (a < 5e-10) return '0.000 ' + unit;
     for (var i = 0; i < pre.length; i++) if (a >= pre[i][0] || i === pre.length - 1) {
       var x = v / pre[i][0]; return (Math.abs(x) >= 100 ? x.toFixed(1) : Math.abs(x) >= 10 ? x.toFixed(2) : x.toFixed(3)) + ' ' + pre[i][1] + unit;
     }
   }
+  /* ---------- Anzeige wie ein 6000-Digit-Multimeter ----------
+   * Automatische Bereichswahl, Kalibrierfehler METER.cal und Flackern der letzten Stelle (±1 Digit).
+   * rng: Zufallsquelle (Standard Math.random, 0 = ohne Rauschen). Gibt {text, value, range} zurueck. */
+  var DMM_RANGES = {
+    V: [[0.6, 1e-3, 'mV', 1], [6, 1, 'V', 3], [60, 1, 'V', 2], [600, 1, 'V', 1], [1000, 1, 'V', 0]],
+    A: [[6e-3, 1e-3, 'mA', 3], [60e-3, 1e-3, 'mA', 2], [0.6, 1e-3, 'mA', 1], [6, 1, 'A', 3], [10, 1, 'A', 2]],
+    'Ω': [[600, 1, 'Ω', 1], [6e3, 1e3, 'kΩ', 3], [60e3, 1e3, 'kΩ', 2], [600e3, 1e3, 'kΩ', 1], [6e6, 1e6, 'MΩ', 3], [40e6, 1e6, 'MΩ', 2]]
+  };
+  function dmm(value, unit, rng) {
+    var rs = DMM_RANGES[unit]; if (!rs) return { text: fmt(value, unit), value: value };
+    if (!isFinite(value)) return { text: 'OL', value: Infinity };
+    var a = Math.abs(value), r = rs.filter(function (x) { return a < x[0]; })[0];
+    if (!r) return { text: 'OL', value: Infinity, range: rs[rs.length - 1] };
+    var rnd = rng === 0 ? function () { return 0.5; } : (rng || Math.random), lsd = Math.pow(10, -r[3]);
+    var d = value / r[1] * (1 + METER.cal), u = rnd();
+    d += (u < 0.25 ? -1 : u > 0.75 ? 1 : 0) * lsd;
+    d = Math.round(d / lsd) * lsd; if (Math.abs(d) < lsd / 2) d = 0;
+    return { text: d.toFixed(r[3]) + ' ' + r[2], value: d * r[1], range: r };
+  }
+
+  /* ---------- Wechselgroessen ----------
+   * Simuliert einige Perioden der langsamsten Wechselquelle (Wechselspannungsquelle, Taktgeber) und wertet die letzte aus:
+   * dc = Mittelwert (Anzeige V⎓), rms = Echt-Effektivwert des Wechselanteils (TRMS),
+   * avg = Mittelwert-Gleichrichter, auf Sinus-Effektivwert skaliert (AVG: 1,1107 · Gleichrichtwert), peak, pp.
+   * probe: {a, b} Pins. Ohne Wechselquelle: static:true, Wechselanteil 0. */
+  var FORM_FACTOR_SINE = Math.PI / (2 * Math.SQRT2);
+  function acMeasure(layout, probe, opts) {
+    opts = opts || {};
+    var net = buildNetlist(layout), freqs = [];
+    net.parts.forEach(function (p) { if ((p.type === 'acsource' || p.type === 'clock') && p.props.freq > 0) freqs.push(p.props.freq); });
+    if (net.pinNode[probe.a] === undefined || (probe.b && net.pinNode[probe.b] === undefined)) return { ok: false, error: 'Messspitze nicht an einem Anschluss' };
+    if (!freqs.length) {
+      var r0 = step(net, newState(), {}), v0 = r0.nodeV[net.pinNode[probe.a]] - (probe.b ? r0.nodeV[net.pinNode[probe.b]] : 0);
+      return { ok: true, static: true, dc: v0, rms: 0, avg: 0, peak: Math.abs(v0), pp: 0 };
+    }
+    var T = 1 / Math.min.apply(null, freqs), per = opts.periods || 5, n = opts.samples || 200;
+    var sim = simulate(layout, { dt: T / n, tEnd: T * per, probes: [{ a: probe.a, b: probe.b }] }).samples;
+    var last = sim.slice(-n).map(function (x) { return x.ch0; });
+    var dc = last.reduce(function (s, v) { return s + v; }, 0) / n;
+    var rms = Math.sqrt(last.reduce(function (s, v) { return s + (v - dc) * (v - dc); }, 0) / n);
+    var rect = last.reduce(function (s, v) { return s + Math.abs(v - dc); }, 0) / n;
+    var mx = Math.max.apply(null, last), mn = Math.min.apply(null, last);
+    return { ok: true, static: false, dc: dc, rms: rms, avg: FORM_FACTOR_SINE * rect, peak: Math.max(Math.abs(mx), Math.abs(mn)), pp: mx - mn, period: T };
+  }
+
   function measure(layout, probe, state) {
     state = state || newState();
     var net = buildNetlist(layout);
@@ -530,6 +631,12 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       var R = (dead.V[a] - dead.V[b]) / METER.iOhm;
       if (R > METER.olOhm) R = Infinity;
       return { ok: true, mode: 'R', value: R, unit: 'Ω', display: fmt(R, 'Ω'), res: live };
+    }
+    if (mode === 'VAC') { // Wechselspannung, AC-gekoppelt; probe.meterType 'avg' (Mittelwert-Gleichrichter) oder 'trms' (Standard)
+      var ac = acMeasure(layout, probe);
+      if (!ac.ok) return ac;
+      var vac = probe.meterType === 'avg' ? ac.avg : ac.rms;
+      return { ok: true, mode: 'VAC', value: vac, unit: 'V', display: fmt(vac, 'V'), ac: ac };
     }
     throw new Error('Unbekannter Messbereich: ' + mode);
   }
@@ -652,7 +759,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 
   var api = {
     expectedAnswers: expectedAnswers, UNIT_SCALE: UNIT_SCALE,
-    version: '0.1.0', PARTS: PARTS, LED_COLORS: LED_COLORS, LOGIC: LOGIC, METER: METER, SOURCES: SOURCES,
+    version: '0.2.0', PARTS: PARTS, LED_COLORS: LED_COLORS, LOGIC: LOGIC, METER: METER, SOURCES: SOURCES, TRACE_MAX: TRACE_MAX,
+    wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, acMeasure: acMeasure,
     buildNetlist: buildNetlist, solve: solve, step: step, newState: newState,
     measure: measure, simulate: simulate, runTask: runTask, fmt: fmt, clone: clone,
     analyze: function (layout, state) { var net = buildNetlist(layout); return step(net, state || newState(), {}); }
@@ -840,15 +948,22 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       '<p><b>Bauteil hinzufuegen:</b> Klick in der Palette. <b>Verschieben:</b> ziehen. <b>Drehen:</b> <kbd>R</kbd>. <b>Loeschen:</b> <kbd>Entf</kbd>.</p>' +
       '<p><b>Leitung ziehen:</b> Anschluss anklicken, dann den Ziel-Anschluss. Leitung anklicken und <kbd>Entf</kbd> entfernt sie.</p>' +
       '<p><b>Schalter</b> schaltest du per Klick, <b>Taster</b> sind nur gedrueckt, solange du sie haeltst.</p>' +
-      '<p>Die Schaltung wird <b>laufend simuliert</b>. „U anzeigen“ faerbt alle Knoten nach ihrer Spannung (blau = 0 V, rot = hoechste Spannung). Faehrst du ueber ein Bauteil, siehst du U, I und P.</p>' },
+      '<p>Die Schaltung wird <b>laufend simuliert</b>. „U anzeigen“ faerbt alle Knoten nach ihrer Spannung (blau = 0 V, rot = hoechste Spannung). Faehrst du ueber ein Bauteil, siehst du U, I und P.</p>' +
+      '<p><b>Schaltplan oder Werkbank:</b> Der Knopf „Werkbank“ / „Schaltplan“ wechselt die Darstellung. Es ist dieselbe Schaltung – auf der Werkbank stecken die Bauteile auf Steckbausteinen und werden mit Laborkabeln verbunden. Bauen, Messen und Pruefen funktionieren in beiden Ansichten gleich.</p>' +
+      '<p><b>Zeitlupe:</b> zeigt Schritt fuer Schritt, wie die Simulation zum Ergebnis kommt – welche LED leitend wird, welches Gatter umschaltet, wie sich ein Kondensator ueber die Zeit laedt. Mit dem Schieberegler oder den Pfeiltasten blaettern, „Live“ kehrt zurueck.</p>' +
+      '<p><b>Freie Werkbank:</b> auf der Karte. Bauen und messen ohne Auftrag, mit allen bisher freigeschalteten Bauteilen.</p>' },
     { id: 'multimeter', title: 'Multimeter', html:
       '<p>Waehle einen Messbereich (V, A, Ω). Danach setzen Klicks auf Anschluesse die Messspitzen: zuerst <b style="color:#ff6b61">rot (+)</b>, dann <b>schwarz (COM)</b>.</p>' +
-      '<ul><li><b>V</b> – parallel zum Bauteil. Innenwiderstand 10 MΩ.</li><li><b>A</b> – in Reihe: Leitung loesen, Spitzen in die Luecke. Innenwiderstand 0,1 Ω, Sicherung 10 A.</li><li><b>Ω</b> – nur spannungsfrei. „0L“ = Unterbrechung.</li></ul>' },
+      '<p>Auf der Werkbank steht dasselbe Geraet: Drehschalter anklicken, die Messkabel fuehren zu den Pruefspitzen.</p>' +
+      '<ul><li><b>V⎓</b> – Gleichspannung, parallel zum Bauteil. Innenwiderstand 10 MΩ. Bei schneller Wechselspannung zeigt das Geraet den Mittelwert (beim Sinus 0 V).</li>' +
+      '<li><b>V~</b> – Wechselspannung (nur der Wechselanteil). Zwei Messverfahren: <b>Mittelwert (AVG)</b> misst den Gleichrichtwert und rechnet ihn auf den Sinus-Effektivwert um – bei Rechteck oder Dreieck zeigt es falsch. <b>Echt-Effektivwert (TRMS)</b> stimmt fuer jede Kurvenform.</li><li><b>A</b> – in Reihe: Leitung loesen, Spitzen in die Luecke. Innenwiderstand 0,1 Ω, Sicherung 10 A.</li><li><b>Ω</b> – nur spannungsfrei. „0L“ = Unterbrechung.</li></ul>' +
+      '<p>Wie ein echtes Geraet zeigt es 4 Stellen mit automatischer Bereichswahl, hat eine kleine Messabweichung (+0,2 %) und die letzte Stelle kann um 1 Digit schwanken.</p>' },
     { id: 'oszi', title: 'Oszilloskop', html:
-      '<p>Das Oszilloskop zeichnet die Spannung zwischen den Multimeter-Spitzen (oder rot gegen Masse) ueber die Zeit auf – ab dem Einschalten. Ideal fuer Lade-/Entladekurven und Taktsignale.</p>' },
+      '<p>Das Oszilloskop zeichnet die Spannung zwischen den Multimeter-Spitzen (oder rot gegen Masse) ueber die Zeit auf – ab dem Einschalten. Ideal fuer Lade-/Entladekurven, Taktsignale und Wechselspannungen. Auf der Werkbank startet die Taste RUN am Geraet die Aufnahme.</p>' },
     { id: 'bauteile', title: 'Bauteile', html:
       '<dl><dt>Spannungsquelle</dt><dd>Ideale Quelle mit kleinem Innenwiderstand.</dd><dt>LED</dt><dd>Leuchtet ab U<sub>F</sub> (rot 1,8 V … blau 3,0 V), max. 30 mA.</dd>' +
-      '<dt>Logikgatter</dt><dd>5-V-Logik, Schaltschwelle 2,5 V. Versorgung ist intern, brauchen aber eine Masse (⏚).</dd><dt>Kondensator</dt><dd>Laedt ueber einen Widerstand mit τ = R · C.</dd></dl>' }
+      '<dt>Logikgatter</dt><dd>5-V-Logik, Schaltschwelle 2,5 V. Versorgung ist intern, brauchen aber eine Masse (⏚).</dd><dt>Kondensator</dt><dd>Laedt ueber einen Widerstand mit τ = R · C.</dd>' +
+      '<dt>Wechselspannungsquelle</dt><dd>Kleiner Funktionsgenerator: Scheitelwert Û, Frequenz und Kurvenform (Sinus, Rechteck, Dreieck) einstellbar. Effektivwert beim Sinus: U = Û / √2.</dd></dl>' }
   ];
 })(typeof window !== 'undefined' ? window : globalThis);
 
@@ -867,7 +982,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   var E = root.DQEngine;
   var SPACES = {
     schema: { grid: 20, w: 1000, h: 620, edge: 40, clamp: 60, free: [90, 70], step: [120, 90] },
-    bench: { grid: 10, w: 1200, h: 760, edge: 70, clamp: 90, free: [130, 100], step: [150, 110] }
+    bench: { grid: 10, w: 1200, h: 760, edge: 70, clamp: 90, free: [130, 100], step: [150, 110],
+      reserved: [[1000, 90, 1180, 420], [930, 500, 1190, 710]] } // Multimeter und Oszilloskop (bench.js) – dort keine neuen Bauteile ablegen
   };
 
   function Circuit(opts) {
@@ -918,7 +1034,10 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   /* Freien Rasterplatz nahe (cx, cy) im Raum suchen, spiralfoermig */
   Circuit.prototype._place = function (cx, cy, space) {
     var S = SPACES[space], self = this, g = S.grid, cx0 = Math.round(cx / g) * g, cy0 = Math.round(cy / g) * g, x = cx0, y = cy0, ring = 0, k = 0;
-    function free(x, y) { return self.layout.parts.every(function (p) { var q = self.pos(p, space); return Math.abs(q.x - x) > S.free[0] || Math.abs(q.y - y) > S.free[1]; }); }
+    function free(x, y) {
+      var off = (S.reserved || []).some(function (r) { return x > r[0] - S.free[0] / 2 && x < r[2] + S.free[0] / 2 && y > r[1] - S.free[1] / 2 && y < r[3] + S.free[1] / 2; });
+      return !off && self.layout.parts.every(function (p) { var q = self.pos(p, space); return Math.abs(q.x - x) > S.free[0] || Math.abs(q.y - y) > S.free[1]; });
+    }
     while (!free(x, y) && ring < 12) {
       k++; var ang = k * 0.9; ring = Math.floor(k / 7) + 1;
       x = Math.round((cx0 + Math.cos(ang) * S.step[0] * ring) / g) * g; y = Math.round((cy0 + Math.sin(ang) * S.step[1] * ring) / g) * g;
@@ -1029,7 +1148,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   var GRID = 20, W = 1000, H = 620;
   var TWO = { a: [-40, 0], b: [40, 0] };
   var GEO = {
-    ground: { g: [0, -20] }, battery: { p: [0, -40], n: [0, 40] },
+    ground: { g: [0, -20] }, battery: { p: [0, -40], n: [0, 40] }, acsource: { p: [0, -40], n: [0, 40] },
     resistor: TWO, lamp: TWO, switch: TWO, button: TWO, capacitor: TWO, ammeter: TWO,
     led: { a: [-40, 0], k: [40, 0] }, diode: { a: [-40, 0], k: [40, 0] },
     pot: { a: [-40, 0], b: [40, 0], w: [0, 40] }, clock: { out: [40, 0] },
@@ -1055,6 +1174,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     var d = E.PARTS[p.type], q = p.props || {}, v = p.value !== undefined ? p.value : (q.value !== undefined ? q.value : d.props.value);
     switch (p.type) {
       case 'battery': return fmtVal(v) + ' V';
+      case 'acsource': return 'Û ' + fmtVal(v) + ' V ' + ({ square: '⊓', triangle: '△' }[q.shape] || '∿') + ' ' + fmtVal(q.freq || d.props.freq) + ' Hz';
       case 'resistor': case 'pot': case 'lamp': return fmtVal(v) + ' Ω';
       case 'capacitor': return fmtVal(v) + 'F';
       case 'clock': return fmtVal(q.freq || d.props.freq) + ' Hz';
@@ -1096,6 +1216,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         s = '<path ' + c + ' d="M0-40V-6M0 6V40"/><path class="sym thick" d="M-16-6H16"/><path class="sym thick2" d="M-8 6H8"/><text class="plus" x="12" y="-14">+</text>'; break;
       case 'ground':
         s = '<path ' + c + ' d="M0-20V0M-14 0H14M-9 6H9M-4 12H4"/>'; break;
+      case 'acsource':
+        s = '<path ' + c + ' d="M0-40V-16M0 16V40"/><circle ' + c + ' r="16"/><path class="sym thin" d="M-10 0C-6-10-2-10 0 0S6 10 10 0"/><text class="plus" x="12" y="-20">+</text>'; break;
       case 'clock':
         var hi = r.high;
         s = '<rect ' + c + ' x="-22" y="-18" width="44" height="36" rx="3"/><path class="sym thin" d="M-14 8H-7V-8H0V8H7V-8H14"/><path ' + c + ' d="M22 0H40"/>' +
@@ -1114,7 +1236,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   }
 
   function labels(p) { // Beschriftung neben senkrechten, ueber/unter waagrechten Bauteilen
-    var vert = (p.type === 'battery' || p.type === 'ground') ? (p.rot || 0) % 180 === 0 : (p.rot || 0) % 180 === 90;
+    var vert = (p.type === 'battery' || p.type === 'ground' || p.type === 'acsource') ? (p.rot || 0) % 180 === 0 : (p.rot || 0) % 180 === 90;
     var v = esc(valueText(p));
     if (vert) return '<text class="lbl" x="24" y="-4" text-anchor="start">' + esc(p.id) + '</text><text class="val" x="24" y="12" text-anchor="start">' + v + '</text>';
     var up = GATE_SIGN[p.type] ? -38 : -24, dn = GATE_SIGN[p.type] ? 48 : 30;
@@ -1197,6 +1319,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   Editor.prototype.key = function (ev) { this.core.key(ev); };
 
   Editor.prototype.render = function () {
+    if (!this.svg.getClientRects().length) return; // ausgeblendet (Werkbank aktiv): nicht zeichnen, beim Einblenden zeichnet fit()
     var self = this, L = this.layout, sim = this.sim, res = sim && sim.res, pinNode = sim && sim.pinNode;
     var vmax = 0; if (res) Object.keys(res.nodeV).forEach(function (n) { vmax = Math.max(vmax, res.nodeV[n]); });
     var byId = {}; L.parts.forEach(function (p) { byId[p.id] = p; });
@@ -1274,7 +1397,10 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
  * Bauteile als Praktikums-Steckbausteine mit 4-mm-Buchsen, Verbindungen als Laborkabel mit Bananensteckern.
  * Nur Renderer: Zustand und Bedienlogik liegen im Kern (circuit-ui.js, Raum 'bench'), die Werkbank macht
  * Hit-Testing und rechnet Bildschirm → Werkbank-Koordinaten um. Gleiche data-Attribute wie im Schema
- * (data-part, data-pin, data-wire). Unsichtbar wird nicht gezeichnet, erst beim Einblenden (fit). */
+ * (data-part, data-pin, data-wire). Unsichtbar wird nicht gezeichnet, erst beim Einblenden (fit).
+ * Messgeraete stehen rechts auf der Unterlage (Frontansicht, nicht gestaucht): Multimeter mit Drehschalter (data-dial),
+ * LCD, Buchsen und Messkabeln zu den Pruefspitzen; Oszilloskop mit Bildschirm und RUN-Taste (data-scope).
+ * Die App setzt bench.meter = {mode, text, fuse, sub} und bench.scope = {pts:[[0..1, 0..1]], info}. */
 (function (root) {
   'use strict';
   var E = root.DQEngine, Circuit = root.DQCircuit, Ed = root.DQEditor;
@@ -1283,13 +1409,13 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   /* Buchsen je Bauteil (unrotiert, Werkbank-Einheiten) und Groesse des Bausteins [breite, hoehe] */
   var TWO = { a: [-45, 0], b: [45, 0] };
   var GEO = {
-    battery: { p: [-32, 38], n: [32, 38] }, ground: { g: [0, -8] },
+    battery: { p: [-32, 38], n: [32, 38] }, acsource: { p: [-32, 38], n: [32, 38] }, ground: { g: [0, -8] },
     resistor: TWO, lamp: TWO, switch: TWO, button: TWO, capacitor: TWO, ammeter: TWO,
     led: { a: [-45, 0], k: [45, 0] }, diode: { a: [-45, 0], k: [45, 0] },
     pot: { a: [-50, -8], b: [50, -8], w: [0, 32] }, clock: { out: [48, 0] },
     not: { in: [-50, 0], out: [50, 0] }
   };
-  var SIZE = { battery: [150, 112], ground: [60, 70], pot: [130, 94], clock: [124, 80], lamp: [130, 70], ammeter: [130, 72] };
+  var SIZE = { battery: [150, 112], acsource: [150, 112], ground: [60, 70], pot: [130, 94], clock: [124, 80], lamp: [130, 70], ammeter: [130, 72] };
   ['and', 'or', 'nand', 'nor', 'xor'].forEach(function (g) { GEO[g] = { in1: [-50, -22], in2: [-50, 22], out: [50, 0] }; });
   var CHIP = { and: '7408', or: '7432', nand: '7400', nor: '7402', xor: '7486', not: '7404' };
   function size(type) { return SIZE[type] || (CHIP[type] ? [130, 92] : [130, 64]); }
@@ -1325,7 +1451,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       '<rect class="bbevel" x="' + (-w / 2 + 3) + '" y="' + (-h / 2 + 3) + '" width="' + (w - 6) + '" height="' + (h - 6) + '" rx="7"/>';
     // Buchsen
     Object.keys(g).forEach(function (pin) {
-      var ring = p.type === 'battery' ? (pin === 'p' ? '#c62828' : '#1a1a1a') : p.type === 'ground' ? '#2e9d44' : null;
+      var ring = p.type === 'battery' || p.type === 'acsource' ? (pin === 'p' ? '#c62828' : '#1a1a1a') : p.type === 'ground' ? '#2e9d44' : null;
       s += socket(g[pin], ring);
     });
     if (hot) s += '<circle r="' + (Math.min(w, h) / 2 + 6) + '" fill="#ff5a1f" opacity=".55" filter="url(#bBlur)"/>'; // Hitze (Kurzschluss, Ueberlast)
@@ -1387,6 +1513,13 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
           '<circle cx="16" cy="-14" r="4" fill="' + (r.high ? '#39ff14' : '#243024') + '"' + (r.high ? ' filter="url(#bSoft)"' : '') + '/>'; break;
       case 'ground':
         s += '<path d="M0 12V18M-11 18H11M-7 23H7M-3 28H3" fill="none" stroke="#2b2b2b" stroke-width="2"/>'; break;
+      case 'acsource': // kleiner Funktionsgenerator
+        var wf = { square: 'M-46-22h7v-12h8v12h8v-12h8', triangle: 'M-46-22l6-12 6 12 6-12 6 12 3-6' }[q.shape] || 'M-46-28c3-9 6-9 8 0s5 9 8 0 6-9 8 0 5 9 8 0';
+        s += '<rect x="-62" y="-50" width="124" height="66" rx="6" fill="#2a2f36" stroke="#000"/><rect x="-54" y="-42" width="80" height="34" rx="3" fill="#0d1a12"/>' +
+          '<path d="' + wf + '" fill="none" stroke="#39ff14" stroke-width="1.6"/><text class="bgen" x="-8" y="-14">' + esc(Ed.fmtVal(val(p))) + 'V ' + esc(Ed.fmtVal(q.freq || 50)) + 'Hz</text>' +
+          '<circle cx="44" cy="-24" r="12" fill="url(#bMetal)" stroke="#000"/><path d="M44-24l6-7" stroke="#222" stroke-width="2.5"/>' +
+          '<path d="M-52 16C-50 26-40 28-32 28M52 16C50 26 40 28 32 28" fill="none" stroke="#666" stroke-width="2"/>' +
+          '<text class="bprint red" x="-32" y="56">+</text><text class="bprint" x="32" y="56">−</text>'; break;
       case 'battery':
         s += '<rect x="-62" y="-48" width="124" height="60" rx="6" fill="#1c1c1c" stroke="#000"/>' +
           '<rect x="-38" y="-48" width="100" height="60" fill="#2f6fd6"/><rect x="-38" y="-48" width="100" height="8" fill="rgba(255,255,255,.18)"/>' +
@@ -1411,7 +1544,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   /* Kabelfarbe: Pluspol rot, Minuspol/Masse schwarz, sonst nach Reihenfolge */
   var CABLE = ['#2a6fdb', '#e0b400', '#2f9e44', '#8e44ad', '#e67e22'];
   function cableColor(w, i, byId) {
-    function kind(pid) { var s = pid.split('.'), p = byId[s[0]]; if (!p) return ''; return p.type === 'battery' ? s[1] : p.type === 'ground' ? 'n' : ''; }
+    function kind(pid) { var s = pid.split('.'), p = byId[s[0]]; if (!p) return ''; return p.type === 'battery' || p.type === 'acsource' ? s[1] : p.type === 'ground' ? 'n' : ''; }
     var k = kind(w.from) || kind(w.to);
     return k === 'p' ? '#d32f2f' : k === 'n' ? '#1e1e1e' : CABLE[i % CABLE.length];
   }
@@ -1423,16 +1556,61 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     return '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="9" fill="' + col + '" stroke="rgba(0,0,0,.6)" stroke-width="1.5"/><circle cx="' + (xy[0] - 2.5) + '" cy="' + (xy[1] - 3) + '" r="3" fill="rgba(255,255,255,.3)"/>';
   }
 
+  /* ---------- Messgeraete ----------
+   * Lage in Werkbank-Koordinaten (Mitte); gezeichnet in Frontansicht (Gruppe mit scale(1, 1/K)). */
+  var DEV = { meter: { x: 1085, y: 255 }, scope: { x: 1060, y: 610 } };
+  var DIAL = [['OFF', -110, 'OFF'], ['V', -55, 'V⎓'], ['VAC', 0, 'V~'], ['A', 55, 'A⎓'], ['R', 110, 'Ω']];
+  function devXY(dev, lx, ly) { return [DEV[dev].x + lx, DEV[dev].y + ly / K]; } // Geraete-Koordinate → Werkbank
+  function meterSvg(m) {
+    var s = '<g class="bdev" data-dev="meter" transform="translate(' + DEV.meter.x + ' ' + DEV.meter.y + ') scale(1 ' + (1 / K) + ')">' +
+      '<rect x="-75" y="-120" width="150" height="240" rx="16" fill="#f2b705" stroke="#7a5a00" stroke-width="2"/>' +
+      '<rect x="-64" y="-108" width="128" height="216" rx="10" fill="#2b2d31"/><text class="bdevtxt" y="-95">DQ-6000 TRMS</text>' +
+      '<rect x="-54" y="-88" width="108" height="42" rx="4" fill="' + (m.mode === 'OFF' ? '#8d977e' : '#b9c6a2') + '"/>' +
+      '<text class="bmlcd" x="48" y="-58">' + esc(m.mode === 'OFF' ? '' : m.text) + '</text><text class="bmsub" x="-50" y="-78">' + esc(m.sub || '') + '</text>' +
+      '<circle cy="10" r="36" fill="#141414" stroke="#555" stroke-width="2"/>';
+    DIAL.forEach(function (d) {
+      var a = d[1] * Math.PI / 180, lx = Math.sin(a) * 52, ly = 10 - Math.cos(a) * 52;
+      s += '<g data-dial="' + d[0] + '" class="bdial' + (m.mode === d[0] ? ' on' : '') + '"><circle class="bdialhit" cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="13"/>' +
+        '<text x="' + lx.toFixed(1) + '" y="' + (ly + 4).toFixed(1) + '">' + d[2] + '</text></g>';
+    });
+    var cur = DIAL.filter(function (d) { return d[0] === m.mode; })[0] || DIAL[0];
+    s += '<g transform="translate(0 10) rotate(' + cur[1] + ')"><rect x="-9" y="-30" width="18" height="60" rx="8" fill="#3a3a3a" stroke="#000"/><path d="M0-28V-12" stroke="#ffb000" stroke-width="4" stroke-linecap="round"/></g>';
+    [['A', -40, '#c62828'], ['COM', 0, '#1a1a1a'], ['VΩ', 40, '#c62828']].forEach(function (j) {
+      s += socket([j[1], 88], j[2]) + '<text class="bdevtxt" x="' + j[1] + '" y="112">' + j[0] + '</text>';
+    });
+    if (m.fuse) s += '<text class="bdevwarn" y="-34">Sicherung!</text>';
+    return s + '</g>';
+  }
+  function scopeSvg(sc) {
+    var s = '<g class="bdev" data-dev="scope" transform="translate(' + DEV.scope.x + ' ' + DEV.scope.y + ') scale(1 ' + (1 / K) + ')">' +
+      '<rect x="-122" y="-76" width="244" height="152" rx="10" fill="#3a4452" stroke="#1d232b" stroke-width="2"/>' +
+      '<rect x="-110" y="-64" width="150" height="112" rx="4" fill="#07110c"/>';
+    for (var i = 1; i < 10; i++) s += '<path d="M' + (-110 + i * 15) + ' -64V48" class="bscgrid"/>';
+    for (i = 1; i < 8; i++) s += '<path d="M-110 ' + (-64 + i * 14) + 'H40" class="bscgrid"/>';
+    if (sc && sc.pts && sc.pts.length) s += '<polyline class="bsctrace" points="' + sc.pts.map(function (p) { return (-110 + p[0] * 150).toFixed(1) + ',' + (48 - p[1] * 112).toFixed(1); }).join(' ') + '"/>';
+    s += '<text class="bscinfo" x="-105" y="44">' + esc(sc && sc.info ? sc.info : 'CH1 = Messspitzen · RUN') + '</text>' +
+      '<circle cx="70" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><circle cx="102" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/>' +
+      '<text class="bdevtxt" x="70" y="-24">Y</text><text class="bdevtxt" x="102" y="-24">X</text>' +
+      '<g data-scope="run" class="bscrun"><rect x="56" y="-6" width="58" height="26" rx="5"/><text x="85" y="12">RUN</text></g>' +
+      socket([85, 50], '#1a1a1a') + '<text class="bdevtxt" x="60" y="54">CH1</text>';
+    return s + '</g>';
+  }
+  function probeSvg(tip, col, park) { // Pruefspitze: Metallspitze am Anschluss, Griff schraeg nach oben rechts
+    return '<g class="bprobe' + (park ? ' parked' : '') + '"><path d="M' + tip[0] + ' ' + tip[1] + 'l18 -34" stroke="#c8c8c8" stroke-width="3"/>' +
+      '<path d="M' + (tip[0] + 16) + ' ' + (tip[1] - 30) + 'l22 -40" stroke="' + col + '" stroke-width="11" stroke-linecap="round"/></g>';
+  }
+
   function Bench(svg, opts) {
     this.svg = svg; this.opts = opts || {};
     this.core = this.opts.core || new Circuit(this.opts);
     this.sim = null; this.showVolt = false; this.mouse = [0, 0]; this.dirty = true;
+    this.meter = { mode: 'OFF', text: 'OFF' }; this.scope = null;
     this.view = [0, 0, W, W * 0.62]; // gleiches Seitenverhaeltnis wie das Schema (1000 × 620), damit die Flaeche gleich gross bleibt
     svg.setAttribute('viewBox', this.view.join(' '));
     this.core.attach(this);
     this._bind();
   }
-  Bench.GEO = GEO; Bench.K = K; Bench.illus = illus;
+  Bench.GEO = GEO; Bench.K = K; Bench.illus = illus; Bench.DEV = DEV;
 
   Bench.prototype._hidden = function () { return !this.svg.getClientRects().length; };
   Bench.prototype.pinPos = function (part, pin) {
@@ -1444,6 +1622,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     if (this._hidden()) { this.dirty = true; return; }
     var self = this, core = this.core, x0 = 400, y0 = 240, x1 = 800, y1 = 520;
     var q = core.layout.parts.map(function (p) { return core.pos(p, 'bench'); });
+    q.push({ x: DEV.meter.x + 20, y: DEV.meter.y - 100 }, { x: DEV.scope.x + 60, y: DEV.scope.y + 60 }); // Messgeraete immer im Bild
     Object.keys(core.benchHints).forEach(function (id) { q.push(core.benchHints[id]); });
     if (q.length) {
       x0 = Math.min.apply(null, q.map(function (p) { return p.x; })); x1 = Math.max.apply(null, q.map(function (p) { return p.x; }));
@@ -1478,6 +1657,13 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   Bench.prototype._bind = function () {
     var self = this, svg = this.svg, core = this.core;
     svg.addEventListener('pointerdown', function (ev) {
+      var dv = ev.target.closest('[data-dial],[data-scope],[data-dev]');
+      if (dv) { // Messgeraete: Drehschalter, RUN-Taste; Gehaeuse selbst ohne Wirkung
+        ev.preventDefault();
+        if (dv.dataset.dial && self.opts.onDial) self.opts.onDial(dv.dataset.dial);
+        if (dv.dataset.scope && self.opts.onScope) self.opts.onScope();
+        return;
+      }
       var t = ev.target.closest('[data-pin],[data-part],[data-wire]'), xy = self._pt(ev);
       if (t && t.dataset.pin) { ev.preventDefault(); core.clickPin(t.dataset.pin); return; }
       if (t && t.dataset.wire !== undefined) { core.clickWire(+t.dataset.wire); return; }
@@ -1552,7 +1738,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         var pid = p.id + '.' + pin, xy = self.pinPos(p, pin), v = nodeV(pid), col = wcol(pid);
         h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="14"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen Masse' : '') + '</title></circle>' +
           '<circle class="bpin' + (core.wireStart === pid ? ' active' : '') + (used[pid] ? ' used' : '') + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="12"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
-        if (col && pin !== 'g') h.push('<g transform="translate(' + (xy[0] + 12) + ' ' + (xy[1] - 14) + ') scale(1 ' + (1 / K) + ')"><text class="bvlabel">' + E.fmt(v, 'V') + '</text></g>');
+        if (col && pin !== 'g' && used[pid]) h.push('<g transform="translate(' + (xy[0] + 12) + ' ' + (xy[1] - 14) + ') scale(1 ' + (1 / K) + ')"><text class="bvlabel">' + E.fmt(v, 'V') + '</text></g>');
       });
     });
     // Kabel im Entstehen
@@ -1560,12 +1746,13 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
       var a = pp(core.wireStart);
       h.push('<path class="bwire pending" d="' + cablePath(a, this.mouse) + '"/>');
     }
-    // Messspitzen (einfach; Multimeter auf der Werkbank folgt in Phase 4)
-    [['a', '#d32f2f'], ['b', '#1e1e1e']].forEach(function (k) {
-      var pid = core.probes[k[0]]; if (!pid || !byId[pid.split('.')[0]]) return;
-      var xy = pp(pid);
-      h.push('<g class="bprobe" filter="url(#bCable)"><path d="M' + xy[0] + ' ' + xy[1] + 'l18 -34" stroke="#bbb" stroke-width="3"/>' +
-        '<path d="M' + (xy[0] + 16) + ' ' + (xy[1] - 30) + 'l22 -40" stroke="' + k[1] + '" stroke-width="11" stroke-linecap="round"/></g>');
+    // Messgeraete mit Messkabeln: rot aus VΩ (bzw. A im Strombereich), schwarz aus COM; nicht gesetzte Spitzen liegen vor dem Geraet
+    h.push(scopeSvg(this.scope), meterSvg(this.meter));
+    [['a', '#d32f2f', this.meter.mode === 'A' ? -40 : 40, -34], ['b', '#1e1e1e', 0, 18]].forEach(function (k) {
+      var pid = core.probes[k[0]], set = pid && byId[pid.split('.')[0]];
+      var tip = set ? pp(pid) : devXY('meter', k[3] - 20, 200), jack = devXY('meter', k[2], 88), grip = [tip[0] + 38, tip[1] - 70];
+      h.push('<g filter="url(#bCable)"><path d="' + cablePath(jack, grip) + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="6" stroke-linecap="round"/>' +
+        '<path d="' + cablePath(jack, grip) + '" fill="none" stroke="' + k[1] + '" stroke-width="4" stroke-linecap="round"/>' + plug(jack, k[1]) + probeSvg(tip, k[1], !set) + '</g>');
     });
     h.push('</g>');
     this.svg.innerHTML = h.join('');
@@ -1649,7 +1836,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   function renderMap() {
     var total = ORDER.length, done = ORDER.filter(function (id) { return S.done[id]; }).length;
     var h = '<div class="map-head"><div><h1>Laborkarte</h1><p class="dim">Baue, miss, verstehe. Jede Station schaltet die naechste frei.</p></div>' +
-      '<div class="progress"><div class="bar"><i style="width:' + (100 * done / Math.max(1, total)).toFixed(1) + '%"></i></div><span>' + done + ' / ' + total + '</span></div></div>';
+      '<div class="map-actions"><button class="btn" data-open="sandbox" title="Frei bauen und messen – ohne Auftrag">Freie Werkbank</button><div class="progress"><div class="bar"><i style="width:' + (100 * done / Math.max(1, total)).toFixed(1) + '%"></i></div><span>' + done + ' / ' + total + '</span></div></div></div>';
     DQ.chapters.forEach(function (c) {
       h += '<section class="chapter"><header><span class="chno">Kapitel ' + c.id + '</span><h2>' + esc(c.title) + '</h2><p>' + esc(c.intro || '') + '</p></header><div class="nodes">';
       c.sequence.forEach(function (id) {
@@ -1662,12 +1849,32 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     $('#scr-map').innerHTML = h;
     $$('[data-open]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openItem(b.dataset.open); }; });
   }
-  function openItem(id) { var it = DQ.byId[id]; if (!it) return; if (it.kind === 'theory') openTheory(it); else openTask(it); }
+  function openItem(id) { if (id === 'sandbox') { openTask(sandboxTask()); return; } var it = DQ.byId[id]; if (!it) return; if (it.kind === 'theory') openTheory(it); else openTask(it); }
+
+  /* Freie Werkbank (Sandbox): kein Auftrag, keine Pruefung; alle Bauteile aus bereits freigeschalteten Aufgaben
+   * (Palette + Startaufbau), mit ?alle der ganze Bauteilkatalog. Entwurf unter drafts.sandbox. */
+  function sandboxTask() {
+    var types = {};
+    if (UNLOCK_ALL) Object.keys(E.PARTS).forEach(function (k) { types[k] = true; });
+    DQ.tasks.forEach(function (t) {
+      if (!unlocked(t.id)) return;
+      t.palette.forEach(function (k) { types[k] = true; }); t.start.parts.forEach(function (p) { types[p.type] = true; });
+    });
+    if (!Object.keys(types).length) types.battery = types.lamp = types.switch = true;
+    return { id: 'sandbox', kind: 'task', sandbox: true, ch: 0, title: 'Freie Werkbank', tags: [],
+      brief: 'Baue und miss frei – ohne Auftrag und ohne Pruefung. Alle Bauteile, die du bisher freigeschaltet hast, liegen bereit. Dein Aufbau bleibt gespeichert.',
+      palette: Object.keys(E.PARTS).filter(function (k) { return types[k]; }), start: { parts: [], wires: [] }, tests: [], measure: [], wrong: [] };
+  }
 
   /* ================= Aufgabe ================= */
   /* Ein Schaltungszustand (core), zwei Darstellungen: Schema (ed) und Werkbank (bench) */
-  var core = null, ed = null, bench = null, viewMode = /[?&]werkbank\b/.test(location.search) ? 'bench' : 'schema', live = { net: null, state: E.newState(), dynamic: false, raf: 0, last: 0, res: null };
+  var core = null, ed = null, bench = null, viewMode = /[?&]werkbank\b/.test(location.search) ? 'bench' : (S.settings.view === 'bench' ? 'bench' : 'schema');
+  /* live.trace: Rechenschritte des letzten Arbeitspunkts, live.hist: letzte Zeitschritte (Zeitlupe) */
+  var live = { net: null, state: E.newState(), dynamic: false, raf: 0, last: 0, res: null, trace: [], hist: [], replay: null };
+  var HIST_MAX = 300;
   var meter = { mode: 'OFF', a: null, b: null, next: 'a' };
+  function preferredView() { return /[?&]werkbank\b/.test(location.search) || S.settings.view === 'bench' ? 'bench' : 'schema'; }
+  function meterType() { return S.settings.meterType === 'avg' ? 'avg' : 'trms'; }
 
   function parseVal(str) {
     var m = String(str).trim().replace(',', '.').replace('µ', 'u').match(/^(\d*\.?\d+)\s*([pnumkKM]?)(\d*)\s*[A-Za-zΩ]*$/);
@@ -1683,6 +1890,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     var draft = S.drafts[t.id];
     var layout = draft && draft.layout ? draft.layout : t.start;
     var lockedIds = t.start.parts.map(function (p) { return p.id; });
+    closeReplay(true);
     live.state = E.newState();
     meter = { mode: 'OFF', a: null, b: null, next: 'a' };
     renderTaskPanels(t, draft);
@@ -1694,18 +1902,26 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
         onMessage: function (m) { status([{ cls: 'info', text: m }]); }
       });
       ed = new Editor($('#board'), { core: core });
-      bench = new Bench($('#bench'), { core: core });
-      setView(viewMode);
+      bench = new Bench($('#bench'), { core: core, onDial: function (m) { setMeterMode(m); }, onScope: scope });
     }
+    setView(t.sandbox ? 'bench' : preferredView(), t.sandbox);
+    bench.scope = null;
     ed.showVolt = bench.showVolt = false; $('#btnVolt').classList.remove('on');
     ed.load(layout, lockedIds, t.bench); bench.fit();
     setMeterMode('OFF');
     rebuild(); renderInspector();
-    log('task_open', { id: t.id });
+    log(t.sandbox ? 'sandbox_open' : 'task_open', { id: t.id });
   }
 
   function renderTaskPanels(t, draft) {
     var ch = DQ.chapters.filter(function (c) { return c.id === t.ch; })[0];
+    if (t.sandbox) {
+      $('#taskInfo').innerHTML = '<div class="crumb">Labor · Sandbox</div><h2>' + esc(t.title) + '</h2><div class="brief">' + t.brief + '</div>' +
+        '<div class="learn"><b>Ideen</b> Miss die Spannung an einer LED mit verschiedenen Vorwiderstaenden. Vergleiche V~ mit AVG und TRMS an Rechteck und Sinus. Schau dir mit der Zeitlupe an, wie eine Rueckkopplung einrastet.</div>' +
+        '<button class="btn" id="toMap">Zur Karte</button>';
+      $('#toMap').onclick = function () { renderMap(); show('map'); };
+      renderPalette(t); return;
+    }
     var h = '<div class="crumb">Kapitel ' + t.ch + ' · Aufgabe ' + t.id + (t.boss ? ' · <b class="boss-tag">BOSS</b>' : '') + '</div>' +
       '<h2>' + esc(t.title) + '</h2>' +
       (t.story ? '<p class="story">' + t.story + '</p>' : '') +
@@ -1726,14 +1942,16 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     $('#hint2').onclick = function () { current.hints = 2; $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div><div class="hint">' + t.hint2 + '</div>'; };
     $$('[data-ans]').forEach(function (inp) { inp.oninput = persistDraft; });
     $('#btnCheck').onclick = check;
-    // Bauteil-Palette
+    renderPalette(t);
+    void ch;
+  }
+  function renderPalette(t) {
     var pal = '';
     t.palette.forEach(function (type) {
       pal += '<button class="palbtn" data-add="' + type + '" title="' + esc(E.PARTS[type].label) + ' hinzufuegen"><svg viewBox="-46 -46 92 92"><g>' + Editor.symbol({ type: type, props: {} }) + '</g></svg><span>' + esc(E.PARTS[type].label) + '</span></button>';
     });
     $('#palette').innerHTML = pal || '<span class="dim small">Keine neuen Bauteile – nur messen.</span>';
     $$('[data-add]').forEach(function (b) { b.onclick = function () { view().addPart(b.dataset.add); renderInspector(); }; });
-    void ch;
   }
 
   function answers() { var a = {}; $$('[data-ans]').forEach(function (i) { a[i.dataset.ans] = i.value; }); return a; }
@@ -1743,10 +1961,12 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   }
 
   function rebuild() {
+    closeReplay(true);
     try { live.net = E.buildNetlist(ed.layout); live.err = null; }
     catch (e) { live.net = null; live.err = e.message; }
-    live.dynamic = !!live.net && live.net.parts.some(function (p) { return p.type === 'capacitor' || p.type === 'clock'; });
-    tick(0);
+    live.dynamic = !!live.net && live.net.parts.some(function (p) { return p.type === 'capacitor' || p.type === 'clock' || p.type === 'acsource'; });
+    live.hist = [];
+    tick(0, true);
     if (live.dynamic) startLoop(); else stopLoop();
   }
   function startLoop() {
@@ -1765,35 +1985,116 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     var a = live.net.pinNode[meter.a], b = live.net.pinNode[meter.b];
     return a === undefined || b === undefined ? null : { a: a, b: b };
   }
-  function tick(dt) {
+  function tick(dt, withTrace) {
+    if (live.replay) return; // Zeitlupe zeigt einen festgehaltenen Schritt
     if (!live.net) { setSim(null); status([{ cls: 'err', text: live.err }]); return; }
-    var mn = meterNodes(), mopt = mn && (meter.mode === 'V' || meter.mode === 'A') ? { mode: meter.mode, a: mn.a, b: mn.b } : null;
+    var mn = meterNodes(), mm = meter.mode === 'VAC' ? 'V' : meter.mode, mopt = mn && (mm === 'V' || mm === 'A') ? { mode: mm, a: mn.a, b: mn.b } : null;
+    if (withTrace) { // Zeitlupe: Arbeitspunkt auf einer Kopie neu suchen – Dioden von vorn (reine Rechenhilfe), Gatter behalten ihr Gedaechtnis
+      var ts = E.clone(live.state); ts.diode = {};
+      try { live.trace = E.step(live.net, ts, { meter: mopt, trace: true }).trace || []; } catch (e) { live.trace = []; }
+    }
     var r = E.step(live.net, live.state, { dt: live.dynamic && dt > 0 ? dt : null, meter: mopt });
     live.res = r;
-    setSim({ res: r, pinNode: live.net.pinNode });
+    if (live.dynamic) { live.hist.push(r); if (live.hist.length > HIST_MAX) live.hist.shift(); }
     updateMeter(r, mn);
-    status(diagnose(r.faults));
+    setSim({ res: r, pinNode: live.net.pinNode });
+    status(diagnose(r.faults, r));
   }
 
   function setSim(sim) { ed.setSim(sim); bench.setSim(sim); }
   function view() { return viewMode === 'bench' ? bench : ed; }
-  /* Darstellung wechseln – Schaltung, Auswahl und Messspitzen bleiben (gemeinsamer Kern) */
-  function setView(mode) {
+  /* Darstellung wechseln – Schaltung, Auswahl und Messspitzen bleiben (gemeinsamer Kern). temp: Wahl nicht speichern (Sandbox) */
+  function setView(mode, temp) {
     viewMode = mode === 'bench' ? 'bench' : 'schema';
+    if (!temp && S.settings.view !== viewMode) { S.settings.view = viewMode; save(); }
+    var b = $('#btnView'); if (b) { b.textContent = viewMode === 'bench' ? '⊞ Schaltplan' : '▣ Werkbank'; b.title = viewMode === 'bench' ? 'Zur Schaltplan-Ansicht wechseln' : 'Zur Werkbank-Ansicht wechseln'; }
     if (!core) return;
     core.space = viewMode; core.wireStart = null;
     $('#board').classList.toggle('off', viewMode !== 'schema'); $('#bench').classList.toggle('off', viewMode !== 'bench');
     view().fit();
   }
 
+  /* ---------- Zeitlupe ----------
+   * Statische Schaltung: Rechenschritte des Arbeitspunkts (Dioden schalten, Gatter werden einzeln nachgefuehrt).
+   * Schaltung mit Kondensator/Takt/Wechselquelle: die letzten Zeitschritte (Backward Euler). */
+  function replaySteps() {
+    if (live.dynamic) return live.hist.map(function (r) {
+      var caps = live.net.parts.filter(function (p) { return p.type === 'capacitor'; }).map(function (p) { return 'U(' + p.id + ') = ' + E.fmt(r.parts[p.id].v, 'V'); });
+      return { res: r, label: 't = ' + E.fmt(r.t, 's') + (caps.length ? ' · ' + caps.join(' · ') : '') };
+    });
+    var tr = live.trace || [];
+    return tr.map(function (x, i) {
+      var what = x.kind === 'done' ? 'Ruhelage erreicht – so bleibt die Schaltung.' : x.kind === 'unstable' ? 'Keine Ruhelage – die Gatter schalten sich immer wieder um.' :
+        'Knotenspannungen berechnet → ' + x.changed.map(function (c) {
+          return x.kind === 'diode' ? c.id + (c.to ? ' wird leitend' : ' sperrt') : c.id + ' schaltet auf ' + (c.to ? '1' : '0');
+        }).join(', ');
+      return { res: x.res, label: 'Rechenschritt ' + (i + 1) + ' von ' + tr.length + ': ' + what };
+    });
+  }
+  function openReplay() {
+    if (!live.net) return;
+    var steps = replaySteps();
+    if (steps.length < 2) { status([{ cls: 'info', text: 'Zeitlupe: Diese Schaltung ist in einem Rechenschritt fertig. Spannend wird es mit LEDs/Dioden, Logik-Rueckkopplungen, Kondensatoren und Wechselquellen.' }]); return; }
+    stopLoop();
+    live.replay = { steps: steps, i: steps.length - 1, timer: 0 };
+    $('#replay').hidden = false; $('#btnReplay').classList.add('on');
+    var sl = $('#rpSlider'); sl.max = steps.length - 1; sl.value = steps.length - 1;
+    showStep(live.dynamic ? steps.length - 1 : 0); // Zeitverlauf: beim Jetzt beginnen; Rechenschritte: von vorne
+    log('replay', { id: current.task && current.task.id, steps: steps.length, dynamic: live.dynamic });
+  }
+  function showStep(i) {
+    var R = live.replay; if (!R) return;
+    R.i = Math.max(0, Math.min(R.steps.length - 1, i));
+    $('#rpSlider').value = R.i; $('#rpLabel').textContent = R.steps[R.i].label;
+    setSim({ res: R.steps[R.i].res, pinNode: live.net.pinNode });
+  }
+  function playReplay() {
+    var R = live.replay; if (!R) return;
+    if (R.timer) { clearInterval(R.timer); R.timer = 0; $('#rpPlay').textContent = '▶'; return; }
+    if (R.i >= R.steps.length - 1) showStep(0);
+    $('#rpPlay').textContent = '⏸';
+    R.timer = setInterval(function () { if (R.i >= R.steps.length - 1) { playReplay(); return; } showStep(R.i + 1); }, live.dynamic ? 60 : 700);
+  }
+  function closeReplay(quiet) {
+    var R = live.replay; if (!R) return;
+    if (R.timer) clearInterval(R.timer);
+    live.replay = null; $('#replay').hidden = true; $('#btnReplay').classList.remove('on'); $('#rpPlay').textContent = '▶';
+    if (!quiet) { tick(0); if (live.dynamic) startLoop(); }
+  }
+
+  /* Diagnose aus den Werten des aktuellen Versuchs (Istwert, Grenzwert, Vorschlag) statt festem Text pro Stoerungscode */
+  function srcVoltage() { // hoechste Quellenspannung im Aufbau (Gleich- oder Scheitelwert)
+    var u = 0; (live.net ? live.net.parts : []).forEach(function (p) { if (p.type === 'battery' || p.type === 'acsource') u = Math.max(u, Math.abs(p.props.value)); }); return u;
+  }
+  function ohm(r) { return E.fmt(r, 'Ω').replace('.000 ', ' ').replace(/(\.\d*?)0+ /, '$1 ').replace('. ', ' '); }
   var FAULT_TEXT = {
-    SHORT: function (f) { return 'Kurzschluss an ' + f.part + ': Die Quelle liefert ' + E.fmt(Math.abs(f.i), 'A') + '. Plus und Minus sind ohne Verbraucher verbunden.'; },
-    LED_BURNT: function (f) { return 'LED ' + f.part + ' ist durchgebrannt – der Strom war zu gross. Vorwiderstand pruefen, dann „Reparieren“.'; },
-    LED_REVERSE: function (f) { return 'LED ' + f.part + ' liegt mit ' + E.fmt(Math.abs(f.v), 'V') + ' in Sperrrichtung – LEDs vertragen nur ca. 5 V Sperrspannung.'; },
-    OVERLOAD: function (f) { return 'Widerstand ' + f.part + ' ist ueberlastet (' + E.fmt(Math.abs(f.p), 'W') + ') – er wird heiss.'; },
-    LAMP_BURNT: function (f) { return 'Lampe ' + f.part + ' ist durchgebrannt – Ueberspannung.'; },
-    AMMETER_OVERLOAD: function (f) { return 'Strommesser ' + f.part + ' misst mehr als 10 A – falsch angeschlossen?'; },
-    UNSTABLE: function () { return 'Die Logikschaltung kommt nicht zur Ruhe – sie schwingt.'; },
+    SHORT: function (f) {
+      return 'Kurzschluss an ' + f.part + ': Die Quelle liefert ' + E.fmt(Math.abs(f.i), 'A') + ' (zulaessig ' + E.fmt(f.imax, 'A') + '). Zwischen Plus und Minus liegt kein Verbraucher – ' +
+        'der Strom wird nur vom Innenwiderstand begrenzt: I ≈ ' + E.fmt(f.u, 'V') + ' / ' + ohm(f.ri) + '.';
+    },
+    LED_BURNT: function (f) {
+      if (!(f.i > 0)) return 'LED ' + f.part + ' ist durchgebrannt – Strom zu gross. Vorwiderstand pruefen, dann „Reparieren“.';
+      var ub = srcVoltage(), t = 'LED ' + f.part + ' ist durchgebrannt: Es flossen ' + E.fmt(f.i, 'A') + ', erlaubt sind ' + E.fmt(f.imax, 'A') + '.';
+      if (ub > f.vf) {
+        var rNow = Math.max(0, (ub - f.vf) / f.i - 10), rMin = (ub - f.vf) / f.imax, rGood = (ub - f.vf) / 0.02;
+        t += ' Bei ' + E.fmt(ub, 'V') + ' und U_F ≈ ' + E.fmt(f.vf, 'V') + ' braucht es mindestens R = (' + E.fmt(ub, 'V') + ' − ' + E.fmt(f.vf, 'V') + ') / ' + E.fmt(f.imax, 'A') + ' = ' + ohm(rMin) +
+          ' Vorwiderstand, fuer 20 mA etwa ' + ohm(rGood) + '. Im Kreis waren nur rund ' + ohm(rNow) + '.';
+      }
+      return t + ' Danach „Reparieren“.';
+    },
+    LED_REVERSE: function (f) { return 'LED ' + f.part + ' liegt mit ' + E.fmt(Math.abs(f.v), 'V') + ' in Sperrrichtung (verkraftet ca. ' + E.fmt(f.vmax, 'V') + '). Anode (+, langes Bein) gehoert Richtung Pluspol.'; },
+    OVERLOAD: function (f) {
+      var rMin = f.v * f.v / f.pmax;
+      return 'Widerstand ' + f.part + ' wird zu heiss: P = U · I = ' + E.fmt(Math.abs(f.v), 'V') + ' · ' + E.fmt(Math.abs(f.i), 'A') + ' = ' + E.fmt(Math.abs(f.p), 'W') +
+        ', belastbar ist er mit ' + E.fmt(f.pmax, 'W') + '. Bei dieser Spannung braucht es mindestens ' + ohm(rMin) + ' (P = U² / R).';
+    },
+    LAMP_BURNT: function (f) { return f.p ? 'Lampe ' + f.part + ' ist durchgebrannt: Sie nahm ' + E.fmt(Math.abs(f.p), 'W') + ' auf bei ' + E.fmt(Math.abs(f.v), 'V') + ' – ausgelegt ist sie fuer ' + E.fmt(f.pnom, 'W') + '. Spannung zu hoch.' : 'Lampe ' + f.part + ' ist durchgebrannt – Ueberspannung.'; },
+    AMMETER_OVERLOAD: function (f) { return 'Strommesser ' + f.part + ' misst ' + E.fmt(Math.abs(f.i), 'A') + ' (Grenze ' + E.fmt(f.imax, 'A') + ') – er liegt wohl parallel zur Quelle statt in Reihe.'; },
+    UNSTABLE: function () {
+      var g = {}; (live.trace || []).forEach(function (x) { if (x.kind === 'gate') x.changed.forEach(function (c) { g[c.id] = true; }); });
+      var ids = Object.keys(g);
+      return 'Die Logikschaltung kommt nicht zur Ruhe' + (ids.length ? ': ' + ids.join(' und ') + ' schalten sich gegenseitig immer wieder um' : '') + ' (Rueckkopplung ohne Ruhelage). Die Zeitlupe zeigt die einzelnen Schritte.';
+    },
     NO_GROUND: function () { return 'Logikbausteine und Taktgeber brauchen eine Masse-Verbindung (⏚).'; }
   };
   function diagnose(faults) { return (faults || []).map(function (f) { return { cls: 'err', text: (FAULT_TEXT[f.code] || function () { return f.code; })(f) }; }); }
@@ -1808,6 +2109,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     meter.mode = mode;
     $$('[data-mm]').forEach(function (b) { b.classList.toggle('on', b.dataset.mm === mode); });
     if (ed) { ed.tool = mode === 'OFF' ? 'wire' : 'probe'; if (mode === 'OFF') { ed.probes = { a: null, b: null }; meter.a = meter.b = null; meter.next = 'a'; } core.redraw(); }
+    log('meter_mode', { id: current.task && current.task.id, mode: mode });
     $('#mmHelp').textContent = mode === 'OFF' ? 'Messgeraet aus. Klick auf Anschluesse verbindet Leitungen.' :
       'Klick auf einen Anschluss setzt die ' + (meter.next === 'a' ? 'rote (+)' : 'schwarze (COM)') + ' Messspitze.';
     if (ed) tick(0);
@@ -1819,19 +2121,40 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     log('probe', { id: current.task && current.task.id, mode: meter.mode, pin: pin });
     tick(0);
   }
+  /* Wechselgroessen (V~, und V⎓ bei schnellen Wechselquellen = Mittelwert) – nur neu rechnen, wenn sich Aufbau oder Spitzen aendern */
+  function acReading() {
+    var key = JSON.stringify(ed.layout) + '|' + meter.a + '|' + meter.b;
+    if (meter.acKey !== key) { meter.acKey = key; meter.ac = E.acMeasure(ed.layout, { a: meter.a, b: meter.b }); }
+    return meter.ac;
+  }
+  function slowestFreq() {
+    var f = Infinity; (live.net ? live.net.parts : []).forEach(function (p) { if ((p.type === 'acsource' || p.type === 'clock') && p.props.freq > 0) f = Math.min(f, p.props.freq); }); return f;
+  }
+  /* Anzeige wie ein 6000-Digit-DMM (Bereichswahl, +0,2 % Kalibrierfehler, letzte Stelle flackert) */
   function updateMeter(r, mn) {
-    var lcd = $('#lcd'), txt = '— — —', warn = '';
+    var lcd = $('#lcd'), txt = '— — —', warn = '', sub = meter.mode === 'VAC' ? 'AC ' + (meterType() === 'avg' ? 'AVG' : 'TRMS') : meter.mode === 'V' || meter.mode === 'A' ? 'DC' : '';
     if (meter.mode === 'OFF') txt = 'OFF';
     else if (!mn) txt = meter.mode === 'R' ? '0L Ω' : '- - -';
-    else if (meter.mode === 'V') txt = E.fmt(r.nodeV[mn.a] - r.nodeV[mn.b], 'V');
-    else if (meter.mode === 'A') {
-      if (live.state.fuse) { txt = 'FUSE'; warn = 'Sicherung durchgebrannt! Strom misst man in Reihe, nie parallel zu einer Quelle.'; }
-      else txt = E.fmt((r.nodeV[mn.a] - r.nodeV[mn.b]) / E.METER.rA, 'A');
+    else if (meter.mode === 'V') {
+      var vdc = r.nodeV[mn.a] - r.nodeV[mn.b];
+      if (slowestFreq() >= 5) { var ac1 = acReading(); if (ac1.ok) vdc = ac1.dc; } // DMM zeigt bei schnellem Wechsel den Mittelwert
+      txt = E.dmm(vdc, 'V').text;
+    } else if (meter.mode === 'VAC') {
+      var ac = acReading();
+      if (!ac.ok) { txt = 'Err'; warn = ac.error; }
+      else { txt = E.dmm(meterType() === 'avg' ? ac.avg : ac.rms, 'V').text; if (ac.static) warn = 'Keine Wechselquelle im Aufbau – V~ zeigt nur den Wechselanteil (hier 0).'; }
+    } else if (meter.mode === 'A') {
+      if (live.state.fuse) {
+        txt = 'FUSE';
+        var fi = live.state.fuseInfo;
+        warn = 'Sicherung durchgebrannt' + (fi ? ': Durch das Messgeraet waeren ' + E.fmt(Math.abs(fi.i), 'A') + ' geflossen (Sicherung ' + E.fmt(fi.imax, 'A') + ')' : '') + '. Das Amperemeter hat fast 0 Ω – es gehoert in Reihe, nie parallel zu einer Quelle.';
+      } else txt = E.dmm((r.nodeV[mn.a] - r.nodeV[mn.b]) / E.METER.rA, 'A').text;
     } else if (meter.mode === 'R') {
       var m = E.measure(ed.layout, { mode: 'R', a: meter.a, b: meter.b }, live.state);
-      txt = m.ok ? m.display.replace('OL', '0L') : 'Err'; warn = m.ok ? '' : m.error;
+      txt = m.ok ? E.dmm(m.value, 'Ω').text.replace('OL', '0L') : 'Err'; warn = m.ok ? '' : m.error;
     }
     lcd.textContent = txt;
+    if (bench) bench.meter = { mode: meter.mode, text: txt, fuse: live.state.fuse, sub: sub };
     $('#mmWarn').textContent = warn; $('#btnFuse').hidden = !live.state.fuse;
     $('#mmProbes').innerHTML = '<span class="pr red">+ ' + esc(meter.a || '–') + '</span><span class="pr black">COM ' + esc(meter.b || '–') + '</span>';
   }
@@ -1849,6 +2172,11 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     if (p.type === 'resistor' || p.type === 'lamp' || p.type === 'pot') h += field('Widerstand', 'value', Editor.fmtVal(val), 'Ω');
     if (p.type === 'capacitor') h += field('Kapazitaet', 'value', Editor.fmtVal(val), 'F');
     if (p.type === 'clock') h += field('Frequenz', 'freq', q.freq || d.props.freq, 'Hz');
+    if (p.type === 'acsource') {
+      h += field('Scheitelwert Û', 'value', Editor.fmtVal(val), 'V') + field('Frequenz', 'freq', q.freq || d.props.freq, 'Hz');
+      h += '<label class="fld"><span>Kurvenform</span><select data-prop="shape"' + (lock ? ' disabled' : '') + '>' + [['sine', 'Sinus'], ['square', 'Rechteck'], ['triangle', 'Dreieck']].map(function (o) {
+        return '<option value="' + o[0] + '"' + ((q.shape || 'sine') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>';
+    }
     if (p.type === 'pot') h += '<label class="fld"><span>Schleifer</span><input type="range" min="0" max="1" step="0.01" data-prop="pos" value="' + (q.pos !== undefined ? q.pos : 0.5) + '"></label>';
     if (p.type === 'led') {
       h += '<label class="fld"><span>Farbe</span><select data-prop="color"' + (lock ? ' disabled' : '') + '>' + Object.keys(E.LED_COLORS).map(function (c) { return '<option' + ((q.color || 'rot') === c ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select></label>';
@@ -1882,7 +2210,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     ctx.strokeStyle = 'rgba(255,176,0,0.12)'; ctx.lineWidth = 1;
     for (var i = 1; i < 10; i++) { ctx.beginPath(); ctx.moveTo(w * i / 10, 0); ctx.lineTo(w * i / 10, h); ctx.stroke(); }
     for (i = 1; i < 8; i++) { ctx.beginPath(); ctx.moveTo(0, h * i / 8); ctx.lineTo(w, h * i / 8); ctx.stroke(); }
-    if (!meter.a) { $('#scopeInfo').textContent = 'Setze zuerst die rote Messspitze (Multimeter V).'; return; }
+    if (!meter.a) { $('#scopeInfo').textContent = 'Setze zuerst die rote Messspitze (Multimeter V).'; bench.scope = { pts: [], info: 'Zuerst rote Messspitze setzen (V)' }; bench.render(); return; }
     var s;
     try { s = E.simulate(ed.layout, { dt: T / 400, tEnd: T, probes: [{ a: meter.a, b: meter.b || undefined }] }).samples; }
     catch (e) { $('#scopeInfo').textContent = e.message; return; }
@@ -1892,6 +2220,10 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     s.forEach(function (x, k) { var px = x.t / T * w, py = h - (x.ch0 - bot) / (top - bot) * h; if (k) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
     ctx.stroke(); ctx.shadowBlur = 0;
     $('#scopeInfo').textContent = 'Kanal: ' + meter.a + ' gegen ' + (meter.b || 'Masse') + ' · ' + bot + '…' + top + ' V · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V');
+    var stepN = Math.max(1, Math.floor(s.length / 150));
+    bench.scope = { pts: s.filter(function (x, k) { return k % stepN === 0; }).map(function (x) { return [x.t / T, (x.ch0 - bot) / (top - bot)]; }),
+      info: 'CH1 ' + meter.a + (meter.b ? '–' + meter.b : '') + ' · ' + bot + '…' + top + ' V · ' + $('#tb').selectedOptions[0].textContent };
+    bench.render();
     log('scope', { id: current.task && current.task.id, T: T });
   }
 
@@ -2000,6 +2332,18 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     $('#btnFit').onclick = function () { view().fit(); };
     window.addEventListener('resize', function () { if (ed && current.screen === 'task') view().fit(); });
     $('#btnDel').onclick = function () { ed.removeSelected(); renderInspector(); };
+    $('#btnView').onclick = function () { setView(viewMode === 'bench' ? 'schema' : 'bench'); log('view', { id: current.task && current.task.id, view: viewMode }); };
+    setView(viewMode, true);
+    $('#btnReplay').onclick = function () { if (live.replay) closeReplay(); else openReplay(); };
+    $('#rpSlider').oninput = function () { showStep(+this.value); };
+    $('#rpPrev').onclick = function () { if (live.replay) showStep(live.replay.i - 1); };
+    $('#rpNext').onclick = function () { if (live.replay) showStep(live.replay.i + 1); };
+    $('#rpPlay').onclick = playReplay;
+    $('#rpClose').onclick = function () { closeReplay(); };
+    $$('[data-mt]').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.mt === meterType());
+      b.onclick = function () { S.settings.meterType = b.dataset.mt; save(); $$('[data-mt]').forEach(function (x) { x.classList.toggle('on', x.dataset.mt === meterType()); }); if (ed) tick(0); };
+    });
     $('#btnVolt').onclick = function () { ed.showVolt = bench.showVolt = !ed.showVolt; this.classList.toggle('on', ed.showVolt); core.redraw(); };
     $('#btnRepair').onclick = function () { live.state = E.newState(); rebuild(); status([{ cls: 'info', text: 'Defekte Bauteile ersetzt.' }]); };
     $('#btnReset').onclick = function () {
@@ -2010,13 +2354,14 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
     $('#btnScope').onclick = scope;
     document.addEventListener('keydown', function (ev) {
       if (current.screen !== 'task' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+      if (live.replay) { if (ev.key === 'ArrowLeft') showStep(live.replay.i - 1); else if (ev.key === 'ArrowRight') showStep(live.replay.i + 1); else if (ev.key === 'Escape') closeReplay(); return; }
       ed && ed.key(ev); renderInspector();
     });
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
     renderMap(); show('map');
   }
 
-  window.DigitalQuest = { get state() { return S; }, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, engine: E, parseVal: parseVal };
+  window.DigitalQuest = { get state() { return S; }, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>

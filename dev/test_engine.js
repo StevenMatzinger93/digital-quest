@@ -162,5 +162,50 @@ cb.space = 'bench'; cb.rotateSelected(); ok(d1.bench.rot === 180 && d1.rot === 9
 const rb = cb.addPart('resistor', 600, 300, 'bench'); ok(rb.id === 'R1' && rb.bench.x === 560 && rb.bench.y === 290 && rb.x % 20 === 0, 'Neues Bauteil nimmt Werkbank-Lage aus dem bench-Layout', rb);
 const rs = cb.addPart('resistor', 400, 200); ok(rs.id === 'R2' && !rs.bench, 'Im Schema hinzugefuegt: Werkbank-Lage automatisch');
 
+// 16 Wechselspannungsquelle, V~ mit TRMS und AVG (Mittelwert-Gleichrichter, sinusskaliert)
+const ac = shape => ({ parts: [{ id: 'G1', type: 'acsource', value: 10, props: { freq: 50, shape } }, { id: 'R1', type: 'resistor', value: 1000 }],
+  wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] });
+let am = E.acMeasure(ac('sine'), { a: 'R1.a', b: 'R1.b' });
+near(am.rms, 10 / Math.SQRT2, 0.01, 'Sinus: TRMS = Û/√2'); near(am.avg, 10 / Math.SQRT2, 0.01, 'Sinus: AVG-Anzeige = TRMS'); ok(Math.abs(am.dc) < 0.05, 'Sinus: Gleichanteil 0', am.dc);
+am = E.acMeasure(ac('square'), { a: 'R1.a', b: 'R1.b' });
+near(am.rms, 10, 0.01, 'Rechteck: TRMS = Û'); near(am.avg, 11.107, 0.01, 'Rechteck: AVG-Geraet zeigt 11 % zu viel');
+am = E.acMeasure(ac('triangle'), { a: 'R1.a', b: 'R1.b' });
+near(am.rms, 10 / Math.sqrt(3), 0.01, 'Dreieck: TRMS = Û/√3'); near(am.avg, 5.554, 0.01, 'Dreieck: AVG-Geraet zeigt 4 % zu wenig');
+near(E.measure(ac('square'), { mode: 'VAC', a: 'R1.a', b: 'R1.b', meterType: 'avg' }).value, 11.107, 0.01, 'measure VAC mit AVG-Geraet');
+ok(E.acMeasure(divider, { a: 'R2.a', b: 'R2.b' }).static, 'Ohne Wechselquelle: statisch');
+const halfwave = { parts: [{ id: 'G1', type: 'acsource', value: 10, props: { freq: 50 } }, { id: 'V1', type: 'diode' }, { id: 'R1', type: 'resistor', value: 1000 }],
+  wires: [W('G1.p', 'V1.a'), W('V1.k', 'R1.a'), W('R1.b', 'G1.n')] };
+am = E.acMeasure(halfwave, { a: 'R1.a', b: 'R1.b' });
+ok(am.dc > 2.5 && am.dc < 3.2, 'Einweg-Gleichrichter: Gleichanteil ca. (Û−U_F)/π', am.dc);
+near(am.pp, 10 - 0.7 - 10 / 1000 * 1, 0.02, 'Einweg-Gleichrichter: Spitze-Spitze = Û − U_F');
+
+// 17 DMM-Anzeige: Bereiche, Kalibrierfehler, Rauschen, OL
+ok(E.dmm(1.95, 'V', 0).text === '1.954 V', 'DMM 1,95 V im 6-V-Bereich (+0,2 %)', E.dmm(1.95, 'V', 0));
+ok(E.dmm(0.004, 'A', 0).text === '4.008 mA', 'DMM 4 mA', E.dmm(0.004, 'A', 0));
+ok(E.dmm(8, 'V', 0).text === '8.02 V', 'DMM 8 V im 60-V-Bereich', E.dmm(8, 'V', 0));
+ok(E.dmm(0, 'V', 0).text === '0.0 mV', 'DMM 0 V', E.dmm(0, 'V', 0));
+ok(E.dmm(1e9, 'Ω', 0).text === 'OL' && E.dmm(Infinity, 'Ω').text === 'OL', 'DMM Ueberlauf OL');
+const flick = new Set(); for (let k = 0; k < 40; k++) flick.add(E.dmm(1.95, 'V').text);
+ok(flick.size >= 2 && flick.size <= 3, 'Letzte Stelle flackert um ±1 Digit', [...flick]);
+ok(E.fmt(0, 'V') === '0.000 V' && E.fmt(1e-12, 'A') === '0.000 A', 'fmt: 0 ohne µ');
+
+// 18 Stoerungen mit Werten, Zeitlupen-Verlauf
+const noR = { parts: [{ id: 'B1', type: 'battery', value: 9 }, { id: 'D1', type: 'led', props: { color: 'rot' } }], wires: [W('B1.p', 'D1.a'), W('D1.k', 'B1.n')] };
+const st2 = E.newState(); let rbn = E.analyze(noR, st2);
+let fb = rbn.faults.filter(f => f.code === 'LED_BURNT')[0];
+ok(fb && fb.i > 0.03 && fb.imax === 0.03 && fb.vf === 1.8, 'LED_BURNT mit Strom und Grenzwert', fb);
+rbn = E.analyze(noR, st2); fb = rbn.faults.filter(f => f.code === 'LED_BURNT')[0];
+ok(fb && fb.i > 0.03, 'Werte bleiben nach dem Durchbrennen erhalten', fb);
+const shortL = { parts: [{ id: 'B1', type: 'battery', value: 9 }], wires: [W('B1.p', 'B1.n')] };
+const fs2 = E.analyze(shortL).faults[0]; ok(fs2.code === 'SHORT' && fs2.imax === 3 && fs2.ri === 0.05, 'SHORT mit Grenzwert und Innenwiderstand', fs2);
+const stF = E.newState(); E.measure(divider, { mode: 'A', a: 'B1.p', b: 'B1.n' }, stF); ok(stF.fuseInfo && stF.fuseInfo.i > 10, 'Sicherung merkt sich den Strom', stF.fuseInfo);
+const netL = E.buildNetlist(led(470, true)), tr0 = E.step(netL, E.newState(), { trace: true }).trace;
+ok(tr0.length >= 2 && tr0[0].kind === 'diode' && tr0[0].changed[0].id === 'D1' && tr0[tr0.length - 1].kind === 'done' && tr0[0].res.parts.D1, 'Zeitlupe: LED-Umschaltung als Rechenschritt', tr0.map(x => x.kind));
+const rsl = { parts: [{ id: 'U1', type: 'nor' }, { id: 'U2', type: 'nor' }, { id: 'GND1', type: 'ground' }],
+  wires: [W('U1.out', 'U2.in1'), W('U2.out', 'U1.in2'), W('U1.in1', 'GND1.g'), W('U2.in2', 'GND1.g')] };
+const trRS = E.step(E.buildNetlist(rsl), E.newState(), { trace: true }).trace;
+ok(trRS.some(x => x.kind === 'gate'), 'Zeitlupe: Gatter-Schritte der Rueckkopplung', trRS.map(x => x.kind));
+ok(trRS.length <= E.TRACE_MAX, 'Verlauf begrenzt');
+
 console.log(`Engine-Tests: ${pass} ok, ${fail} Fehler`);
 process.exit(fail ? 1 : 0);

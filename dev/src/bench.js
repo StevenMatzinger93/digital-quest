@@ -3,7 +3,10 @@
  * Bauteile als Praktikums-Steckbausteine mit 4-mm-Buchsen, Verbindungen als Laborkabel mit Bananensteckern.
  * Nur Renderer: Zustand und Bedienlogik liegen im Kern (circuit-ui.js, Raum 'bench'), die Werkbank macht
  * Hit-Testing und rechnet Bildschirm → Werkbank-Koordinaten um. Gleiche data-Attribute wie im Schema
- * (data-part, data-pin, data-wire). Unsichtbar wird nicht gezeichnet, erst beim Einblenden (fit). */
+ * (data-part, data-pin, data-wire). Unsichtbar wird nicht gezeichnet, erst beim Einblenden (fit).
+ * Messgeraete stehen rechts auf der Unterlage (Frontansicht, nicht gestaucht): Multimeter mit Drehschalter (data-dial),
+ * LCD, Buchsen und Messkabeln zu den Pruefspitzen; Oszilloskop mit Bildschirm und RUN-Taste (data-scope).
+ * Die App setzt bench.meter = {mode, text, fuse, sub} und bench.scope = {pts:[[0..1, 0..1]], info}. */
 (function (root) {
   'use strict';
   var E = root.DQEngine, Circuit = root.DQCircuit, Ed = root.DQEditor;
@@ -12,13 +15,13 @@
   /* Buchsen je Bauteil (unrotiert, Werkbank-Einheiten) und Groesse des Bausteins [breite, hoehe] */
   var TWO = { a: [-45, 0], b: [45, 0] };
   var GEO = {
-    battery: { p: [-32, 38], n: [32, 38] }, ground: { g: [0, -8] },
+    battery: { p: [-32, 38], n: [32, 38] }, acsource: { p: [-32, 38], n: [32, 38] }, ground: { g: [0, -8] },
     resistor: TWO, lamp: TWO, switch: TWO, button: TWO, capacitor: TWO, ammeter: TWO,
     led: { a: [-45, 0], k: [45, 0] }, diode: { a: [-45, 0], k: [45, 0] },
     pot: { a: [-50, -8], b: [50, -8], w: [0, 32] }, clock: { out: [48, 0] },
     not: { in: [-50, 0], out: [50, 0] }
   };
-  var SIZE = { battery: [150, 112], ground: [60, 70], pot: [130, 94], clock: [124, 80], lamp: [130, 70], ammeter: [130, 72] };
+  var SIZE = { battery: [150, 112], acsource: [150, 112], ground: [60, 70], pot: [130, 94], clock: [124, 80], lamp: [130, 70], ammeter: [130, 72] };
   ['and', 'or', 'nand', 'nor', 'xor'].forEach(function (g) { GEO[g] = { in1: [-50, -22], in2: [-50, 22], out: [50, 0] }; });
   var CHIP = { and: '7408', or: '7432', nand: '7400', nor: '7402', xor: '7486', not: '7404' };
   function size(type) { return SIZE[type] || (CHIP[type] ? [130, 92] : [130, 64]); }
@@ -54,7 +57,7 @@
       '<rect class="bbevel" x="' + (-w / 2 + 3) + '" y="' + (-h / 2 + 3) + '" width="' + (w - 6) + '" height="' + (h - 6) + '" rx="7"/>';
     // Buchsen
     Object.keys(g).forEach(function (pin) {
-      var ring = p.type === 'battery' ? (pin === 'p' ? '#c62828' : '#1a1a1a') : p.type === 'ground' ? '#2e9d44' : null;
+      var ring = p.type === 'battery' || p.type === 'acsource' ? (pin === 'p' ? '#c62828' : '#1a1a1a') : p.type === 'ground' ? '#2e9d44' : null;
       s += socket(g[pin], ring);
     });
     if (hot) s += '<circle r="' + (Math.min(w, h) / 2 + 6) + '" fill="#ff5a1f" opacity=".55" filter="url(#bBlur)"/>'; // Hitze (Kurzschluss, Ueberlast)
@@ -116,6 +119,13 @@
           '<circle cx="16" cy="-14" r="4" fill="' + (r.high ? '#39ff14' : '#243024') + '"' + (r.high ? ' filter="url(#bSoft)"' : '') + '/>'; break;
       case 'ground':
         s += '<path d="M0 12V18M-11 18H11M-7 23H7M-3 28H3" fill="none" stroke="#2b2b2b" stroke-width="2"/>'; break;
+      case 'acsource': // kleiner Funktionsgenerator
+        var wf = { square: 'M-46-22h7v-12h8v12h8v-12h8', triangle: 'M-46-22l6-12 6 12 6-12 6 12 3-6' }[q.shape] || 'M-46-28c3-9 6-9 8 0s5 9 8 0 6-9 8 0 5 9 8 0';
+        s += '<rect x="-62" y="-50" width="124" height="66" rx="6" fill="#2a2f36" stroke="#000"/><rect x="-54" y="-42" width="80" height="34" rx="3" fill="#0d1a12"/>' +
+          '<path d="' + wf + '" fill="none" stroke="#39ff14" stroke-width="1.6"/><text class="bgen" x="-8" y="-14">' + esc(Ed.fmtVal(val(p))) + 'V ' + esc(Ed.fmtVal(q.freq || 50)) + 'Hz</text>' +
+          '<circle cx="44" cy="-24" r="12" fill="url(#bMetal)" stroke="#000"/><path d="M44-24l6-7" stroke="#222" stroke-width="2.5"/>' +
+          '<path d="M-52 16C-50 26-40 28-32 28M52 16C50 26 40 28 32 28" fill="none" stroke="#666" stroke-width="2"/>' +
+          '<text class="bprint red" x="-32" y="56">+</text><text class="bprint" x="32" y="56">−</text>'; break;
       case 'battery':
         s += '<rect x="-62" y="-48" width="124" height="60" rx="6" fill="#1c1c1c" stroke="#000"/>' +
           '<rect x="-38" y="-48" width="100" height="60" fill="#2f6fd6"/><rect x="-38" y="-48" width="100" height="8" fill="rgba(255,255,255,.18)"/>' +
@@ -140,7 +150,7 @@
   /* Kabelfarbe: Pluspol rot, Minuspol/Masse schwarz, sonst nach Reihenfolge */
   var CABLE = ['#2a6fdb', '#e0b400', '#2f9e44', '#8e44ad', '#e67e22'];
   function cableColor(w, i, byId) {
-    function kind(pid) { var s = pid.split('.'), p = byId[s[0]]; if (!p) return ''; return p.type === 'battery' ? s[1] : p.type === 'ground' ? 'n' : ''; }
+    function kind(pid) { var s = pid.split('.'), p = byId[s[0]]; if (!p) return ''; return p.type === 'battery' || p.type === 'acsource' ? s[1] : p.type === 'ground' ? 'n' : ''; }
     var k = kind(w.from) || kind(w.to);
     return k === 'p' ? '#d32f2f' : k === 'n' ? '#1e1e1e' : CABLE[i % CABLE.length];
   }
@@ -152,16 +162,61 @@
     return '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="9" fill="' + col + '" stroke="rgba(0,0,0,.6)" stroke-width="1.5"/><circle cx="' + (xy[0] - 2.5) + '" cy="' + (xy[1] - 3) + '" r="3" fill="rgba(255,255,255,.3)"/>';
   }
 
+  /* ---------- Messgeraete ----------
+   * Lage in Werkbank-Koordinaten (Mitte); gezeichnet in Frontansicht (Gruppe mit scale(1, 1/K)). */
+  var DEV = { meter: { x: 1085, y: 255 }, scope: { x: 1060, y: 610 } };
+  var DIAL = [['OFF', -110, 'OFF'], ['V', -55, 'V⎓'], ['VAC', 0, 'V~'], ['A', 55, 'A⎓'], ['R', 110, 'Ω']];
+  function devXY(dev, lx, ly) { return [DEV[dev].x + lx, DEV[dev].y + ly / K]; } // Geraete-Koordinate → Werkbank
+  function meterSvg(m) {
+    var s = '<g class="bdev" data-dev="meter" transform="translate(' + DEV.meter.x + ' ' + DEV.meter.y + ') scale(1 ' + (1 / K) + ')">' +
+      '<rect x="-75" y="-120" width="150" height="240" rx="16" fill="#f2b705" stroke="#7a5a00" stroke-width="2"/>' +
+      '<rect x="-64" y="-108" width="128" height="216" rx="10" fill="#2b2d31"/><text class="bdevtxt" y="-95">DQ-6000 TRMS</text>' +
+      '<rect x="-54" y="-88" width="108" height="42" rx="4" fill="' + (m.mode === 'OFF' ? '#8d977e' : '#b9c6a2') + '"/>' +
+      '<text class="bmlcd" x="48" y="-58">' + esc(m.mode === 'OFF' ? '' : m.text) + '</text><text class="bmsub" x="-50" y="-78">' + esc(m.sub || '') + '</text>' +
+      '<circle cy="10" r="36" fill="#141414" stroke="#555" stroke-width="2"/>';
+    DIAL.forEach(function (d) {
+      var a = d[1] * Math.PI / 180, lx = Math.sin(a) * 52, ly = 10 - Math.cos(a) * 52;
+      s += '<g data-dial="' + d[0] + '" class="bdial' + (m.mode === d[0] ? ' on' : '') + '"><circle class="bdialhit" cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="13"/>' +
+        '<text x="' + lx.toFixed(1) + '" y="' + (ly + 4).toFixed(1) + '">' + d[2] + '</text></g>';
+    });
+    var cur = DIAL.filter(function (d) { return d[0] === m.mode; })[0] || DIAL[0];
+    s += '<g transform="translate(0 10) rotate(' + cur[1] + ')"><rect x="-9" y="-30" width="18" height="60" rx="8" fill="#3a3a3a" stroke="#000"/><path d="M0-28V-12" stroke="#ffb000" stroke-width="4" stroke-linecap="round"/></g>';
+    [['A', -40, '#c62828'], ['COM', 0, '#1a1a1a'], ['VΩ', 40, '#c62828']].forEach(function (j) {
+      s += socket([j[1], 88], j[2]) + '<text class="bdevtxt" x="' + j[1] + '" y="112">' + j[0] + '</text>';
+    });
+    if (m.fuse) s += '<text class="bdevwarn" y="-34">Sicherung!</text>';
+    return s + '</g>';
+  }
+  function scopeSvg(sc) {
+    var s = '<g class="bdev" data-dev="scope" transform="translate(' + DEV.scope.x + ' ' + DEV.scope.y + ') scale(1 ' + (1 / K) + ')">' +
+      '<rect x="-122" y="-76" width="244" height="152" rx="10" fill="#3a4452" stroke="#1d232b" stroke-width="2"/>' +
+      '<rect x="-110" y="-64" width="150" height="112" rx="4" fill="#07110c"/>';
+    for (var i = 1; i < 10; i++) s += '<path d="M' + (-110 + i * 15) + ' -64V48" class="bscgrid"/>';
+    for (i = 1; i < 8; i++) s += '<path d="M-110 ' + (-64 + i * 14) + 'H40" class="bscgrid"/>';
+    if (sc && sc.pts && sc.pts.length) s += '<polyline class="bsctrace" points="' + sc.pts.map(function (p) { return (-110 + p[0] * 150).toFixed(1) + ',' + (48 - p[1] * 112).toFixed(1); }).join(' ') + '"/>';
+    s += '<text class="bscinfo" x="-105" y="44">' + esc(sc && sc.info ? sc.info : 'CH1 = Messspitzen · RUN') + '</text>' +
+      '<circle cx="70" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><circle cx="102" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/>' +
+      '<text class="bdevtxt" x="70" y="-24">Y</text><text class="bdevtxt" x="102" y="-24">X</text>' +
+      '<g data-scope="run" class="bscrun"><rect x="56" y="-6" width="58" height="26" rx="5"/><text x="85" y="12">RUN</text></g>' +
+      socket([85, 50], '#1a1a1a') + '<text class="bdevtxt" x="60" y="54">CH1</text>';
+    return s + '</g>';
+  }
+  function probeSvg(tip, col, park) { // Pruefspitze: Metallspitze am Anschluss, Griff schraeg nach oben rechts
+    return '<g class="bprobe' + (park ? ' parked' : '') + '"><path d="M' + tip[0] + ' ' + tip[1] + 'l18 -34" stroke="#c8c8c8" stroke-width="3"/>' +
+      '<path d="M' + (tip[0] + 16) + ' ' + (tip[1] - 30) + 'l22 -40" stroke="' + col + '" stroke-width="11" stroke-linecap="round"/></g>';
+  }
+
   function Bench(svg, opts) {
     this.svg = svg; this.opts = opts || {};
     this.core = this.opts.core || new Circuit(this.opts);
     this.sim = null; this.showVolt = false; this.mouse = [0, 0]; this.dirty = true;
+    this.meter = { mode: 'OFF', text: 'OFF' }; this.scope = null;
     this.view = [0, 0, W, W * 0.62]; // gleiches Seitenverhaeltnis wie das Schema (1000 × 620), damit die Flaeche gleich gross bleibt
     svg.setAttribute('viewBox', this.view.join(' '));
     this.core.attach(this);
     this._bind();
   }
-  Bench.GEO = GEO; Bench.K = K; Bench.illus = illus;
+  Bench.GEO = GEO; Bench.K = K; Bench.illus = illus; Bench.DEV = DEV;
 
   Bench.prototype._hidden = function () { return !this.svg.getClientRects().length; };
   Bench.prototype.pinPos = function (part, pin) {
@@ -173,6 +228,7 @@
     if (this._hidden()) { this.dirty = true; return; }
     var self = this, core = this.core, x0 = 400, y0 = 240, x1 = 800, y1 = 520;
     var q = core.layout.parts.map(function (p) { return core.pos(p, 'bench'); });
+    q.push({ x: DEV.meter.x + 20, y: DEV.meter.y - 100 }, { x: DEV.scope.x + 60, y: DEV.scope.y + 60 }); // Messgeraete immer im Bild
     Object.keys(core.benchHints).forEach(function (id) { q.push(core.benchHints[id]); });
     if (q.length) {
       x0 = Math.min.apply(null, q.map(function (p) { return p.x; })); x1 = Math.max.apply(null, q.map(function (p) { return p.x; }));
@@ -207,6 +263,13 @@
   Bench.prototype._bind = function () {
     var self = this, svg = this.svg, core = this.core;
     svg.addEventListener('pointerdown', function (ev) {
+      var dv = ev.target.closest('[data-dial],[data-scope],[data-dev]');
+      if (dv) { // Messgeraete: Drehschalter, RUN-Taste; Gehaeuse selbst ohne Wirkung
+        ev.preventDefault();
+        if (dv.dataset.dial && self.opts.onDial) self.opts.onDial(dv.dataset.dial);
+        if (dv.dataset.scope && self.opts.onScope) self.opts.onScope();
+        return;
+      }
       var t = ev.target.closest('[data-pin],[data-part],[data-wire]'), xy = self._pt(ev);
       if (t && t.dataset.pin) { ev.preventDefault(); core.clickPin(t.dataset.pin); return; }
       if (t && t.dataset.wire !== undefined) { core.clickWire(+t.dataset.wire); return; }
@@ -281,7 +344,7 @@
         var pid = p.id + '.' + pin, xy = self.pinPos(p, pin), v = nodeV(pid), col = wcol(pid);
         h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="14"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen Masse' : '') + '</title></circle>' +
           '<circle class="bpin' + (core.wireStart === pid ? ' active' : '') + (used[pid] ? ' used' : '') + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="12"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
-        if (col && pin !== 'g') h.push('<g transform="translate(' + (xy[0] + 12) + ' ' + (xy[1] - 14) + ') scale(1 ' + (1 / K) + ')"><text class="bvlabel">' + E.fmt(v, 'V') + '</text></g>');
+        if (col && pin !== 'g' && used[pid]) h.push('<g transform="translate(' + (xy[0] + 12) + ' ' + (xy[1] - 14) + ') scale(1 ' + (1 / K) + ')"><text class="bvlabel">' + E.fmt(v, 'V') + '</text></g>');
       });
     });
     // Kabel im Entstehen
@@ -289,12 +352,13 @@
       var a = pp(core.wireStart);
       h.push('<path class="bwire pending" d="' + cablePath(a, this.mouse) + '"/>');
     }
-    // Messspitzen (einfach; Multimeter auf der Werkbank folgt in Phase 4)
-    [['a', '#d32f2f'], ['b', '#1e1e1e']].forEach(function (k) {
-      var pid = core.probes[k[0]]; if (!pid || !byId[pid.split('.')[0]]) return;
-      var xy = pp(pid);
-      h.push('<g class="bprobe" filter="url(#bCable)"><path d="M' + xy[0] + ' ' + xy[1] + 'l18 -34" stroke="#bbb" stroke-width="3"/>' +
-        '<path d="M' + (xy[0] + 16) + ' ' + (xy[1] - 30) + 'l22 -40" stroke="' + k[1] + '" stroke-width="11" stroke-linecap="round"/></g>');
+    // Messgeraete mit Messkabeln: rot aus VΩ (bzw. A im Strombereich), schwarz aus COM; nicht gesetzte Spitzen liegen vor dem Geraet
+    h.push(scopeSvg(this.scope), meterSvg(this.meter));
+    [['a', '#d32f2f', this.meter.mode === 'A' ? -40 : 40, -34], ['b', '#1e1e1e', 0, 18]].forEach(function (k) {
+      var pid = core.probes[k[0]], set = pid && byId[pid.split('.')[0]];
+      var tip = set ? pp(pid) : devXY('meter', k[3] - 20, 200), jack = devXY('meter', k[2], 88), grip = [tip[0] + 38, tip[1] - 70];
+      h.push('<g filter="url(#bCable)"><path d="' + cablePath(jack, grip) + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="6" stroke-linecap="round"/>' +
+        '<path d="' + cablePath(jack, grip) + '" fill="none" stroke="' + k[1] + '" stroke-width="4" stroke-linecap="round"/>' + plug(jack, k[1]) + probeSvg(tip, k[1], !set) + '</g>');
     });
     h.push('</g>');
     this.svg.innerHTML = h.join('');

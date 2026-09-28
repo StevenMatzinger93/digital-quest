@@ -105,6 +105,17 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bpin { fill: none; stroke: transparent; stroke-width: 3; pointer-events: none; }
 [data-pin]:hover .bpin { stroke: #ffb000; } .bpin.active { stroke: #ffb000; stroke-width: 4; filter: drop-shadow(0 0 4px #ffb000); }
 .bprobe { pointer-events: none; }
+.bgen { font: 700 10px var(--font-code); fill: #39ff14; text-anchor: middle; pointer-events: none; }
+.bdev { cursor: default; } .bdevtxt { font: 700 9px var(--font-code); fill: #d8d8d8; text-anchor: middle; pointer-events: none; }
+.bmlcd { font: 700 21px var(--font-code); fill: #1b2413; text-anchor: end; pointer-events: none; } .bmsub { font: 700 8px var(--font-code); fill: #2f3a24; pointer-events: none; }
+.bdevwarn { font: 800 11px var(--font-ui); fill: #ff5a3c; text-anchor: middle; pointer-events: none; }
+.bdial { cursor: pointer; } .bdial text { font: 700 10px var(--font-code); fill: #e0e0e0; text-anchor: middle; pointer-events: none; }
+.bdial.on text { fill: #ffb000; } .bdialhit { fill: transparent; } .bdial:hover .bdialhit { fill: rgba(255,176,0,.18); }
+.bscgrid { stroke: rgba(57,255,20,.13); stroke-width: 1; } .bsctrace { fill: none; stroke: #ffb000; stroke-width: 2; filter: drop-shadow(0 0 3px #ffb000); }
+.bscinfo { font: 8px var(--font-code); fill: #7fd98a; pointer-events: none; }
+.bscrun { cursor: pointer; } .bscrun rect { fill: #2e7d32; stroke: #0f3a12; } .bscrun:hover rect { fill: #43a047; } .bscrun text { font: 700 11px var(--font-code); fill: #fff; text-anchor: middle; pointer-events: none; }
+/* Touch: groessere Klickflaechen fuer Buchsen/Anschluesse */
+@media (pointer: coarse) { .bpinhit { r: 22px; } .pinhit { r: 17px; } .bdialhit { r: 17px; } }
 .bvlabel { font: 600 12px var(--font-code); fill: #7fe6ff; paint-order: stroke; stroke: rgba(0,0,0,.75); stroke-width: 3px; pointer-events: none; }
 .blcd { font: 700 10px var(--font-code); fill: #1d2416; text-anchor: middle; pointer-events: none; }
 .bsmoke path { fill: none; stroke: rgba(200,200,200,.55); stroke-width: 4; stroke-linecap: round; pointer-events: none; animation: bsmoke 1.6s ease-in-out infinite; }
@@ -135,7 +146,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 /* Messgeraete */
 .meter { background: linear-gradient(#2b2a22, #1e1d17); border: 2px solid #3a3625; border-radius: 14px; padding: 10px; margin-bottom: 12px; }
 .lcd { background: #9fb28a; color: #1b2413; font-size: 28px; font-weight: 700; text-align: right; padding: 6px 10px; border-radius: 6px; box-shadow: inset 0 2px 6px rgba(0,0,0,.4); min-height: 48px; letter-spacing: 1px; }
-.mm-modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 8px 0; }
+.mm-modes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 8px 0; }
 .mm-modes button { background: #111; border: 1px solid #444; color: #ddd; border-radius: 6px; padding: 5px 0; cursor: pointer; font-family: var(--font-code); }
 .mm-modes button.on { background: var(--accent-lead); color: #111; border-color: var(--accent-lead); }
 #mmProbes { display: flex; justify-content: space-between; font-family: var(--font-code); font-size: 12px; } .pr.red { color: #ff6b61; } .pr.black { color: #bbb; }
@@ -171,3 +182,13 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
   .top { padding: 8px 10px; gap: 8px; } .brand span { display: none; } .top nav button { padding: 6px 8px; font-size: 13px; } #saveInd { display: none; }
   .manual { grid-template-columns: 1fr; } .progress .bar { width: 140px; }
 }
+
+/* Multimeter-Verfahren, Zeitlupe, Ansichtswechsel */
+.mm-type { display: flex; gap: 4px; align-items: center; margin: 0 0 8px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; }
+.mm-type button { background: #111; border: 1px solid #444; color: #ccc; border-radius: 6px; padding: 3px 6px; cursor: pointer; font: 11px var(--font-code); }
+.mm-type button.on { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+#replay { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: var(--bg-secondary); border: 1px solid var(--accent-lead-dim); border-radius: 12px; padding: 6px 8px; }
+#replay[hidden] { display: none; } #rpSlider { flex: 1; min-width: 120px; accent-color: var(--accent-lead); }
+#rpLabel { font: 12px var(--font-code); color: var(--accent-lead); flex-basis: 100%; }
+.tb.view { border-color: var(--accent-lead-dim); }
+.map-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }

@@ -26,6 +26,14 @@ Alle vier Quick Wins aus der Marktanalyse werden umgesetzt - kein neues Bedienko
 3. **Messgeraete-Realismus**: kleines Toleranzband/Eigenrauschen auf angezeigte Messwerte; Multimeter-Modus "Average-responding" vs. "TRMS" liefert bei verzerrter Kurve unterschiedliche (mal falsche, mal richtige) Anzeige - das ist der Lernmoment fuer Kapitel 3 (AVG/RMS/TRMS).
 4. **Sandbox-Modus**: freie Werkbank ohne Aufgabe, mit allen bereits freigeschalteten Bauteilen, zum Ausprobieren. Keine neue Logik - nutzt Editor/Engine/Werkbank wie sie fuer Aufgaben ohnehin bestehen, nur ohne Auftrag/Pruefung.
 
+## Labor-Umsetzung (Entscheide beim Bau, 28.09.2026)
+- **Werkbank-Stil**: Praktikums-Steckbausteine mit 4-mm-Buchsen auf einer Laborunterlage, Laborkabel mit Bananensteckern (Pluspol rot, Minuspol/Masse schwarz). Tisch um K = 0,8 geneigt; Messgeraete in Frontansicht (stehen aufrecht).
+- **Lage pro Bauteil**: Werkbank-Lage liegt als `p.bench = {x, y, rot}` am Bauteil im Entwurf; Schema- und Werkbank-Lage sind unabhaengig, die Topologie ist gemeinsam.
+- **Messgeraete fest rechts** auf der Unterlage (Multimeter oben, Oszilloskop unten), Flaeche fuer Bauteile reserviert. Das Oszilloskop nutzt vorerst die Multimeter-Spitzen als Kanal (wie im Panel).
+- **Multimeter-Verfahren V~**: Standard TRMS; AVG als Wahl im Panel – der Unterschied ist der Lernmoment. Pruefung von Aufgaben nutzt immer exakte Werte, die Anzeige hat Kalibrierfehler und Flackern.
+- **Zeitlupe**: Rechenschritte werden auf einer Zustandskopie mit zurueckgesetzten Dioden neu gesucht (sonst waere die LED "schon leitend" und es gaebe nichts zu sehen); Gatterzustaende bleiben, weil sie echtes Gedaechtnis sind.
+- **Freie Werkbank**: Bauteile = alles aus freigeschalteten Aufgaben (Palette + Startaufbau), nicht der ganze Katalog – damit die Sandbox den Lernfortschritt nicht vorwegnimmt (Entwicklung: `?alle` = alles).
+
 ## Hosting-Umgebung (Entscheid 28.09.2026, wie SPS/SCL Quest)
 Gleiches Muster wie bei SCL Quest: eigenes GitHub-Repo + Cloudflare Worker (`wrangler.jsonc`, liefert `web/` als Website aus), per GitHub verbunden fuer Auto-Deploy bei Push. **Bewusst ohne D1-Datenbank/Klassen-Anbindung** – das gehoert zum zurueckgestellten Punkt "Klassen und Personen" oben und wird erst ergaenzt, wenn diese Funktion tatsaechlich gebaut wird. `wrangler.jsonc` liegt bereit (Worker-Name `digital-quest`). ~~Offen/braucht Stevens Aktion~~ – erledigt (28.09.2026): GitHub-Repo `digital-quest` angelegt und verbunden, Cloudflare-Login gemacht, Worker `digital-quest` mit dem GitHub-Repo verknuepft (Settings -> Builds). Push nach `main` deployt jetzt automatisch, siehe `docs/STAND.md`.
 

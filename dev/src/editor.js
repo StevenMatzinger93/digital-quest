@@ -8,7 +8,7 @@
   var GRID = 20, W = 1000, H = 620;
   var TWO = { a: [-40, 0], b: [40, 0] };
   var GEO = {
-    ground: { g: [0, -20] }, battery: { p: [0, -40], n: [0, 40] },
+    ground: { g: [0, -20] }, battery: { p: [0, -40], n: [0, 40] }, acsource: { p: [0, -40], n: [0, 40] },
     resistor: TWO, lamp: TWO, switch: TWO, button: TWO, capacitor: TWO, ammeter: TWO,
     led: { a: [-40, 0], k: [40, 0] }, diode: { a: [-40, 0], k: [40, 0] },
     pot: { a: [-40, 0], b: [40, 0], w: [0, 40] }, clock: { out: [40, 0] },
@@ -34,6 +34,7 @@
     var d = E.PARTS[p.type], q = p.props || {}, v = p.value !== undefined ? p.value : (q.value !== undefined ? q.value : d.props.value);
     switch (p.type) {
       case 'battery': return fmtVal(v) + ' V';
+      case 'acsource': return 'Û ' + fmtVal(v) + ' V ' + ({ square: '⊓', triangle: '△' }[q.shape] || '∿') + ' ' + fmtVal(q.freq || d.props.freq) + ' Hz';
       case 'resistor': case 'pot': case 'lamp': return fmtVal(v) + ' Ω';
       case 'capacitor': return fmtVal(v) + 'F';
       case 'clock': return fmtVal(q.freq || d.props.freq) + ' Hz';
@@ -75,6 +76,8 @@
         s = '<path ' + c + ' d="M0-40V-6M0 6V40"/><path class="sym thick" d="M-16-6H16"/><path class="sym thick2" d="M-8 6H8"/><text class="plus" x="12" y="-14">+</text>'; break;
       case 'ground':
         s = '<path ' + c + ' d="M0-20V0M-14 0H14M-9 6H9M-4 12H4"/>'; break;
+      case 'acsource':
+        s = '<path ' + c + ' d="M0-40V-16M0 16V40"/><circle ' + c + ' r="16"/><path class="sym thin" d="M-10 0C-6-10-2-10 0 0S6 10 10 0"/><text class="plus" x="12" y="-20">+</text>'; break;
       case 'clock':
         var hi = r.high;
         s = '<rect ' + c + ' x="-22" y="-18" width="44" height="36" rx="3"/><path class="sym thin" d="M-14 8H-7V-8H0V8H7V-8H14"/><path ' + c + ' d="M22 0H40"/>' +
@@ -93,7 +96,7 @@
   }
 
   function labels(p) { // Beschriftung neben senkrechten, ueber/unter waagrechten Bauteilen
-    var vert = (p.type === 'battery' || p.type === 'ground') ? (p.rot || 0) % 180 === 0 : (p.rot || 0) % 180 === 90;
+    var vert = (p.type === 'battery' || p.type === 'ground' || p.type === 'acsource') ? (p.rot || 0) % 180 === 0 : (p.rot || 0) % 180 === 90;
     var v = esc(valueText(p));
     if (vert) return '<text class="lbl" x="24" y="-4" text-anchor="start">' + esc(p.id) + '</text><text class="val" x="24" y="12" text-anchor="start">' + v + '</text>';
     var up = GATE_SIGN[p.type] ? -38 : -24, dn = GATE_SIGN[p.type] ? 48 : 30;
@@ -176,6 +179,7 @@
   Editor.prototype.key = function (ev) { this.core.key(ev); };
 
   Editor.prototype.render = function () {
+    if (!this.svg.getClientRects().length) return; // ausgeblendet (Werkbank aktiv): nicht zeichnen, beim Einblenden zeichnet fit()
     var self = this, L = this.layout, sim = this.sim, res = sim && sim.res, pinNode = sim && sim.pinNode;
     var vmax = 0; if (res) Object.keys(res.nodeV).forEach(function (n) { vmax = Math.max(vmax, res.nodeV[n]); });
     var byId = {}; L.parts.forEach(function (p) { byId[p.id] = p; });

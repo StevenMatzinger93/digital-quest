@@ -28,17 +28,22 @@
         <button class="tb" id="btnDel" title="Loeschen (Entf)">✕ Loeschen</button>
         <button class="tb" id="btnFit" title="Ansicht einpassen">⤢ Einpassen</button>
         <button class="tb" id="btnVolt" title="Knotenspannungen einfaerben">U anzeigen</button>
+        <button class="tb" id="btnReplay" title="Rechenschritte bzw. Zeitverlauf Schritt fuer Schritt ansehen">⏱ Zeitlupe</button>
+        <button class="tb view" id="btnView" title="Darstellung wechseln: Schaltplan oder Werkbank">Werkbank</button>
         <button class="tb" id="btnRepair" title="Defekte Bauteile ersetzen">Reparieren</button>
         <button class="tb" id="btnReset" title="Startzustand">Neu</button>
       </div>
       <div class="boardwrap"><svg id="board" tabindex="0" aria-label="Schaltplan"></svg><svg id="bench" class="off" tabindex="0" aria-label="Werkbank"></svg></div>
+      <div id="replay" hidden><button class="tb" id="rpPrev" title="Schritt zurueck">◀</button><button class="tb" id="rpPlay" title="Abspielen">▶</button><button class="tb" id="rpNext" title="Schritt vor">▶|</button>
+        <input type="range" id="rpSlider" min="0" max="0" value="0" aria-label="Schritt"><span id="rpLabel"></span><button class="tb" id="rpClose">✕ Live</button></div>
       <div id="statusbar"></div>
     </div>
     <aside class="panel">
       <h3>Multimeter</h3>
       <div class="meter">
         <div class="lcd" id="lcd">OFF</div>
-        <div class="mm-modes"><button data-mm="OFF">OFF</button><button data-mm="V">V⎓</button><button data-mm="A">A⎓</button><button data-mm="R">Ω</button></div>
+        <div class="mm-modes"><button data-mm="OFF">OFF</button><button data-mm="V">V⎓</button><button data-mm="VAC">V~</button><button data-mm="A">A⎓</button><button data-mm="R">Ω</button></div>
+        <div class="mm-type" title="Wie das Geraet Wechselspannung auswertet"><span>V~ misst</span><button data-mt="avg">Mittelwert (AVG)</button><button data-mt="trms">Echt-Effektivwert (TRMS)</button></div>
         <div id="mmProbes"></div><p id="mmHelp"></p><p id="mmWarn"></p>
         <button class="btn small" id="btnFuse" hidden>Sicherung ersetzen</button>
       </div>

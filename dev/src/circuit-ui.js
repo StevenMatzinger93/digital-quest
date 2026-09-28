@@ -12,7 +12,8 @@
   var E = root.DQEngine;
   var SPACES = {
     schema: { grid: 20, w: 1000, h: 620, edge: 40, clamp: 60, free: [90, 70], step: [120, 90] },
-    bench: { grid: 10, w: 1200, h: 760, edge: 70, clamp: 90, free: [130, 100], step: [150, 110] }
+    bench: { grid: 10, w: 1200, h: 760, edge: 70, clamp: 90, free: [130, 100], step: [150, 110],
+      reserved: [[1000, 90, 1180, 420], [930, 500, 1190, 710]] } // Multimeter und Oszilloskop (bench.js) – dort keine neuen Bauteile ablegen
   };
 
   function Circuit(opts) {
@@ -63,7 +64,10 @@
   /* Freien Rasterplatz nahe (cx, cy) im Raum suchen, spiralfoermig */
   Circuit.prototype._place = function (cx, cy, space) {
     var S = SPACES[space], self = this, g = S.grid, cx0 = Math.round(cx / g) * g, cy0 = Math.round(cy / g) * g, x = cx0, y = cy0, ring = 0, k = 0;
-    function free(x, y) { return self.layout.parts.every(function (p) { var q = self.pos(p, space); return Math.abs(q.x - x) > S.free[0] || Math.abs(q.y - y) > S.free[1]; }); }
+    function free(x, y) {
+      var off = (S.reserved || []).some(function (r) { return x > r[0] - S.free[0] / 2 && x < r[2] + S.free[0] / 2 && y > r[1] - S.free[1] / 2 && y < r[3] + S.free[1] / 2; });
+      return !off && self.layout.parts.every(function (p) { var q = self.pos(p, space); return Math.abs(q.x - x) > S.free[0] || Math.abs(q.y - y) > S.free[1]; });
+    }
     while (!free(x, y) && ring < 12) {
       k++; var ang = k * 0.9; ring = Math.floor(k / 7) + 1;
       x = Math.round((cx0 + Math.cos(ang) * S.step[0] * ring) / g) * g; y = Math.round((cy0 + Math.sin(ang) * S.step[1] * ring) / g) * g;
