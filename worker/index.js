@@ -1,387 +1,476 @@
-/* Digital Quest – Cloudflare Worker: Konten, Klassen, Zuweisungen, Fortschritt-Spiegel (Plan: docs/PLAN_KLASSEN_ZUWEISUNG.md)
- *
- * Statische Dateien (web/) liefert Cloudflare direkt aus; der Worker beantwortet nur /api/…
- * Rollen: admin (Worker-Secrets ADMIN_USER / ADMIN_PASSWORD, kein D1-Eintrag) · dozent (vom Admin angelegt)
- *         · schueler (vom Dozenten angelegt oder Selbstregistrierung mit Klassencode). Nur Pseudonyme.
- * Anmeldung: Benutzername + Passwort, PBKDF2-SHA-256 (WebCrypto), Sitzungs-Token im Header "Authorization: Bearer …"
- *            (kein Cookie → funktioniert auch aus der Offline-Datei index.html). Rate-Limiting bei Fehlversuchen.
- * Das Spiel bleibt ohne Konto voll spielbar – der Server ist eine Ergaenzung, localStorage bleibt die Basis. */
+// Digital Quest — Cloudflare Worker: API unter /api/*, alles andere liefert web/ (Static Assets).
+// Aufbau und Ablaeufe wie bei SPS Quest (docs/PLAN_PORTAL.md).
+// Rollen: admin (aus den Secrets ADMIN_USER / ADMIN_PASSWORD), teacher, student.
+import { json, fail, HttpError, now, randomBytes, b64url, sha256hex, safeEqual, hashPassword, verifyPassword,
+  randomCode, randomPassword, checkUsername, checkPassword, cleanText } from './lib.js';
+import { ensureSchema } from './db.js';
+import { challengeRoutes } from './challenge.js';
+import { reportRoutes } from './reports.js';
+import { assignRoutes, wipeAssignments } from './assign.js';
 
-export const PBKDF2_ITER = 100000;              // Hoechstwert, den Cloudflare Workers fuer PBKDF2 erlauben
-const SESSION_MS = 30 * 24 * 3600 * 1000;       // Sitzung 30 Tage
-const LIMIT = { fehler: 5, fenster: 15 * 60 * 1000, sperre: 15 * 60 * 1000 };
-const RE_USER = /^[a-z0-9._-]{3,32}$/;
-const RE_ITEM = /^[A-Za-z0-9.]{1,12}$/;
+const COOKIE = 'dq_sess';
+const HEADER = 'x-dquest';
+const SESSION_DAYS = 30;
+const QUESTS = ['dq'];
+const MAX_STATE = 900 * 1024;           // D1: Zeilen bis 1 MB
+const LOCK = { user: 5, ip: 40, window: 15 * 60 * 1000 };
 
-/* ---------- Hilfen ---------- */
-const enc = new TextEncoder();
-function b64(buf) { let s = ''; new Uint8Array(buf).forEach(b => { s += String.fromCharCode(b); }); return btoa(s); }
-function unb64(s) { return Uint8Array.from(atob(s), c => c.charCodeAt(0)); }
-function b64url(buf) { return b64(buf).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-function rnd(n) { return crypto.getRandomValues(new Uint8Array(n)); }
-function uuid() { return crypto.randomUUID(); }
-async function sha256(s) { return b64(await crypto.subtle.digest('SHA-256', enc.encode(s))); }
-function sameBytes(a, b) { // Vergleich in konstanter Zeit
-  if (a.length !== b.length) return false;
-  let d = 0; for (let i = 0; i < a.length; i++) d |= a[i] ^ b[i]; return d === 0;
-}
-function sameText(a, b) { return sameBytes(enc.encode(String(a)), enc.encode(String(b))); }
-
-export async function hashPassword(pw, iter = PBKDF2_ITER, salt = rnd(16)) {
-  const key = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: iter }, key, 256);
-  return 'pbkdf2$' + iter + '$' + b64(salt) + '$' + b64(bits);
-}
-export async function verifyPassword(pw, stored) {
-  const p = String(stored || '').split('$');
-  if (p.length !== 4 || p[0] !== 'pbkdf2') return false;
-  const again = (await hashPassword(pw, +p[1], unb64(p[2]))).split('$')[3];
-  return sameBytes(unb64(again), unb64(p[3]));
-}
-
-class HttpError extends Error { constructor(status, msg, extra) { super(msg); this.status = status; this.extra = extra; } }
-const fail = (status, msg, extra) => { throw new HttpError(status, msg, extra); };
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*', // Token statt Cookie: die Offline-Datei (file://) darf die API ebenfalls nutzen
-  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Max-Age': '86400'
+export default {
+  async fetch(request, env, ctx){
+    const url = new URL(request.url);
+    if(!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
+    try{
+      if(!env.DB) fail(500, 'Datenbank nicht verbunden (Binding DB fehlt).');
+      await ensureSchema(env.DB);
+      return await route(request, env, url, ctx);
+    }catch(e){
+      if(e instanceof HttpError) return json(Object.assign({ error: e.message }, e.extra || {}), e.status);
+      console.error(e && e.stack || e);
+      return json({ error: 'Interner Fehler. Bitte später erneut versuchen.' }, 500);
+    }
+  }
 };
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: Object.assign({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }, CORS) });
-}
-async function body(req) {
-  if (req.method === 'GET' || req.method === 'DELETE') return {};
-  try { const b = await req.json(); return b && typeof b === 'object' ? b : {}; } catch (e) { fail(400, 'Ungueltige Anfrage (kein JSON).'); }
-}
-function userName(v) { const u = String(v || '').trim().toLowerCase(); if (!RE_USER.test(u)) fail(400, 'Benutzername: 3–32 Zeichen, nur Buchstaben a–z, Ziffern und . _ -'); return u; }
-function password(v) { const p = String(v || ''); if (p.length < 6 || p.length > 128) fail(400, 'Passwort: mindestens 6 Zeichen.'); return p; }
-function pseudonym(v, fallback) { const s = String(v || fallback || '').trim().replace(/\s+/g, ' '); if (!s || s.length > 40) fail(400, 'Pseudonym: 1–40 Zeichen.'); return s; }
-function ip(req) { return req.headers.get('CF-Connecting-IP') || 'lokal'; }
 
-/* ---------- Rate-Limiting ---------- */
-async function checkLock(db, keys, now) {
-  for (const k of keys) {
-    const r = await db.prepare('SELECT gesperrt_bis FROM sperren WHERE schluessel = ?').bind(k).first();
-    if (r && r.gesperrt_bis > now) fail(429, 'Zu viele Fehlversuche. Bitte in ' + Math.ceil((r.gesperrt_bis - now) / 60000) + ' Minuten erneut versuchen.', { wartenSek: Math.ceil((r.gesperrt_bis - now) / 1000) });
+// ---------------- Routing ----------------
+async function route(req, env, url, ctx){
+  const m = req.method, p = url.pathname.replace(/\/+$/, '');
+  // einfacher CSRF-Schutz: schreibende Aufrufe nur mit JSON-Body und eigenem Header
+  if(m !== 'GET' && m !== 'HEAD'){
+    if(req.headers.get(HEADER) !== '1') fail(403, 'Ungültige Anfrage.');
+  }
+  const C = { req, env, url, ctx, db: env.DB };
+  C.body = (m === 'POST' || m === 'PUT' || m === 'PATCH' || m === 'DELETE') ? await readJson(req) : {};
+
+  if(p === '/api/health') return json({ ok: true, time: now() });
+  if(p === '/api/login' && m === 'POST') return login(C);
+  if(p === '/api/logout' && m === 'POST') return logout(C);
+  if(p === '/api/register' && m === 'POST') return register(C);
+  if(p === '/api/class-info' && m === 'GET') return classInfo(C);
+
+  const H = { currentUser, requireRole, ownClass, studentOf };
+  const r = (await challengeRoutes(C, p, m, H)) || (await reportRoutes(C, p, m, H)) || (await assignRoutes(C, p, m, H));
+  if(r) return r;
+
+  C.user = await currentUser(C);
+  if(p === '/api/me' && m === 'GET') return C.user ? me(C) : json({ user: null });
+  if(!C.user) fail(401, 'Nicht angemeldet.');
+
+  if(p === '/api/me/password' && m === 'POST') return changeOwnPassword(C);
+  if(p === '/api/me/notice' && m === 'POST') return ackNotice(C);
+  if(p === '/api/me/display-name' && m === 'POST') return setDisplayName(C);
+  if(p === '/api/me' && m === 'DELETE') return deleteSelf(C);
+  let mm;
+  if((mm = p.match(/^\/api\/progress\/([a-z]+)$/))){
+    if(m === 'GET') return getProgress(C, mm[1]);
+    if(m === 'PUT') return putProgress(C, mm[1]);
+  }
+  // Admin
+  if(p === '/api/admin/teachers' && m === 'GET') return listTeachers(C);
+  if(p === '/api/admin/teachers' && m === 'POST') return createTeacher(C);
+  if((mm = p.match(/^\/api\/admin\/teachers\/(\d+)\/reset$/)) && m === 'POST') return resetPassword(C, +mm[1], 'teacher');
+  if((mm = p.match(/^\/api\/admin\/teachers\/(\d+)$/)) && m === 'DELETE') return deleteTeacher(C, +mm[1]);
+  if(p === '/api/admin/stats' && m === 'GET') return adminStats(C);
+  // Dozent
+  if(p === '/api/classes' && m === 'GET') return listClasses(C);
+  if(p === '/api/classes' && m === 'POST') return createClass(C);
+  if((mm = p.match(/^\/api\/classes\/(\d+)$/))){
+    if(m === 'GET') return getClass(C, +mm[1]);
+    if(m === 'PATCH') return patchClass(C, +mm[1]);
+    if(m === 'DELETE') return deleteClass(C, +mm[1]);
+  }
+  if((mm = p.match(/^\/api\/classes\/(\d+)\/students$/)) && m === 'POST') return createStudents(C, +mm[1]);
+  if((mm = p.match(/^\/api\/students\/(\d+)\/reset$/)) && m === 'POST') return resetPassword(C, +mm[1], 'student');
+  if((mm = p.match(/^\/api\/students\/(\d+)\/progress\/([a-z]+)$/)) && m === 'GET') return studentProgress(C, +mm[1], mm[2]);
+  if((mm = p.match(/^\/api\/students\/(\d+)$/)) && m === 'DELETE') return deleteStudent(C, +mm[1]);
+  fail(404, 'Unbekannte Adresse.');
+}
+
+async function readJson(req){
+  const len = +(req.headers.get('content-length') || 0);
+  if(len > MAX_STATE + 64 * 1024) fail(413, 'Anfrage zu gross.');
+  const t = await req.text();
+  if(!t) return {};
+  if(t.length > MAX_STATE + 64 * 1024) fail(413, 'Anfrage zu gross.');
+  try{ const o = JSON.parse(t); return o && typeof o === 'object' ? o : {}; }catch(e){ fail(400, 'Ungültiges JSON.'); }
+}
+
+// ---------------- Sitzungen ----------------
+function cookieOf(req, name){
+  const c = req.headers.get('cookie') || '';
+  const m = c.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'));
+  return m ? m[1] : null;
+}
+function sessionCookie(url, token, maxAge){
+  const secure = url.protocol === 'https:' ? '; Secure' : '';
+  return COOKIE + '=' + token + '; Path=/; HttpOnly; SameSite=Lax; Max-Age=' + maxAge + secure;
+}
+async function currentUser(C){
+  if(C.user !== undefined) return C.user;
+  const tok = cookieOf(C.req, COOKIE);
+  C.user = null;
+  if(!tok || tok.length > 100) return null;
+  const sid = await sha256hex(tok);
+  const row = await C.db.prepare('SELECT u.*, s.expires AS s_expires FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ?').bind(sid).first();
+  if(!row || row.s_expires < now()) return null;
+  row.sid = sid;
+  C.user = row;
+  return row;
+}
+function requireRole(C, ...roles){
+  if(!C.user) fail(401, 'Nicht angemeldet.');
+  if(!roles.includes(C.user.role)) fail(403, 'Dafür fehlt die Berechtigung.');
+}
+async function startSession(C, user){
+  const token = b64url(randomBytes(32));
+  const t = now();
+  await C.db.batch([
+    C.db.prepare('INSERT INTO sessions (id, user_id, created_at, expires) VALUES (?, ?, ?, ?)').bind(await sha256hex(token), user.id, t, t + SESSION_DAYS * 864e5),
+    C.db.prepare('UPDATE users SET last_login = ? WHERE id = ?').bind(t, user.id),
+    C.db.prepare('DELETE FROM sessions WHERE expires < ?').bind(t),
+    C.db.prepare('DELETE FROM attempts WHERE until < ? AND first < ?').bind(t, t - LOCK.window)
+  ]);
+  return sessionCookie(C.url, token, SESSION_DAYS * 86400);
+}
+
+// ---------------- Rate-Limit ----------------
+async function checkLock(C, key){
+  const r = await C.db.prepare('SELECT * FROM attempts WHERE k = ?').bind(key).first();
+  if(r && r.until > now()){
+    const min = Math.ceil((r.until - now()) / 60000);
+    fail(429, 'Zu viele Fehlversuche. Bitte in ' + min + ' Minute' + (min === 1 ? '' : 'n') + ' erneut versuchen.');
   }
 }
-async function noteFailure(db, keys, now) {
-  for (const k of keys) {
-    const r = await db.prepare('SELECT fehler, seit FROM sperren WHERE schluessel = ?').bind(k).first();
-    const fresh = !r || now - r.seit > LIMIT.fenster, n = fresh ? 1 : r.fehler + 1;
-    await db.prepare('INSERT INTO sperren (schluessel, fehler, seit, gesperrt_bis) VALUES (?, ?, ?, ?) ON CONFLICT(schluessel) DO UPDATE SET fehler = excluded.fehler, seit = excluded.seit, gesperrt_bis = excluded.gesperrt_bis')
-      .bind(k, n, fresh ? now : r.seit, n >= LIMIT.fehler ? now + LIMIT.sperre : 0).run();
+async function noteFail(C, key, max){
+  const t = now();
+  const r = await C.db.prepare('SELECT * FROM attempts WHERE k = ?').bind(key).first();
+  if(!r || t - r.first > LOCK.window){
+    await C.db.prepare('INSERT OR REPLACE INTO attempts (k, n, first, until) VALUES (?, 1, ?, 0)').bind(key, t).run();
+    return;
   }
+  const n = r.n + 1;
+  await C.db.prepare('UPDATE attempts SET n = ?, until = ? WHERE k = ?').bind(n, n >= max ? t + LOCK.window : 0, key).run();
 }
-async function clearFailures(db, keys) { for (const k of keys) await db.prepare('DELETE FROM sperren WHERE schluessel = ?').bind(k).run(); }
+const ipOf = req => req.headers.get('cf-connecting-ip') || 'local';
 
-/* ---------- Sitzungen ---------- */
-async function newSession(db, rolle, kontoId, now) {
-  const token = b64url(rnd(32));
-  await db.prepare('INSERT INTO sitzungen (token_hash, rolle, konto_id, ablauf) VALUES (?, ?, ?, ?)').bind(await sha256(token), rolle, kontoId, now + SESSION_MS).run();
-  await db.prepare('DELETE FROM sitzungen WHERE ablauf < ?').bind(now).run(); // Aufraeumen
-  return token;
-}
-async function session(req, db, now) {
-  const m = /^Bearer\s+(\S+)$/.exec(req.headers.get('Authorization') || '');
-  if (!m) return null;
-  const s = await db.prepare('SELECT rolle, konto_id, ablauf FROM sitzungen WHERE token_hash = ?').bind(await sha256(m[1])).first();
-  if (!s || s.ablauf < now) return null;
-  return { rolle: s.rolle, id: s.konto_id, tokenHash: await sha256(m[1]) };
-}
-function need(s, ...rollen) { if (!s) fail(401, 'Bitte anmelden.'); if (!rollen.includes(s.rolle)) fail(403, 'Keine Berechtigung.'); return s; }
-async function userTaken(db, u) {
-  return !!(await db.prepare('SELECT 1 AS x FROM dozenten WHERE benutzer = ?').bind(u).first()) ||
-    !!(await db.prepare('SELECT 1 AS x FROM schueler WHERE benutzer = ?').bind(u).first());
-}
-async function konto(db, s) {
-  if (s.rolle === 'admin') return { rolle: 'admin', id: 'admin', benutzer: 'admin', pseudonym: 'Admin' };
-  if (s.rolle === 'dozent') {
-    const d = await db.prepare('SELECT id, benutzer, pseudonym FROM dozenten WHERE id = ?').bind(s.id).first();
-    return d && Object.assign({ rolle: 'dozent' }, d);
+// ---------------- Öffentlich ----------------
+async function login(C){
+  const username = String(C.body.username || '').trim();
+  const password = String(C.body.password || '');
+  if(!username || !password) fail(400, 'Benutzername und Passwort eingeben.');
+  const uKey = 'u:' + username.toLowerCase(), ipKey = 'ip:' + ipOf(C.req);
+  await checkLock(C, uKey); await checkLock(C, ipKey);
+  let user = null;
+  const env = C.env;
+  if(env.ADMIN_USER && env.ADMIN_PASSWORD && username.toLowerCase() === String(env.ADMIN_USER).toLowerCase()){
+    if(await safeEqual(password, String(env.ADMIN_PASSWORD))){
+      user = await C.db.prepare('SELECT * FROM users WHERE username = ?').bind(env.ADMIN_USER).first();
+      if(!user){
+        await C.db.prepare("INSERT INTO users (username, pw, role, created_at, notice_ack) VALUES (?, '!secret', 'admin', ?, 1)").bind(env.ADMIN_USER, now()).run();
+        user = await C.db.prepare('SELECT * FROM users WHERE username = ?').bind(env.ADMIN_USER).first();
+      } else if(user.role !== 'admin'){
+        await C.db.prepare("UPDATE users SET role = 'admin', class_id = NULL WHERE id = ?").bind(user.id).run();
+        user.role = 'admin';
+      }
+    }
   }
-  const k = await db.prepare('SELECT s.id, s.benutzer, s.pseudonym, s.klasse_id, k.name AS klasse FROM schueler s JOIN klassen k ON k.id = s.klasse_id WHERE s.id = ?').bind(s.id).first();
-  return k && Object.assign({ rolle: 'schueler' }, k);
+  if(!user){
+    // Konten mit Passwort-Hash; der Admin aus den Secrets hat pw '!secret'
+    const row = await C.db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
+    if(row && await verifyPassword(password, row.pw)) user = row;
+    else if(!row) await verifyPassword(password, 'pbkdf2$100000$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=');  // gleiche Laufzeit
+  }
+  if(!user){
+    await noteFail(C, uKey, LOCK.user); await noteFail(C, ipKey, LOCK.ip);
+    fail(401, 'Benutzername oder Passwort falsch.');
+  }
+  await C.db.prepare('DELETE FROM attempts WHERE k = ?').bind(uKey).run();
+  const cookie = await startSession(C, user);
+  return json({ user: await publicUser(C, user) }, 200, { 'set-cookie': cookie });
+}
+async function logout(C){
+  const u = await currentUser(C);
+  if(u) await C.db.prepare('DELETE FROM sessions WHERE id = ?').bind(u.sid).run();
+  return json({ ok: true }, 200, { 'set-cookie': sessionCookie(C.url, '', 0) });
+}
+async function classByCode(C, code){
+  code = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if(code.length !== 6) return null;
+  return C.db.prepare('SELECT c.*, u.username AS teacher FROM classes c JOIN users u ON u.id = c.teacher_id WHERE c.code = ?').bind(code).first();
+}
+async function classInfo(C){
+  const ipKey = 'cc:' + ipOf(C.req);
+  await checkLock(C, ipKey);
+  const cls = await classByCode(C, C.url.searchParams.get('code'));
+  if(!cls || !cls.self_signup){ await noteFail(C, ipKey, 30); fail(404, 'Klassencode unbekannt oder Selbstanmeldung geschlossen.'); }
+  return json({ name: cls.name, teacher: cls.teacher });
+}
+async function register(C){
+  const ipKey = 'cc:' + ipOf(C.req);
+  await checkLock(C, ipKey);
+  const cls = await classByCode(C, C.body.code);
+  if(!cls || !cls.self_signup){ await noteFail(C, ipKey, 30); fail(404, 'Klassencode unbekannt oder Selbstanmeldung geschlossen.'); }
+  const username = checkUsername(C.body.username);
+  const password = checkPassword(C.body.password, 6);
+  await assertFreeName(C, username);
+  const n = await C.db.prepare("SELECT COUNT(*) AS n FROM users WHERE class_id = ?").bind(cls.id).first();
+  if(n.n >= 200) fail(400, 'Die Klasse ist voll (200 Konten).');
+  await C.db.prepare("INSERT INTO users (username, pw, role, class_id, created_at) VALUES (?, ?, 'student', ?, ?)").bind(username, await hashPassword(password), cls.id, now()).run();
+  const user = await C.db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
+  const cookie = await startSession(C, user);
+  return json({ user: await publicUser(C, user) }, 201, { 'set-cookie': cookie });
+}
+async function assertFreeName(C, username){
+  if(C.env.ADMIN_USER && username.toLowerCase() === String(C.env.ADMIN_USER).toLowerCase()) fail(409, 'Dieser Benutzername ist vergeben.');
+  const ex = await C.db.prepare('SELECT id FROM users WHERE username = ?').bind(username).first();
+  if(ex) fail(409, 'Der Benutzername "' + username + '" ist schon vergeben.');
 }
 
-/* ---------- Endpunkte ---------- */
-const routes = [];
-const on = (method, path, fn) => routes.push({ method, re: new RegExp('^' + path.replace(/:(\w+)/g, '(?<$1>[^/]+)') + '$'), fn });
-
-on('GET', '/api/status', async ({ env }) => ({ ok: true, api: 1, konten: !!env.DB }));
-
-on('POST', '/api/login', async ({ req, env, db, now }) => {
-  const b = await body(req), u = String(b.benutzer || '').trim().toLowerCase(), pw = String(b.passwort || '');
-  if (!u || !pw) fail(400, 'Benutzername und Passwort eingeben.');
-  const keys = ['u:' + u, 'ip:' + ip(req)];
-  await checkLock(db, keys, now);
-  let rolle = null, id = null;
-  if (env.ADMIN_USER && env.ADMIN_PASSWORD && sameText(u, String(env.ADMIN_USER).toLowerCase())) {
-    if (sameText(pw, env.ADMIN_PASSWORD)) { rolle = 'admin'; id = 'admin'; }
-  } else {
-    const d = await db.prepare('SELECT id, pw FROM dozenten WHERE benutzer = ?').bind(u).first();
-    const s = d ? null : await db.prepare('SELECT id, pw FROM schueler WHERE benutzer = ?').bind(u).first();
-    const k = d || s;
-    if (k && await verifyPassword(pw, k.pw)) { rolle = d ? 'dozent' : 'schueler'; id = k.id; }
-    else if (!k) await hashPassword(pw); // gleiche Rechenzeit, ob es den Namen gibt oder nicht
+// ---------------- Eigenes Konto ----------------
+async function publicUser(C, u){
+  const out = { id: u.id, username: u.username, role: u.role, noticeAck: !!u.notice_ack, mustChange: !!u.must_change };
+  if(u.role === 'admin') out.secretAdmin = u.pw === '!secret';   // Passwort nur in den Worker-Secrets änderbar
+  if(u.role !== 'student') out.displayName = u.display_name || '';
+  if(u.role === 'student' && u.class_id){
+    const c = await C.db.prepare('SELECT c.name, u.username AS teacher FROM classes c JOIN users u ON u.id = c.teacher_id WHERE c.id = ?').bind(u.class_id).first();
+    if(c) out.class = { id: u.class_id, name: c.name, teacher: c.teacher };
   }
-  if (!rolle) { await noteFailure(db, keys, now); fail(401, 'Benutzername oder Passwort falsch.'); }
-  await clearFailures(db, ['u:' + u]);
-  const token = await newSession(db, rolle, id, now);
-  return { token, konto: await konto(db, { rolle, id }) };
-});
+  return out;
+}
+async function me(C){ return json({ user: await publicUser(C, C.user) }); }
+async function changeOwnPassword(C){
+  if(C.user.role === 'admin' && C.user.pw === '!secret') fail(400, 'Das Admin-Passwort wird in den Worker-Secrets geändert.');
+  const old = String(C.body.old || '');
+  if(!await verifyPassword(old, C.user.pw)) fail(401, 'Das bisherige Passwort stimmt nicht.');
+  const pw = checkPassword(C.body.password, C.user.role === 'student' ? 6 : 8);
+  await C.db.batch([
+    C.db.prepare('UPDATE users SET pw = ?, must_change = 0 WHERE id = ?').bind(await hashPassword(pw), C.user.id),
+    C.db.prepare('DELETE FROM sessions WHERE user_id = ? AND id <> ?').bind(C.user.id, C.user.sid)
+  ]);
+  return json({ ok: true });
+}
+async function setDisplayName(C){
+  requireRole(C, 'teacher', 'admin');
+  const name = cleanText(C.body.displayName, 80);
+  await C.db.prepare('UPDATE users SET display_name = ? WHERE id = ?').bind(name || null, C.user.id).run();
+  return json({ ok: true, displayName: name });
+}
+async function ackNotice(C){
+  await C.db.prepare('UPDATE users SET notice_ack = 1 WHERE id = ?').bind(C.user.id).run();
+  return json({ ok: true });
+}
+async function deleteSelf(C){
+  if(C.user.role !== 'student') fail(400, 'Nur Schülerkonten können sich selbst löschen.');
+  if(!await verifyPassword(String(C.body.password || ''), C.user.pw)) fail(401, 'Passwort falsch.');
+  await wipeUser(C, C.user.id);
+  return json({ ok: true }, 200, { 'set-cookie': sessionCookie(C.url, '', 0) });
+}
+async function wipeUser(C, id){
+  await C.db.batch([
+    C.db.prepare('DELETE FROM progress WHERE user_id = ?').bind(id),
+    C.db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id),
+    C.db.prepare('DELETE FROM challenge_players WHERE user_id = ?').bind(id),
+    C.db.prepare('DELETE FROM assignments WHERE user_id = ?').bind(id),
+    C.db.prepare('UPDATE feedback_reports SET user_id = NULL, username = NULL WHERE user_id = ?').bind(id),
+    C.db.prepare('DELETE FROM users WHERE id = ?').bind(id)
+  ]);
+}
 
-on('POST', '/api/logout', async ({ s, db }) => { if (s) await db.prepare('DELETE FROM sitzungen WHERE token_hash = ?').bind(s.tokenHash).run(); return { ok: true }; });
+// ---------------- Fortschritt ----------------
+function checkQuest(q){ if(!QUESTS.includes(q)) fail(404, 'Unbekannte Quest.'); return q; }
+async function getProgress(C, quest){
+  checkQuest(quest);
+  const r = await C.db.prepare('SELECT state, updated_at FROM progress WHERE user_id = ? AND quest = ?').bind(C.user.id, quest).first();
+  if(!r) return json({ state: null, updatedAt: 0 });
+  return json({ state: JSON.parse(r.state), updatedAt: r.updated_at });
+}
+async function putProgress(C, quest){
+  checkQuest(quest);
+  if(C.user.role === 'admin' && C.user.pw === '!secret') fail(400, 'Das Admin-Konto speichert keinen Spielstand.');
+  const st = C.body.state;
+  if(!st || typeof st !== 'object') fail(400, 'Spielstand fehlt.');
+  // keine echten Namen auf dem Server (nur fürs Zertifikat, bleiben lokal)
+  if(st.profile && typeof st.profile === 'object'){ delete st.profile.vorname; delete st.profile.nachname; }
+  delete st.name;
+  const text = JSON.stringify(st);
+  if(text.length > MAX_STATE) fail(413, 'Spielstand zu gross.');
+  const summary = JSON.stringify(sanitizeSummary(C.body.summary));
+  const base = +C.body.base || 0;
+  const cur = await C.db.prepare('SELECT updated_at FROM progress WHERE user_id = ? AND quest = ?').bind(C.user.id, quest).first();
+  if(cur && base && cur.updated_at > base && !C.body.force) fail(409, 'Auf einem anderen Gerät wurde weitergespielt.', { updatedAt: cur.updated_at });
+  const t = Math.max(now(), cur ? cur.updated_at + 1 : 0);
+  await C.db.prepare('INSERT INTO progress (user_id, quest, state, summary, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(user_id, quest) DO UPDATE SET state = excluded.state, summary = excluded.summary, updated_at = excluded.updated_at')
+    .bind(C.user.id, quest, text, summary, t).run();
+  return json({ ok: true, updatedAt: t });
+}
+// done: Liste der erledigten Stationen (fuer den Stand der Vorgaben im Leitstand, ohne den ganzen Spielstand zu lesen)
+function sanitizeSummary(s){
+  s = s && typeof s === 'object' ? s : {};
+  const num = v => Math.max(0, Math.min(1e7, +v || 0));
+  const done = Array.isArray(s.done) ? s.done.filter(x => typeof x === 'string' && /^[A-Za-z0-9.]{1,12}$/.test(x)).slice(0, 600) : [];
+  return { tasks: num(s.tasks), theory: num(s.theory), points: num(s.points), stars: num(s.stars), ch: num(s.ch),
+    totalTasks: num(s.totalTasks), totalTheory: num(s.totalTheory), current: cleanText(s.current, 80), lastAt: num(s.lastAt), done };
+}
 
-on('GET', '/api/me', async ({ s, db }) => {
-  need(s, 'admin', 'dozent', 'schueler');
-  const k = await konto(db, s); if (!k) fail(401, 'Konto gibt es nicht mehr.');
-  return { konto: k };
-});
+// ---------------- Admin ----------------
+async function listTeachers(C){
+  requireRole(C, 'admin');
+  const r = await C.db.prepare(`SELECT u.id, u.username, u.created_at, u.last_login,
+      (SELECT COUNT(*) FROM classes c WHERE c.teacher_id = u.id) AS classes,
+      (SELECT COUNT(*) FROM users s JOIN classes c ON s.class_id = c.id WHERE c.teacher_id = u.id) AS students
+    FROM users u WHERE u.role = 'teacher' ORDER BY u.username`).all();
+  return json({ teachers: r.results || [] });
+}
+async function createTeacher(C){
+  requireRole(C, 'admin');
+  const username = checkUsername(C.body.username);
+  await assertFreeName(C, username);
+  const password = C.body.password ? checkPassword(C.body.password, 8) : randomPassword();
+  await C.db.prepare("INSERT INTO users (username, pw, role, created_by, created_at, notice_ack, must_change) VALUES (?, ?, 'teacher', ?, ?, 1, 1)")
+    .bind(username, await hashPassword(password), C.user.id, now()).run();
+  return json({ username, password }, 201);
+}
+async function deleteTeacher(C, id){
+  requireRole(C, 'admin');
+  const t = await C.db.prepare("SELECT id FROM users WHERE id = ? AND role = 'teacher'").bind(id).first();
+  if(!t) fail(404, 'Dozent nicht gefunden.');
+  const cls = ((await C.db.prepare('SELECT id FROM classes WHERE teacher_id = ?').bind(id).all()).results || []);
+  if(cls.length && !C.body.withClasses) fail(409, 'Der Dozent hat noch ' + cls.length + ' Klasse(n). Zuerst die Klassen löschen oder "mit Klassen löschen" wählen.');
+  await C.db.prepare('DELETE FROM challenge_players WHERE challenge_id IN (SELECT id FROM challenges WHERE teacher_id = ?)').bind(id).run();
+  await C.db.prepare('DELETE FROM challenges WHERE teacher_id = ?').bind(id).run();
+  for(const c of cls) await wipeClass(C, c.id);
+  await C.db.prepare('DELETE FROM assignments WHERE teacher_id = ?').bind(id).run();
+  await wipeUser(C, id);
+  return json({ ok: true });
+}
+async function adminStats(C){
+  requireRole(C, 'admin');
+  const q = sql => C.db.prepare(sql).first();
+  const [t, s, c, p] = await Promise.all([
+    q("SELECT COUNT(*) AS n FROM users WHERE role = 'teacher'"), q("SELECT COUNT(*) AS n FROM users WHERE role = 'student'"),
+    q('SELECT COUNT(*) AS n FROM classes'), q('SELECT COUNT(*) AS n FROM progress')]);
+  return json({ teachers: t.n, students: s.n, classes: c.n, progress: p.n });
+}
 
-/* Admin: Dozenten verwalten */
-on('GET', '/api/admin/dozenten', async ({ s, db }) => {
-  need(s, 'admin');
-  const r = await db.prepare('SELECT d.id, d.benutzer, d.pseudonym, d.erstellt, (SELECT COUNT(*) FROM klassen k WHERE k.dozent_id = d.id) AS klassen, ' +
-    '(SELECT COUNT(*) FROM schueler x JOIN klassen k ON k.id = x.klasse_id WHERE k.dozent_id = d.id) AS schueler FROM dozenten d ORDER BY d.benutzer').all();
-  return { dozenten: r.results };
-});
-on('POST', '/api/admin/dozenten', async ({ s, req, db, now }) => {
-  need(s, 'admin');
-  const b = await body(req), u = userName(b.benutzer), pw = password(b.passwort), ps = pseudonym(b.pseudonym, u);
-  if (await userTaken(db, u)) fail(409, 'Benutzername ist schon vergeben.');
-  const id = uuid();
-  await db.prepare('INSERT INTO dozenten (id, benutzer, pw, pseudonym, erstellt) VALUES (?, ?, ?, ?, ?)').bind(id, u, await hashPassword(pw), ps, now).run();
-  return { dozent: { id, benutzer: u, pseudonym: ps, erstellt: now } };
-});
-on('POST', '/api/admin/dozenten/:id/passwort', async ({ s, req, db, p }) => {
-  need(s, 'admin');
-  const pw = password((await body(req)).passwort);
-  const r = await db.prepare('UPDATE dozenten SET pw = ? WHERE id = ?').bind(await hashPassword(pw), p.id).run();
-  if (!r.meta.changes) fail(404, 'Dozent nicht gefunden.');
-  await db.prepare('DELETE FROM sitzungen WHERE konto_id = ?').bind(p.id).run();
-  return { ok: true };
-});
-on('DELETE', '/api/admin/dozenten/:id', async ({ s, db, p }) => {
-  need(s, 'admin');
-  const r = await db.prepare('DELETE FROM dozenten WHERE id = ?').bind(p.id).run(); // Klassen, Schueler, Zuweisungen fallen mit (ON DELETE CASCADE)
-  if (!r.meta.changes) fail(404, 'Dozent nicht gefunden.');
-  return { ok: true };
-});
-
-/* ---------- Dozent: Klassen und Schueler ---------- */
-const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // ohne 0/O, 1/I – gut abzuschreiben
-function newCode() { return Array.from(rnd(6), b => CODE_ABC[b % CODE_ABC.length]).join(''); }
-async function uniqueCode(db) {
-  for (let i = 0; i < 20; i++) { const c = newCode(); if (!(await db.prepare('SELECT 1 AS x FROM klassen WHERE code = ?').bind(c).first())) return c; }
+// ---------------- Dozent: Klassen und Schüler ----------------
+async function ownClass(C, id){
+  requireRole(C, 'teacher', 'admin');
+  const c = await C.db.prepare('SELECT * FROM classes WHERE id = ?').bind(id).first();
+  if(!c || (C.user.role !== 'admin' && c.teacher_id !== C.user.id)) fail(404, 'Klasse nicht gefunden.');
+  return c;
+}
+async function uniqueClassCode(C){
+  for(let i = 0; i < 20; i++){
+    const code = randomCode(6);
+    if(!await C.db.prepare('SELECT id FROM classes WHERE code = ?').bind(code).first()) return code;
+  }
   fail(500, 'Kein freier Klassencode gefunden.');
 }
-async function ownClass(db, s, id) {
-  const k = await db.prepare('SELECT id, name, code, erstellt FROM klassen WHERE id = ? AND dozent_id = ?').bind(id, s.id).first();
-  if (!k) fail(404, 'Klasse nicht gefunden.');
-  return k;
+async function listClasses(C){
+  requireRole(C, 'teacher', 'admin');
+  const r = await C.db.prepare(`SELECT c.id, c.name, c.code, c.self_signup, c.created_at,
+      (SELECT COUNT(*) FROM users s WHERE s.class_id = c.id) AS students
+    FROM classes c WHERE c.teacher_id = ? ORDER BY c.name`).bind(C.user.id).all();
+  return json({ classes: r.results || [] });
 }
-async function ownStudent(db, s, id) {
-  const x = await db.prepare('SELECT x.id, x.klasse_id FROM schueler x JOIN klassen k ON k.id = x.klasse_id WHERE x.id = ? AND k.dozent_id = ?').bind(id, s.id).first();
-  if (!x) fail(404, 'Schueler nicht gefunden.');
-  return x;
+async function createClass(C){
+  requireRole(C, 'teacher', 'admin');   // ein Admin-Konto kann zugleich Dozent sein
+  const name = cleanText(C.body.name, 60);
+  if(!name) fail(400, 'Bitte einen Klassennamen eingeben.');
+  const n = await C.db.prepare('SELECT COUNT(*) AS n FROM classes WHERE teacher_id = ?').bind(C.user.id).first();
+  if(n.n >= 50) fail(400, 'Höchstens 50 Klassen pro Dozent.');
+  const code = await uniqueClassCode(C);
+  const r = await C.db.prepare('INSERT INTO classes (name, teacher_id, code, self_signup, created_at) VALUES (?, ?, ?, 1, ?)').bind(name, C.user.id, code, now()).run();
+  return json({ id: r.meta.last_row_id, name, code, self_signup: 1 }, 201);
 }
-async function addStudent(db, klasseId, b, now) {
-  const u = userName(b.benutzer), pw = password(b.passwort), ps = pseudonym(b.pseudonym, u);
-  if (await userTaken(db, u)) fail(409, 'Benutzername ist schon vergeben.');
-  const id = uuid();
-  await db.prepare('INSERT INTO schueler (id, benutzer, pw, pseudonym, klasse_id, erstellt) VALUES (?, ?, ?, ?, ?, ?)').bind(id, u, await hashPassword(pw), ps, klasseId, now).run();
-  return { id, benutzer: u, pseudonym: ps, erstellt: now };
+async function getClass(C, id){
+  const c = await ownClass(C, id);
+  const r = await C.db.prepare(`SELECT u.id, u.username, u.created_at, u.last_login, u.notice_ack, u.must_change,
+      p.quest, p.summary, p.updated_at
+    FROM users u LEFT JOIN progress p ON p.user_id = u.id
+    WHERE u.class_id = ? ORDER BY u.username`).bind(id).all();
+  const by = {};
+  (r.results || []).forEach(row => {
+    const s = by[row.id] || (by[row.id] = { id: row.id, username: row.username, createdAt: row.created_at, lastLogin: row.last_login,
+      noticeAck: !!row.notice_ack, mustChange: !!row.must_change, progress: {} });
+    if(row.quest) s.progress[row.quest] = Object.assign(JSON.parse(row.summary || '{}'), { updatedAt: row.updated_at });
+  });
+  return json({ class: { id: c.id, name: c.name, code: c.code, selfSignup: !!c.self_signup, createdAt: c.created_at }, students: Object.values(by) });
 }
-
-on('GET', '/api/klassen', async ({ s, db }) => {
-  need(s, 'dozent');
-  const r = await db.prepare('SELECT k.id, k.name, k.code, k.erstellt, (SELECT COUNT(*) FROM schueler x WHERE x.klasse_id = k.id) AS schueler FROM klassen k WHERE k.dozent_id = ? ORDER BY k.name').bind(s.id).all();
-  return { klassen: r.results };
-});
-on('POST', '/api/klassen', async ({ s, req, db, now }) => {
-  need(s, 'dozent');
-  const name = String((await body(req)).name || '').trim().replace(/\s+/g, ' ');
-  if (!name || name.length > 40) fail(400, 'Klassenname: 1–40 Zeichen.');
-  const id = uuid(), code = await uniqueCode(db);
-  await db.prepare('INSERT INTO klassen (id, dozent_id, name, code, erstellt) VALUES (?, ?, ?, ?, ?)').bind(id, s.id, name, code, now).run();
-  return { klasse: { id, name, code, erstellt: now, schueler: 0 } };
-});
-/* Klasse mit Schuelern und deren Fortschritt (erledigte Stationen mit Zeitpunkt) */
-on('GET', '/api/klassen/:id', async ({ s, db, p }) => {
-  need(s, 'dozent');
-  const k = await ownClass(db, s, p.id);
-  const xs = (await db.prepare('SELECT id, benutzer, pseudonym, erstellt, zuletzt FROM schueler WHERE klasse_id = ? ORDER BY pseudonym').bind(k.id).all()).results;
-  const f = (await db.prepare('SELECT f.schueler_id, f.item_id, f.erledigt FROM fortschritt f JOIN schueler x ON x.id = f.schueler_id WHERE x.klasse_id = ?').bind(k.id).all()).results;
-  xs.forEach(x => { x.erledigt = {}; });
-  const by = {}; xs.forEach(x => { by[x.id] = x; });
-  f.forEach(r => { if (by[r.schueler_id]) by[r.schueler_id].erledigt[r.item_id] = r.erledigt; });
-  return { klasse: k, schueler: xs };
-});
-on('POST', '/api/klassen/:id/code', async ({ s, db, p }) => {
-  need(s, 'dozent');
-  const k = await ownClass(db, s, p.id), code = await uniqueCode(db);
-  await db.prepare('UPDATE klassen SET code = ? WHERE id = ?').bind(code, k.id).run();
-  return { code };
-});
-on('DELETE', '/api/klassen/:id', async ({ s, db, p }) => {
-  need(s, 'dozent');
-  const k = await ownClass(db, s, p.id);
-  await db.prepare('DELETE FROM klassen WHERE id = ?').bind(k.id).run(); // Schueler, Fortschritt, Zuweisungen fallen mit
-  return { ok: true };
-});
-on('POST', '/api/klassen/:id/schueler', async ({ s, req, db, p, now }) => {
-  need(s, 'dozent');
-  const k = await ownClass(db, s, p.id);
-  return { schueler: await addStudent(db, k.id, await body(req), now) };
-});
-on('POST', '/api/schueler/:id/passwort', async ({ s, req, db, p }) => {
-  need(s, 'dozent');
-  const x = await ownStudent(db, s, p.id), pw = password((await body(req)).passwort);
-  await db.prepare('UPDATE schueler SET pw = ? WHERE id = ?').bind(await hashPassword(pw), x.id).run();
-  await db.prepare('DELETE FROM sitzungen WHERE konto_id = ?').bind(x.id).run();
-  return { ok: true };
-});
-on('DELETE', '/api/schueler/:id', async ({ s, db, p }) => {
-  need(s, 'dozent');
-  const x = await ownStudent(db, s, p.id);
-  await db.prepare('DELETE FROM sitzungen WHERE konto_id = ?').bind(x.id).run();
-  await db.prepare('DELETE FROM schueler WHERE id = ?').bind(x.id).run();
-  return { ok: true };
-});
-
-/* Selbstregistrierung mit Klassencode (Rate-Limiting gegen Raten von Codes) */
-on('POST', '/api/registrieren', async ({ req, db, now }) => {
-  const b = await body(req), keys = ['code:' + ip(req)];
-  await checkLock(db, keys, now);
-  const code = String(b.code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const k = code && await db.prepare('SELECT id, name FROM klassen WHERE code = ?').bind(code).first();
-  if (!k) { await noteFailure(db, keys, now); fail(404, 'Diesen Klassencode gibt es nicht.'); }
-  const x = await addStudent(db, k.id, b, now);
-  const token = await newSession(db, 'schueler', x.id, now);
-  return { token, konto: await konto(db, { rolle: 'schueler', id: x.id }) };
-});
-
-/* ---------- Zuweisungen (neu entworfen, siehe Plan Baustein 2) ----------
- * Eine Zeile = ein Ziel (Kapitel 'kapitel' oder Station 'aufgabe') an eine Klasse ODER eine Person, optional mit Frist.
- * Mehrfachauswahl legt mehrere Zeilen an; dasselbe Ziel an denselben Empfaenger aktualisiert nur die Frist.
- * Nichts wird gesperrt – die Frist ist nur Sichtbarkeit/Erinnerung. Erledigt-Status rechnet der Client aus dem Fortschritt. */
-function dueDate(v) {
-  if (v === null || v === undefined || v === '') return null;
-  const s = String(v); if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || isNaN(Date.parse(s))) fail(400, 'Datum im Format JJJJ-MM-TT.');
+async function patchClass(C, id){
+  const c = await ownClass(C, id);
+  const b = C.body;
+  if(b.name !== undefined){ const name = cleanText(b.name, 60); if(!name) fail(400, 'Name fehlt.'); await C.db.prepare('UPDATE classes SET name = ? WHERE id = ?').bind(name, id).run(); }
+  if(b.selfSignup !== undefined) await C.db.prepare('UPDATE classes SET self_signup = ? WHERE id = ?').bind(b.selfSignup ? 1 : 0, id).run();
+  if(b.newCode) await C.db.prepare('UPDATE classes SET code = ? WHERE id = ?').bind(await uniqueClassCode(C), id).run();
+  const n = await C.db.prepare('SELECT id, name, code, self_signup FROM classes WHERE id = ?').bind(c.id).first();
+  return json({ class: { id: n.id, name: n.name, code: n.code, selfSignup: !!n.self_signup } });
+}
+async function wipeClass(C, id){
+  const ids = ((await C.db.prepare('SELECT id FROM users WHERE class_id = ?').bind(id).all()).results || []).map(r => r.id);
+  for(const uid of ids) await wipeUser(C, uid);
+  await wipeAssignments(C, id);
+  await C.db.prepare('DELETE FROM classes WHERE id = ?').bind(id).run();
+}
+async function deleteClass(C, id){
+  await ownClass(C, id);
+  await wipeClass(C, id);
+  return json({ ok: true });
+}
+async function createStudents(C, id){
+  const c = await ownClass(C, id);
+  let names = Array.isArray(C.body.usernames) ? C.body.usernames : [];
+  if(!names.length && C.body.prefix){
+    const count = Math.max(1, Math.min(40, +C.body.count || 0));
+    const prefix = String(C.body.prefix).trim();
+    for(let i = 1; i <= count; i++) names.push(prefix + String(i).padStart(2, '0'));
+  }
+  if(!names.length) fail(400, 'Keine Benutzernamen angegeben.');
+  if(names.length > 40) fail(400, 'Höchstens 40 Konten auf einmal.');
+  names = names.map(checkUsername);
+  const lower = names.map(n => n.toLowerCase());
+  if(new Set(lower).size !== lower.length) fail(400, 'Doppelte Benutzernamen in der Liste.');
+  for(const n of names) await assertFreeName(C, n);
+  const out = [], stmts = [];
+  for(const n of names){
+    const pw = randomPassword();
+    out.push({ username: n, password: pw });
+    stmts.push(C.db.prepare("INSERT INTO users (username, pw, role, class_id, created_by, created_at, must_change) VALUES (?, ?, 'student', ?, ?, ?, 1)")
+      .bind(n, await hashPassword(pw), c.id, C.user.id, now()));
+  }
+  await C.db.batch(stmts);
+  return json({ created: out }, 201);
+}
+async function studentOf(C, id){
+  requireRole(C, 'teacher', 'admin');
+  const s = await C.db.prepare("SELECT u.*, c.teacher_id FROM users u LEFT JOIN classes c ON c.id = u.class_id WHERE u.id = ? AND u.role = 'student'").bind(id).first();
+  if(!s || (C.user.role !== 'admin' && s.teacher_id !== C.user.id)) fail(404, 'Schüler nicht gefunden.');
   return s;
 }
-function targets(list) {
-  if (!Array.isArray(list) || !list.length || list.length > 200) fail(400, 'Bitte mindestens ein Kapitel oder eine Station waehlen.');
-  return list.map(z => {
-    const typ = z && z.typ, id = String(z && z.id || '');
-    if (typ !== 'kapitel' && typ !== 'aufgabe') fail(400, 'Ziel-Typ muss kapitel oder aufgabe sein.');
-    if (!RE_ITEM.test(id)) fail(400, 'Ungueltige Kapitel-/Stations-ID: ' + id);
-    return { typ, id };
-  });
+async function resetPassword(C, id, role){
+  let u;
+  if(role === 'teacher'){
+    requireRole(C, 'admin');
+    u = await C.db.prepare("SELECT * FROM users WHERE id = ? AND role = 'teacher'").bind(id).first();
+    if(!u) fail(404, 'Dozent nicht gefunden.');
+  } else u = await studentOf(C, id);
+  const pw = randomPassword();
+  await C.db.batch([
+    C.db.prepare('UPDATE users SET pw = ?, must_change = 1 WHERE id = ?').bind(await hashPassword(pw), u.id),
+    C.db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(u.id),
+    C.db.prepare('DELETE FROM attempts WHERE k = ?').bind('u:' + u.username.toLowerCase())
+  ]);
+  return json({ username: u.username, password: pw });
 }
-const Z_COLS = 'z.id, z.ziel_typ, z.ziel_id, z.klasse_id, z.schueler_id, z.faellig_am, z.erstellt';
-
-on('POST', '/api/zuweisungen', async ({ s, req, db, now }) => {
-  need(s, 'dozent');
-  const b = await body(req), ziele = targets(b.ziele), faellig = dueDate(b.faellig_am);
-  let empf = [];
-  if (b.klasse_id) { await ownClass(db, s, b.klasse_id); empf = [{ col: 'klasse_id', id: b.klasse_id }]; }
-  else if (Array.isArray(b.schueler_ids) && b.schueler_ids.length) {
-    for (const id of b.schueler_ids) { await ownStudent(db, s, id); empf.push({ col: 'schueler_id', id }); }
-  } else fail(400, 'Bitte eine Klasse oder einzelne Schueler waehlen.');
-  const out = [];
-  for (const z of ziele) for (const e of empf) {
-    const ex = await db.prepare('SELECT id FROM zuweisungen WHERE dozent_id = ? AND ziel_typ = ? AND ziel_id = ? AND ' + e.col + ' = ?').bind(s.id, z.typ, z.id, e.id).first();
-    if (ex) { await db.prepare('UPDATE zuweisungen SET faellig_am = ? WHERE id = ?').bind(faellig, ex.id).run(); out.push(ex.id); continue; }
-    const id = uuid();
-    await db.prepare('INSERT INTO zuweisungen (id, dozent_id, ziel_typ, ziel_id, klasse_id, schueler_id, faellig_am, erstellt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-      .bind(id, s.id, z.typ, z.id, e.col === 'klasse_id' ? e.id : null, e.col === 'schueler_id' ? e.id : null, faellig, now).run();
-    out.push(id);
-  }
-  return { ids: out };
-});
-/* Alle Zuweisungen einer Klasse: an die ganze Klasse und an einzelne Schueler der Klasse */
-on('GET', '/api/klassen/:id/zuweisungen', async ({ s, db, p }) => {
-  need(s, 'dozent');
-  const k = await ownClass(db, s, p.id);
-  const r = await db.prepare('SELECT ' + Z_COLS + ', x.pseudonym FROM zuweisungen z LEFT JOIN schueler x ON x.id = z.schueler_id ' +
-    'WHERE z.dozent_id = ? AND (z.klasse_id = ? OR x.klasse_id = ?) ORDER BY z.faellig_am IS NULL, z.faellig_am, z.erstellt').bind(s.id, k.id, k.id).all();
-  return { zuweisungen: r.results };
-});
-on('POST', '/api/zuweisungen/:id', async ({ s, req, db, p }) => {
-  need(s, 'dozent');
-  const faellig = dueDate((await body(req)).faellig_am);
-  const r = await db.prepare('UPDATE zuweisungen SET faellig_am = ? WHERE id = ? AND dozent_id = ?').bind(faellig, p.id, s.id).run();
-  if (!r.meta.changes) fail(404, 'Zuweisung nicht gefunden.');
-  return { ok: true };
-});
-on('DELETE', '/api/zuweisungen/:id', async ({ s, db, p }) => {
-  need(s, 'dozent');
-  const r = await db.prepare('DELETE FROM zuweisungen WHERE id = ? AND dozent_id = ?').bind(p.id, s.id).run();
-  if (!r.meta.changes) fail(404, 'Zuweisung nicht gefunden.');
-  return { ok: true };
-});
-
-/* ---------- Schueler: eigene Vorgaben, Fortschritt-Spiegel ---------- */
-async function doneMap(db, id) {
-  const r = (await db.prepare('SELECT item_id, erledigt FROM fortschritt WHERE schueler_id = ?').bind(id).all()).results, m = {};
-  r.forEach(x => { m[x.item_id] = x.erledigt; });
-  return m;
+async function studentProgress(C, id, quest){
+  checkQuest(quest);
+  const s = await studentOf(C, id);
+  const r = await C.db.prepare('SELECT state, summary, updated_at FROM progress WHERE user_id = ? AND quest = ?').bind(s.id, quest).first();
+  return json({ student: { id: s.id, username: s.username, noticeAck: !!s.notice_ack }, state: r ? JSON.parse(r.state) : null, summary: r ? JSON.parse(r.summary || '{}') : null, updatedAt: r ? r.updated_at : 0 });
 }
-on('GET', '/api/meine', async ({ s, db }) => {
-  need(s, 'schueler');
-  const me = await db.prepare('SELECT klasse_id FROM schueler WHERE id = ?').bind(s.id).first();
-  if (!me) fail(401, 'Konto gibt es nicht mehr.');
-  const r = await db.prepare('SELECT ' + Z_COLS + ', d.pseudonym AS dozent FROM zuweisungen z JOIN dozenten d ON d.id = z.dozent_id ' +
-    'WHERE z.klasse_id = ? OR z.schueler_id = ? ORDER BY z.faellig_am IS NULL, z.faellig_am, z.erstellt').bind(me.klasse_id, s.id).all();
-  return { zuweisungen: r.results.map(z => ({ id: z.id, ziel_typ: z.ziel_typ, ziel_id: z.ziel_id, faellig_am: z.faellig_am, erstellt: z.erstellt, dozent: z.dozent, fuer: z.schueler_id ? 'dich' : 'klasse' })), erledigt: await doneMap(db, s.id) };
-});
-/* Lokalen Fortschritt spiegeln: erledigt {item: t} (fruehester Zeitpunkt gewinnt), ereignisse [{t, type, id, …}] (doppelte ignoriert).
- * Antwort: gesamter Server-Stand, damit ein anderes Geraet ihn uebernehmen kann. */
-on('POST', '/api/sync', async ({ s, req, db, now }) => {
-  need(s, 'schueler');
-  const b = await body(req), done = b.erledigt && typeof b.erledigt === 'object' ? b.erledigt : {}, evs = Array.isArray(b.ereignisse) ? b.ereignisse : [];
-  const ids = Object.keys(done);
-  if (ids.length > 1000 || evs.length > 500) fail(413, 'Zu viele Eintraege auf einmal (hoechstens 1000 erledigt / 500 Ereignisse).');
-  const stmts = [];
-  ids.forEach(id => {
-    if (!RE_ITEM.test(id)) return;
-    const t = Math.min(now, Math.max(0, Math.round(+done[id]) || now));
-    stmts.push(db.prepare('INSERT INTO fortschritt (schueler_id, item_id, erledigt) VALUES (?, ?, ?) ON CONFLICT(schueler_id, item_id) DO UPDATE SET erledigt = MIN(erledigt, excluded.erledigt)').bind(s.id, id, t));
-  });
-  evs.forEach(e => {
-    if (!e || typeof e !== 'object') return;
-    const t = Math.round(+e.t), typ = String(e.type || ''), item = String(e.id || '');
-    if (!(t > 0) || !/^[a-z_]{1,24}$/.test(typ) || (item && !RE_ITEM.test(item))) return;
-    const rest = {}; Object.keys(e).forEach(k => { if (k !== 't' && k !== 'type' && k !== 'id') rest[k] = e[k]; });
-    const daten = JSON.stringify(rest);
-    stmts.push(db.prepare('INSERT OR IGNORE INTO ereignisse (schueler_id, t, typ, item_id, daten) VALUES (?, ?, ?, ?, ?)').bind(s.id, t, typ, item, daten.length > 2000 ? daten.slice(0, 2000) : daten));
-  });
-  stmts.push(db.prepare('UPDATE schueler SET zuletzt = ? WHERE id = ?').bind(now, s.id));
-  await db.batch(stmts);
-  return { erledigt: await doneMap(db, s.id), zeit: now };
-});
-
-/* ---------- Einstieg ---------- */
-export async function handle(req, env) {
-  const url = new URL(req.url);
-  if (!url.pathname.startsWith('/api/')) return env.ASSETS ? env.ASSETS.fetch(req) : new Response('Nicht gefunden', { status: 404 });
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
-  try {
-    const route = routes.find(r => r.method === req.method && r.re.test(url.pathname));
-    if (!route) fail(404, 'Unbekannter Endpunkt.');
-    if (!env.DB && url.pathname !== '/api/status') fail(503, 'Konten sind auf diesem Server noch nicht eingerichtet.');
-    const now = Date.now(), db = env.DB, s = db ? await session(req, db, now) : null;
-    const p = route.re.exec(url.pathname).groups || {};
-    return json(await route.fn({ req, env, db, now, s, p, url }));
-  } catch (e) {
-    if (e instanceof HttpError) return json(Object.assign({ fehler: e.message }, e.extra || {}), e.status);
-    console.error(e);
-    return json({ fehler: 'Interner Fehler.' }, 500);
-  }
+async function deleteStudent(C, id){
+  const s = await studentOf(C, id);
+  await wipeUser(C, s.id);
+  return json({ ok: true });
 }
-export default { fetch: (req, env) => handle(req, env) };
-export const _intern = { on, fail, need, body, userName, password, pseudonym, userTaken, konto, uuid, rnd, checkLock, noteFailure, clearFailures, ip, RE_ITEM };
+
+export const __test = { route };
