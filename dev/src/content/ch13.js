@@ -16,6 +16,11 @@
 
   defTheory({
     id: 'T13A', ch: 13, title: 'Diode und Z-Diode', tags: ['bauteil.diode', 'bauteil.zdiode'],
+    visual: { type: 'circuit', caption: 'Z-Diode in Sperrrichtung mit Vorwiderstand: Unter 5,1 V sperrt sie – die ganze Spannung liegt an ihr. Darueber bricht sie durch und haelt ihre Spannung fest, der Rest faellt an R1 ab.',
+      layout: { parts: [{ id: 'B1', type: 'battery', value: 8, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 470, x: 320, y: 200 }, { id: 'Z1', type: 'zener', x: 480, y: 300, rot: 270 }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'Z1.k'), W('Z1.a', 'B1.n')] },
+      bench: { parts: [{ id: 'B1', x: 240, y: 460 }, { id: 'R1', x: 500, y: 290 }, { id: 'Z1', x: 740, y: 460, rot: 270 }] },
+      sliders: [{ part: 'B1', prop: 'value', label: 'Speisespannung', min: 1, max: 12, step: 0.5, unit: 'V' }],
+      readouts: [{ label: 'U an Z1', sel: 'Z1', q: 'v' }, { label: 'I', sel: 'R1', q: 'i' }, { label: 'U an R1', sel: 'R1', q: 'v' }] },
     lesson:
       '<p>Eine <b>Diode</b> leitet in <b>Durchlassrichtung</b> (Anode + , Kathode −, am Ring erkennbar) ab ihrer Schleusenspannung: Silizium ca. <b>0,7 V</b>, Germanium ca. 0,3 V. Darueber steigt der Strom steil an, die Spannung an der Diode bleibt fast gleich. In <b>Sperrrichtung</b> fliesst praktisch kein Strom – die ganze Spannung liegt an der Diode.</p>' +
       '<p>Die <b>Z-Diode</b> wird in Sperrrichtung betrieben. Ab der <b>Z-Spannung U<sub>Z</sub></b> bricht sie gezielt durch und haelt die Spannung fast konstant – egal, wie viel Strom fliesst. Sie braucht immer einen <b>Vorwiderstand R<sub>V</sub></b>, der den Strom begrenzt.</p>' +
@@ -112,6 +117,12 @@
 
   defTheory({
     id: 'T13B', ch: 13, title: 'Der Transistor', tags: ['bauteil.transistor', 'elektro.schalten'],
+    visual: { type: 'circuit', caption: 'Der Basiswiderstand bestimmt den Basisstrom: Gross → wenig Basisstrom, der Transistor sperrt oder arbeitet aktiv (I_C = β · I_B, LED schwach). Klein → Saettigung, die LED leuchtet voll – der Transistor als Schalter.',
+      layout: { parts: [{ id: 'B1', type: 'battery', value: 9, x: 700, y: 320 }, { id: 'R1', type: 'resistor', value: 220000, x: 320, y: 380 }, { id: 'Q1', type: 'npn', x: 480, y: 380 }, { id: 'R2', type: 'resistor', value: 390, x: 580, y: 160, rot: 90 }, { id: 'D1', type: 'led', props: { color: 'gruen' }, x: 580, y: 260, rot: 90 }],
+        wires: [W('B1.p', 'R1.a'), W('R1.b', 'Q1.b'), W('B1.p', 'R2.a'), W('R2.b', 'D1.a'), W('D1.k', 'Q1.c'), W('Q1.e', 'B1.n')] },
+      bench: { parts: [{ id: 'B1', x: 830, y: 540 }, { id: 'R1', x: 360, y: 420 }, { id: 'Q1', x: 580, y: 460 }, { id: 'R2', x: 620, y: 170, rot: 90 }, { id: 'D1', x: 760, y: 300, rot: 90 }] },
+      sliders: [{ part: 'R1', prop: 'value', label: 'Basiswiderstand R1', min: 4700, max: 2200000, log: true, unit: 'Ω', round: 2 }],
+      readouts: [{ label: 'I_B', sel: 'R1', q: 'i' }, { label: 'I_C', sel: 'D1', q: 'i' }, { label: 'Arbeitsbereich', sel: 'Q1', q: 'state' }] },
     lesson:
       '<p>Der <b>NPN-Transistor</b> hat drei Anschluesse: <b>Basis</b>, <b>Kollektor</b>, <b>Emitter</b>. Ein kleiner <b>Basisstrom I<sub>B</sub></b> steuert einen grossen <b>Kollektorstrom I<sub>C</sub></b>. Die Basis-Emitter-Strecke verhaelt sich wie eine Diode (U<sub>BE</sub> ≈ 0,7 V).</p>' +
       '<p>Drei Arbeitsbereiche: <b>gesperrt</b> (I<sub>B</sub> = 0 → I<sub>C</sub> = 0), <b>aktiv</b> (I<sub>C</sub> = β · I<sub>B</sub>, Verstaerker), <b>Saettigung</b> (der Transistor ist voll durchgeschaltet, U<sub>CE</sub> ≈ 0,2 V, I<sub>C</sub> bestimmt nur noch die Last).</p>' +

@@ -27,6 +27,18 @@
 
   defTheory({
     id: 'T15A', ch: 15, title: 'Die Antriebsstation', tags: ['antrieb.motor', 'antrieb.treiber', 'elektro.leistung'],
+    visual: [{ type: 'block', caption: 'Blockbild der Antriebsstation: Signale laufen von der Bedienung ueber die Steuerung zum Leistungsteil und zum Motor; der Impulsgeber meldet die Drehzahl zurueck. An jedem Uebergang liegt ein Messpunkt (MP).',
+      svg: '<svg class="blockbild" viewBox="0 0 700 230" role="img" aria-label="Blockbild Antriebsstation">' +
+        '<defs><marker id="bbA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="bb-arrow"/></marker></defs>' +
+        [['Bedienung', 'Start · Stopp · Not-Halt', 20], ['Steuerung', 'Logik (Selbsthaltung)', 190], ['Leistungsteil', 'Transistor · Freilaufdiode', 360], ['Motor', '6 V · 0,3 A', 530]].map(function (b) {
+          return '<g><rect class="bb-box" x="' + b[2] + '" y="40" width="150" height="70" rx="10"/><text class="bb-t" x="' + (b[2] + 75) + '" y="70">' + b[0] + '</text><text class="bb-s" x="' + (b[2] + 75) + '" y="92">' + b[1] + '</text></g>'; }).join('') +
+        [170, 340, 510].map(function (x, i) { return '<path class="bb-line" d="M' + x + ' 75H' + (x + 20) + '" marker-end="url(#bbA)"/><circle class="bb-mp" cx="' + (x + 10) + '" cy="125" r="11"/><text class="bb-mpt" x="' + (x + 10) + '" y="129">MP' + (i + 1) + '</text><path class="bb-dash" d="M' + (x + 10) + ' 114V80"/>'; }).join('') +
+        '<path class="bb-line" d="M605 110V180H265V114" marker-end="url(#bbA)"/><rect class="bb-box small" x="355" y="162" width="160" height="36" rx="8"/><text class="bb-s" x="435" y="185">Impulsgeber (Drehzahl)</text></svg>' },
+      { type: 'circuit', caption: 'Der Leistungsteil als echte Schaltung: E1 (Signal der Steuerung) schaltet ueber R1 den Transistor, der den Motor an 6 V legt; V1 ist die Freilaufdiode. E1 anklicken.',
+        layout: { parts: [{ id: 'E1', type: 'logicin', x: 160, y: 380 }, { id: 'GND1', type: 'ground', x: 480, y: 540 }, { id: 'B1', type: 'battery', value: 6, x: 760, y: 320 }, { id: 'M1', type: 'motor', x: 580, y: 240, rot: 90 }, { id: 'Q1', type: 'npn', x: 480, y: 380 }, { id: 'R1', type: 'resistor', value: 470, x: 300, y: 380 }, { id: 'V1', type: 'diode', x: 660, y: 240, rot: 270 }],
+          wires: [W('B1.n', 'GND1.g'), W('B1.p', 'M1.a'), W('M1.b', 'Q1.c'), W('Q1.e', 'GND1.g'), W('E1.out', 'R1.a'), W('R1.b', 'Q1.b'), W('V1.k', 'M1.a'), W('V1.a', 'M1.b')] },
+        bench: { parts: [{ id: 'E1', x: 170, y: 300 }, { id: 'R1', x: 340, y: 300 }, { id: 'Q1', x: 640, y: 460 }, { id: 'M1', x: 640, y: 210, rot: 90 }, { id: 'V1', x: 800, y: 210, rot: 270 }, { id: 'B1', x: 820, y: 580 }, { id: 'GND1', x: 620, y: 690 }] },
+        readouts: [{ label: 'Motorstrom', sel: 'M1', q: 'i' }, { label: 'Drehzahl', sel: 'M1', q: 'speed' }, { label: 'Transistor', sel: 'Q1', q: 'state' }] }],
     lesson:
       '<p>Eine <b>Antriebsstation</b> (z. B. ein Foerderband- oder Bremsenpruefstand) laesst sich immer als <b>Blockbild</b> lesen: <b>Bedienung und Sensoren</b> (Taster, Not-Halt, Impulsgeber) → <b>Steuerung</b> (Logik) → <b>Leistungsteil</b> (Transistor als Treiber) → <b>Motor</b>. Dazu kommen die <b>Messpunkte</b>, an denen du pruefst, ob jeder Block seine Aufgabe erfuellt.</p>' +
       '<p><b>Motordaten</b> stehen auf dem Typenschild: Nennspannung, Nennstrom, Nennleistung, Nenndrehzahl. Die aufgenommene Leistung ist <b>P = U · I</b>. Beim Gleichstrommotor steigt die <b>Drehzahl mit der Spannung</b>; die <b>Drehrichtung</b> kehrt man durch <b>Umpolen</b> um. (Im Simulator wird der Motor vereinfacht als Wicklungswiderstand 20 Ω nachgebildet, Nenndaten 6 V / 0,3 A – die Drehzahl folgt dem Strom.)</p>' +
@@ -149,6 +161,10 @@
 
   defTheory({
     id: 'T15B', ch: 15, title: 'Steuerung und Sicherheit', tags: ['steuerung.selbsthaltung', 'sicherheit.nothalt', 'messen.drehzahl'],
+    visual: { type: 'circuit', toggleView: false, caption: 'Selbsthaltung mit Not-Halt: E1 = Start (Taster), E2 = Stopp und E3 = Not-Halt (Oeffner, in Ruhe 1), L1 = Motor EIN. Start kurz anklicken und wieder loesen – L1 bleibt an. Not-Halt loescht die Selbsthaltung: Nach dem Entriegeln bleibt L1 aus.',
+      layout: { parts: [{ id: 'GND1', type: 'ground', x: 120, y: 560 }, { id: 'E1', type: 'logicin', x: 160, y: 160 }, { id: 'E2', type: 'logicin', props: { closed: true }, x: 160, y: 280 }, { id: 'E3', type: 'logicin', props: { closed: true }, x: 160, y: 400 },
+        { id: 'L1', type: 'logicled', props: { color: 'gruen' }, x: 860, y: 300 }, { id: 'U1', type: 'or', x: 340, y: 180 }, { id: 'U2', type: 'and', x: 500, y: 260 }, { id: 'U3', type: 'and', x: 660, y: 300 }],
+        wires: [W('E1.out', 'U1.in1'), W('U1.out', 'U2.in1'), W('E2.out', 'U2.in2'), W('U2.out', 'U3.in1'), W('E3.out', 'U3.in2'), W('U3.out', 'U1.in2'), W('U3.out', 'L1.in')] } },
     lesson:
       '<p><b>Start/Stopp mit Selbsthaltung:</b> Der Start-Taster wird nur kurz gedrueckt. Damit der Motor weiterlaeuft, fuehrt man den Ausgang zurueck auf den Eingang – er <b>haelt sich selbst</b>:</p>' +
       '<div class="formula">Q = (Start ∨ Q) ∧ Stopp</div>' +

@@ -20,6 +20,12 @@
   /* ================= Theorie A ================= */
   defTheory({
     id: 'T3A', ch: 3, title: 'Gleich- und Wechselgroessen', tags: ['elektro.wechselgroessen', 'elektro.frequenz'],
+    visual: { type: 'circuit', slow: true, caption: 'Eine Wechselspannung aendert laufend Richtung und Groesse – die Punkte pendeln hin und her. Stell Kurvenform und Frequenz ein und lies am Oszilloskop Scheitelwert und Periodendauer ab (Bildbreite 2 s).',
+      layout: { parts: [{ id: 'G1', type: 'acsource', value: 5, props: { freq: 1, shape: 'sine', offset: 0 }, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 1000, x: 440, y: 300, rot: 90 }], wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] },
+      bench: { parts: [{ id: 'G1', x: 250, y: 440 }, { id: 'R1', x: 640, y: 440, rot: 90 }] },
+      sliders: [{ part: 'G1', prop: 'shape', label: 'Kurvenform', choices: [{ value: 'sine', label: 'Sinus' }, { value: 'square', label: 'Rechteck' }, { value: 'triangle', label: 'Dreieck' }] },
+        { part: 'G1', prop: 'freq', label: 'Frequenz', min: 0.5, max: 4, step: 0.5, unit: 'Hz' }],
+      scope: { a: 'R1.a', b: 'R1.b', span: 2, label: 'U an R1' } },
     lesson:
       '<p><b>Gleichgroessen</b> (Gleichspannung, Gleichstrom) sind ueber die Zeit konstant – wie bei der Batterie.</p>' +
       '<p><b>Wechselgroessen</b> aendern sich mit der Zeit. Wiederholt sich der Verlauf immer gleich, ist sie <b>periodisch</b> mit der <b>Periodendauer T</b>. Die <b>Frequenz</b> f gibt an, wie viele Perioden pro Sekunde ablaufen:</p>' +
@@ -131,6 +137,12 @@
   /* ================= Theorie B ================= */
   defTheory({
     id: 'T3B', ch: 3, title: 'Gleichrichtwert, Effektivwert, AVG und TRMS', tags: ['elektro.effektivwert', 'messen.trms', 'elektro.gleichrichtwert'],
+    visual: { type: 'circuit', flow: false, caption: 'Gleicher Scheitelwert, andere Kurvenform: Das TRMS-Multimeter zeigt immer den echten Effektivwert, das AVG-Geraet rechnet mit dem Sinus-Formfaktor – beim Sinus stimmen beide, bei Rechteck und Dreieck nicht.',
+      layout: { parts: [{ id: 'G1', type: 'acsource', value: 10, props: { freq: 50, shape: 'sine', offset: 0 }, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 1000, x: 440, y: 300, rot: 90 }], wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] },
+      bench: { parts: [{ id: 'G1', x: 250, y: 440 }, { id: 'R1', x: 640, y: 440, rot: 90 }] },
+      sliders: [{ part: 'G1', prop: 'shape', label: 'Kurvenform', choices: [{ value: 'sine', label: 'Sinus' }, { value: 'square', label: 'Rechteck' }, { value: 'triangle', label: 'Dreieck' }] }],
+      readouts: [{ label: 'Scheitelwert', a: 'R1.a', b: 'R1.b', ac: 'peak' }, { label: 'TRMS', a: 'R1.a', b: 'R1.b', ac: 'rms' }, { label: 'AVG-Anzeige', a: 'R1.a', b: 'R1.b', ac: 'avg' }],
+      scope: { a: 'R1.a', b: 'R1.b', span: 0.04, label: 'U an R1' } },
     lesson:
       '<p>Der <b>Gleichrichtwert</b> |Ū| (engl. average, AVG) ist der Mittelwert des <i>Betrags</i> – alle Halbwellen nach oben geklappt. Beim Sinus: <b>|Ū| = 2·Û/π ≈ 0,637·Û</b>.</p>' +
       '<p>Der <b>Effektivwert</b> (RMS, root mean square) ist die Gleichspannung, die an einem Widerstand <i>dieselbe Leistung</i> umsetzt. Die 230 V im Haushalt sind ein Effektivwert.</p>' +

@@ -19,6 +19,9 @@
 
   defTheory({
     id: 'T12A', ch: 12, title: 'Das Flipflop – ein Bit Gedaechtnis', tags: ['digital.flipflop', 'digital.speicher'],
+    visual: { type: 'circuit', toggleView: false, caption: 'RS-Flipflop aus zwei NOR: E2 = S (Setzen), E1 = R (Ruecksetzen), L1 = Q, L2 = Q̄. Kurz S auf 1 und wieder 0 – Q bleibt 1; kurz R – Q bleibt 0. Das ist ein gespeichertes Bit.',
+      layout: (function () { var l = LG.io(2, ['L1', 'L2']); l.parts.push({ id: 'U1', type: 'nor', x: 480, y: 170, rot: 0 }, { id: 'U2', type: 'nor', x: 480, y: 280, rot: 0 });
+        l.wires.push(W('E1.out', 'U1.in1'), W('U2.out', 'U1.in2'), W('E2.out', 'U2.in2'), W('U1.out', 'U2.in1'), W('U1.out', 'L1.in'), W('U2.out', 'L2.in')); return l; })() },
     lesson:
       '<p>Zwei <b>NOR-Gatter</b>, deren Ausgaenge jeweils auf einen Eingang des anderen zurueckgefuehrt sind, bilden das <b>RS-Flipflop</b>. S = 1 <b>setzt</b> (Q = 1), R = 1 <b>setzt zurueck</b> (Q = 0), S = R = 0 <b>speichert</b> den letzten Zustand. S = R = 1 ist der <b>verbotene Zustand</b> (Q und Q̄ beide 0).</p>' +
       '<p>Die <b>Analysetabelle</b> zeigt den neuen Zustand A abhaengig vom alten Zustand A<sub>V</sub>; die <b>Ansteuertabelle</b> sagt, welche Eingaenge noetig sind, um von A<sub>V</sub> nach A zu kommen (X = egal).</p>' +
@@ -123,6 +126,11 @@
 
   defTheory({
     id: 'T12B', ch: 12, title: 'Zaehler', tags: ['digital.zaehler', 'digital.flipflop'],
+    visual: { type: 'circuit', toggleView: false, slow: true, caption: 'Asynchroner 3-Bit-Zaehler aus T-Flipflops am Takt (1 Hz): L1 = Wert 1, L2 = Wert 2, L3 = Wert 4. Jede Stufe halbiert die Frequenz – so zaehlt die Kette von 0 bis 7 und beginnt von vorn.',
+      layout: { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 1 }, x: 160, y: 300, rot: 0 }, { id: 'E2', type: 'logicin', props: { closed: true }, x: 160, y: 120, rot: 0 }, { id: 'GND1', type: 'ground', x: 120, y: 480, rot: 0 },
+        { id: 'FF1', type: 'tff', x: 320, y: 280, rot: 0 }, { id: 'FF2', type: 'tff', x: 520, y: 280, rot: 0 }, { id: 'FF3', type: 'tff', x: 720, y: 280, rot: 0 },
+        { id: 'L1', type: 'logicled', x: 420, y: 440, rot: 0 }, { id: 'L2', type: 'logicled', x: 620, y: 440, rot: 0 }, { id: 'L3', type: 'logicled', x: 820, y: 440, rot: 0 }],
+        wires: [W('CLK1.out', 'FF1.C'), W('FF1.Qn', 'FF2.C'), W('FF2.Qn', 'FF3.C'), W('E2.out', 'FF1.T'), W('E2.out', 'FF2.T'), W('E2.out', 'FF3.T'), W('FF1.Q', 'L1.in'), W('FF2.Q', 'L2.in'), W('FF3.Q', 'L3.in')] } },
     lesson:
       '<p>Mehrere T-Flipflops (T = 1) hintereinander bilden einen <b>Dualzaehler</b>: Jede Stufe teilt die Frequenz durch 2 und stellt ein Bit dar (FF1 = Bit 0 = Wert 1, FF2 = Bit 1 = Wert 2 …).</p>' +
       '<p><b>Asynchroner Zaehler</b> (Ripple Counter): Nur FF1 bekommt den Takt, jede weitere Stufe wird vom <b>Q̄-Ausgang</b> der vorherigen getaktet (steigende Flanke an Q̄ = fallende an Q → Aufwaertszaehler). Einfach, aber die Stufen schalten nacheinander – kurze falsche Zwischenwerte.</p>' +

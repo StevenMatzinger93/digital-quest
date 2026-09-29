@@ -18,6 +18,12 @@
 
   defTheory({
     id: 'T11A', ch: 11, title: 'Laden und Entladen', tags: ['elektro.kondensator', 'elektro.zeitkonstante'],
+    visual: { type: 'circuit', slow: true, caption: 'Der Taktgeber schaltet alle 2 s zwischen 5 V und 0 V um: Der Kondensator laedt sich ueber R1 auf und entlaedt sich wieder – nach τ = R · C ≈ 0,47 s sind 63 % erreicht, nach 5 τ ist er praktisch voll.',
+      layout: { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 0.25 }, x: 180, y: 300 }, { id: 'GND1', type: 'ground', x: 480, y: 460 }, { id: 'R1', type: 'resistor', value: 10000, x: 340, y: 300 }, { id: 'C1', type: 'capacitor', value: 47e-6, x: 480, y: 380, rot: 90 }],
+        wires: [W('CLK1.out', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'GND1.g')] },
+      bench: { parts: [{ id: 'CLK1', x: 230, y: 380 }, { id: 'R1', x: 480, y: 380 }, { id: 'C1', x: 720, y: 460, rot: 90 }, { id: 'GND1', x: 720, y: 660 }] },
+      readouts: [{ label: 'U an C1', sel: 'C1', q: 'v' }, { label: 'Ladestrom', sel: 'R1', q: 'i' }],
+      scope: { a: 'C1.a', b: 'GND1.g', span: 8, label: 'U an C1' } },
     lesson:
       '<p>Ein <b>Kondensator</b> speichert Ladung. Ueber einen Widerstand geladen, steigt seine Spannung nicht sprunghaft, sondern <b>e-foermig</b>: Am Anfang fliesst der groesste Strom I<sub>max</sub> = U₀ / R, dann baut der Kondensator eine Gegenspannung auf – der Strom wird kleiner, das Laden langsamer.</p>' +
       '<div class="formula">τ = R · C &nbsp;&nbsp; u<sub>C</sub>(t) = U₀ · (1 − e<sup>−t/τ</sup>)</div>' +
@@ -119,6 +125,12 @@
 
   defTheory({
     id: 'T11B', ch: 11, title: 'RC-Glieder in Schaltungen', tags: ['elektro.rc', 'elektro.filter', 'digital.takt'],
+    visual: { type: 'circuit', caption: 'Dasselbe RC-Glied an einem 5-Hz-Takt: Mit kleinem C folgt die Spannung dem Rechteck fast sofort, mit grossem C wird daraus ein flaches Dreieck um den Mittelwert (Integrierglied).',
+      layout: { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 5 }, x: 180, y: 300 }, { id: 'GND1', type: 'ground', x: 480, y: 460 }, { id: 'R1', type: 'resistor', value: 10000, x: 340, y: 300 }, { id: 'C1', type: 'capacitor', value: 4.7e-6, x: 480, y: 380, rot: 90 }],
+        wires: [W('CLK1.out', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'GND1.g')] },
+      bench: { parts: [{ id: 'CLK1', x: 230, y: 380 }, { id: 'R1', x: 480, y: 380 }, { id: 'C1', x: 720, y: 460, rot: 90 }, { id: 'GND1', x: 720, y: 660 }] },
+      sliders: [{ part: 'C1', prop: 'value', label: 'Kapazitaet C1', min: 1e-7, max: 1e-4, log: true, unit: 'F', round: 2 }],
+      scope: { a: 'C1.a', b: 'GND1.g', span: 0.6, label: 'U an C1' } },
     lesson:
       '<p><b>Verzoegerung:</b> Ein RC-Glied vor einem Logikeingang verzoegert das Einschalten: Der Eingang sieht erst eine 1, wenn u<sub>C</sub> die Schaltschwelle (2,5 V bei 5 V) erreicht – nach t = τ · ln 2 ≈ 0,69 τ.</p>' +
       '<p><b>Glaettung:</b> Ein grosser Kondensator parallel zur Last nach dem Gleichrichter (Ladekondensator) wird in den Spannungsspitzen geladen und versorgt die Last dazwischen. Uebrig bleibt eine kleine <b>Brummspannung</b> – je groesser C, desto kleiner.</p>' +

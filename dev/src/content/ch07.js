@@ -24,6 +24,8 @@
 
   defTheory({
     id: 'T7A', ch: 7, title: 'Gesetze der Booleschen Algebra', tags: ['digital.boolesche_algebra'],
+    visual: { type: 'circuit', toggleView: false, caption: 'Absorptionsgesetz live bewiesen: L1 = E1 ∧ (E1 ∨ E2) mit zwei Gattern, L2 = E1 ganz ohne Gatter. Bei jeder Eingangskombination leuchten beide gleich.',
+      layout: LG.net(2, [['U1', 'or', ['E1', 'E2']], ['U2', 'and', ['E1', 'U1']]], { L1: 'U2', L2: 'E1' }) },
     lesson:
       '<p>Mit 0 und 1 laesst sich rechnen wie mit Zahlen – nach eigenen Gesetzen. <b>Bindungsregel:</b> UND bindet staerker als ODER (wie · vor +).</p>' +
       '<table class="tt"><tr><th>Gesetz</th><th>ODER</th><th>UND</th></tr>' +
@@ -80,6 +82,8 @@
 
   defTheory({
     id: 'T7B', ch: 7, title: 'De Morgan und normierte Schaltungen', tags: ['digital.demorgan', 'digital.nand', 'digital.nor'],
+    visual: { type: 'circuit', toggleView: false, caption: 'De Morgan: L1 = ¬(E1 ∧ E2) mit einem NAND, L2 = ¬E1 ∨ ¬E2 aus zwei Invertern und einem ODER. Gleiche Wahrheitstabelle – probiere alle Kombinationen.',
+      layout: LG.net(2, [['U1', 'nand', ['E1', 'E2']], ['U2', 'not', ['E1']], ['U3', 'not', ['E2']], ['U4', 'or', ['U2', 'U3']]], { L1: 'U1', L2: 'U4' }) },
     lesson:
       '<p><b>De Morgan:</b> Eine Negation ueber einem ganzen Term wird aufgeteilt, indem man UND und ODER vertauscht und jede Variable negiert:</p>' +
       '<div class="formula">¬(e1·e2) = ē1 ∨ ē2 &nbsp;&nbsp; ¬(e1 ∨ e2) = ē1·ē2</div>' +

@@ -21,6 +21,10 @@
   };
   defTheory({
     id: 'T1A', ch: 1, title: 'Der Stromkreis', tags: ['elektro.stromkreis', 'elektro.grundgroessen', 'messen.multimeter'],
+    visual: { type: 'circuit', caption: 'Schalter S1 anklicken: Der Kreis schliesst sich, die Punkte zeigen den Strom (technische Richtung + → −), die Lampe leuchtet. Offen fliesst nirgends Strom.',
+      layout: { parts: [{ id: 'B1', type: 'battery', value: 9, x: 160, y: 300 }, { id: 'S1', type: 'switch', x: 320, y: 200 }, { id: 'H1', type: 'lamp', x: 480, y: 300, rot: 90 }], wires: [W('B1.p', 'S1.a'), W('S1.b', 'H1.a'), W('H1.b', 'B1.n')] },
+      bench: { parts: [{ id: 'B1', x: 240, y: 460 }, { id: 'S1', x: 480, y: 290 }, { id: 'H1', x: 740, y: 460, rot: 90 }] },
+      readouts: [{ label: 'Strom I', sel: 'H1', q: 'i' }, { label: 'Leistung P', sel: 'H1', q: 'p' }] },
     lesson:
       '<p>Ein <b>Stromkreis</b> besteht mindestens aus einer <b>Quelle</b> (Batterie, Netzgeraet), einem <b>Verbraucher</b> (Lampe, Widerstand, LED) und einem <b>geschlossenen Leiterweg</b> hin und zurueck. Ein <b>Schalter</b> oeffnet oder schliesst diesen Weg.</p>' +
       '<p><b>Spannung U</b> (Volt, V) ist der Antrieb fuer die Ladungen. Sie liegt immer <i>zwischen zwei Punkten</i> an – zum Beispiel zwischen Plus- und Minuspol der Batterie.</p>' +
@@ -152,6 +156,11 @@
   var ohm = function (u, r) { return { parts: [bat(u), { id: 'R1', type: 'resistor', value: r }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'B1.n')] }; };
   defTheory({
     id: 'T1B', ch: 1, title: 'Ohmsches Gesetz und Vorwiderstand', tags: ['elektro.ohm', 'bauteil.led', 'elektro.leistung'],
+    visual: { type: 'circuit', caption: 'Den Vorwiderstand verkleinern: Der Strom steigt, die LED wird heller – unter etwa 240 Ω fliessen mehr als 30 mA und sie brennt durch. „Neu starten“ setzt eine neue LED ein.',
+      layout: { parts: [{ id: 'B1', type: 'battery', value: 9, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 470, x: 320, y: 200 }, { id: 'D1', type: 'led', x: 480, y: 300, rot: 90 }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'D1.a'), W('D1.k', 'B1.n')] },
+      bench: { parts: [{ id: 'B1', x: 240, y: 460 }, { id: 'R1', x: 500, y: 290 }, { id: 'D1', x: 740, y: 460, rot: 90 }] },
+      sliders: [{ part: 'R1', prop: 'value', label: 'Vorwiderstand R1', min: 150, max: 4700, log: true, unit: 'Ω', round: 2 }],
+      readouts: [{ label: 'I', sel: 'D1', q: 'i' }, { label: 'U an R1', sel: 'R1', q: 'v' }, { label: 'Helligkeit', sel: 'D1', q: 'brightness' }] },
     lesson:
       '<p>Der <b>Widerstand R</b> (Ohm, Ω) bremst den Strom. Spannung, Strom und Widerstand haengen fest zusammen – das <b>Ohmsche Gesetz</b>:</p>' +
       '<div class="formula">U = R · I &nbsp;&nbsp; I = U / R &nbsp;&nbsp; R = U / I</div>' +

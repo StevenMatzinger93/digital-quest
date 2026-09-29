@@ -20,6 +20,11 @@
   /* ================= Theorie A ================= */
   defTheory({
     id: 'T4A', ch: 4, title: 'Messen, Pruefen, Messgeraete', tags: ['messen.grundbegriffe', 'messen.geraete', 'messen.sicherheit'],
+    visual: { type: 'circuit', caption: 'Der Strommesser A1 liegt in Reihe im Kreis (fast 0 Ω), die Spannung misst man parallel zum Bauteil. Zieh am Widerstand: Strom und Spannung folgen dem Ohmschen Gesetz.',
+      layout: { parts: [{ id: 'B1', type: 'battery', value: 9, x: 160, y: 300 }, { id: 'A1', type: 'ammeter', x: 320, y: 200 }, { id: 'R1', type: 'resistor', value: 470, x: 480, y: 300, rot: 90 }], wires: [W('B1.p', 'A1.a'), W('A1.b', 'R1.a'), W('R1.b', 'B1.n')] },
+      bench: { parts: [{ id: 'B1', x: 240, y: 460 }, { id: 'A1', x: 480, y: 290 }, { id: 'R1', x: 740, y: 460, rot: 90 }] },
+      sliders: [{ part: 'R1', prop: 'value', label: 'R1', min: 100, max: 10000, log: true, unit: 'Ω', round: 2 }],
+      readouts: [{ label: 'Strommesser A1', sel: 'A1', q: 'i' }, { label: 'U an R1 (parallel gemessen)', a: 'R1.a', b: 'R1.b' }] },
     lesson:
       '<p><b>Messen</b> heisst, eine physikalische Groesse als Zahlenwert zu erfassen (z. B. 8,02 V). <b>Pruefen</b> stellt nur fest, ob etwas vorhanden ist oder nicht (Spannung ja/nein) – ohne Zahlenwert.</p>' +
       '<p><b>Kalibrieren</b>: vergleichen, wie weit die Anzeige vom wahren Wert abweicht. <b>Justieren</b>: die Anzeige nachstellen, damit die Abweichung wieder klein ist. <b>Eichen</b>: amtliche Pruefung, ob das Geraet in der Eichfehlergrenze liegt.</p>' +
@@ -141,6 +146,7 @@
   /* ================= Theorie B ================= */
   defTheory({
     id: 'T4B', ch: 4, title: 'Genauigkeit und Messfehler', tags: ['messen.genauigkeit', 'messen.systemfehler'],
+    visual: { type: 'numberSteps', mode: 'dmm', value: 1.23456, unit: 'V', caption: 'Derselbe wahre Wert von 1,23456 V im Multimeter des Labors: Der Messbereich bestimmt die Aufloesung, die letzte Stelle schwankt, und der Kalibrierfehler verschiebt alles ein wenig.' },
     lesson:
       '<p><b>Analoge Geraete:</b> Die Genauigkeit (z. B. 0,5 %) bezieht sich auf den <b>Messbereich-Endwert</b>. Bereich 20 V, 0,5 % → ±0,1 V – egal ob 15 V oder 2 V angezeigt werden. Deshalb im kleinsten passenden Bereich messen.</p>' +
       '<p><b>Digitale Geraete:</b> Die Genauigkeit bezieht sich auf den <b>angezeigten Wert</b> plus einige <b>Digit</b> (die letzte Stelle). Beispiel 15,0 V, ±(0,5 % + 1 Digit): 0,075 V + 0,1 V = ±0,175 V.</p>' +

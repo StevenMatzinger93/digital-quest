@@ -78,6 +78,8 @@
 
   defTheory({
     id: 'T9B', ch: 9, title: 'Multiplexer, Komparator, Addierer', tags: ['digital.multiplexer', 'digital.komparator', 'digital.addierer'],
+    visual: { type: 'circuit', toggleView: false, caption: 'Volladdierer: E1 und E2 sind die Bits der beiden Zahlen, E3 der Uebertrag von der Stelle davor. L1 = Summe, L2 = Uebertrag zur naechsten Stelle – bei 1 + 1 + 1 leuchten beide.',
+      layout: LG.net(3, [['U1', 'xor', ['E1', 'E2']], ['U2', 'xor', ['U1', 'E3']], ['U3', 'and', ['E1', 'E2']], ['U4', 'and', ['U1', 'E3']], ['U5', 'or', ['U3', 'U4']]], { L1: 'U2', L2: 'U5' }) },
     lesson:
       '<p>Ein <b>Multiplexer</b> (Datenselektor) schaltet einen von mehreren Dateneingaengen auf den Ausgang – welcher, bestimmen die Steuereingaenge S. 2:1-MUX: A = d0·S̄ ∨ d1·S. Mit n Steuerleitungen waehlt man aus 2ⁿ Eingaengen. Der <b>Demultiplexer</b> verteilt umgekehrt einen Eingang auf einen von mehreren Ausgaengen.</p>' +
       '<p>Ein <b>Komparator</b> vergleicht zwei Zahlen: X (e1 > e2) = e1·ē2, Y (e1 = e2) = e1 ⊙ e2 (XNOR), Z (e1 < e2) = ē1·e2.</p>' +

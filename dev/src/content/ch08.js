@@ -25,6 +25,9 @@
 
   defTheory({
     id: 'T8A', ch: 8, title: 'Von der Wahrheitstabelle zur Schaltung', tags: ['digital.entwurf', 'digital.dnf'],
+    visual: [{ type: 'kmap', vars: 2, minterms: [1, 2], caption: 'Die Tabelle von A = 1 bei den Kombinationen 1 und 2 als Feld: Die Einsen liegen nicht benachbart – es bleiben zwei Terme (disjunktive Normalform).' },
+      { type: 'circuit', toggleView: false, caption: 'Daraus gebaut: A = (ē1 · e2) ∨ (e1 · ē2) – je UND-Gatter ein Term, das ODER sammelt. Klicke die Eingaenge durch und vergleiche mit der Tabelle.',
+        layout: LG.net(2, [['U1', 'not', ['E1']], ['U2', 'not', ['E2']], ['U3', 'and', ['U1', 'E2']], ['U4', 'and', ['E1', 'U2']], ['U5', 'or', ['U3', 'U4']]], { L1: 'U5' }) }],
     lesson:
       '<p><b>Vorgehen:</b> 1. Aufgabe verstehen, Ein- und Ausgaenge festlegen. 2. <b>Wahrheitstabelle</b> aufstellen. 3. Logischen Ausdruck ablesen. 4. Vereinfachen. 5. Schaltung bauen und mit allen Kombinationen pruefen.</p>' +
       '<p><b>DNF</b> (disjunktive Normalform, positive Logik): Fuer jede Zeile mit <b>A = 1</b> die Eingaenge verunden (Eingang 0 → negiert) – das ist ein <b>Minterm</b>. Alle Minterme verodern.</p>' +
@@ -89,6 +92,7 @@
 
   defTheory({
     id: 'T8B', ch: 8, title: 'Das KV-Diagramm', tags: ['digital.kv', 'digital.vereinfachen'],
+    visual: { type: 'kmap', vars: 3, minterms: [1, 3, 5, 7], caption: 'Das Beispiel aus dem Text: alle Einsen haben e1 = 1 → ein Paeckchen aus vier Feldern, A = e1. Klicke eigene Einsen und X ein und lass die Paeckchen bilden.' },
     lesson:
       '<p>Das <b>KV-Diagramm</b> (Karnaugh-Veitch) ist die Wahrheitstabelle als Feld, so angeordnet, dass sich <b>benachbarte Felder in genau einer Variablen unterscheiden</b> (Gray-Code-Reihenfolge 0, 1, 3, 2). Auch der gegenueberliegende Rand ist benachbart.</p>' +
       '<table class="tt"><tr><th></th><th>ē2 ē1</th><th>ē2 e1</th><th>e2 e1</th><th>e2 ē1</th></tr><tr><th>ē3</th><td>0</td><td>1</td><td>3</td><td>2</td></tr><tr><th>e3</th><td>4</td><td>5</td><td>7</td><td>6</td></tr></table>' +

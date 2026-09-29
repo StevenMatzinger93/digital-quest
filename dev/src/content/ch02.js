@@ -40,6 +40,12 @@
   /* ================= Theorie A ================= */
   defTheory({
     id: 'T2A', ch: 2, title: 'Die Reihenschaltung', tags: ['elektro.reihenschaltung', 'elektro.kirchhoff'],
+    visual: { type: 'circuit', volt: true, caption: 'Drei Widerstaende in Reihe: ueberall derselbe Strom, die Spannung teilt sich im Verhaeltnis der Widerstaende (Farben = Potential). Zieh an R2 – die Summe der Teilspannungen bleibt 12 V.',
+      layout: { parts: [{ id: 'B1', type: 'battery', value: 12, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 1000, x: 320, y: 200 }, { id: 'R2', type: 'resistor', value: 2000, x: 480, y: 200 }, { id: 'R3', type: 'resistor', value: 3000, x: 620, y: 300, rot: 90 }],
+        wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'R3.a'), W('R3.b', 'B1.n')] },
+      bench: { parts: [{ id: 'B1', x: 220, y: 480 }, { id: 'R1', x: 420, y: 290 }, { id: 'R2', x: 620, y: 290 }, { id: 'R3', x: 800, y: 480, rot: 90 }] },
+      sliders: [{ part: 'R2', prop: 'value', label: 'R2', min: 100, max: 10000, log: true, unit: 'Ω', round: 2 }],
+      readouts: [{ label: 'I', sel: 'R1', q: 'i' }, { label: 'U1', sel: 'R1', q: 'v' }, { label: 'U2', sel: 'R2', q: 'v' }, { label: 'U3', sel: 'R3', q: 'v' }] },
     lesson:
       '<p>In der <b>Reihenschaltung</b> liegen die Bauteile hintereinander – es gibt nur <i>einen</i> Weg fuer den Strom.</p>' +
       '<ul><li>Der <b>Strom ist ueberall gleich gross</b>: I = I<sub>1</sub> = I<sub>2</sub> = …</li>' +
@@ -158,6 +164,12 @@
   var par2 = para(0, [1000, 1000], false);
   defTheory({
     id: 'T2B', ch: 2, title: 'Parallelschaltung, Knotenregel, Spannungsteiler', tags: ['elektro.parallelschaltung', 'elektro.kirchhoff', 'elektro.spannungsteiler', 'elektro.quelle'],
+    visual: { type: 'circuit', caption: 'Parallelschaltung: An beiden Widerstaenden liegt dieselbe Spannung, der Strom teilt sich am Knoten (Knotenregel: I = I1 + I2). Je kleiner R2, desto mehr Strom nimmt dieser Zweig.',
+      layout: { parts: [{ id: 'B1', type: 'battery', value: 10, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 1000, x: 400, y: 300, rot: 90 }, { id: 'R2', type: 'resistor', value: 2200, x: 560, y: 300, rot: 90 }],
+        wires: [W('B1.p', 'R1.a'), W('R1.a', 'R2.a'), W('R1.b', 'B1.n'), W('R2.b', 'R1.b')] },
+      bench: { parts: [{ id: 'B1', x: 220, y: 460 }, { id: 'R1', x: 520, y: 440, rot: 90 }, { id: 'R2', x: 740, y: 440, rot: 90 }] },
+      sliders: [{ part: 'R2', prop: 'value', label: 'R2', min: 220, max: 10000, log: true, unit: 'Ω', round: 2 }],
+      readouts: [{ label: 'I1', sel: 'R1', q: 'i' }, { label: 'I2', sel: 'R2', q: 'i' }, { label: 'I gesamt', sel: 'B1', q: 'i' }] },
     lesson:
       '<p>In der <b>Parallelschaltung</b> liegen alle Bauteile an <i>denselben zwei Punkten</i>:</p>' +
       '<ul><li>An allen liegt <b>dieselbe Spannung</b>.</li>' +

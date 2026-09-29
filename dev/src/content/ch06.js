@@ -24,6 +24,8 @@
 
   defTheory({
     id: 'T6A', ch: 6, title: 'UND, ODER, NICHT', tags: ['digital.gatter', 'digital.und', 'digital.oder', 'digital.nicht'],
+    visual: { type: 'circuit', toggleView: false, caption: 'Pegelschalter E1 und E2 anklicken: L1 = E1 UND E2, L2 = E1 ODER E2, L3 = NICHT E1. Probiere alle vier Kombinationen.',
+      layout: LG.net(2, [['U1', 'and', ['E1', 'E2']], ['U2', 'or', ['E1', 'E2']], ['U3', 'not', ['E1']]], { L1: 'U1', L2: 'U2', L3: 'U3' }) },
     lesson:
       '<p>Ein <b>Gatter</b> verknuepft logische Eingaenge (0/1) zu einem Ausgang. Seine Funktion beschreibt die <b>Wahrheitstabelle</b>: jede Eingangskombination mit dem zugehoerigen Ausgang.</p>' +
       '<table class="tt"><tr><th>Gatter</th><th>Symbol (DIN)</th><th>Ausdruck</th><th>Ausgang = 1, wenn …</th></tr>' +
@@ -90,6 +92,8 @@
 
   defTheory({
     id: 'T6B', ch: 6, title: 'NAND, NOR, XOR, XNOR', tags: ['digital.nand', 'digital.nor', 'digital.xor', 'digital.gatter'],
+    visual: { type: 'circuit', toggleView: false, caption: 'Dieselben Eingaenge an vier Gattern: L1 NAND, L2 NOR, L3 XOR, L4 XNOR. XOR leuchtet nur, wenn E1 und E2 verschieden sind, XNOR nur, wenn sie gleich sind.',
+      layout: LG.net(2, [['U1', 'nand', ['E1', 'E2']], ['U2', 'nor', ['E1', 'E2']], ['U3', 'xor', ['E1', 'E2']], ['U4', 'xnor', ['E1', 'E2']]], { L1: 'U1', L2: 'U2', L3: 'U3', L4: 'U4' }) },
     lesson:
       '<p><b>NAND</b> = NICHT-UND: a = ¬(e1 ∧ e2) – nur bei 1/1 ist der Ausgang 0. <b>NOR</b> = NICHT-ODER: a = ¬(e1 ∨ e2) – nur bei 0/0 ist der Ausgang 1. Im Symbol steht der Negationskreis am Ausgang.</p>' +
       '<p><b>XOR</b> (Antivalenz, =1): a = e1·ē2 ∨ ē1·e2 – Ausgang 1, wenn die Eingaenge <i>verschieden</i> sind. <b>XNOR</b> (Aequivalenz): Ausgang 1, wenn die Eingaenge <i>gleich</i> sind – ein 1-Bit-Vergleicher.</p>' +

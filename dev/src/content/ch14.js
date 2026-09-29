@@ -23,6 +23,7 @@
 
   defTheory({
     id: 'T14A', ch: 14, title: 'Frequenzgang und Dezibel', tags: ['elektro.filter', 'elektro.frequenzgang', 'elektro.db'],
+    visual: { type: 'bode', stages: [{ kind: 'lp', r: 1000, c: 1e-6 }], caption: 'Frequenzgang des RC-Tiefpasses (1 kΩ, 1 µF): bis zur Grenzfrequenz fast 0 dB, bei f_g −3 dB, darueber −20 dB pro Dekade. Fahr mit dem Regler die Kurve ab.' },
     lesson:
       '<p>Der <b>Frequenzgang</b> zeigt, wie stark eine Schaltung ein Signal abhaengig von der Frequenz durchlaesst. Man misst Eingang U<sub>e</sub> und Ausgang U<sub>a</sub> bei vielen Frequenzen (z. B. 1 Hz … 10 kHz) und traegt das Verhaeltnis auf – die Frequenzachse logarithmisch.</p>' +
       '<p>Die <b>Verstaerkung</b> gibt man in <b>Dezibel</b> an:</p><div class="formula">A = 20 · log<sub>10</sub>(U<sub>a</sub> / U<sub>e</sub>) dB</div>' +
@@ -109,6 +110,12 @@
 
   defTheory({
     id: 'T14B', ch: 14, title: 'Bandpass, Bandsperre, Signalformung', tags: ['elektro.filter', 'elektro.rc'],
+    visual: [{ type: 'bode', stages: [{ kind: 'hp', r: 1000, c: 1e-6 }, { kind: 'lp', r: 10000, c: 10e-9 }], caption: 'RC-Bandpass wie in Aufgabe 14.6: Hochpass (f_g ≈ 159 Hz) und Tiefpass (f_g ≈ 1,6 kHz) hintereinander. Dazwischen liegt der Durchlassbereich; weil der Tiefpass den Hochpass belastet, erreicht die Kurve nicht ganz 0 dB.' },
+      { type: 'circuit', flow: false, toggleView: false, caption: 'Dieselbe Schaltung im Labor: Stell die Generatorfrequenz ein und vergleiche die Effektivwerte am Ein- und Ausgang mit der Kurve oben.',
+        layout: { parts: [{ id: 'G1', type: 'acsource', value: 10, props: { freq: 500, shape: 'sine', offset: 0 }, x: 160, y: 300 }, { id: 'C1', type: 'capacitor', value: 1e-6, x: 320, y: 200, rot: 0 }, { id: 'R1', type: 'resistor', value: 1000, x: 480, y: 300, rot: 90 }, { id: 'R2', type: 'resistor', value: 10000, x: 600, y: 200 }, { id: 'C2', type: 'capacitor', value: 10e-9, x: 720, y: 300, rot: 90 }],
+          wires: [W('G1.p', 'C1.a'), W('C1.b', 'R1.a'), W('R1.b', 'G1.n'), W('R1.a', 'R2.a'), W('R2.b', 'C2.a'), W('C2.b', 'G1.n')] },
+        sliders: [{ part: 'G1', prop: 'freq', label: 'Frequenz', min: 20, max: 20000, log: true, unit: 'Hz', round: 2 }],
+        readouts: [{ label: 'U_e (TRMS)', a: 'G1.p', b: 'G1.n', ac: 'rms' }, { label: 'U_a (TRMS)', a: 'C2.a', b: 'C2.b', ac: 'rms' }] }],
     lesson:
       '<p>Ein <b>Bandpass</b> entsteht aus Hochpass und Tiefpass hintereinander: Er laesst nur einen Frequenzbereich um die <b>Mittenfrequenz</b> durch. Eine <b>Bandsperre</b> unterdrueckt einen Bereich. Ein RC-Bandpass aus je einer Stufe ist ein Filter 1. Ordnung auf beiden Seiten.</p>' +
       '<p>RC-Glieder <b>formen Signale</b>: Ist τ viel kleiner als die Periodendauer, wirkt ein Hochpass als <b>Differenzierglied</b> – aus einem Rechteck werden Nadelimpulse an den Flanken. Ist τ viel groesser, wirkt ein Tiefpass als <b>Integrierglied</b> – aus einem Rechteck wird ein Dreieck, bei sehr grossem τ nahezu der Mittelwert (so wird aus einem Taktsignal eine Gleichspannung).</p>' +

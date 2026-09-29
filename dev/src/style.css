@@ -405,3 +405,10 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .bode-fg { stroke: var(--accent-lead-dim); stroke-dasharray: 2 4; } .bode-fgt { font: 10px var(--font-code); fill: var(--accent-lead); }
 .bode-c { fill: none; stroke: var(--accent-lead); stroke-width: 2.5; }
 .bode-cl { stroke: rgba(255,255,255,.35); } .bode-cd { fill: #fff; stroke: var(--accent-lead); stroke-width: 2; }
+/* block: Blockbild */
+.blockbild { width: 100%; display: block; background: var(--bg-secondary); border: 1px solid var(--line); border-radius: 12px; }
+.bb-box { fill: var(--bg-editor); stroke: var(--accent-lead); stroke-width: 2; } .bb-box.small { stroke: var(--accent-cyan); stroke-width: 1.5; }
+.bb-t { font: 700 15px var(--font-ui); fill: var(--text-primary); text-anchor: middle; } .bb-s { font: 11px var(--font-ui); fill: var(--text-dim); text-anchor: middle; }
+.bb-line { fill: none; stroke: var(--text-dim); stroke-width: 2; } .bb-arrow { fill: var(--text-dim); }
+.bb-mp { fill: var(--bg-secondary); stroke: var(--accent-green); stroke-width: 1.5; } .bb-mpt { font: 700 8px var(--font-code); fill: var(--accent-green); text-anchor: middle; }
+.bb-dash { stroke: var(--accent-green); stroke-dasharray: 3 3; }

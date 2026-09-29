@@ -61,9 +61,10 @@
       (v.sliders || []).forEach(function (s) {
         var p = ids[s.part]; if (!p) { err.push('circuit: Regler fuer unbekanntes Bauteil ' + s.part); return; }
         if (s.prop !== 'value' && !(s.prop in (E.PARTS[p.type].props || {}))) err.push('circuit: ' + p.type + ' hat keine Eigenschaft ' + s.prop);
+        if (s.choices) { if (!s.choices.length) err.push('circuit: Auswahl ' + s.part + ' ohne choices'); return; }
         if (!(s.max > s.min) || (s.log && !(s.min > 0))) err.push('circuit: Regler ' + s.part + ' mit ungueltigem Bereich');
       });
-      (v.readouts || []).forEach(function (x) { if (x.sel && !ids[x.sel]) err.push('circuit: Anzeige fuer unbekanntes Bauteil ' + x.sel); if (x.a && !ids[x.a.split('.')[0]]) err.push('circuit: Anzeige an unbekanntem Anschluss ' + x.a); });
+      (v.readouts || []).forEach(function (x) { if (x.ac && ['rms', 'avg', 'dc', 'pp', 'peak'].indexOf(x.ac) < 0) err.push('circuit: ac muss rms|avg|dc|pp|peak sein'); if (x.sel && !ids[x.sel]) err.push('circuit: Anzeige fuer unbekanntes Bauteil ' + x.sel); if (x.a && !ids[x.a.split('.')[0]]) err.push('circuit: Anzeige an unbekanntem Anschluss ' + x.a); });
       if (v.scope && (!v.scope.a || !ids[v.scope.a.split('.')[0]])) err.push('circuit: Oszilloskop-Anschluss fehlt/unbekannt');
       return err;
     }
@@ -101,6 +102,56 @@
       }
       return out;
     }
+  };
+  /*   mode:'divide', value, base (2 oder 16) – fortgesetzte Division, Reste sammeln sich zur Zahl; am Ende Probe mit Wertigkeiten */
+  var HEX = '0123456789ABCDEF';
+  GEN.divide = function (v) {
+    var b = v.base || 2, q = v.value, rest = [], out = [], sub = b === 2 ? '₂' : '₁₆';
+    out.push({ rows: [{ label: 'Zahl', cells: [q] }, { label: 'Reste', cells: ['·'] }], text: 'Die Dezimalzahl ' + q + ' wird so lange durch ' + b + ' geteilt, bis 0 uebrig bleibt. Die Reste sind die Ziffern.' });
+    while (q > 0) {
+      var r = q % b, nq = Math.floor(q / b); rest.unshift(HEX[r]);
+      out.push({ rows: [{ label: 'Zahl', cells: [nq] }, { label: 'Reste', cells: rest.slice(), hl: [0], note: 'neuer Rest links' }], text: q + ' : ' + b + ' = ' + nq + ' Rest <b>' + HEX[r] + '</b>' });
+      q = nq;
+    }
+    var w = rest.map(function (x, i) { return Math.pow(b, rest.length - 1 - i); });
+    out.push({ rows: [{ label: 'Wertigkeit', cells: w }, { label: 'Ziffer', cells: rest, hl: rest.map(function (x, i) { return x !== '0' ? i : -1; }).filter(function (i) { return i >= 0; }) }],
+      text: 'Reste von unten nach oben gelesen: <b>' + rest.join('') + sub + '</b>. Probe: ' + rest.map(function (x, i) { return x !== '0' ? (HEX.indexOf(x) > 1 ? HEX.indexOf(x) + '·' : '') + w[i] : null; }).filter(Boolean).join(' + ') + ' = ' + v.value + '.' });
+    return out;
+  };
+  /*   mode:'bases', value – dieselbe Zahl als Dezimal, BCD (je Ziffer 4 Bit) und Hex; zurueck nach dem Horner-Schema */
+  GEN.bases = function (v) {
+    var n = v.value, dec = String(n).split(''), hex = n.toString(16).toUpperCase().split(''), out = [];
+    out.push({ rows: [{ label: 'Dezimal', cells: dec }], text: 'Die Zahl ' + n + ' in drei Darstellungen.' });
+    out.push({ rows: [{ label: 'Dezimal', cells: dec }, { label: 'BCD', cells: dec.map(function (d) { return bitsOf(+d, 4).join(''); }), hl: dec.map(function (d, i) { return i; }) }],
+      text: '<b>BCD</b>: jede Dezimalziffer einzeln mit 4 Bit – ' + dec.map(function (d) { return d + ' → ' + bitsOf(+d, 4).join(''); }).join(', ') + '.' });
+    out.push({ rows: [{ label: 'Dezimal', cells: dec }, { label: 'Hex', cells: hex, hl: hex.map(function (d, i) { return i; }) }, { label: 'Dual (4er-Gruppen)', cells: hex.map(function (d) { return bitsOf(parseInt(d, 16), 4).join(''); }) }],
+      text: '<b>Hex</b>: Basis 16, jede Hex-Ziffer entspricht genau 4 Bit – ' + n + ' = ' + hex.join('') + '₁₆.' });
+    var acc = 0;
+    hex.forEach(function (d, i) {
+      var val = parseInt(d, 16), before = acc; acc = acc * 16 + val;
+      out.push({ rows: [{ label: 'Hex', cells: hex, hl: [i] }, { label: 'Zwischenwert', cells: [acc] }],
+        text: '<b>Horner</b>: ' + (i ? before + ' · 16 + ' + val + ' = ' + acc : 'Start mit der ersten Ziffer ' + d + (val > 9 ? ' = ' + val : '')) + (i === hex.length - 1 ? ' – fertig, wieder ' + n + '.' : '') });
+    });
+    return out;
+  };
+  /*   mode:'dmm', value, unit ('V') – derselbe Messwert in den Bereichen des Multimeters (Anzeige wie E.dmm: Bereichsgrenzen,
+   *        Kalibrierfehler METER.cal, letzte Stelle ±1 Digit). Alle Zahlen aus der Engine. */
+  GEN.dmm = function (v) {
+    var E = root.DQEngine, unit = v.unit || 'V', x = v.value, cal = E.METER.cal, out = [];
+    var rs = E.DMM_RANGES[unit].filter(function (r) { return Math.abs(x) < r[0]; });
+    var chars = function (t) { return t.replace(/\s.*$/, '').split(''); };
+    rs.forEach(function (r, k) {
+      var t = (x / r[1] * (1 + cal)).toFixed(r[3]), lsd = Math.pow(10, -r[3]) * r[1];
+      out.push({ rows: [{ label: 'Wahrer Wert', cells: [String(x)] }, { label: 'Anzeige', cells: chars(t).concat([r[2]]), hl: [t.length - 1] }, { label: 'Aufloesung', cells: [E.fmt(lsd, unit).replace(/\.?0+ /, ' ')] }],
+        text: (k === 0 ? 'Automatische Bereichswahl: kleinster passender Bereich (bis ' + E.fmt(r[0], unit).replace(/\.?0+ /, ' ') + ') – die meisten Stellen.' : 'Bereich bis ' + E.fmt(r[0], unit).replace(/\.?0+ /, ' ') + ': eine Stelle weniger, die Aufloesung wird zehnmal groeber.') });
+    });
+    var r0 = rs[0];
+    [0.1, 0.5, 0.9].forEach(function (u) {
+      var d = E.dmm(x, unit, function () { return u; });
+      out.push({ rows: [{ label: 'Wahrer Wert', cells: [String(x)] }, { label: 'Anzeige', cells: chars(d.text).concat([r0[2]]), hl: [chars(d.text).length - 1] }],
+        text: 'Mehrmals abgelesen: Die letzte Stelle schwankt um ±1 Digit, dazu kommt der Kalibrierfehler von +' + (cal * 100).toFixed(1).replace('.', ',') + ' %. Deshalb nie mehr Stellen notieren, als das Geraet sicher liefert.' });
+    });
+    return out;
   };
   function stepsOf(v) { return v.mode ? GEN[v.mode](v) : v.steps; }
   register('numberSteps', {
@@ -305,5 +356,5 @@
     }
   });
 
-  root.DQVisuals = { transfer: transfer, bodeLayout: bodeLayout, minimize: minimize, gray: GEN.gray, register: register, mount: mount, mountAll: mountAll, lessonHtml: lessonHtml, check: check, listOf: listOf, types: function () { return Object.keys(TYPES); } };
+  root.DQVisuals = { transfer: transfer, bodeLayout: bodeLayout, minimize: minimize, gen: GEN, register: register, mount: mount, mountAll: mountAll, lessonHtml: lessonHtml, check: check, listOf: listOf, types: function () { return Object.keys(TYPES); } };
 })(typeof window !== 'undefined' ? window : globalThis);

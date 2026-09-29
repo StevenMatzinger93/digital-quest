@@ -416,6 +416,13 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .bode-fg { stroke: var(--accent-lead-dim); stroke-dasharray: 2 4; } .bode-fgt { font: 10px var(--font-code); fill: var(--accent-lead); }
 .bode-c { fill: none; stroke: var(--accent-lead); stroke-width: 2.5; }
 .bode-cl { stroke: rgba(255,255,255,.35); } .bode-cd { fill: #fff; stroke: var(--accent-lead); stroke-width: 2; }
+/* block: Blockbild */
+.blockbild { width: 100%; display: block; background: var(--bg-secondary); border: 1px solid var(--line); border-radius: 12px; }
+.bb-box { fill: var(--bg-editor); stroke: var(--accent-lead); stroke-width: 2; } .bb-box.small { stroke: var(--accent-cyan); stroke-width: 1.5; }
+.bb-t { font: 700 15px var(--font-ui); fill: var(--text-primary); text-anchor: middle; } .bb-s { font: 11px var(--font-ui); fill: var(--text-dim); text-anchor: middle; }
+.bb-line { fill: none; stroke: var(--text-dim); stroke-width: 2; } .bb-arrow { fill: var(--text-dim); }
+.bb-mp { fill: var(--bg-secondary); stroke: var(--accent-green); stroke-width: 1.5; } .bb-mpt { font: 700 8px var(--font-code); fill: var(--accent-green); text-anchor: middle; }
+.bb-dash { stroke: var(--accent-green); stroke-dasharray: 3 3; }
 </style>
 </head>
 <body>
@@ -1337,6 +1344,10 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   };
   defTheory({
     id: 'T1A', ch: 1, title: 'Der Stromkreis', tags: ['elektro.stromkreis', 'elektro.grundgroessen', 'messen.multimeter'],
+    visual: { type: 'circuit', caption: 'Schalter S1 anklicken: Der Kreis schliesst sich, die Punkte zeigen den Strom (technische Richtung + → −), die Lampe leuchtet. Offen fliesst nirgends Strom.',
+      layout: { parts: [{ id: 'B1', type: 'battery', value: 9, x: 160, y: 300 }, { id: 'S1', type: 'switch', x: 320, y: 200 }, { id: 'H1', type: 'lamp', x: 480, y: 300, rot: 90 }], wires: [W('B1.p', 'S1.a'), W('S1.b', 'H1.a'), W('H1.b', 'B1.n')] },
+      bench: { parts: [{ id: 'B1', x: 240, y: 460 }, { id: 'S1', x: 480, y: 290 }, { id: 'H1', x: 740, y: 460, rot: 90 }] },
+      readouts: [{ label: 'Strom I', sel: 'H1', q: 'i' }, { label: 'Leistung P', sel: 'H1', q: 'p' }] },
     lesson:
       '<p>Ein <b>Stromkreis</b> besteht mindestens aus einer <b>Quelle</b> (Batterie, Netzgeraet), einem <b>Verbraucher</b> (Lampe, Widerstand, LED) und einem <b>geschlossenen Leiterweg</b> hin und zurueck. Ein <b>Schalter</b> oeffnet oder schliesst diesen Weg.</p>' +
       '<p><b>Spannung U</b> (Volt, V) ist der Antrieb fuer die Ladungen. Sie liegt immer <i>zwischen zwei Punkten</i> an – zum Beispiel zwischen Plus- und Minuspol der Batterie.</p>' +
@@ -1468,6 +1479,11 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   var ohm = function (u, r) { return { parts: [bat(u), { id: 'R1', type: 'resistor', value: r }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'B1.n')] }; };
   defTheory({
     id: 'T1B', ch: 1, title: 'Ohmsches Gesetz und Vorwiderstand', tags: ['elektro.ohm', 'bauteil.led', 'elektro.leistung'],
+    visual: { type: 'circuit', caption: 'Den Vorwiderstand verkleinern: Der Strom steigt, die LED wird heller – unter etwa 240 Ω fliessen mehr als 30 mA und sie brennt durch. „Neu starten“ setzt eine neue LED ein.',
+      layout: { parts: [{ id: 'B1', type: 'battery', value: 9, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 470, x: 320, y: 200 }, { id: 'D1', type: 'led', x: 480, y: 300, rot: 90 }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'D1.a'), W('D1.k', 'B1.n')] },
+      bench: { parts: [{ id: 'B1', x: 240, y: 460 }, { id: 'R1', x: 500, y: 290 }, { id: 'D1', x: 740, y: 460, rot: 90 }] },
+      sliders: [{ part: 'R1', prop: 'value', label: 'Vorwiderstand R1', min: 150, max: 4700, log: true, unit: 'Ω', round: 2 }],
+      readouts: [{ label: 'I', sel: 'D1', q: 'i' }, { label: 'U an R1', sel: 'R1', q: 'v' }, { label: 'Helligkeit', sel: 'D1', q: 'brightness' }] },
     lesson:
       '<p>Der <b>Widerstand R</b> (Ohm, Ω) bremst den Strom. Spannung, Strom und Widerstand haengen fest zusammen – das <b>Ohmsche Gesetz</b>:</p>' +
       '<div class="formula">U = R · I &nbsp;&nbsp; I = U / R &nbsp;&nbsp; R = U / I</div>' +
@@ -1620,6 +1636,12 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   /* ================= Theorie A ================= */
   defTheory({
     id: 'T2A', ch: 2, title: 'Die Reihenschaltung', tags: ['elektro.reihenschaltung', 'elektro.kirchhoff'],
+    visual: { type: 'circuit', volt: true, caption: 'Drei Widerstaende in Reihe: ueberall derselbe Strom, die Spannung teilt sich im Verhaeltnis der Widerstaende (Farben = Potential). Zieh an R2 – die Summe der Teilspannungen bleibt 12 V.',
+      layout: { parts: [{ id: 'B1', type: 'battery', value: 12, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 1000, x: 320, y: 200 }, { id: 'R2', type: 'resistor', value: 2000, x: 480, y: 200 }, { id: 'R3', type: 'resistor', value: 3000, x: 620, y: 300, rot: 90 }],
+        wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'R3.a'), W('R3.b', 'B1.n')] },
+      bench: { parts: [{ id: 'B1', x: 220, y: 480 }, { id: 'R1', x: 420, y: 290 }, { id: 'R2', x: 620, y: 290 }, { id: 'R3', x: 800, y: 480, rot: 90 }] },
+      sliders: [{ part: 'R2', prop: 'value', label: 'R2', min: 100, max: 10000, log: true, unit: 'Ω', round: 2 }],
+      readouts: [{ label: 'I', sel: 'R1', q: 'i' }, { label: 'U1', sel: 'R1', q: 'v' }, { label: 'U2', sel: 'R2', q: 'v' }, { label: 'U3', sel: 'R3', q: 'v' }] },
     lesson:
       '<p>In der <b>Reihenschaltung</b> liegen die Bauteile hintereinander – es gibt nur <i>einen</i> Weg fuer den Strom.</p>' +
       '<ul><li>Der <b>Strom ist ueberall gleich gross</b>: I = I<sub>1</sub> = I<sub>2</sub> = …</li>' +
@@ -1738,6 +1760,12 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   var par2 = para(0, [1000, 1000], false);
   defTheory({
     id: 'T2B', ch: 2, title: 'Parallelschaltung, Knotenregel, Spannungsteiler', tags: ['elektro.parallelschaltung', 'elektro.kirchhoff', 'elektro.spannungsteiler', 'elektro.quelle'],
+    visual: { type: 'circuit', caption: 'Parallelschaltung: An beiden Widerstaenden liegt dieselbe Spannung, der Strom teilt sich am Knoten (Knotenregel: I = I1 + I2). Je kleiner R2, desto mehr Strom nimmt dieser Zweig.',
+      layout: { parts: [{ id: 'B1', type: 'battery', value: 10, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 1000, x: 400, y: 300, rot: 90 }, { id: 'R2', type: 'resistor', value: 2200, x: 560, y: 300, rot: 90 }],
+        wires: [W('B1.p', 'R1.a'), W('R1.a', 'R2.a'), W('R1.b', 'B1.n'), W('R2.b', 'R1.b')] },
+      bench: { parts: [{ id: 'B1', x: 220, y: 460 }, { id: 'R1', x: 520, y: 440, rot: 90 }, { id: 'R2', x: 740, y: 440, rot: 90 }] },
+      sliders: [{ part: 'R2', prop: 'value', label: 'R2', min: 220, max: 10000, log: true, unit: 'Ω', round: 2 }],
+      readouts: [{ label: 'I1', sel: 'R1', q: 'i' }, { label: 'I2', sel: 'R2', q: 'i' }, { label: 'I gesamt', sel: 'B1', q: 'i' }] },
     lesson:
       '<p>In der <b>Parallelschaltung</b> liegen alle Bauteile an <i>denselben zwei Punkten</i>:</p>' +
       '<ul><li>An allen liegt <b>dieselbe Spannung</b>.</li>' +
@@ -1880,6 +1908,12 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   /* ================= Theorie A ================= */
   defTheory({
     id: 'T3A', ch: 3, title: 'Gleich- und Wechselgroessen', tags: ['elektro.wechselgroessen', 'elektro.frequenz'],
+    visual: { type: 'circuit', slow: true, caption: 'Eine Wechselspannung aendert laufend Richtung und Groesse – die Punkte pendeln hin und her. Stell Kurvenform und Frequenz ein und lies am Oszilloskop Scheitelwert und Periodendauer ab (Bildbreite 2 s).',
+      layout: { parts: [{ id: 'G1', type: 'acsource', value: 5, props: { freq: 1, shape: 'sine', offset: 0 }, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 1000, x: 440, y: 300, rot: 90 }], wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] },
+      bench: { parts: [{ id: 'G1', x: 250, y: 440 }, { id: 'R1', x: 640, y: 440, rot: 90 }] },
+      sliders: [{ part: 'G1', prop: 'shape', label: 'Kurvenform', choices: [{ value: 'sine', label: 'Sinus' }, { value: 'square', label: 'Rechteck' }, { value: 'triangle', label: 'Dreieck' }] },
+        { part: 'G1', prop: 'freq', label: 'Frequenz', min: 0.5, max: 4, step: 0.5, unit: 'Hz' }],
+      scope: { a: 'R1.a', b: 'R1.b', span: 2, label: 'U an R1' } },
     lesson:
       '<p><b>Gleichgroessen</b> (Gleichspannung, Gleichstrom) sind ueber die Zeit konstant – wie bei der Batterie.</p>' +
       '<p><b>Wechselgroessen</b> aendern sich mit der Zeit. Wiederholt sich der Verlauf immer gleich, ist sie <b>periodisch</b> mit der <b>Periodendauer T</b>. Die <b>Frequenz</b> f gibt an, wie viele Perioden pro Sekunde ablaufen:</p>' +
@@ -1991,6 +2025,12 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   /* ================= Theorie B ================= */
   defTheory({
     id: 'T3B', ch: 3, title: 'Gleichrichtwert, Effektivwert, AVG und TRMS', tags: ['elektro.effektivwert', 'messen.trms', 'elektro.gleichrichtwert'],
+    visual: { type: 'circuit', flow: false, caption: 'Gleicher Scheitelwert, andere Kurvenform: Das TRMS-Multimeter zeigt immer den echten Effektivwert, das AVG-Geraet rechnet mit dem Sinus-Formfaktor – beim Sinus stimmen beide, bei Rechteck und Dreieck nicht.',
+      layout: { parts: [{ id: 'G1', type: 'acsource', value: 10, props: { freq: 50, shape: 'sine', offset: 0 }, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 1000, x: 440, y: 300, rot: 90 }], wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] },
+      bench: { parts: [{ id: 'G1', x: 250, y: 440 }, { id: 'R1', x: 640, y: 440, rot: 90 }] },
+      sliders: [{ part: 'G1', prop: 'shape', label: 'Kurvenform', choices: [{ value: 'sine', label: 'Sinus' }, { value: 'square', label: 'Rechteck' }, { value: 'triangle', label: 'Dreieck' }] }],
+      readouts: [{ label: 'Scheitelwert', a: 'R1.a', b: 'R1.b', ac: 'peak' }, { label: 'TRMS', a: 'R1.a', b: 'R1.b', ac: 'rms' }, { label: 'AVG-Anzeige', a: 'R1.a', b: 'R1.b', ac: 'avg' }],
+      scope: { a: 'R1.a', b: 'R1.b', span: 0.04, label: 'U an R1' } },
     lesson:
       '<p>Der <b>Gleichrichtwert</b> |Ū| (engl. average, AVG) ist der Mittelwert des <i>Betrags</i> – alle Halbwellen nach oben geklappt. Beim Sinus: <b>|Ū| = 2·Û/π ≈ 0,637·Û</b>.</p>' +
       '<p>Der <b>Effektivwert</b> (RMS, root mean square) ist die Gleichspannung, die an einem Widerstand <i>dieselbe Leistung</i> umsetzt. Die 230 V im Haushalt sind ein Effektivwert.</p>' +
@@ -2122,6 +2162,11 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   /* ================= Theorie A ================= */
   defTheory({
     id: 'T4A', ch: 4, title: 'Messen, Pruefen, Messgeraete', tags: ['messen.grundbegriffe', 'messen.geraete', 'messen.sicherheit'],
+    visual: { type: 'circuit', caption: 'Der Strommesser A1 liegt in Reihe im Kreis (fast 0 Ω), die Spannung misst man parallel zum Bauteil. Zieh am Widerstand: Strom und Spannung folgen dem Ohmschen Gesetz.',
+      layout: { parts: [{ id: 'B1', type: 'battery', value: 9, x: 160, y: 300 }, { id: 'A1', type: 'ammeter', x: 320, y: 200 }, { id: 'R1', type: 'resistor', value: 470, x: 480, y: 300, rot: 90 }], wires: [W('B1.p', 'A1.a'), W('A1.b', 'R1.a'), W('R1.b', 'B1.n')] },
+      bench: { parts: [{ id: 'B1', x: 240, y: 460 }, { id: 'A1', x: 480, y: 290 }, { id: 'R1', x: 740, y: 460, rot: 90 }] },
+      sliders: [{ part: 'R1', prop: 'value', label: 'R1', min: 100, max: 10000, log: true, unit: 'Ω', round: 2 }],
+      readouts: [{ label: 'Strommesser A1', sel: 'A1', q: 'i' }, { label: 'U an R1 (parallel gemessen)', a: 'R1.a', b: 'R1.b' }] },
     lesson:
       '<p><b>Messen</b> heisst, eine physikalische Groesse als Zahlenwert zu erfassen (z. B. 8,02 V). <b>Pruefen</b> stellt nur fest, ob etwas vorhanden ist oder nicht (Spannung ja/nein) – ohne Zahlenwert.</p>' +
       '<p><b>Kalibrieren</b>: vergleichen, wie weit die Anzeige vom wahren Wert abweicht. <b>Justieren</b>: die Anzeige nachstellen, damit die Abweichung wieder klein ist. <b>Eichen</b>: amtliche Pruefung, ob das Geraet in der Eichfehlergrenze liegt.</p>' +
@@ -2243,6 +2288,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   /* ================= Theorie B ================= */
   defTheory({
     id: 'T4B', ch: 4, title: 'Genauigkeit und Messfehler', tags: ['messen.genauigkeit', 'messen.systemfehler'],
+    visual: { type: 'numberSteps', mode: 'dmm', value: 1.23456, unit: 'V', caption: 'Derselbe wahre Wert von 1,23456 V im Multimeter des Labors: Der Messbereich bestimmt die Aufloesung, die letzte Stelle schwankt, und der Kalibrierfehler verschiebt alles ein wenig.' },
     lesson:
       '<p><b>Analoge Geraete:</b> Die Genauigkeit (z. B. 0,5 %) bezieht sich auf den <b>Messbereich-Endwert</b>. Bereich 20 V, 0,5 % → ±0,1 V – egal ob 15 V oder 2 V angezeigt werden. Deshalb im kleinsten passenden Bereich messen.</p>' +
       '<p><b>Digitale Geraete:</b> Die Genauigkeit bezieht sich auf den <b>angezeigten Wert</b> plus einige <b>Digit</b> (die letzte Stelle). Beispiel 15,0 V, ±(0,5 % + 1 Digit): 0,075 V + 0,1 V = ±0,175 V.</p>' +
@@ -2407,6 +2453,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   /* ================= Theorie A ================= */
   defTheory({
     id: 'T5A', ch: 5, title: 'Stellenwertsystem und Dualzahlen', tags: ['digital.zahlensysteme', 'digital.binaer'],
+    visual: { type: 'numberSteps', mode: 'divide', value: 43, base: 2, caption: 'Dezimal → dual: immer durch 2 teilen, die Reste von unten nach oben lesen. Zum Schluss die Probe mit den Wertigkeiten.' },
     lesson:
       '<p>In einem <b>Stellenwertsystem</b> haengt der Wert einer Ziffer von ihrer Stelle ab: <b>Wert = Ziffer · Basis<sup>Stelle</sup></b>, gelesen von rechts (Stelle 0) nach links. Die Basis bestimmt die Ziffern: dezimal (Basis 10) 0–9, dual/binaer (Basis 2) nur 0 und 1.</p>' +
       '<div class="formula">125₁₀ = 1·10² + 2·10¹ + 5·10⁰</div>' +
@@ -2503,6 +2550,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   /* ================= Theorie B ================= */
   defTheory({
     id: 'T5B', ch: 5, title: 'Hexadezimal, BCD und Horner-Schema', tags: ['digital.hex', 'digital.bcd', 'digital.zahlensysteme'],
+    visual: { type: 'numberSteps', mode: 'bases', value: 173, caption: 'Dieselbe Zahl in BCD (jede Dezimalziffer 4 Bit) und hexadezimal (jede Hex-Ziffer 4 Bit), dann mit dem Horner-Schema zurueck: mal 16, plus naechste Ziffer.' },
     lesson:
       '<p>Das <b>Hexadezimalsystem</b> (Basis 16) hat die Ziffern 0–9 und A–F (A = 10 … F = 15). Weil 2⁴ = 16, entspricht <b>genau eine Hex-Ziffer vier Bits</b> (einem Nibble). Umrechnen binaer ↔ hex heisst: in Vierergruppen von rechts aufteilen.</p>' +
       '<div class="formula">1011 0110₂ = B6₁₆ = 182₁₀</div>' +
@@ -2622,6 +2670,8 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T6A', ch: 6, title: 'UND, ODER, NICHT', tags: ['digital.gatter', 'digital.und', 'digital.oder', 'digital.nicht'],
+    visual: { type: 'circuit', toggleView: false, caption: 'Pegelschalter E1 und E2 anklicken: L1 = E1 UND E2, L2 = E1 ODER E2, L3 = NICHT E1. Probiere alle vier Kombinationen.',
+      layout: LG.net(2, [['U1', 'and', ['E1', 'E2']], ['U2', 'or', ['E1', 'E2']], ['U3', 'not', ['E1']]], { L1: 'U1', L2: 'U2', L3: 'U3' }) },
     lesson:
       '<p>Ein <b>Gatter</b> verknuepft logische Eingaenge (0/1) zu einem Ausgang. Seine Funktion beschreibt die <b>Wahrheitstabelle</b>: jede Eingangskombination mit dem zugehoerigen Ausgang.</p>' +
       '<table class="tt"><tr><th>Gatter</th><th>Symbol (DIN)</th><th>Ausdruck</th><th>Ausgang = 1, wenn …</th></tr>' +
@@ -2688,6 +2738,8 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T6B', ch: 6, title: 'NAND, NOR, XOR, XNOR', tags: ['digital.nand', 'digital.nor', 'digital.xor', 'digital.gatter'],
+    visual: { type: 'circuit', toggleView: false, caption: 'Dieselben Eingaenge an vier Gattern: L1 NAND, L2 NOR, L3 XOR, L4 XNOR. XOR leuchtet nur, wenn E1 und E2 verschieden sind, XNOR nur, wenn sie gleich sind.',
+      layout: LG.net(2, [['U1', 'nand', ['E1', 'E2']], ['U2', 'nor', ['E1', 'E2']], ['U3', 'xor', ['E1', 'E2']], ['U4', 'xnor', ['E1', 'E2']]], { L1: 'U1', L2: 'U2', L3: 'U3', L4: 'U4' }) },
     lesson:
       '<p><b>NAND</b> = NICHT-UND: a = ¬(e1 ∧ e2) – nur bei 1/1 ist der Ausgang 0. <b>NOR</b> = NICHT-ODER: a = ¬(e1 ∨ e2) – nur bei 0/0 ist der Ausgang 1. Im Symbol steht der Negationskreis am Ausgang.</p>' +
       '<p><b>XOR</b> (Antivalenz, =1): a = e1·ē2 ∨ ē1·e2 – Ausgang 1, wenn die Eingaenge <i>verschieden</i> sind. <b>XNOR</b> (Aequivalenz): Ausgang 1, wenn die Eingaenge <i>gleich</i> sind – ein 1-Bit-Vergleicher.</p>' +
@@ -2763,6 +2815,8 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T7A', ch: 7, title: 'Gesetze der Booleschen Algebra', tags: ['digital.boolesche_algebra'],
+    visual: { type: 'circuit', toggleView: false, caption: 'Absorptionsgesetz live bewiesen: L1 = E1 ∧ (E1 ∨ E2) mit zwei Gattern, L2 = E1 ganz ohne Gatter. Bei jeder Eingangskombination leuchten beide gleich.',
+      layout: LG.net(2, [['U1', 'or', ['E1', 'E2']], ['U2', 'and', ['E1', 'U1']]], { L1: 'U2', L2: 'E1' }) },
     lesson:
       '<p>Mit 0 und 1 laesst sich rechnen wie mit Zahlen – nach eigenen Gesetzen. <b>Bindungsregel:</b> UND bindet staerker als ODER (wie · vor +).</p>' +
       '<table class="tt"><tr><th>Gesetz</th><th>ODER</th><th>UND</th></tr>' +
@@ -2819,6 +2873,8 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T7B', ch: 7, title: 'De Morgan und normierte Schaltungen', tags: ['digital.demorgan', 'digital.nand', 'digital.nor'],
+    visual: { type: 'circuit', toggleView: false, caption: 'De Morgan: L1 = ¬(E1 ∧ E2) mit einem NAND, L2 = ¬E1 ∨ ¬E2 aus zwei Invertern und einem ODER. Gleiche Wahrheitstabelle – probiere alle Kombinationen.',
+      layout: LG.net(2, [['U1', 'nand', ['E1', 'E2']], ['U2', 'not', ['E1']], ['U3', 'not', ['E2']], ['U4', 'or', ['U2', 'U3']]], { L1: 'U1', L2: 'U4' }) },
     lesson:
       '<p><b>De Morgan:</b> Eine Negation ueber einem ganzen Term wird aufgeteilt, indem man UND und ODER vertauscht und jede Variable negiert:</p>' +
       '<div class="formula">¬(e1·e2) = ē1 ∨ ē2 &nbsp;&nbsp; ¬(e1 ∨ e2) = ē1·ē2</div>' +
@@ -2898,6 +2954,9 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T8A', ch: 8, title: 'Von der Wahrheitstabelle zur Schaltung', tags: ['digital.entwurf', 'digital.dnf'],
+    visual: [{ type: 'kmap', vars: 2, minterms: [1, 2], caption: 'Die Tabelle von A = 1 bei den Kombinationen 1 und 2 als Feld: Die Einsen liegen nicht benachbart – es bleiben zwei Terme (disjunktive Normalform).' },
+      { type: 'circuit', toggleView: false, caption: 'Daraus gebaut: A = (ē1 · e2) ∨ (e1 · ē2) – je UND-Gatter ein Term, das ODER sammelt. Klicke die Eingaenge durch und vergleiche mit der Tabelle.',
+        layout: LG.net(2, [['U1', 'not', ['E1']], ['U2', 'not', ['E2']], ['U3', 'and', ['U1', 'E2']], ['U4', 'and', ['E1', 'U2']], ['U5', 'or', ['U3', 'U4']]], { L1: 'U5' }) }],
     lesson:
       '<p><b>Vorgehen:</b> 1. Aufgabe verstehen, Ein- und Ausgaenge festlegen. 2. <b>Wahrheitstabelle</b> aufstellen. 3. Logischen Ausdruck ablesen. 4. Vereinfachen. 5. Schaltung bauen und mit allen Kombinationen pruefen.</p>' +
       '<p><b>DNF</b> (disjunktive Normalform, positive Logik): Fuer jede Zeile mit <b>A = 1</b> die Eingaenge verunden (Eingang 0 → negiert) – das ist ein <b>Minterm</b>. Alle Minterme verodern.</p>' +
@@ -2962,6 +3021,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T8B', ch: 8, title: 'Das KV-Diagramm', tags: ['digital.kv', 'digital.vereinfachen'],
+    visual: { type: 'kmap', vars: 3, minterms: [1, 3, 5, 7], caption: 'Das Beispiel aus dem Text: alle Einsen haben e1 = 1 → ein Paeckchen aus vier Feldern, A = e1. Klicke eigene Einsen und X ein und lass die Paeckchen bilden.' },
     lesson:
       '<p>Das <b>KV-Diagramm</b> (Karnaugh-Veitch) ist die Wahrheitstabelle als Feld, so angeordnet, dass sich <b>benachbarte Felder in genau einer Variablen unterscheiden</b> (Gray-Code-Reihenfolge 0, 1, 3, 2). Auch der gegenueberliegende Rand ist benachbart.</p>' +
       '<table class="tt"><tr><th></th><th>ē2 ē1</th><th>ē2 e1</th><th>e2 e1</th><th>e2 ē1</th></tr><tr><th>ē3</th><td>0</td><td>1</td><td>3</td><td>2</td></tr><tr><th>e3</th><td>4</td><td>5</td><td>7</td><td>6</td></tr></table>' +
@@ -3095,6 +3155,8 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T9B', ch: 9, title: 'Multiplexer, Komparator, Addierer', tags: ['digital.multiplexer', 'digital.komparator', 'digital.addierer'],
+    visual: { type: 'circuit', toggleView: false, caption: 'Volladdierer: E1 und E2 sind die Bits der beiden Zahlen, E3 der Uebertrag von der Stelle davor. L1 = Summe, L2 = Uebertrag zur naechsten Stelle – bei 1 + 1 + 1 leuchten beide.',
+      layout: LG.net(3, [['U1', 'xor', ['E1', 'E2']], ['U2', 'xor', ['U1', 'E3']], ['U3', 'and', ['E1', 'E2']], ['U4', 'and', ['U1', 'E3']], ['U5', 'or', ['U3', 'U4']]], { L1: 'U2', L2: 'U5' }) },
     lesson:
       '<p>Ein <b>Multiplexer</b> (Datenselektor) schaltet einen von mehreren Dateneingaengen auf den Ausgang – welcher, bestimmen die Steuereingaenge S. 2:1-MUX: A = d0·S̄ ∨ d1·S. Mit n Steuerleitungen waehlt man aus 2ⁿ Eingaengen. Der <b>Demultiplexer</b> verteilt umgekehrt einen Eingang auf einen von mehreren Ausgaengen.</p>' +
       '<p>Ein <b>Komparator</b> vergleicht zwei Zahlen: X (e1 > e2) = e1·ē2, Y (e1 = e2) = e1 ⊙ e2 (XNOR), Z (e1 < e2) = ē1·e2.</p>' +
@@ -3172,6 +3234,9 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T10A', ch: 10, title: '7-Segment-Anzeigen', tags: ['digital.7segment', 'digital.decoder'],
+    visual: { type: 'circuit', toggleView: false, height: 300, caption: 'Pegelschalter E1 … E4 (Wertigkeit 1, 2, 4, 8) anklicken: Der BCD-Decoder schaltet die Segmente, die Anzeige zeigt die Ziffer. Codes ueber 9 bleiben dunkel.',
+      layout: (function () { var l = LG.io(4, []); l.parts.push({ id: 'IC1', type: 'dec7', x: 640, y: 300, rot: 0 }, { id: 'AZ1', type: 'seg7', x: 840, y: 300, rot: 0 });
+        ['A', 'B', 'C', 'D'].forEach(function (k, i) { l.wires.push(W('E' + (i + 1) + '.out', 'IC1.' + k)); }); 'abcdefg'.split('').forEach(function (k) { l.wires.push(W('IC1.' + k, 'AZ1.' + k)); }); return l; })() },
     lesson:
       '<p>Eine <b>7-Segment-Anzeige</b> besteht aus sieben LED-Balken a … g (a oben, dann im Uhrzeigersinn b, c, d, e, f, g in der Mitte). Bei <b>gemeinsamer Kathode</b> liegen alle Kathoden an Masse – ein Segment leuchtet bei <b>1</b>. Bei <b>gemeinsamer Anode</b> liegen die Anoden an +, ein Segment leuchtet bei <b>0</b> (invertierte Ansteuerung).</p>' +
       '<p>Ein <b>BCD-7-Segment-Decoder</b> (z. B. 4511) ist ein fertiger Codewandler: 4 BCD-Eingaenge (Wertigkeit 1, 2, 4, 8) → 7 Segmentausgaenge. Ungueltige Codes (10 … 15) schaltet er dunkel.</p>' +
@@ -3264,6 +3329,8 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T10B', ch: 10, title: 'Entwurf komplexer Schaltungen', tags: ['digital.entwurf', 'digital.komparator'],
+    visual: { type: 'circuit', toggleView: false, caption: '1-Bit-Komparator aus den Bausteinen der Kapitel 6–9: E1 = A, E2 = B. L1 leuchtet bei A > B, L2 bei A = B (XNOR), L3 bei A < B – immer genau eine.',
+      layout: LG.net(2, [['U1', 'not', ['E1']], ['U2', 'not', ['E2']], ['U3', 'and', ['E1', 'U2']], ['U4', 'xnor', ['E1', 'E2']], ['U5', 'and', ['U1', 'E2']]], { L1: 'U3', L2: 'U4', L3: 'U5' }) },
     lesson:
       '<p>Grosse Aufgaben loest man <b>systematisch</b>:</p>' +
       '<ol><li><b>Aufgabe klaeren:</b> Welche Eingaenge (Sensoren, Taster), welche Ausgaenge (Lampen, Anzeigen)? Was bedeutet 1?</li>' +
@@ -3379,6 +3446,12 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T11A', ch: 11, title: 'Laden und Entladen', tags: ['elektro.kondensator', 'elektro.zeitkonstante'],
+    visual: { type: 'circuit', slow: true, caption: 'Der Taktgeber schaltet alle 2 s zwischen 5 V und 0 V um: Der Kondensator laedt sich ueber R1 auf und entlaedt sich wieder – nach τ = R · C ≈ 0,47 s sind 63 % erreicht, nach 5 τ ist er praktisch voll.',
+      layout: { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 0.25 }, x: 180, y: 300 }, { id: 'GND1', type: 'ground', x: 480, y: 460 }, { id: 'R1', type: 'resistor', value: 10000, x: 340, y: 300 }, { id: 'C1', type: 'capacitor', value: 47e-6, x: 480, y: 380, rot: 90 }],
+        wires: [W('CLK1.out', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'GND1.g')] },
+      bench: { parts: [{ id: 'CLK1', x: 230, y: 380 }, { id: 'R1', x: 480, y: 380 }, { id: 'C1', x: 720, y: 460, rot: 90 }, { id: 'GND1', x: 720, y: 660 }] },
+      readouts: [{ label: 'U an C1', sel: 'C1', q: 'v' }, { label: 'Ladestrom', sel: 'R1', q: 'i' }],
+      scope: { a: 'C1.a', b: 'GND1.g', span: 8, label: 'U an C1' } },
     lesson:
       '<p>Ein <b>Kondensator</b> speichert Ladung. Ueber einen Widerstand geladen, steigt seine Spannung nicht sprunghaft, sondern <b>e-foermig</b>: Am Anfang fliesst der groesste Strom I<sub>max</sub> = U₀ / R, dann baut der Kondensator eine Gegenspannung auf – der Strom wird kleiner, das Laden langsamer.</p>' +
       '<div class="formula">τ = R · C &nbsp;&nbsp; u<sub>C</sub>(t) = U₀ · (1 − e<sup>−t/τ</sup>)</div>' +
@@ -3480,6 +3553,12 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T11B', ch: 11, title: 'RC-Glieder in Schaltungen', tags: ['elektro.rc', 'elektro.filter', 'digital.takt'],
+    visual: { type: 'circuit', caption: 'Dasselbe RC-Glied an einem 5-Hz-Takt: Mit kleinem C folgt die Spannung dem Rechteck fast sofort, mit grossem C wird daraus ein flaches Dreieck um den Mittelwert (Integrierglied).',
+      layout: { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 5 }, x: 180, y: 300 }, { id: 'GND1', type: 'ground', x: 480, y: 460 }, { id: 'R1', type: 'resistor', value: 10000, x: 340, y: 300 }, { id: 'C1', type: 'capacitor', value: 4.7e-6, x: 480, y: 380, rot: 90 }],
+        wires: [W('CLK1.out', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'GND1.g')] },
+      bench: { parts: [{ id: 'CLK1', x: 230, y: 380 }, { id: 'R1', x: 480, y: 380 }, { id: 'C1', x: 720, y: 460, rot: 90 }, { id: 'GND1', x: 720, y: 660 }] },
+      sliders: [{ part: 'C1', prop: 'value', label: 'Kapazitaet C1', min: 1e-7, max: 1e-4, log: true, unit: 'F', round: 2 }],
+      scope: { a: 'C1.a', b: 'GND1.g', span: 0.6, label: 'U an C1' } },
     lesson:
       '<p><b>Verzoegerung:</b> Ein RC-Glied vor einem Logikeingang verzoegert das Einschalten: Der Eingang sieht erst eine 1, wenn u<sub>C</sub> die Schaltschwelle (2,5 V bei 5 V) erreicht – nach t = τ · ln 2 ≈ 0,69 τ.</p>' +
       '<p><b>Glaettung:</b> Ein grosser Kondensator parallel zur Last nach dem Gleichrichter (Ladekondensator) wird in den Spannungsspitzen geladen und versorgt die Last dazwischen. Uebrig bleibt eine kleine <b>Brummspannung</b> – je groesser C, desto kleiner.</p>' +
@@ -3609,6 +3688,9 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T12A', ch: 12, title: 'Das Flipflop – ein Bit Gedaechtnis', tags: ['digital.flipflop', 'digital.speicher'],
+    visual: { type: 'circuit', toggleView: false, caption: 'RS-Flipflop aus zwei NOR: E2 = S (Setzen), E1 = R (Ruecksetzen), L1 = Q, L2 = Q̄. Kurz S auf 1 und wieder 0 – Q bleibt 1; kurz R – Q bleibt 0. Das ist ein gespeichertes Bit.',
+      layout: (function () { var l = LG.io(2, ['L1', 'L2']); l.parts.push({ id: 'U1', type: 'nor', x: 480, y: 170, rot: 0 }, { id: 'U2', type: 'nor', x: 480, y: 280, rot: 0 });
+        l.wires.push(W('E1.out', 'U1.in1'), W('U2.out', 'U1.in2'), W('E2.out', 'U2.in2'), W('U1.out', 'U2.in1'), W('U1.out', 'L1.in'), W('U2.out', 'L2.in')); return l; })() },
     lesson:
       '<p>Zwei <b>NOR-Gatter</b>, deren Ausgaenge jeweils auf einen Eingang des anderen zurueckgefuehrt sind, bilden das <b>RS-Flipflop</b>. S = 1 <b>setzt</b> (Q = 1), R = 1 <b>setzt zurueck</b> (Q = 0), S = R = 0 <b>speichert</b> den letzten Zustand. S = R = 1 ist der <b>verbotene Zustand</b> (Q und Q̄ beide 0).</p>' +
       '<p>Die <b>Analysetabelle</b> zeigt den neuen Zustand A abhaengig vom alten Zustand A<sub>V</sub>; die <b>Ansteuertabelle</b> sagt, welche Eingaenge noetig sind, um von A<sub>V</sub> nach A zu kommen (X = egal).</p>' +
@@ -3713,6 +3795,11 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T12B', ch: 12, title: 'Zaehler', tags: ['digital.zaehler', 'digital.flipflop'],
+    visual: { type: 'circuit', toggleView: false, slow: true, caption: 'Asynchroner 3-Bit-Zaehler aus T-Flipflops am Takt (1 Hz): L1 = Wert 1, L2 = Wert 2, L3 = Wert 4. Jede Stufe halbiert die Frequenz – so zaehlt die Kette von 0 bis 7 und beginnt von vorn.',
+      layout: { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 1 }, x: 160, y: 300, rot: 0 }, { id: 'E2', type: 'logicin', props: { closed: true }, x: 160, y: 120, rot: 0 }, { id: 'GND1', type: 'ground', x: 120, y: 480, rot: 0 },
+        { id: 'FF1', type: 'tff', x: 320, y: 280, rot: 0 }, { id: 'FF2', type: 'tff', x: 520, y: 280, rot: 0 }, { id: 'FF3', type: 'tff', x: 720, y: 280, rot: 0 },
+        { id: 'L1', type: 'logicled', x: 420, y: 440, rot: 0 }, { id: 'L2', type: 'logicled', x: 620, y: 440, rot: 0 }, { id: 'L3', type: 'logicled', x: 820, y: 440, rot: 0 }],
+        wires: [W('CLK1.out', 'FF1.C'), W('FF1.Qn', 'FF2.C'), W('FF2.Qn', 'FF3.C'), W('E2.out', 'FF1.T'), W('E2.out', 'FF2.T'), W('E2.out', 'FF3.T'), W('FF1.Q', 'L1.in'), W('FF2.Q', 'L2.in'), W('FF3.Q', 'L3.in')] } },
     lesson:
       '<p>Mehrere T-Flipflops (T = 1) hintereinander bilden einen <b>Dualzaehler</b>: Jede Stufe teilt die Frequenz durch 2 und stellt ein Bit dar (FF1 = Bit 0 = Wert 1, FF2 = Bit 1 = Wert 2 …).</p>' +
       '<p><b>Asynchroner Zaehler</b> (Ripple Counter): Nur FF1 bekommt den Takt, jede weitere Stufe wird vom <b>Q̄-Ausgang</b> der vorherigen getaktet (steigende Flanke an Q̄ = fallende an Q → Aufwaertszaehler). Einfach, aber die Stufen schalten nacheinander – kurze falsche Zwischenwerte.</p>' +
@@ -3833,6 +3920,11 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T13A', ch: 13, title: 'Diode und Z-Diode', tags: ['bauteil.diode', 'bauteil.zdiode'],
+    visual: { type: 'circuit', caption: 'Z-Diode in Sperrrichtung mit Vorwiderstand: Unter 5,1 V sperrt sie – die ganze Spannung liegt an ihr. Darueber bricht sie durch und haelt ihre Spannung fest, der Rest faellt an R1 ab.',
+      layout: { parts: [{ id: 'B1', type: 'battery', value: 8, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 470, x: 320, y: 200 }, { id: 'Z1', type: 'zener', x: 480, y: 300, rot: 270 }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'Z1.k'), W('Z1.a', 'B1.n')] },
+      bench: { parts: [{ id: 'B1', x: 240, y: 460 }, { id: 'R1', x: 500, y: 290 }, { id: 'Z1', x: 740, y: 460, rot: 270 }] },
+      sliders: [{ part: 'B1', prop: 'value', label: 'Speisespannung', min: 1, max: 12, step: 0.5, unit: 'V' }],
+      readouts: [{ label: 'U an Z1', sel: 'Z1', q: 'v' }, { label: 'I', sel: 'R1', q: 'i' }, { label: 'U an R1', sel: 'R1', q: 'v' }] },
     lesson:
       '<p>Eine <b>Diode</b> leitet in <b>Durchlassrichtung</b> (Anode + , Kathode −, am Ring erkennbar) ab ihrer Schleusenspannung: Silizium ca. <b>0,7 V</b>, Germanium ca. 0,3 V. Darueber steigt der Strom steil an, die Spannung an der Diode bleibt fast gleich. In <b>Sperrrichtung</b> fliesst praktisch kein Strom – die ganze Spannung liegt an der Diode.</p>' +
       '<p>Die <b>Z-Diode</b> wird in Sperrrichtung betrieben. Ab der <b>Z-Spannung U<sub>Z</sub></b> bricht sie gezielt durch und haelt die Spannung fast konstant – egal, wie viel Strom fliesst. Sie braucht immer einen <b>Vorwiderstand R<sub>V</sub></b>, der den Strom begrenzt.</p>' +
@@ -3929,6 +4021,12 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T13B', ch: 13, title: 'Der Transistor', tags: ['bauteil.transistor', 'elektro.schalten'],
+    visual: { type: 'circuit', caption: 'Der Basiswiderstand bestimmt den Basisstrom: Gross → wenig Basisstrom, der Transistor sperrt oder arbeitet aktiv (I_C = β · I_B, LED schwach). Klein → Saettigung, die LED leuchtet voll – der Transistor als Schalter.',
+      layout: { parts: [{ id: 'B1', type: 'battery', value: 9, x: 700, y: 320 }, { id: 'R1', type: 'resistor', value: 220000, x: 320, y: 380 }, { id: 'Q1', type: 'npn', x: 480, y: 380 }, { id: 'R2', type: 'resistor', value: 390, x: 580, y: 160, rot: 90 }, { id: 'D1', type: 'led', props: { color: 'gruen' }, x: 580, y: 260, rot: 90 }],
+        wires: [W('B1.p', 'R1.a'), W('R1.b', 'Q1.b'), W('B1.p', 'R2.a'), W('R2.b', 'D1.a'), W('D1.k', 'Q1.c'), W('Q1.e', 'B1.n')] },
+      bench: { parts: [{ id: 'B1', x: 830, y: 540 }, { id: 'R1', x: 360, y: 420 }, { id: 'Q1', x: 580, y: 460 }, { id: 'R2', x: 620, y: 170, rot: 90 }, { id: 'D1', x: 760, y: 300, rot: 90 }] },
+      sliders: [{ part: 'R1', prop: 'value', label: 'Basiswiderstand R1', min: 4700, max: 2200000, log: true, unit: 'Ω', round: 2 }],
+      readouts: [{ label: 'I_B', sel: 'R1', q: 'i' }, { label: 'I_C', sel: 'D1', q: 'i' }, { label: 'Arbeitsbereich', sel: 'Q1', q: 'state' }] },
     lesson:
       '<p>Der <b>NPN-Transistor</b> hat drei Anschluesse: <b>Basis</b>, <b>Kollektor</b>, <b>Emitter</b>. Ein kleiner <b>Basisstrom I<sub>B</sub></b> steuert einen grossen <b>Kollektorstrom I<sub>C</sub></b>. Die Basis-Emitter-Strecke verhaelt sich wie eine Diode (U<sub>BE</sub> ≈ 0,7 V).</p>' +
       '<p>Drei Arbeitsbereiche: <b>gesperrt</b> (I<sub>B</sub> = 0 → I<sub>C</sub> = 0), <b>aktiv</b> (I<sub>C</sub> = β · I<sub>B</sub>, Verstaerker), <b>Saettigung</b> (der Transistor ist voll durchgeschaltet, U<sub>CE</sub> ≈ 0,2 V, I<sub>C</sub> bestimmt nur noch die Last).</p>' +
@@ -4058,6 +4156,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T14A', ch: 14, title: 'Frequenzgang und Dezibel', tags: ['elektro.filter', 'elektro.frequenzgang', 'elektro.db'],
+    visual: { type: 'bode', stages: [{ kind: 'lp', r: 1000, c: 1e-6 }], caption: 'Frequenzgang des RC-Tiefpasses (1 kΩ, 1 µF): bis zur Grenzfrequenz fast 0 dB, bei f_g −3 dB, darueber −20 dB pro Dekade. Fahr mit dem Regler die Kurve ab.' },
     lesson:
       '<p>Der <b>Frequenzgang</b> zeigt, wie stark eine Schaltung ein Signal abhaengig von der Frequenz durchlaesst. Man misst Eingang U<sub>e</sub> und Ausgang U<sub>a</sub> bei vielen Frequenzen (z. B. 1 Hz … 10 kHz) und traegt das Verhaeltnis auf – die Frequenzachse logarithmisch.</p>' +
       '<p>Die <b>Verstaerkung</b> gibt man in <b>Dezibel</b> an:</p><div class="formula">A = 20 · log<sub>10</sub>(U<sub>a</sub> / U<sub>e</sub>) dB</div>' +
@@ -4144,6 +4243,12 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T14B', ch: 14, title: 'Bandpass, Bandsperre, Signalformung', tags: ['elektro.filter', 'elektro.rc'],
+    visual: [{ type: 'bode', stages: [{ kind: 'hp', r: 1000, c: 1e-6 }, { kind: 'lp', r: 10000, c: 10e-9 }], caption: 'RC-Bandpass wie in Aufgabe 14.6: Hochpass (f_g ≈ 159 Hz) und Tiefpass (f_g ≈ 1,6 kHz) hintereinander. Dazwischen liegt der Durchlassbereich; weil der Tiefpass den Hochpass belastet, erreicht die Kurve nicht ganz 0 dB.' },
+      { type: 'circuit', flow: false, toggleView: false, caption: 'Dieselbe Schaltung im Labor: Stell die Generatorfrequenz ein und vergleiche die Effektivwerte am Ein- und Ausgang mit der Kurve oben.',
+        layout: { parts: [{ id: 'G1', type: 'acsource', value: 10, props: { freq: 500, shape: 'sine', offset: 0 }, x: 160, y: 300 }, { id: 'C1', type: 'capacitor', value: 1e-6, x: 320, y: 200, rot: 0 }, { id: 'R1', type: 'resistor', value: 1000, x: 480, y: 300, rot: 90 }, { id: 'R2', type: 'resistor', value: 10000, x: 600, y: 200 }, { id: 'C2', type: 'capacitor', value: 10e-9, x: 720, y: 300, rot: 90 }],
+          wires: [W('G1.p', 'C1.a'), W('C1.b', 'R1.a'), W('R1.b', 'G1.n'), W('R1.a', 'R2.a'), W('R2.b', 'C2.a'), W('C2.b', 'G1.n')] },
+        sliders: [{ part: 'G1', prop: 'freq', label: 'Frequenz', min: 20, max: 20000, log: true, unit: 'Hz', round: 2 }],
+        readouts: [{ label: 'U_e (TRMS)', a: 'G1.p', b: 'G1.n', ac: 'rms' }, { label: 'U_a (TRMS)', a: 'C2.a', b: 'C2.b', ac: 'rms' }] }],
     lesson:
       '<p>Ein <b>Bandpass</b> entsteht aus Hochpass und Tiefpass hintereinander: Er laesst nur einen Frequenzbereich um die <b>Mittenfrequenz</b> durch. Eine <b>Bandsperre</b> unterdrueckt einen Bereich. Ein RC-Bandpass aus je einer Stufe ist ein Filter 1. Ordnung auf beiden Seiten.</p>' +
       '<p>RC-Glieder <b>formen Signale</b>: Ist τ viel kleiner als die Periodendauer, wirkt ein Hochpass als <b>Differenzierglied</b> – aus einem Rechteck werden Nadelimpulse an den Flanken. Ist τ viel groesser, wirkt ein Tiefpass als <b>Integrierglied</b> – aus einem Rechteck wird ein Dreieck, bei sehr grossem τ nahezu der Mittelwert (so wird aus einem Taktsignal eine Gleichspannung).</p>' +
@@ -4266,6 +4371,18 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T15A', ch: 15, title: 'Die Antriebsstation', tags: ['antrieb.motor', 'antrieb.treiber', 'elektro.leistung'],
+    visual: [{ type: 'block', caption: 'Blockbild der Antriebsstation: Signale laufen von der Bedienung ueber die Steuerung zum Leistungsteil und zum Motor; der Impulsgeber meldet die Drehzahl zurueck. An jedem Uebergang liegt ein Messpunkt (MP).',
+      svg: '<svg class="blockbild" viewBox="0 0 700 230" role="img" aria-label="Blockbild Antriebsstation">' +
+        '<defs><marker id="bbA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="bb-arrow"/></marker></defs>' +
+        [['Bedienung', 'Start · Stopp · Not-Halt', 20], ['Steuerung', 'Logik (Selbsthaltung)', 190], ['Leistungsteil', 'Transistor · Freilaufdiode', 360], ['Motor', '6 V · 0,3 A', 530]].map(function (b) {
+          return '<g><rect class="bb-box" x="' + b[2] + '" y="40" width="150" height="70" rx="10"/><text class="bb-t" x="' + (b[2] + 75) + '" y="70">' + b[0] + '</text><text class="bb-s" x="' + (b[2] + 75) + '" y="92">' + b[1] + '</text></g>'; }).join('') +
+        [170, 340, 510].map(function (x, i) { return '<path class="bb-line" d="M' + x + ' 75H' + (x + 20) + '" marker-end="url(#bbA)"/><circle class="bb-mp" cx="' + (x + 10) + '" cy="125" r="11"/><text class="bb-mpt" x="' + (x + 10) + '" y="129">MP' + (i + 1) + '</text><path class="bb-dash" d="M' + (x + 10) + ' 114V80"/>'; }).join('') +
+        '<path class="bb-line" d="M605 110V180H265V114" marker-end="url(#bbA)"/><rect class="bb-box small" x="355" y="162" width="160" height="36" rx="8"/><text class="bb-s" x="435" y="185">Impulsgeber (Drehzahl)</text></svg>' },
+      { type: 'circuit', caption: 'Der Leistungsteil als echte Schaltung: E1 (Signal der Steuerung) schaltet ueber R1 den Transistor, der den Motor an 6 V legt; V1 ist die Freilaufdiode. E1 anklicken.',
+        layout: { parts: [{ id: 'E1', type: 'logicin', x: 160, y: 380 }, { id: 'GND1', type: 'ground', x: 480, y: 540 }, { id: 'B1', type: 'battery', value: 6, x: 760, y: 320 }, { id: 'M1', type: 'motor', x: 580, y: 240, rot: 90 }, { id: 'Q1', type: 'npn', x: 480, y: 380 }, { id: 'R1', type: 'resistor', value: 470, x: 300, y: 380 }, { id: 'V1', type: 'diode', x: 660, y: 240, rot: 270 }],
+          wires: [W('B1.n', 'GND1.g'), W('B1.p', 'M1.a'), W('M1.b', 'Q1.c'), W('Q1.e', 'GND1.g'), W('E1.out', 'R1.a'), W('R1.b', 'Q1.b'), W('V1.k', 'M1.a'), W('V1.a', 'M1.b')] },
+        bench: { parts: [{ id: 'E1', x: 170, y: 300 }, { id: 'R1', x: 340, y: 300 }, { id: 'Q1', x: 640, y: 460 }, { id: 'M1', x: 640, y: 210, rot: 90 }, { id: 'V1', x: 800, y: 210, rot: 270 }, { id: 'B1', x: 820, y: 580 }, { id: 'GND1', x: 620, y: 690 }] },
+        readouts: [{ label: 'Motorstrom', sel: 'M1', q: 'i' }, { label: 'Drehzahl', sel: 'M1', q: 'speed' }, { label: 'Transistor', sel: 'Q1', q: 'state' }] }],
     lesson:
       '<p>Eine <b>Antriebsstation</b> (z. B. ein Foerderband- oder Bremsenpruefstand) laesst sich immer als <b>Blockbild</b> lesen: <b>Bedienung und Sensoren</b> (Taster, Not-Halt, Impulsgeber) → <b>Steuerung</b> (Logik) → <b>Leistungsteil</b> (Transistor als Treiber) → <b>Motor</b>. Dazu kommen die <b>Messpunkte</b>, an denen du pruefst, ob jeder Block seine Aufgabe erfuellt.</p>' +
       '<p><b>Motordaten</b> stehen auf dem Typenschild: Nennspannung, Nennstrom, Nennleistung, Nenndrehzahl. Die aufgenommene Leistung ist <b>P = U · I</b>. Beim Gleichstrommotor steigt die <b>Drehzahl mit der Spannung</b>; die <b>Drehrichtung</b> kehrt man durch <b>Umpolen</b> um. (Im Simulator wird der Motor vereinfacht als Wicklungswiderstand 20 Ω nachgebildet, Nenndaten 6 V / 0,3 A – die Drehzahl folgt dem Strom.)</p>' +
@@ -4388,6 +4505,10 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   defTheory({
     id: 'T15B', ch: 15, title: 'Steuerung und Sicherheit', tags: ['steuerung.selbsthaltung', 'sicherheit.nothalt', 'messen.drehzahl'],
+    visual: { type: 'circuit', toggleView: false, caption: 'Selbsthaltung mit Not-Halt: E1 = Start (Taster), E2 = Stopp und E3 = Not-Halt (Oeffner, in Ruhe 1), L1 = Motor EIN. Start kurz anklicken und wieder loesen – L1 bleibt an. Not-Halt loescht die Selbsthaltung: Nach dem Entriegeln bleibt L1 aus.',
+      layout: { parts: [{ id: 'GND1', type: 'ground', x: 120, y: 560 }, { id: 'E1', type: 'logicin', x: 160, y: 160 }, { id: 'E2', type: 'logicin', props: { closed: true }, x: 160, y: 280 }, { id: 'E3', type: 'logicin', props: { closed: true }, x: 160, y: 400 },
+        { id: 'L1', type: 'logicled', props: { color: 'gruen' }, x: 860, y: 300 }, { id: 'U1', type: 'or', x: 340, y: 180 }, { id: 'U2', type: 'and', x: 500, y: 260 }, { id: 'U3', type: 'and', x: 660, y: 300 }],
+        wires: [W('E1.out', 'U1.in1'), W('U1.out', 'U2.in1'), W('E2.out', 'U2.in2'), W('U2.out', 'U3.in1'), W('E3.out', 'U3.in2'), W('U3.out', 'U1.in2'), W('U3.out', 'L1.in')] } },
     lesson:
       '<p><b>Start/Stopp mit Selbsthaltung:</b> Der Start-Taster wird nur kurz gedrueckt. Damit der Motor weiterlaeuft, fuehrt man den Ausgang zurueck auf den Eingang – er <b>haelt sich selbst</b>:</p>' +
       '<div class="formula">Q = (Start ∨ Q) ∧ Stopp</div>' +
@@ -6168,8 +6289,10 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
  *   spec.bench    {parts:[{id,x,y,rot}]} – Werkbank-Lage (optional; sonst Auto-Anordnung)
  *   spec.view     'schema' (Standard) | 'bench';  spec.toggleView: Umschalter Schaltplan/Werkbank anbieten (Standard ja)
  *   spec.flow     Stromfluss-Punkte an (Standard ja);  spec.volt: Spannungsfarben
- *   spec.sliders  [{part, prop ('value' oder Eigenschaft), label, min, max, step, unit, log}] – Schieberegler
- *   spec.readouts [{label, sel, q ('v'|'i'|'p'|'brightness'|'out'|'on'|'speed'), unit}] oder {label, a, b} (Spannung zwischen Anschluessen)
+ *   spec.sliders  [{part, prop ('value' oder Eigenschaft), label, min, max, step, unit, log, round}] – Schieberegler;
+ *                 mit choices:[{value, label}] stattdessen ein Auswahlfeld (z. B. Kurvenform)
+ *   spec.readouts [{label, sel, q ('v'|'i'|'p'|'brightness'|'out'|'on'|'speed'|'state'), unit}] oder {label, a, b} (Spannung zwischen Anschluessen)
+ *                 oder {label, a, b, ac:'rms'|'avg'|'dc'|'pp'|'peak'} (Wechselgroesse ueber E.acMeasure; avg = Anzeige AVG-Multimeter)
  *   spec.scope    {a, b, span (s), label} – laufendes Oszilloskop (Spannung a gegen b)
  *   spec.slow     Zeitlupen-Umschalter (1× / 0,1×) fuer Schaltungen mit Zeitverhalten
  *   spec.height   Hoehe der Zeichenflaeche in px (Standard 260) */
@@ -6202,12 +6325,14 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
       var b = bar.querySelector('[data-mv]'); if (b) b.textContent = mode === 'bench' ? '⊞ Schaltplan' : '▣ Werkbank';
     }
     function fmtR(r, x) {
+      if (x.ac) { var m = live.ac && live.ac[x.a + '|' + x.b]; return m && m.ok ? E.fmt(m[x.ac], 'V') : '–'; }
       if (!r) return '–';
       if (x.a) { var v = r.nodeV[live.net.pinNode[x.a]] - (x.b ? r.nodeV[live.net.pinNode[x.b]] : 0); return E.fmt(v, 'V'); }
       var p = r.parts[x.sel]; if (!p) return '–';
       if (x.q === 'on') return p.on ? 'leuchtet' : 'aus';
       if (x.q === 'out') return p.out ? '1' : '0';
       if (x.q === 'brightness') return Math.round(100 * (p.brightness || 0)) + ' %';
+      if (x.q === 'state') return { off: 'gesperrt', on: 'aktiv', sat: 'Saettigung' }[p.state] || '–';
       if (x.q === 'speed') return Math.round(100 * Math.abs(p.speed || 0)) + ' %';
       if (p.burnt) return 'DEFEKT';
       var v2 = Math.abs(p[x.q || 'v'] || 0); return E.fmt(v2, x.unit || ({ v: 'V', i: 'A', p: 'W' }[x.q || 'v']));
@@ -6225,12 +6350,12 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
       for (i = 1; i < 6; i++) { c.beginPath(); c.moveTo(0, hh * i / 6); c.lineTo(w, hh * i / 6); c.stroke(); }
       var tr = live.trace; if (!tr.length) return;
       var span = spec.scope.span || 0.1, t1 = tr[tr.length - 1][0], t0 = t1 - span, vs = tr.map(function (p) { return p[1]; });
-      var lo = Math.min(0, Math.min.apply(null, vs)), hi = Math.max(0.5, Math.max.apply(null, vs)), pad = (hi - lo) * 0.1 || 1; lo -= pad; hi += pad;
+      var mn = Math.min.apply(null, vs), mx = Math.max.apply(null, vs), lo = Math.min(0, mn), hi = Math.max(0.5, mx), pad = (hi - lo) * 0.1 || 1; lo -= pad; hi += pad;
       c.strokeStyle = 'rgba(255,255,255,.25)'; var y0 = hh - (0 - lo) / (hi - lo) * hh; c.beginPath(); c.moveTo(0, y0); c.lineTo(w, y0); c.stroke();
       c.strokeStyle = '#ffb000'; c.lineWidth = 2 * (root.devicePixelRatio || 1); c.beginPath();
       tr.forEach(function (p, k) { var x = (p[0] - t0) / span * w, y = hh - (p[1] - lo) / (hi - lo) * hh; if (k) c.lineTo(x, y); else c.moveTo(x, y); }); c.stroke();
       c.fillStyle = '#8a8a8a'; c.font = (11 * (root.devicePixelRatio || 1)) + 'px monospace';
-      c.fillText((spec.scope.label || 'U') + ' · ' + E.fmt(lo, 'V') + ' … ' + E.fmt(hi, 'V') + ' · ' + E.fmt(span, 's') + ' Bildbreite', 6, 14 * (root.devicePixelRatio || 1));
+      c.fillText((spec.scope.label || 'U') + ' · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') + ' · ' + E.fmt(span, 's') + ' Bildbreite', 6, 14 * (root.devicePixelRatio || 1));
     }
     function tick(dt) {
       if (!live.net) return;
@@ -6245,6 +6370,8 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
       if (fresh) { live.state = E.newState(); live.trace = []; }
       try { live.net = E.buildNetlist(core.layout); } catch (e) { live.net = null; bar.querySelector('.mini-err').textContent = e.message; return; }
       live.dynamic = live.net.parts.some(function (p) { return DYN[p.type]; });
+      live.ac = {}; // Wechselgroessen einmal je Aenderung (E.acMeasure simuliert einige Perioden)
+      (spec.readouts || []).forEach(function (x) { if (x.ac && !live.ac[x.a + '|' + x.b]) live.ac[x.a + '|' + x.b] = E.acMeasure(core.layout, { a: x.a, b: x.b }); });
       tick(0);
       if (live.dynamic && !live.raf) loop();
     }
@@ -6252,10 +6379,11 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
       live.last = performance.now();
       var f = function (now) {
         if (dead || !el.isConnected) { live.raf = 0; return; } // Lektion verlassen: Schleife endet von selbst
-        var dt = Math.min(0.05, (now - live.last) / 1000) * live.speed; live.last = now;
+        var dt = Math.max(0, Math.min(0.05, (now - live.last) / 1000)) * live.speed; live.last = now; // erstes Bild kann vor dem Start liegen: nie negativ
         // schnelle Signale fein genug rechnen: hoechstens 1/40 der kleinsten Periode je Schritt
         var fmax = 0; live.net.parts.forEach(function (p) { if ((p.type === 'clock' || p.type === 'acsource') && p.props.freq) fmax = Math.max(fmax, p.props.freq); });
-        var n = fmax ? Math.min(400, Math.ceil(dt * fmax * 40)) : 1;
+        var n = fmax ? Math.max(1, Math.min(400, Math.ceil(dt * fmax * 40))) : 1;
+        if (!dt) { live.raf = requestAnimationFrame(f); return; }
         for (var k = 0; k < n - 1; k++) { var rk = E.step(live.net, live.state, { dt: dt / n }); if (spec.scope) trace(rk); }
         tick(dt / n);
         live.raf = requestAnimationFrame(f);
@@ -6282,13 +6410,15 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
       var h2 = (spec.sliders || []).map(function (s, i) {
         var p = core.part(s.part), cur = s.prop === 'value' ? p.value : (p.props || {})[s.prop];
         if (cur === undefined) cur = s.prop === 'value' ? E.PARTS[p.type].props.value : E.PARTS[p.type].props[s.prop];
+        if (s.choices) return '<label class="mini-sl"><span>' + esc(s.label) + '</span><select data-sl="' + i + '">' + s.choices.map(function (c) { return '<option value="' + esc(c.value) + '"' + (String(c.value) === String(cur) ? ' selected' : '') + '>' + esc(c.label) + '</option>'; }).join('') + '</select><b></b></label>';
         var pos = s.log ? Math.log10(cur) : cur, mn = s.log ? Math.log10(s.min) : s.min, mx = s.log ? Math.log10(s.max) : s.max;
         return '<label class="mini-sl"><span>' + esc(s.label) + '</span><input type="range" data-sl="' + i + '" min="' + mn + '" max="' + mx + '" step="' + (s.log ? 0.01 : s.step || (s.max - s.min) / 100) + '" value="' + pos + '"><b class="mono" data-slv="' + i + '">' + esc(fmtS(s, cur)) + '</b></label>';
       }).join('') + ((spec.readouts || []).length ? '<div class="mini-ro"></div>' : '');
       ctl.innerHTML = h2;
       Array.prototype.forEach.call(ctl.querySelectorAll('[data-sl]'), function (inp) {
-        inp.oninput = function () {
-          var s = spec.sliders[+inp.dataset.sl], p = core.part(s.part), v = s.log ? Math.pow(10, +inp.value) : +inp.value;
+        inp.oninput = inp.onchange = function () {
+          var s = spec.sliders[+inp.dataset.sl], p = core.part(s.part), v = s.choices ? inp.value : s.log ? Math.pow(10, +inp.value) : +inp.value;
+          if (s.choices) { p.props = p.props || {}; p.props[s.prop] = v; live.trace = []; rebuild(false); ed.render(); be.render(); return; }
           if (s.round) v = +v.toPrecision(s.round);
           if (s.prop === 'value') p.value = v; else { p.props = p.props || {}; p.props[s.prop] = v; }
           ctl.querySelector('[data-slv="' + inp.dataset.sl + '"]').textContent = fmtS(s, v);
@@ -6301,7 +6431,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
     buildSliders(); show(viewMode); rebuild(true);
     return {
-      core: core, sim: function () { return live.res; },
+      core: core, sim: function () { return live.res; }, time: function () { return live.state.t || 0; },
       destroy: function () { dead = true; if (live.raf) cancelAnimationFrame(live.raf); el.innerHTML = ''; }
     };
   }
@@ -6372,9 +6502,10 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
       (v.sliders || []).forEach(function (s) {
         var p = ids[s.part]; if (!p) { err.push('circuit: Regler fuer unbekanntes Bauteil ' + s.part); return; }
         if (s.prop !== 'value' && !(s.prop in (E.PARTS[p.type].props || {}))) err.push('circuit: ' + p.type + ' hat keine Eigenschaft ' + s.prop);
+        if (s.choices) { if (!s.choices.length) err.push('circuit: Auswahl ' + s.part + ' ohne choices'); return; }
         if (!(s.max > s.min) || (s.log && !(s.min > 0))) err.push('circuit: Regler ' + s.part + ' mit ungueltigem Bereich');
       });
-      (v.readouts || []).forEach(function (x) { if (x.sel && !ids[x.sel]) err.push('circuit: Anzeige fuer unbekanntes Bauteil ' + x.sel); if (x.a && !ids[x.a.split('.')[0]]) err.push('circuit: Anzeige an unbekanntem Anschluss ' + x.a); });
+      (v.readouts || []).forEach(function (x) { if (x.ac && ['rms', 'avg', 'dc', 'pp', 'peak'].indexOf(x.ac) < 0) err.push('circuit: ac muss rms|avg|dc|pp|peak sein'); if (x.sel && !ids[x.sel]) err.push('circuit: Anzeige fuer unbekanntes Bauteil ' + x.sel); if (x.a && !ids[x.a.split('.')[0]]) err.push('circuit: Anzeige an unbekanntem Anschluss ' + x.a); });
       if (v.scope && (!v.scope.a || !ids[v.scope.a.split('.')[0]])) err.push('circuit: Oszilloskop-Anschluss fehlt/unbekannt');
       return err;
     }
@@ -6412,6 +6543,56 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
       }
       return out;
     }
+  };
+  /*   mode:'divide', value, base (2 oder 16) – fortgesetzte Division, Reste sammeln sich zur Zahl; am Ende Probe mit Wertigkeiten */
+  var HEX = '0123456789ABCDEF';
+  GEN.divide = function (v) {
+    var b = v.base || 2, q = v.value, rest = [], out = [], sub = b === 2 ? '₂' : '₁₆';
+    out.push({ rows: [{ label: 'Zahl', cells: [q] }, { label: 'Reste', cells: ['·'] }], text: 'Die Dezimalzahl ' + q + ' wird so lange durch ' + b + ' geteilt, bis 0 uebrig bleibt. Die Reste sind die Ziffern.' });
+    while (q > 0) {
+      var r = q % b, nq = Math.floor(q / b); rest.unshift(HEX[r]);
+      out.push({ rows: [{ label: 'Zahl', cells: [nq] }, { label: 'Reste', cells: rest.slice(), hl: [0], note: 'neuer Rest links' }], text: q + ' : ' + b + ' = ' + nq + ' Rest <b>' + HEX[r] + '</b>' });
+      q = nq;
+    }
+    var w = rest.map(function (x, i) { return Math.pow(b, rest.length - 1 - i); });
+    out.push({ rows: [{ label: 'Wertigkeit', cells: w }, { label: 'Ziffer', cells: rest, hl: rest.map(function (x, i) { return x !== '0' ? i : -1; }).filter(function (i) { return i >= 0; }) }],
+      text: 'Reste von unten nach oben gelesen: <b>' + rest.join('') + sub + '</b>. Probe: ' + rest.map(function (x, i) { return x !== '0' ? (HEX.indexOf(x) > 1 ? HEX.indexOf(x) + '·' : '') + w[i] : null; }).filter(Boolean).join(' + ') + ' = ' + v.value + '.' });
+    return out;
+  };
+  /*   mode:'bases', value – dieselbe Zahl als Dezimal, BCD (je Ziffer 4 Bit) und Hex; zurueck nach dem Horner-Schema */
+  GEN.bases = function (v) {
+    var n = v.value, dec = String(n).split(''), hex = n.toString(16).toUpperCase().split(''), out = [];
+    out.push({ rows: [{ label: 'Dezimal', cells: dec }], text: 'Die Zahl ' + n + ' in drei Darstellungen.' });
+    out.push({ rows: [{ label: 'Dezimal', cells: dec }, { label: 'BCD', cells: dec.map(function (d) { return bitsOf(+d, 4).join(''); }), hl: dec.map(function (d, i) { return i; }) }],
+      text: '<b>BCD</b>: jede Dezimalziffer einzeln mit 4 Bit – ' + dec.map(function (d) { return d + ' → ' + bitsOf(+d, 4).join(''); }).join(', ') + '.' });
+    out.push({ rows: [{ label: 'Dezimal', cells: dec }, { label: 'Hex', cells: hex, hl: hex.map(function (d, i) { return i; }) }, { label: 'Dual (4er-Gruppen)', cells: hex.map(function (d) { return bitsOf(parseInt(d, 16), 4).join(''); }) }],
+      text: '<b>Hex</b>: Basis 16, jede Hex-Ziffer entspricht genau 4 Bit – ' + n + ' = ' + hex.join('') + '₁₆.' });
+    var acc = 0;
+    hex.forEach(function (d, i) {
+      var val = parseInt(d, 16), before = acc; acc = acc * 16 + val;
+      out.push({ rows: [{ label: 'Hex', cells: hex, hl: [i] }, { label: 'Zwischenwert', cells: [acc] }],
+        text: '<b>Horner</b>: ' + (i ? before + ' · 16 + ' + val + ' = ' + acc : 'Start mit der ersten Ziffer ' + d + (val > 9 ? ' = ' + val : '')) + (i === hex.length - 1 ? ' – fertig, wieder ' + n + '.' : '') });
+    });
+    return out;
+  };
+  /*   mode:'dmm', value, unit ('V') – derselbe Messwert in den Bereichen des Multimeters (Anzeige wie E.dmm: Bereichsgrenzen,
+   *        Kalibrierfehler METER.cal, letzte Stelle ±1 Digit). Alle Zahlen aus der Engine. */
+  GEN.dmm = function (v) {
+    var E = root.DQEngine, unit = v.unit || 'V', x = v.value, cal = E.METER.cal, out = [];
+    var rs = E.DMM_RANGES[unit].filter(function (r) { return Math.abs(x) < r[0]; });
+    var chars = function (t) { return t.replace(/\s.*$/, '').split(''); };
+    rs.forEach(function (r, k) {
+      var t = (x / r[1] * (1 + cal)).toFixed(r[3]), lsd = Math.pow(10, -r[3]) * r[1];
+      out.push({ rows: [{ label: 'Wahrer Wert', cells: [String(x)] }, { label: 'Anzeige', cells: chars(t).concat([r[2]]), hl: [t.length - 1] }, { label: 'Aufloesung', cells: [E.fmt(lsd, unit).replace(/\.?0+ /, ' ')] }],
+        text: (k === 0 ? 'Automatische Bereichswahl: kleinster passender Bereich (bis ' + E.fmt(r[0], unit).replace(/\.?0+ /, ' ') + ') – die meisten Stellen.' : 'Bereich bis ' + E.fmt(r[0], unit).replace(/\.?0+ /, ' ') + ': eine Stelle weniger, die Aufloesung wird zehnmal groeber.') });
+    });
+    var r0 = rs[0];
+    [0.1, 0.5, 0.9].forEach(function (u) {
+      var d = E.dmm(x, unit, function () { return u; });
+      out.push({ rows: [{ label: 'Wahrer Wert', cells: [String(x)] }, { label: 'Anzeige', cells: chars(d.text).concat([r0[2]]), hl: [chars(d.text).length - 1] }],
+        text: 'Mehrmals abgelesen: Die letzte Stelle schwankt um ±1 Digit, dazu kommt der Kalibrierfehler von +' + (cal * 100).toFixed(1).replace('.', ',') + ' %. Deshalb nie mehr Stellen notieren, als das Geraet sicher liefert.' });
+    });
+    return out;
   };
   function stepsOf(v) { return v.mode ? GEN[v.mode](v) : v.steps; }
   register('numberSteps', {
@@ -6616,7 +6797,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     }
   });
 
-  root.DQVisuals = { transfer: transfer, bodeLayout: bodeLayout, minimize: minimize, gray: GEN.gray, register: register, mount: mount, mountAll: mountAll, lessonHtml: lessonHtml, check: check, listOf: listOf, types: function () { return Object.keys(TYPES); } };
+  root.DQVisuals = { transfer: transfer, bodeLayout: bodeLayout, minimize: minimize, gen: GEN, register: register, mount: mount, mountAll: mountAll, lessonHtml: lessonHtml, check: check, listOf: listOf, types: function () { return Object.keys(TYPES); } };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* ==== account.js ==== */
@@ -7634,7 +7815,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     var h = '<div class="theory"><div class="crumb">Kapitel ' + th.ch + ' · Theorie ' + th.id.slice(1) + '</div><h2>' + esc(th.title) + '</h2><article class="lesson">' + (V ? V.lessonHtml(th.lesson, vis) : th.lesson) + '</article>' +
       '<button class="btn primary" id="toQuiz">Verstanden – zum Check</button><div id="quiz"></div></div>';
     $('#scr-theory').innerHTML = h;
-    if (V && vis.length) V.mountAll($('#scr-theory .lesson'), vis);
+    current.visuals = V && vis.length ? V.mountAll($('#scr-theory .lesson'), vis) : []; // Instanzen (fuer Tests: DigitalQuest.visuals)
     $('#toQuiz').onclick = function () { this.hidden = true; renderQuiz(th); };
     log('theory_open', { id: th.id });
   }
@@ -7766,7 +7947,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     if (root.DQAccount && root.DQAccount.role() === 'schueler') root.DQAccount.refresh(); // Vorgaben holen, Fortschritt spiegeln (offline: still)
   }
 
-  window.DigitalQuest = { get state() { return S; }, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward };
+  window.DigitalQuest = { get state() { return S; }, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>

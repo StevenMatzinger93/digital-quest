@@ -24,6 +24,9 @@
 
   defTheory({
     id: 'T10A', ch: 10, title: '7-Segment-Anzeigen', tags: ['digital.7segment', 'digital.decoder'],
+    visual: { type: 'circuit', toggleView: false, height: 300, caption: 'Pegelschalter E1 … E4 (Wertigkeit 1, 2, 4, 8) anklicken: Der BCD-Decoder schaltet die Segmente, die Anzeige zeigt die Ziffer. Codes ueber 9 bleiben dunkel.',
+      layout: (function () { var l = LG.io(4, []); l.parts.push({ id: 'IC1', type: 'dec7', x: 640, y: 300, rot: 0 }, { id: 'AZ1', type: 'seg7', x: 840, y: 300, rot: 0 });
+        ['A', 'B', 'C', 'D'].forEach(function (k, i) { l.wires.push(W('E' + (i + 1) + '.out', 'IC1.' + k)); }); 'abcdefg'.split('').forEach(function (k) { l.wires.push(W('IC1.' + k, 'AZ1.' + k)); }); return l; })() },
     lesson:
       '<p>Eine <b>7-Segment-Anzeige</b> besteht aus sieben LED-Balken a … g (a oben, dann im Uhrzeigersinn b, c, d, e, f, g in der Mitte). Bei <b>gemeinsamer Kathode</b> liegen alle Kathoden an Masse – ein Segment leuchtet bei <b>1</b>. Bei <b>gemeinsamer Anode</b> liegen die Anoden an +, ein Segment leuchtet bei <b>0</b> (invertierte Ansteuerung).</p>' +
       '<p>Ein <b>BCD-7-Segment-Decoder</b> (z. B. 4511) ist ein fertiger Codewandler: 4 BCD-Eingaenge (Wertigkeit 1, 2, 4, 8) → 7 Segmentausgaenge. Ungueltige Codes (10 … 15) schaltet er dunkel.</p>' +
@@ -116,6 +119,8 @@
 
   defTheory({
     id: 'T10B', ch: 10, title: 'Entwurf komplexer Schaltungen', tags: ['digital.entwurf', 'digital.komparator'],
+    visual: { type: 'circuit', toggleView: false, caption: '1-Bit-Komparator aus den Bausteinen der Kapitel 6–9: E1 = A, E2 = B. L1 leuchtet bei A > B, L2 bei A = B (XNOR), L3 bei A < B – immer genau eine.',
+      layout: LG.net(2, [['U1', 'not', ['E1']], ['U2', 'not', ['E2']], ['U3', 'and', ['E1', 'U2']], ['U4', 'xnor', ['E1', 'E2']], ['U5', 'and', ['U1', 'E2']]], { L1: 'U3', L2: 'U4', L3: 'U5' }) },
     lesson:
       '<p>Grosse Aufgaben loest man <b>systematisch</b>:</p>' +
       '<ol><li><b>Aufgabe klaeren:</b> Welche Eingaenge (Sensoren, Taster), welche Ausgaenge (Lampen, Anzeigen)? Was bedeutet 1?</li>' +

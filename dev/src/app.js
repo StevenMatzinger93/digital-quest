@@ -693,7 +693,7 @@
     var h = '<div class="theory"><div class="crumb">Kapitel ' + th.ch + ' · Theorie ' + th.id.slice(1) + '</div><h2>' + esc(th.title) + '</h2><article class="lesson">' + (V ? V.lessonHtml(th.lesson, vis) : th.lesson) + '</article>' +
       '<button class="btn primary" id="toQuiz">Verstanden – zum Check</button><div id="quiz"></div></div>';
     $('#scr-theory').innerHTML = h;
-    if (V && vis.length) V.mountAll($('#scr-theory .lesson'), vis);
+    current.visuals = V && vis.length ? V.mountAll($('#scr-theory .lesson'), vis) : []; // Instanzen (fuer Tests: DigitalQuest.visuals)
     $('#toQuiz').onclick = function () { this.hidden = true; renderQuiz(th); };
     log('theory_open', { id: th.id });
   }
@@ -825,6 +825,6 @@
     if (root.DQAccount && root.DQAccount.role() === 'schueler') root.DQAccount.refresh(); // Vorgaben holen, Fortschritt spiegeln (offline: still)
   }
 
-  window.DigitalQuest = { get state() { return S; }, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward };
+  window.DigitalQuest = { get state() { return S; }, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
