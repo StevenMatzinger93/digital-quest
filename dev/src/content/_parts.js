@@ -10,9 +10,9 @@
     { no: 'IV', title: 'Zeitverhalten und Praxis', stage: 'profi', chapters: [11, 12, 13, 14, 15], award: 'profi' }
   ];
   DQ.stages = { grund: 'Grundstufe', profi: 'Profi-Stufe' };
-  /* Code fuer den Dozentenmodus (Einstellungen). Kein echter Schutz – die Datei ist offline lesbar –, haelt aber Lernende vom zufaelligen Einschalten ab. */
+  /* Abzeichen im Spiel (nach den Boss-Aufgaben). Das gepruefte Zertifikat mit Pruefcode gibt es im Portal (Pruefung auf dem Server). */
   DQ.awards = {
-    grund: { id: 'grund', kind: 'Zertifikat', title: 'Zertifikat Grundstufe', boss: '10.10', chapters: [1, 10],
+    grund: { id: 'grund', kind: 'Abzeichen', title: 'Abzeichen Grundstufe', boss: '10.10', chapters: [1, 10],
       text: 'hat die Grundstufe von Digital Quest erfolgreich abgeschlossen: Stromkreis und Messtechnik, Zahlensysteme, Logikgatter, Boolesche Algebra, Schaltungsentwurf und Kombinatorik – mit der Boss-Aufgabe „Das Codeschloss“.' },
     profi: { id: 'profi', kind: 'Abzeichen', title: 'Abzeichen Profi-Stufe', boss: '15.10', chapters: [11, 15],
       text: 'hat die Profi-Stufe von Digital Quest erfolgreich abgeschlossen: RC-Glied und Taktgeber, Flipflops und Zaehler, Diode und Transistor, RC-Filter und das Anwendungsprojekt – mit der Boss-Aufgabe „Die Antriebsstation“.' }

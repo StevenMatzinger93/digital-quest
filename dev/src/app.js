@@ -39,7 +39,7 @@
   }
   var S;
   try { S = normalize(JSON.parse(localStorage.getItem(KEY))); } catch (e) { S = fresh(); }
-  var ACCT = root.DQAccount || null, LIVE = null;
+  var ACCT = root.DQAccount || null, LIVE = null, EXAM = null;
   var saveTimer = null;
   function save() {
     clearTimeout(saveTimer);
@@ -180,7 +180,7 @@
     return '<span class="vg-tag' + (v.done ? ' done' : v.over ? ' over' : '') + (small ? ' small' : '') + '" title="Vorgabe vom Dozent' + esc(d) + '">Vorgabe' + (small ? '' : esc(d)) + '</span>';
   }
 
-  /* ================= Auszeichnungen (Zertifikat Grundstufe, Abzeichen Profi-Stufe) ================= */
+  /* ================= Auszeichnungen im Spiel (Abzeichen nach den Boss-Aufgaben; das gepruefte Zertifikat gibt es im Portal) ================= */
   function awardEarned(a) { return !!S.done[a.boss]; }
   function awardDate(a) { // erster erfolgreicher Abschluss der Boss-Aufgabe
     var ev = S.events.filter(function (e) { return e.type === 'task_done' && e.id === a.boss; })[0];
@@ -200,7 +200,7 @@
     if (!a) return '';
     var got = awardEarned(a);
     return '<div class="award-card' + (got ? ' earned' : '') + '">' + medal(a, 72) + '<div><span class="part-no">' + esc(a.kind) + '</span><h3>' + esc(a.title) + '</h3>' +
-      '<p class="dim small">' + (got ? 'Erhalten am ' + fmtDate(awardDate(a)) + '.' : 'Wird mit der Boss-Aufgabe ' + a.boss + ' freigeschaltet.') + '</p></div>' +
+      '<p class="dim small">' + (got ? 'Erhalten am ' + fmtDate(awardDate(a)) + '.' : 'Wird mit der Boss-Aufgabe ' + a.boss + ' freigeschaltet.') + (ACCT && ACCT.portal ? ' Das gepruefte <a href="../#/zertifikate">Zertifikat mit Pruefcode</a> gibt es im Portal.' : '') + '</p></div>' +
       (got ? '<button class="btn primary" data-award="' + a.id + '">' + esc(a.kind) + ' anzeigen</button>' : allOpen() ? '<button class="btn" data-award="' + a.id + '">Vorschau</button>' : '<span class="award-lock">' + ICON.lock + '</span>') + '</div>';
   }
   function openAward(id) {
@@ -275,8 +275,8 @@
   function openTask(t, opt) {
     opt = opt || {};
     show('task');
-    current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0; current.live = opt.live || null;
-    var draft = opt.live ? (opt.layout ? { layout: E.clone(opt.layout) } : null) : S.drafts[t.id];
+    current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0; current.live = opt.live || null; current.exam = opt.exam || null;
+    var draft = opt.live || opt.exam ? (opt.layout ? { layout: E.clone(opt.layout), answers: opt.answers || {} } : null) : S.drafts[t.id];
     var layout = draft && draft.layout ? draft.layout : t.start;
     var lockedIds = t.start.parts.map(function (p) { return p.id; });
     closeReplay(true);
@@ -301,7 +301,7 @@
     ed.load(layout, lockedIds, t.bench); bench.fit();
     setMeterMode('OFF');
     rebuild(); renderInspector();
-    log(t.sandbox ? 'sandbox_open' : current.live ? 'live_open' : 'task_open', { id: t.id });
+    if (!current.exam) log(t.sandbox ? 'sandbox_open' : current.live ? 'live_open' : 'task_open', { id: t.id });
   }
 
   function renderTaskPanels(t, draft) {
@@ -313,6 +313,7 @@
       $('#toMap').onclick = function () { renderMap(); show('map'); };
       renderPalette(t); return;
     }
+    if (current.exam) { renderExamPanels(t, draft); return; }
     var lv = current.live;
     var h = (lv ? '<div class="live-note"><b>' + (lv.bug ? 'STOERUNGSMELDUNG' : 'LIVE-CHALLENGE · SPRINT') + '</b>' + (lv.bug ? '<p>' + esc(lv.bug.symptom || 'Die Schaltung arbeitet nicht wie verlangt.') + '</p><p class="dim small">Auf dem Tisch liegt der fehlerhafte Aufbau. Finde die Ursache, behebe sie und lass pruefen.</p>' : '<p class="dim small">Loese die Aufgabe so schnell und sauber wie moeglich. Fehlversuche und Tipps kosten Punkte.</p>') + '</div>' : '') +
       '<div class="crumb">' + (t.ch === 'W' ? 'Uebungswerkstatt · Messaufgabe ' : 'Kapitel ' + t.ch + ' · Aufgabe ') + t.id + (t.boss ? ' · <b class="boss-tag">BOSS</b>' : '') + '</div>' +
@@ -337,6 +338,26 @@
     $('#btnCheck').onclick = check;
     renderPalette(t);
     void ch;
+  }
+  /* Pruefung: Auftrag, Messprotokoll, „Testen“ (sichtbare Tests im Browser) und „Abgeben“ (Bewertung auf dem Server). Keine Tipps. */
+  function renderExamPanels(t, draft) {
+    var h = '<div class="crumb">Pruefung · Aufgabe ' + t.no + ' von ' + t.of + ' · Kapitel ' + t.ch + '</div><h2>' + esc(t.title) + '</h2>' +
+      (t.story ? '<p class="story">' + t.story + '</p>' : '') + '<div class="brief">' + t.brief + '</div>';
+    if (t.protocol.length) {
+      h += '<div class="protocol"><h3>Messprotokoll</h3>';
+      t.protocol.forEach(function (m) {
+        var v = draft && draft.answers && draft.answers[m.id] !== undefined ? draft.answers[m.id] : '';
+        h += '<label><span>' + esc(m.ask) + '</span><input inputmode="decimal" data-ans="' + m.id + '" value="' + esc(v) + '" placeholder="Wert"><em>' + esc(m.unit || '') + '</em></label>';
+      });
+      h += '</div>';
+    }
+    h += '<div class="exam-btns"><button class="btn big" id="btnCheck" title="Prueft die sichtbaren Tests hier im Browser">Testen</button><button class="btn primary big" id="btnSend" title="Schickt Schaltung und Messwerte zur Bewertung">Abgeben</button></div>' +
+      '<div id="results"></div><div id="examRes"></div>';
+    $('#taskInfo').innerHTML = h;
+    $$('[data-ans]').forEach(function (inp) { inp.oninput = persistDraft; });
+    $('#btnCheck').onclick = check;
+    $('#btnSend').onclick = function () { if (EXAM) EXAM.send(); };
+    renderPalette(t);
   }
   function renderPalette(t) {
     var pal = '';
@@ -425,6 +446,7 @@
   function answers() { var a = {}; $$('[data-ans]').forEach(function (i) { a[i.dataset.ans] = i.value; }); return a; }
   function persistDraft() {
     if (!current.task || !ed || current.live) return;
+    if (current.exam) { if (EXAM) EXAM.draft(current.exam.item, ed.layout, answers()); return; }
     S.drafts[current.task.id] = { layout: ed.layout, answers: answers(), t: Date.now() }; save();
   }
 
@@ -715,6 +737,10 @@
     }).join('') + '</ul>';
     var an = E.analyze(ed.layout); if (an.faults.length) h += diagnose(an.faults).map(function (d) { return '<div class="st err">' + esc(d.text) + '</div>'; }).join('');
     $('#results').innerHTML = h;
+    if (current.exam) { // nur die sichtbaren Tests; Messwerte und verdeckte Tests prueft der Server bei der Abgabe
+      $('#results').innerHTML = '<p class="dim small">Sichtbare Tests im Browser' + (t.protocol.length ? ' – die Messwerte prueft der Server bei der Abgabe' : '') + ':</p>' + h;
+      return;
+    }
     if (current.live) {
       log(r.pass ? 'live_done' : 'live_try', { id: t.id, tries: current.tries, hints: current.hints });
       if (LIVE) LIVE.attempt(r.pass, { layout: ed.layout, answers: ans });
@@ -854,6 +880,7 @@
     $$('[data-go]').forEach(function (b) {
       b.onclick = function () {
         var g = b.dataset.go;
+        if (EXAM && g !== 'manual') { EXAM.back(); return; }
         if (g === 'map') renderMap(); if (g === 'manual') renderManual(); if (g === 'settings') renderSettings();
         show(g);
       };
@@ -878,7 +905,7 @@
     $('#btnVolt').onclick = function () { ed.showVolt = bench.showVolt = !ed.showVolt; this.classList.toggle('on', ed.showVolt); core.redraw(); };
     $('#btnRepair').onclick = function () { live.state = E.newState(); rebuild(); status([{ cls: 'info', text: 'Defekte Bauteile ersetzt.' }]); };
     $('#btnReset').onclick = function () {
-      modal('<h2>Aufgabe zuruecksetzen?</h2><p>Deine Schaltung wird auf den Startzustand gesetzt.</p>', [{ label: 'Abbrechen' }, { label: 'Zuruecksetzen', primary: true, action: function () { delete S.drafts[current.task.id]; save(); openTask(current.task); } }]);
+      modal('<h2>Aufgabe zuruecksetzen?</h2><p>Deine Schaltung wird auf den Startzustand gesetzt.</p>', [{ label: 'Abbrechen' }, { label: 'Zuruecksetzen', primary: true, action: function () { if (current.exam) { if (EXAM) EXAM.reset(current.exam.item); return; } delete S.drafts[current.task.id]; save(); openTask(current.task); } }]);
     };
     $('#btnFuse').onclick = function () { live.state.fuse = false; tick(0); };
     $$('[data-mm]').forEach(function (b) { b.onclick = function () { setMeterMode(b.dataset.mm); }; });
@@ -897,11 +924,16 @@
     LIVE = root.DQLive ? root.DQLive.create({ modal: modal, esc: esc, acct: ACCT, byId: DQ.byId,
       open: function (t, o) { openTask(t, o); }, closeModal: function () { $('#modal').classList.remove('open'); } }) : null;
     if (LIVE && !LIVE.id) LIVE = null;
-    if (!LIVE && qs.get('frei')) openItem('sandbox');
-    else if (!LIVE && qs.get('werkstatt')) { var w = $('#werkstatt'); if (w) w.scrollIntoView(); }
-    if (ACCT) { var rd = ACCT.start(); if (LIVE) rd.then(function () { LIVE.start(); }); }
+    EXAM = root.DQExamUI && !LIVE ? root.DQExamUI.create({ modal: modal, esc: esc, show: show, open: function (t, o) { openTask(t, o); },
+      layout: function () { return ed ? E.clone(ed.layout) : null; }, answers: answers }) : null;
+    if (EXAM && !EXAM.id) EXAM = null;
+    if (EXAM) { var bk = document.createElement('button'); bk.textContent = 'Zur Pruefung'; bk.className = 'exam-back'; bk.onclick = function () { EXAM.back(); }; $('.top nav').appendChild(bk); }
+    if (LIVE || EXAM) { /* Einstieg uebernimmt die Challenge bzw. die Pruefung */ }
+    else if (qs.get('frei')) openItem('sandbox');
+    else if (qs.get('werkstatt')) { var w = $('#werkstatt'); if (w) w.scrollIntoView(); }
+    if (ACCT) { var rd = ACCT.start(); if (LIVE) rd.then(function () { LIVE.start(); }); if (EXAM) rd.then(function () { EXAM.start(); }); }
   }
 
-  window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; } };
+  window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, get examUI() { return EXAM; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

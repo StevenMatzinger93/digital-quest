@@ -497,7 +497,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .live-pulse { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--accent-red); margin-right: 6px; animation: livePulse 1.2s ease-in-out infinite; vertical-align: middle; }
 @keyframes livePulse { 50% { opacity: .25; transform: scale(.8); } }
 .live-actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
-.live-actions a.btn { text-decoration: none; }
+.live-actions a.btn { text-decoration: none; color: var(--text-primary); } .live-actions a.btn.primary { color: #111; }
 .live-bar { position: fixed; left: 50%; top: 8px; transform: translateX(-50%); z-index: 240; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; justify-content: center; background: rgba(10,10,10,.94); color: #e0e0e0; border: 1px solid rgba(255,51,51,.5); border-radius: 30px; padding: 6px 16px; font-size: 13px; box-shadow: 0 8px 30px rgba(0,0,0,.5); max-width: calc(100% - 16px); }
 .lb-live { font: 700 13px var(--font-code); color: var(--accent-red); letter-spacing: .12em; display: inline-flex; align-items: center; gap: 6px; }
 .lb-live i { width: 9px; height: 9px; border-radius: 50%; background: var(--accent-red); animation: livePulse 1.2s infinite; }
@@ -516,6 +516,29 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
 .live-list li { padding: 3px 0; } .live-list li span { float: right; color: var(--text-dim); font-family: var(--font-code); }
 @media (max-width: 640px) { .pod { width: 96px; } .live-card { padding: 20px 16px; } .live-bar { top: auto; bottom: 8px; gap: 8px; font-size: 12px; padding: 5px 12px; flex-wrap: nowrap; white-space: nowrap; } .lb-mode, .lb-count { display: none; } .acct-chip span { display: none; } }
 .node .nt { overflow-wrap: anywhere; hyphens: auto; } .node.k-theory .nsym > svg { margin-top: 14px; }
+
+/* ---- Pruefung (Zertifikat, Portal-Version): labor/?exam=ID ---- */
+body.exam-mode .top nav [data-go="map"], body.exam-mode .top nav [data-go="settings"], body.exam-mode #saveInd { display: none; }
+.exam-back { display: none; } body.exam-mode .exam-back { display: inline-block; color: #58c4ff; }
+.exam-bar { position: fixed; left: 50%; top: 8px; transform: translateX(-50%); z-index: 320; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; background: rgba(10,10,10,.95); color: #e0e0e0;
+  border: 1px solid rgba(88,196,255,.55); border-radius: 30px; padding: 6px 12px; font-size: 13px; box-shadow: 0 8px 30px rgba(0,0,0,.5); max-width: calc(100% - 16px); }
+.eb-tag { font: 700 13px var(--font-code); color: #58c4ff; letter-spacing: .12em; white-space: nowrap; } .eb-mode { color: #8a8a8a; white-space: nowrap; }
+.eb-time { font: 700 15px var(--font-code); white-space: nowrap; } .eb-time.low { color: var(--accent-red); }
+.eb-nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.eb-item { min-width: 34px; height: 30px; border-radius: 8px; border: 1px solid #3a3a3a; background: #1a1a1a; color: #eee; font: 600 13px var(--font-code); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 8px; }
+.eb-item.cur { outline: 2px solid #58c4ff; outline-offset: 1px; } .eb-item.st-ok { border-color: #39ff14; color: #39ff14; } .eb-item.st-part { border-color: #ffcf33; color: #ffcf33; }
+.eb-item.st-fail { border-color: #ff3333; color: #ff3333; } .eb-item.st-sent { border-color: #58c4ff; } .eb-item.dirty::after { content: '•'; color: #58c4ff; margin-left: 2px; }
+.eb-finish { border-color: rgba(88,196,255,.6) !important; color: #e0e0e0 !important; background: #1a1a1a !important; }
+body.has-exam-bar .top { padding-top: 50px; }
+.exam-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; } .exam-btns .btn { margin: 0; }
+.exam-result { margin-top: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255,255,255,.03); font-size: 14px; }
+.exam-result.ok { border-color: var(--accent-green); } .exam-result.ok > b { color: var(--accent-green); } .exam-result.part > b { color: var(--accent-orange); } .exam-result.bad { border-color: var(--accent-red); } .exam-result.bad > b { color: var(--accent-red); }
+.exam-result .res { margin: 8px 0 4px; } .exam-result p { margin: 4px 0 0; }
+.exam-overlay { background: radial-gradient(80% 70% at 50% 30%, rgba(10,25,40,.94), rgba(5,5,5,.97)); } .exam-eyebrow { color: #58c4ff; }
+.exam-table { width: 100%; border-collapse: collapse; margin: 12px 0; text-align: left; font-size: 14px; } .exam-table th, .exam-table td { padding: 5px 4px; border-top: 1px solid var(--line); font-weight: 600; } .exam-table td { text-align: right; }
+.exam-table .sub th { font-weight: 400; color: var(--text-dim); padding-left: 16px; } .exam-table .sub td { font-weight: 400; color: var(--text-dim); }
+.exam-theory .q { margin-bottom: 14px; }
+@media (max-width: 640px) { .exam-bar { border-radius: 14px; gap: 6px; padding: 6px 8px; } .eb-mode { display: none; } body.has-exam-bar .top { padding-top: 92px; } }
 </style>
 </head>
 <body>
@@ -1404,9 +1427,9 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
     { no: 'IV', title: 'Zeitverhalten und Praxis', stage: 'profi', chapters: [11, 12, 13, 14, 15], award: 'profi' }
   ];
   DQ.stages = { grund: 'Grundstufe', profi: 'Profi-Stufe' };
-  /* Code fuer den Dozentenmodus (Einstellungen). Kein echter Schutz – die Datei ist offline lesbar –, haelt aber Lernende vom zufaelligen Einschalten ab. */
+  /* Abzeichen im Spiel (nach den Boss-Aufgaben). Das gepruefte Zertifikat mit Pruefcode gibt es im Portal (Pruefung auf dem Server). */
   DQ.awards = {
-    grund: { id: 'grund', kind: 'Zertifikat', title: 'Zertifikat Grundstufe', boss: '10.10', chapters: [1, 10],
+    grund: { id: 'grund', kind: 'Abzeichen', title: 'Abzeichen Grundstufe', boss: '10.10', chapters: [1, 10],
       text: 'hat die Grundstufe von Digital Quest erfolgreich abgeschlossen: Stromkreis und Messtechnik, Zahlensysteme, Logikgatter, Boolesche Algebra, Schaltungsentwurf und Kombinatorik – mit der Boss-Aufgabe „Das Codeschloss“.' },
     profi: { id: 'profi', kind: 'Abzeichen', title: 'Abzeichen Profi-Stufe', boss: '15.10', chapters: [11, 15],
       text: 'hat die Profi-Stufe von Digital Quest erfolgreich abgeschlossen: RC-Glied und Taktgeber, Flipflops und Zaehler, Diode und Transistor, RC-Filter und das Anwendungsprojekt – mit der Boss-Aufgabe „Die Antriebsstation“.' }
@@ -5160,14 +5183,24 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
       '<p><b>Strom zeigen</b> („⇢ Strom“ in der Werkzeugleiste): Punkte wandern entlang der Leitungen in <b>technischer Stromrichtung</b> (von + nach −) – je schneller, desto mehr Strom. An jedem Kabel steht der Stromwert. So siehst du, wo sich der Strom aufteilt und wo gar keiner fliesst.</p>' +
       '<p><b>Freie Werkbank:</b> auf der Karte. Bauen und messen ohne Auftrag, mit allen bisher freigeschalteten Bauteilen.</p>' +
       '<p><b>Limits:</b> Manche Aufgaben erlauben nur eine bestimmte Anzahl Gatter („Erlaubt: hoechstens 3 Logikgatter“). Die Pruefung zaehlt mit.</p>' },
-    { id: 'konto', title: 'Konto und Vorgaben', html:
-      '<p>Ein <b>Konto ist freiwillig</b>. Ohne Konto spielst du ganz normal, der Fortschritt bleibt auf diesem Geraet (auch offline). Unter <b>Konto</b> meldest du dich an oder legst mit dem <b>Klassencode</b> deiner Lehrperson selbst ein Konto an. Gespeichert werden nur Benutzername und Pseudonym – dein echter Name (z. B. auf dem Zertifikat) bleibt auf dem Geraet.</p>' +
-      '<p>Mit Konto wird dein Fortschritt auf den Server gespiegelt und ist auch auf anderen Geraeten da. Oben auf der Karte stehen die <b>Vorgaben vom Dozent</b>, mit Frist; ist die Frist vorbei und noch etwas offen, wird sie rot. Gesperrt wird nichts – vorgegebene Stationen sind immer offen.</p>' +
-      '<p><b>Fuer Lehrpersonen:</b> Das Dozenten-Konto legt der Admin an. Unter Konto: Klassen anlegen, Klassencode weitergeben oder Konten selbst anlegen, Passwoerter zuruecksetzen, und <b>Vorgaben</b> machen – ganze Kapitel oder einzelne Stationen, fuer die ganze Klasse oder einzelne Personen, optional mit Frist. Die Liste zeigt, wer was erledigt hat. Mit dem Dozenten-Konto ist der Dozentenmodus automatisch an.</p>' },
-    { id: 'karte', title: 'Karte und Auszeichnungen', html:
+    { id: 'konto', title: 'Konto, Portal und Vorgaben', html:
+      '<p>Ein <b>Konto ist freiwillig</b>. Ohne Konto spielst du ganz normal, der Fortschritt bleibt auf diesem Geraet (auch offline). Angemeldet wird im <b>Portal</b> (Startseite): mit Benutzername und Passwort oder – beim ersten Mal – mit dem <b>Klassencode</b> deiner Lehrperson. Oben rechts im Labor zeigt der <b>Konto-Knopf</b>, wer angemeldet ist; ein Klick fuehrt ins Portal.</p>' +
+      '<p>Mit Konto wird dein Spielstand im Konto gespeichert und ist auf jedem Geraet da. Warst du auf einem anderen Geraet schon weiter, gilt der weitere Stand. An einem geteilten PC werden die Staende verschiedener Konten nie gemischt. Verwende ein <b>Pseudonym</b> – dein echter Name bleibt auf dem Geraet.</p>' +
+      '<p>Oben auf der Karte stehen die <b>Vorgaben vom Dozent</b>, mit Frist; ist die Frist vorbei und noch etwas offen, wird sie rot. Gesperrt wird nichts – vorgegebene Stationen sind immer offen.</p>' +
+      '<p><b>Sterne:</b> Jede geloeste Aufgabe gibt 1 bis 3 Sterne – 3 ohne Fehlversuch und ohne Tipp, 2 mit hoechstens zwei Fehlversuchen und einem Tipp. Wer eine Aufgabe nochmals sauber loest, verbessert seine Sterne.</p>' +
+      '<p><b>Fuer Lehrpersonen:</b> Das Dozenten-Konto legt der Admin an. Im Portal unter <b>Leitstand</b>: Klassen anlegen, Klassencode weitergeben oder Konten erzeugen (Zugangszettel drucken), Passwoerter zuruecksetzen, Fortschritt und Schaltungen der Lernenden ansehen und <b>Vorgaben</b> machen. Wer mit einem Dozenten-Konto angemeldet ist, hat im Labor automatisch den <b>Dozentenmodus</b>: alle Stationen offen, Sprungliste auf der Karte, Freie Werkbank mit allen Bauteilen.</p>' },
+    { id: 'live', title: 'Live-Challenge', html:
+      '<p>Die Lehrperson startet im Portal eine <b>Live-Challenge</b> und zeigt den vierstelligen Code am Beamer. Du trittst im Portal unter <b>Live-Challenge</b> bei; die Aufgabe erscheint bei allen gleichzeitig, sobald die Lehrperson startet.</p>' +
+      '<ul><li><b>Sprint:</b> alle loesen dieselbe Aufgabe vom Startaufbau aus.</li><li><b>Stoerungsjagd:</b> auf dem Tisch liegt ein fehlerhafter Aufbau. Finde die Ursache – mit Messgeraet, Strom-Anzeige und Zeitlupe – und behebe sie.</li></ul>' +
+      '<p>Punkte gibt es fuers Loesen; schnelle Loesungen bekommen mehr, jeder Fehlversuch und jeder Tipp kostet etwas. Die Challenge veraendert deinen Spielstand nicht.</p>' },
+    { id: 'pruefung', title: 'Pruefung und Zertifikat', html:
+      '<p>Im Portal unter <b>Zertifikate</b> legst du eine echte <b>Pruefung</b> ab: <b>Grundstufe</b> (Kapitel 1–10) und <b>Profi-Stufe</b> (Kapitel 11–15). Voraussetzung: mindestens 80 % der Aufgaben der Stufe geloest und die Boss-Aufgabe bestanden – oder die Lehrperson oeffnet eine <b>Pruefung unter Aufsicht</b> und nennt dir den Code.</p>' +
+      '<p>Die Pruefung besteht aus Schaltungsaufgaben (70 %) und Theoriefragen (30 %). Die Aufgaben sind neu und fuer jede Person anders. Die Zeit laeuft auf dem Server. Mit <b>Testen</b> pruefst du die sichtbaren Tests im Browser, mit <b>Abgeben</b> bewertet der Server Schaltung und Messwerte – auch mit verdeckten Tests. Du darfst mehrfach abgeben, es zaehlt die letzte Abgabe. Tipps gibt es keine; Handbuch, Datenblaetter und Messgeraete sind erlaubt.</p>' +
+      '<p>Bestanden ist ab 70 %, ab 90 % mit Auszeichnung. Danach stellst du das <b>Zertifikat</b> aus: mit deinem Namen, Pruefcode und QR-Code. Unter der Adresse auf dem Zertifikat kann jede Person die Echtheit pruefen. Du kannst das Zertifikat jederzeit zurueckziehen – dann wird der Name geloescht.</p>' },
+    { id: 'karte', title: 'Karte und Abzeichen', html:
       '<p>Die Karte ist in <b>vier Teile</b> gegliedert: <b>I</b> Elektrotechnische Grundlagen (Kapitel 1–4), <b>II</b> Digitaltechnik Grundlagen (5–8), <b>III</b> Kombinatorik und Anzeigen (9–10) – zusammen die <b>Grundstufe</b> – und <b>IV</b> Zeitverhalten und Praxis (11–15), die <b>Profi-Stufe</b>.</p>' +
-      '<p>Jede Station schaltet die naechste frei. Theorien bestehst du ab 80 % richtigen Antworten, Aufgaben mit „Pruefen“. Rot umrandet sind die <b>Boss-Aufgaben</b>.</p>' +
-      '<p><b>Zertifikat Grundstufe:</b> nach der Boss-Aufgabe 10.10 „Das Codeschloss“. <b>Abzeichen Profi-Stufe:</b> nach der Boss-Aufgabe 15.10 „Die Antriebsstation“. Beide erscheinen auf der Karte am Ende ihres Teils; mit „Anzeigen“ traegst du deinen Namen ein und kannst sie drucken (A4 quer).</p>' },
+      '<p>Jede Kachel zeigt ein <b>Symbol zum Inhalt</b> – das praegende Bauteil oder ein Bild zum Thema –, darunter Nummer und Titel und unten die Sterne bzw. den Zustand. Die Kachel mit „hier weiter“ ist deine naechste Station. Theorien bestehst du ab 80 % richtigen Antworten, Aufgaben mit „Pruefen“. Rot umrandet sind die <b>Boss-Aufgaben</b>.</p>' +
+      '<p><b>Abzeichen Grundstufe:</b> nach der Boss-Aufgabe 10.10 „Das Codeschloss“. <b>Abzeichen Profi-Stufe:</b> nach der Boss-Aufgabe 15.10 „Die Antriebsstation“. Beide erscheinen auf der Karte am Ende ihres Teils; mit „Anzeigen“ traegst du deinen Namen ein und kannst sie drucken (A4 quer). Das gepruefte <b>Zertifikat</b> gibt es im Portal – siehe „Pruefung und Zertifikat“.</p>' },
     { id: 'multimeter', title: 'Multimeter', html:
       '<p>Waehle einen Messbereich (V, A, Ω). Danach setzen Klicks auf Anschluesse die Messspitzen: zuerst <b style="color:#ff6b61">rot (+)</b>, dann <b>schwarz (COM)</b>.</p>' +
       '<p>Auf der Werkbank steht dasselbe Geraet: Drehschalter anklicken, die Messkabel fuehren zu den Pruefspitzen.</p>' +
@@ -7284,6 +7317,187 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
   root.DQLive = { create: create };
 })(typeof window !== 'undefined' ? window : globalThis);
 
+/* ==== exam.js ==== */
+/* Digital Quest – Pruefung fuers Zertifikat im Spiel (window.DQExamUI), Portal-Version: labor/?exam=ID (wie bei SPS Quest).
+ * Der Server zieht die Aufgaben, fuehrt die Zeit und bewertet jede Abgabe mit verdeckten Tests und eigenen Sollwerten.
+ * Im Browser laeuft nur „Testen“ mit den sichtbaren Tests. Gesperrt: Tipps, Karte, Einstellungen, Live-Challenge.
+ * Entwuerfe bleiben lokal (localStorage dq_exam_<ID>), damit ein Neuladen nichts kostet. */
+(function (root) {
+  'use strict';
+  var LEVEL = { grund: 'Grundstufe', profi: 'Profi-Stufe' };
+  function create(ctx) {
+    var id = root.DQ_PORTAL ? +(new URLSearchParams(location.search).get('exam') || 0) : 0;
+    var ex = null, tasks = [], questions = [], answers = {}, results = {}, drafts = {}, cur = -1, offset = 0, tick = 0, finishing = false, lastFocus = 0, busy = false;
+    var esc = ctx.esc, $ = function (s) { return document.querySelector(s); }, KEY = 'dq_exam_' + id;
+    function api(method, url, body) {
+      return fetch('/api/' + url, { method: method, credentials: 'same-origin', headers: { 'content-type': 'application/json', 'x-dquest': '1' }, body: body ? JSON.stringify(body) : undefined })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, data: d }; }); });
+    }
+    function fmt(sec) { sec = Math.max(0, Math.round(sec)); var m = Math.floor(sec / 60); return (m >= 60 ? Math.floor(m / 60) + ':' + ('0' + m % 60).slice(-2) : m) + ':' + ('0' + sec % 60).slice(-2); }
+    function left() { return ex ? (ex.deadline - (Date.now() + offset)) / 1000 : 0; }
+    function load() { try { drafts = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { drafts = {}; } }
+    function store() { try { localStorage.setItem(KEY, JSON.stringify(drafts)); } catch (e) { /* voll: Entwurf bleibt nur im Speicher */ } }
+    function overlay(html) {
+      var o = $('#examOverlay');
+      if (!o) { o = document.createElement('div'); o.id = 'examOverlay'; o.className = 'live-overlay exam-overlay'; o.setAttribute('role', 'dialog'); document.body.appendChild(o); }
+      o.innerHTML = '<div class="live-card">' + html + '</div>'; o.style.display = 'flex';
+    }
+    function hideOverlay() { var o = $('#examOverlay'); if (o) o.style.display = 'none'; }
+
+    /* ---------- Leiste ---------- */
+    function stateOf(t) {
+      var r = results[t.id], d = drafts[t.id];
+      return (r ? (r.ok ? ' st-ok' : r.passed > 0 && !r.error ? ' st-part' : ' st-fail') : '') + (d && d.dirty ? ' dirty' : '');
+    }
+    function bar() {
+      var b = $('#examBar');
+      if (!b) { b = document.createElement('div'); b.id = 'examBar'; b.className = 'exam-bar'; b.setAttribute('role', 'navigation'); b.setAttribute('aria-label', 'Pruefung'); document.body.appendChild(b); document.body.classList.add('has-exam-bar'); }
+      var l = left(), nq = questions.filter(function (q) { return answers[q.id] !== undefined; }).length;
+      b.innerHTML = '<span class="eb-tag">PRUEFUNG</span><span class="eb-mode">' + LEVEL[ex.level] + (ex.proctored ? ' · unter Aufsicht' : '') + '</span>' +
+        '<span class="eb-time' + (l < 300 ? ' low' : '') + '" id="ebTime" title="Restzeit">' + fmt(l) + '</span><span class="eb-nav">' +
+        tasks.map(function (t, i) { return '<button class="eb-item' + (i === cur ? ' cur' : '') + stateOf(t) + '" data-eb="' + i + '" title="Aufgabe ' + (i + 1) + ': ' + esc(t.title) + '">' + (i + 1) + '</button>'; }).join('') +
+        '<button class="eb-item' + (cur === 'q' ? ' cur' : '') + (nq === questions.length ? ' st-sent' : '') + '" data-eb="q" title="Theoriefragen">Theorie ' + nq + '/' + questions.length + '</button></span>' +
+        '<button class="btn small eb-finish" id="ebFinish">Pruefung beenden</button>';
+      Array.prototype.forEach.call(b.querySelectorAll('[data-eb]'), function (x) { x.onclick = function () { if (x.dataset.eb === 'q') openTheory(); else openTask(+x.dataset.eb); }; });
+      $('#ebFinish').onclick = askFinish;
+    }
+    function timeOnly() { var t = $('#ebTime'); if (t) { var l = left(); t.textContent = fmt(l); t.classList.toggle('low', l < 300); } }
+
+    /* ---------- Aufgaben ---------- */
+    function gameTask(t, i) { // oeffentliche Fassung → Aufgabe im Format des Spiels; das Messprotokoll prueft nur der Server
+      return { id: t.id, kind: 'task', exam: true, ch: t.ch, title: t.title, brief: t.brief, story: t.story || '', palette: t.palette || [], start: t.start, bench: t.bench || undefined,
+        tests: t.tests || [], measure: [], protocol: t.measure || [], need: t.need || {}, limit: t.limit || undefined, tags: [], wrong: [], hint: '', hint2: '', no: i + 1, of: tasks.length };
+    }
+    function openTask(i) {
+      var t = tasks[i]; if (!t || !running()) return;
+      cur = i; hideOverlay();
+      var d = drafts[t.id], a = answers[t.id], src = d && d.layout ? d : (a && a.layout ? a : null);
+      ctx.open(gameTask(t, i), { exam: { id: id, item: t.id }, layout: src ? src.layout : null, answers: src ? src.answers || {} : {} });
+      showResult(t.id); bar();
+    }
+    function draft(item, layout, ans) {
+      if (!running()) return;
+      var was = drafts[item], same = was && JSON.stringify(was.layout) === JSON.stringify(layout) && JSON.stringify(was.answers) === JSON.stringify(ans);
+      if (same) return;
+      drafts[item] = { layout: layout, answers: ans, dirty: true }; store();
+      var b = document.querySelector('#examBar [data-eb="' + cur + '"]'); if (b) b.classList.add('dirty');
+    }
+    function reset(item) { delete drafts[item]; delete answers[item]; store(); openTask(cur); }
+    function resultHtml(r) {
+      if (!r) return '';
+      if (r.error) return '<div class="exam-result bad"><b>Abgabe nicht bewertbar</b><p>' + esc(r.error) + '</p></div>';
+      return '<div class="exam-result ' + (r.ok ? 'ok' : 'part') + '"><b>' + (r.ok ? 'Abgabe bestanden' : 'Abgabe gespeichert – noch nicht alles erfuellt') + '</b> <span class="mono">' + r.passed + ' / ' + r.total + ' Pruefpunkte</span>' +
+        '<ul class="res">' + (r.checks || []).map(function (c) { return '<li class="' + (c.ok ? 'ok' : 'bad') + '">' + (c.ok ? '✔ ' : '✘ ') + esc(c.text) + '</li>'; }).join('') +
+        (r.hidden && r.hidden.total ? '<li class="' + (r.hidden.passed === r.hidden.total ? 'ok' : 'bad') + '">' + (r.hidden.passed === r.hidden.total ? '✔ ' : '✘ ') + 'Verdeckte Tests: ' + r.hidden.passed + ' von ' + r.hidden.total + '</li>' : '') + '</ul>' +
+        '<p class="dim small">Du kannst weiterarbeiten und erneut abgeben – es zaehlt die letzte Abgabe.</p></div>';
+    }
+    function showResult(item) { var el = $('#examRes'); if (el) el.innerHTML = resultHtml(results[item]); }
+    function send() {
+      var t = tasks[cur]; if (!t || busy || !running()) return;
+      var a = { layout: ctx.layout(), answers: ctx.answers() }, btn = $('#btnSend');
+      busy = true; if (btn) { btn.disabled = true; btn.textContent = 'Wird bewertet …'; }
+      api('POST', 'exams/' + id + '/answer', { item: t.id, answer: a }).then(function (r) {
+        if (r.status === 200) { results[t.id] = r.data.result; answers[t.id] = a; drafts[t.id] = { layout: a.layout, answers: a.answers, dirty: false }; store(); showResult(t.id); bar(); }
+        else if (r.status === 409) refresh();
+        else ctx.modal('<h2>Abgabe nicht moeglich</h2><p>' + esc(r.data.error || 'Fehler ' + r.status) + '</p>');
+      }).catch(function () { ctx.modal('<h2>Keine Verbindung</h2><p>Die Abgabe kam nicht an. Dein Aufbau bleibt erhalten – bitte gleich nochmals abgeben.</p>'); })
+        .then(function () { busy = false; var b2 = $('#btnSend'); if (b2) { b2.disabled = false; b2.textContent = 'Abgeben'; } });
+    }
+
+    /* ---------- Theorie ---------- */
+    function openTheory() {
+      if (!running()) return;
+      cur = 'q'; hideOverlay(); ctx.show('theory');
+      $('#scr-theory').innerHTML = '<div class="theory exam-theory"><div class="crumb">Pruefung · Theorie</div><h2>Theoriefragen</h2><p class="dim">Je Frage ist genau eine Antwort richtig. Jede Auswahl wird sofort gespeichert; die Aufloesung gibt es erst nach dem Abschluss.</p>' +
+        questions.map(function (q, i) {
+          return '<fieldset class="q" data-qid="' + esc(q.id) + '"><legend>' + (i + 1) + '. ' + q.q + '</legend>' + q.options.map(function (o, j) {
+            return '<label><input type="radio" name="xq' + i + '" value="' + j + '"' + (answers[q.id] === j ? ' checked' : '') + '> ' + o + '</label>'; }).join('') + '<div class="expl dim small"></div></fieldset>';
+        }).join('') + '</div>';
+      Array.prototype.forEach.call(document.querySelectorAll('#scr-theory input[type=radio]'), function (inp) {
+        inp.onchange = function () {
+          var fs = inp.closest('fieldset'), qid = fs.dataset.qid, note = fs.querySelector('.expl'), v = +inp.value;
+          note.textContent = 'speichere …';
+          api('POST', 'exams/' + id + '/answer', { item: qid, answer: v }).then(function (r) {
+            if (r.status === 200) { answers[qid] = v; note.textContent = 'gespeichert'; bar(); }
+            else { note.textContent = r.data.error || 'nicht gespeichert'; if (r.status === 409) refresh(); }
+          }).catch(function () { note.textContent = 'keine Verbindung – bitte nochmals waehlen'; });
+        };
+      });
+      bar();
+    }
+
+    /* ---------- Abschluss ---------- */
+    function askFinish() {
+      if (!running()) return;
+      var open = tasks.filter(function (t) { return !results[t.id]; }).length, dirty = tasks.filter(function (t) { return drafts[t.id] && drafts[t.id].dirty; }).length;
+      var nq = questions.filter(function (q) { return answers[q.id] === undefined; }).length;
+      ctx.modal('<h2>Pruefung beenden?</h2><p>Danach ist keine Abgabe mehr moeglich.</p><ul>' +
+        (open ? '<li><b>' + open + '</b> Aufgabe(n) ohne Abgabe</li>' : '') + (dirty ? '<li><b>' + dirty + '</b> Aufgabe(n) mit Aenderungen seit der letzten Abgabe – sie zaehlen nur, wenn du sie abgibst</li>' : '') +
+        (nq ? '<li><b>' + nq + '</b> Theoriefrage(n) offen</li>' : '') + (!open && !dirty && !nq ? '<li>Alles abgegeben.</li>' : '') + '</ul>',
+        [{ label: 'Weiterarbeiten' }, { label: 'Jetzt beenden', primary: true, action: function () { finish(0); } }]);
+    }
+    function finish(n) {
+      if (finishing && !n) return; finishing = true;
+      overlay('<h2>Pruefung wird ausgewertet</h2><p class="live-big"><span class="live-pulse"></span> Einen Moment …</p>');
+      api('POST', 'exams/' + id + '/submit', {}).then(function (r) {
+        if (r.status === 409 && n < 8) { setTimeout(function () { finish(n + 1); }, 1500); return; }
+        if (r.status !== 200) { finishing = false; overlay('<h2>Abschluss nicht moeglich</h2><p>' + esc(r.data.error || 'Fehler') + '</p><div class="live-actions"><button class="btn" id="exBack">Zurueck</button></div>'); $('#exBack').onclick = hideOverlay; return; }
+        take(r.data); done();
+      }).catch(function () { finishing = false; overlay('<h2>Keine Verbindung</h2><p>Die Pruefung laeuft auf dem Server weiter. Bitte nochmals versuchen.</p><div class="live-actions"><button class="btn primary" id="exAgain">Nochmals</button></div>'); $('#exAgain').onclick = function () { finish(0); }; });
+    }
+    function done() {
+      clearInterval(tick);
+      var b = $('#examBar'); if (b) { b.remove(); document.body.classList.remove('has-exam-bar'); }
+      try { localStorage.removeItem(KEY); } catch (e) { /* egal */ }
+      var r = ex.result || {}, pct = Math.round((r.score || 0) * 100);
+      var head = ex.state === 'voided' ? 'Pruefung annulliert' : r.passed ? (r.distinction ? 'Bestanden – mit Auszeichnung!' : 'Bestanden!') : 'Nicht bestanden';
+      overlay('<div class="live-eyebrow exam-eyebrow">PRUEFUNG · ' + LEVEL[ex.level].toUpperCase() + '</div><h2>' + head + '</h2>' +
+        (ex.state === 'voided' ? '<p>' + esc(ex.voidReason || '') + '</p>' : '<p class="live-big"><b>' + pct + ' %</b> <span class="dim small">(bestanden ab 70 %, Auszeichnung ab 90 %)</span></p>' +
+          (ex.state === 'expired' ? '<p class="dim small">Die Zeit ist abgelaufen – bewertet wurde der Stand der Abgaben.</p>' : '') +
+          '<table class="exam-table"><tr><th>Aufgaben (70 %)</th><td class="mono">' + Math.round((r.tasks || 0) * 100) + ' %</td></tr>' +
+          (r.perTask || []).map(function (t, i) { return '<tr class="sub"><th>' + (i + 1) + '. ' + esc(t.title) + '</th><td class="mono">' + Math.round(t.points * 100) + ' %</td></tr>'; }).join('') +
+          '<tr><th>Theorie (30 %)</th><td class="mono">' + (r.theoryRight || 0) + ' / ' + (r.theoryTotal || 0) + '</td></tr></table>' +
+          (!r.passed && r.weakChapters && r.weakChapters.length ? '<p class="dim small">Zum Wiederholen: Kapitel ' + r.weakChapters.join(', ') + '. Der naechste Versuch ist fruehestens in 24 Stunden moeglich.</p>' : '')) +
+        '<div class="live-actions">' + (r.passed && ex.state !== 'voided' ? '<a class="btn primary" href="../#/zertifikate/ausstellen/' + id + '">Zertifikat ausstellen</a>' : '') + '<a class="btn" href="../#/zertifikate">Zum Portal</a><a class="btn" href="./">Zum Labor</a></div>');
+    }
+
+    /* ---------- Laden ---------- */
+    function running() { return ex && ex.state === 'running' && !finishing; }
+    function take(d) {
+      ex = d.exam; ex.result = d.result; tasks = d.tasks || []; questions = d.questions || []; offset = ex.now - Date.now();
+      answers = {}; results = {};
+      Object.keys(d.answers || {}).forEach(function (k) { var a = d.answers[k]; answers[k] = a.answer; if (a.result) results[k] = a.result; });
+    }
+    function refresh() {
+      return api('GET', 'exams/' + id).then(function (r) {
+        if (r.status === 401) { overlay('<h2>Nicht angemeldet</h2><p>Fuer die Pruefung brauchst du dein Konto.</p><div class="live-actions"><a class="btn primary" href="../#/login">Anmelden</a></div>'); return false; }
+        if (r.status !== 200) { overlay('<h2>Pruefung</h2><p>' + esc(r.data.error || 'Fehler') + '</p><div class="live-actions"><a class="btn primary" href="../#/zertifikate">Zu den Zertifikaten</a></div>'); return false; }
+        take(r.data);
+        if (ex.state !== 'running') { done(); return false; }
+        return true;
+      });
+    }
+    function start() {
+      if (!id) return Promise.resolve();
+      document.body.classList.add('exam-mode'); load();
+      overlay('<h2>Pruefung</h2><p class="live-big"><span class="live-pulse"></span> Wird geladen …</p>');
+      return refresh().then(function (okay) {
+        if (!okay) return;
+        var first = 0; tasks.some(function (t, i) { if (!results[t.id]) { first = i; return true; } return false; });
+        openTask(first);
+        tick = setInterval(function () { if (!running()) return; timeOnly(); if (left() <= 0) finish(0); }, 1000);
+        var lost = function () { if (!running() || Date.now() - lastFocus < 3000) return; lastFocus = Date.now(); api('POST', 'exams/' + id + '/focus', {}).catch(function () {}); };
+        document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') lost(); });
+        root.addEventListener('blur', lost);
+        root.addEventListener('beforeunload', function (ev) { if (running() && tasks.some(function (t) { return drafts[t.id] && drafts[t.id].dirty; })) { ev.preventDefault(); ev.returnValue = ''; } });
+      }).catch(function () { overlay('<h2>Keine Verbindung</h2><p>Die Pruefung konnte nicht geladen werden. Die Zeit laeuft auf dem Server weiter.</p><div class="live-actions"><button class="btn primary" id="exRetry">Nochmals versuchen</button></div>'); $('#exRetry').onclick = function () { start(); }; });
+    }
+    return { id: id, start: start, send: send, draft: draft, reset: reset, back: function () { if (cur === 'q') openTheory(); else openTask(cur < 0 ? 0 : cur); },
+      get exam() { return ex; }, get tasks() { return tasks; }, get questions() { return questions; }, get results() { return results; }, get current() { return cur; } };
+  }
+  root.DQExamUI = { create: create };
+})(typeof window !== 'undefined' ? window : globalThis);
+
 /* ==== app.js ==== */
 /* Digital Quest – Spielsteuerung (window.DigitalQuest) */
 (function () {
@@ -7326,7 +7540,7 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
   }
   var S;
   try { S = normalize(JSON.parse(localStorage.getItem(KEY))); } catch (e) { S = fresh(); }
-  var ACCT = root.DQAccount || null, LIVE = null;
+  var ACCT = root.DQAccount || null, LIVE = null, EXAM = null;
   var saveTimer = null;
   function save() {
     clearTimeout(saveTimer);
@@ -7467,7 +7681,7 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
     return '<span class="vg-tag' + (v.done ? ' done' : v.over ? ' over' : '') + (small ? ' small' : '') + '" title="Vorgabe vom Dozent' + esc(d) + '">Vorgabe' + (small ? '' : esc(d)) + '</span>';
   }
 
-  /* ================= Auszeichnungen (Zertifikat Grundstufe, Abzeichen Profi-Stufe) ================= */
+  /* ================= Auszeichnungen im Spiel (Abzeichen nach den Boss-Aufgaben; das gepruefte Zertifikat gibt es im Portal) ================= */
   function awardEarned(a) { return !!S.done[a.boss]; }
   function awardDate(a) { // erster erfolgreicher Abschluss der Boss-Aufgabe
     var ev = S.events.filter(function (e) { return e.type === 'task_done' && e.id === a.boss; })[0];
@@ -7487,7 +7701,7 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
     if (!a) return '';
     var got = awardEarned(a);
     return '<div class="award-card' + (got ? ' earned' : '') + '">' + medal(a, 72) + '<div><span class="part-no">' + esc(a.kind) + '</span><h3>' + esc(a.title) + '</h3>' +
-      '<p class="dim small">' + (got ? 'Erhalten am ' + fmtDate(awardDate(a)) + '.' : 'Wird mit der Boss-Aufgabe ' + a.boss + ' freigeschaltet.') + '</p></div>' +
+      '<p class="dim small">' + (got ? 'Erhalten am ' + fmtDate(awardDate(a)) + '.' : 'Wird mit der Boss-Aufgabe ' + a.boss + ' freigeschaltet.') + (ACCT && ACCT.portal ? ' Das gepruefte <a href="../#/zertifikate">Zertifikat mit Pruefcode</a> gibt es im Portal.' : '') + '</p></div>' +
       (got ? '<button class="btn primary" data-award="' + a.id + '">' + esc(a.kind) + ' anzeigen</button>' : allOpen() ? '<button class="btn" data-award="' + a.id + '">Vorschau</button>' : '<span class="award-lock">' + ICON.lock + '</span>') + '</div>';
   }
   function openAward(id) {
@@ -7562,8 +7776,8 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
   function openTask(t, opt) {
     opt = opt || {};
     show('task');
-    current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0; current.live = opt.live || null;
-    var draft = opt.live ? (opt.layout ? { layout: E.clone(opt.layout) } : null) : S.drafts[t.id];
+    current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0; current.live = opt.live || null; current.exam = opt.exam || null;
+    var draft = opt.live || opt.exam ? (opt.layout ? { layout: E.clone(opt.layout), answers: opt.answers || {} } : null) : S.drafts[t.id];
     var layout = draft && draft.layout ? draft.layout : t.start;
     var lockedIds = t.start.parts.map(function (p) { return p.id; });
     closeReplay(true);
@@ -7588,7 +7802,7 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
     ed.load(layout, lockedIds, t.bench); bench.fit();
     setMeterMode('OFF');
     rebuild(); renderInspector();
-    log(t.sandbox ? 'sandbox_open' : current.live ? 'live_open' : 'task_open', { id: t.id });
+    if (!current.exam) log(t.sandbox ? 'sandbox_open' : current.live ? 'live_open' : 'task_open', { id: t.id });
   }
 
   function renderTaskPanels(t, draft) {
@@ -7600,6 +7814,7 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
       $('#toMap').onclick = function () { renderMap(); show('map'); };
       renderPalette(t); return;
     }
+    if (current.exam) { renderExamPanels(t, draft); return; }
     var lv = current.live;
     var h = (lv ? '<div class="live-note"><b>' + (lv.bug ? 'STOERUNGSMELDUNG' : 'LIVE-CHALLENGE · SPRINT') + '</b>' + (lv.bug ? '<p>' + esc(lv.bug.symptom || 'Die Schaltung arbeitet nicht wie verlangt.') + '</p><p class="dim small">Auf dem Tisch liegt der fehlerhafte Aufbau. Finde die Ursache, behebe sie und lass pruefen.</p>' : '<p class="dim small">Loese die Aufgabe so schnell und sauber wie moeglich. Fehlversuche und Tipps kosten Punkte.</p>') + '</div>' : '') +
       '<div class="crumb">' + (t.ch === 'W' ? 'Uebungswerkstatt · Messaufgabe ' : 'Kapitel ' + t.ch + ' · Aufgabe ') + t.id + (t.boss ? ' · <b class="boss-tag">BOSS</b>' : '') + '</div>' +
@@ -7624,6 +7839,26 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
     $('#btnCheck').onclick = check;
     renderPalette(t);
     void ch;
+  }
+  /* Pruefung: Auftrag, Messprotokoll, „Testen“ (sichtbare Tests im Browser) und „Abgeben“ (Bewertung auf dem Server). Keine Tipps. */
+  function renderExamPanels(t, draft) {
+    var h = '<div class="crumb">Pruefung · Aufgabe ' + t.no + ' von ' + t.of + ' · Kapitel ' + t.ch + '</div><h2>' + esc(t.title) + '</h2>' +
+      (t.story ? '<p class="story">' + t.story + '</p>' : '') + '<div class="brief">' + t.brief + '</div>';
+    if (t.protocol.length) {
+      h += '<div class="protocol"><h3>Messprotokoll</h3>';
+      t.protocol.forEach(function (m) {
+        var v = draft && draft.answers && draft.answers[m.id] !== undefined ? draft.answers[m.id] : '';
+        h += '<label><span>' + esc(m.ask) + '</span><input inputmode="decimal" data-ans="' + m.id + '" value="' + esc(v) + '" placeholder="Wert"><em>' + esc(m.unit || '') + '</em></label>';
+      });
+      h += '</div>';
+    }
+    h += '<div class="exam-btns"><button class="btn big" id="btnCheck" title="Prueft die sichtbaren Tests hier im Browser">Testen</button><button class="btn primary big" id="btnSend" title="Schickt Schaltung und Messwerte zur Bewertung">Abgeben</button></div>' +
+      '<div id="results"></div><div id="examRes"></div>';
+    $('#taskInfo').innerHTML = h;
+    $$('[data-ans]').forEach(function (inp) { inp.oninput = persistDraft; });
+    $('#btnCheck').onclick = check;
+    $('#btnSend').onclick = function () { if (EXAM) EXAM.send(); };
+    renderPalette(t);
   }
   function renderPalette(t) {
     var pal = '';
@@ -7712,6 +7947,7 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
   function answers() { var a = {}; $$('[data-ans]').forEach(function (i) { a[i.dataset.ans] = i.value; }); return a; }
   function persistDraft() {
     if (!current.task || !ed || current.live) return;
+    if (current.exam) { if (EXAM) EXAM.draft(current.exam.item, ed.layout, answers()); return; }
     S.drafts[current.task.id] = { layout: ed.layout, answers: answers(), t: Date.now() }; save();
   }
 
@@ -8002,6 +8238,10 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
     }).join('') + '</ul>';
     var an = E.analyze(ed.layout); if (an.faults.length) h += diagnose(an.faults).map(function (d) { return '<div class="st err">' + esc(d.text) + '</div>'; }).join('');
     $('#results').innerHTML = h;
+    if (current.exam) { // nur die sichtbaren Tests; Messwerte und verdeckte Tests prueft der Server bei der Abgabe
+      $('#results').innerHTML = '<p class="dim small">Sichtbare Tests im Browser' + (t.protocol.length ? ' – die Messwerte prueft der Server bei der Abgabe' : '') + ':</p>' + h;
+      return;
+    }
     if (current.live) {
       log(r.pass ? 'live_done' : 'live_try', { id: t.id, tries: current.tries, hints: current.hints });
       if (LIVE) LIVE.attempt(r.pass, { layout: ed.layout, answers: ans });
@@ -8141,6 +8381,7 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
     $$('[data-go]').forEach(function (b) {
       b.onclick = function () {
         var g = b.dataset.go;
+        if (EXAM && g !== 'manual') { EXAM.back(); return; }
         if (g === 'map') renderMap(); if (g === 'manual') renderManual(); if (g === 'settings') renderSettings();
         show(g);
       };
@@ -8165,7 +8406,7 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
     $('#btnVolt').onclick = function () { ed.showVolt = bench.showVolt = !ed.showVolt; this.classList.toggle('on', ed.showVolt); core.redraw(); };
     $('#btnRepair').onclick = function () { live.state = E.newState(); rebuild(); status([{ cls: 'info', text: 'Defekte Bauteile ersetzt.' }]); };
     $('#btnReset').onclick = function () {
-      modal('<h2>Aufgabe zuruecksetzen?</h2><p>Deine Schaltung wird auf den Startzustand gesetzt.</p>', [{ label: 'Abbrechen' }, { label: 'Zuruecksetzen', primary: true, action: function () { delete S.drafts[current.task.id]; save(); openTask(current.task); } }]);
+      modal('<h2>Aufgabe zuruecksetzen?</h2><p>Deine Schaltung wird auf den Startzustand gesetzt.</p>', [{ label: 'Abbrechen' }, { label: 'Zuruecksetzen', primary: true, action: function () { if (current.exam) { if (EXAM) EXAM.reset(current.exam.item); return; } delete S.drafts[current.task.id]; save(); openTask(current.task); } }]);
     };
     $('#btnFuse').onclick = function () { live.state.fuse = false; tick(0); };
     $$('[data-mm]').forEach(function (b) { b.onclick = function () { setMeterMode(b.dataset.mm); }; });
@@ -8184,12 +8425,17 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
     LIVE = root.DQLive ? root.DQLive.create({ modal: modal, esc: esc, acct: ACCT, byId: DQ.byId,
       open: function (t, o) { openTask(t, o); }, closeModal: function () { $('#modal').classList.remove('open'); } }) : null;
     if (LIVE && !LIVE.id) LIVE = null;
-    if (!LIVE && qs.get('frei')) openItem('sandbox');
-    else if (!LIVE && qs.get('werkstatt')) { var w = $('#werkstatt'); if (w) w.scrollIntoView(); }
-    if (ACCT) { var rd = ACCT.start(); if (LIVE) rd.then(function () { LIVE.start(); }); }
+    EXAM = root.DQExamUI && !LIVE ? root.DQExamUI.create({ modal: modal, esc: esc, show: show, open: function (t, o) { openTask(t, o); },
+      layout: function () { return ed ? E.clone(ed.layout) : null; }, answers: answers }) : null;
+    if (EXAM && !EXAM.id) EXAM = null;
+    if (EXAM) { var bk = document.createElement('button'); bk.textContent = 'Zur Pruefung'; bk.className = 'exam-back'; bk.onclick = function () { EXAM.back(); }; $('.top nav').appendChild(bk); }
+    if (LIVE || EXAM) { /* Einstieg uebernimmt die Challenge bzw. die Pruefung */ }
+    else if (qs.get('frei')) openItem('sandbox');
+    else if (qs.get('werkstatt')) { var w = $('#werkstatt'); if (w) w.scrollIntoView(); }
+    if (ACCT) { var rd = ACCT.start(); if (LIVE) rd.then(function () { LIVE.start(); }); if (EXAM) rd.then(function () { EXAM.start(); }); }
   }
 
-  window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; } };
+  window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, get examUI() { return EXAM; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
