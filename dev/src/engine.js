@@ -434,7 +434,7 @@
    * rng: Zufallsquelle (Standard Math.random, 0 = ohne Rauschen). Gibt {text, value, range} zurueck. */
   var DMM_RANGES = {
     V: [[0.6, 1e-3, 'mV', 1], [6, 1, 'V', 3], [60, 1, 'V', 2], [600, 1, 'V', 1], [1000, 1, 'V', 0]],
-    A: [[6e-3, 1e-3, 'mA', 3], [60e-3, 1e-3, 'mA', 2], [0.6, 1e-3, 'mA', 1], [6, 1, 'A', 3], [10, 1, 'A', 2]],
+    A: [[600e-6, 1e-6, 'µA', 1], [6e-3, 1e-3, 'mA', 3], [60e-3, 1e-3, 'mA', 2], [0.6, 1e-3, 'mA', 1], [6, 1, 'A', 3], [10, 1, 'A', 2]],
     'Ω': [[600, 1, 'Ω', 1], [6e3, 1e3, 'kΩ', 3], [60e3, 1e3, 'kΩ', 2], [600e3, 1e3, 'kΩ', 1], [6e6, 1e6, 'MΩ', 3], [40e6, 1e6, 'MΩ', 2]]
   };
   function dmm(value, unit, rng) {
@@ -464,7 +464,8 @@
       var r0 = step(net, newState(), {}), v0 = r0.nodeV[net.pinNode[probe.a]] - (probe.b ? r0.nodeV[net.pinNode[probe.b]] : 0);
       return { ok: true, static: true, dc: v0, rms: 0, avg: 0, peak: Math.abs(v0), pp: 0 };
     }
-    var T = 1 / Math.min.apply(null, freqs), per = opts.periods || 5, n = opts.samples || 200;
+    var T = 1 / Math.min.apply(null, freqs), per = opts.periods || 5;
+    var n = opts.samples || Math.min(4000, Math.max(200, Math.ceil(40 * Math.max.apply(null, freqs) / Math.min.apply(null, freqs)))); // auch schnelle Anteile fein abtasten
     var sim = simulate(layout, { dt: T / n, tEnd: T * per, probes: [{ a: probe.a, b: probe.b }] }).samples;
     var last = sim.slice(-n).map(function (x) { return x.ch0; });
     var dc = last.reduce(function (s, v) { return s + v; }, 0) / n;
