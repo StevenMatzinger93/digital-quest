@@ -91,6 +91,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 /* Werkbank (bench.js) – feste Laborfarben, unabhaengig vom Thema */
 #bench { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; outline: none; background: #1b1612; }
 #board.off, #bench.off { display: none; }
+/*CIRCUIT-START*/
 .bblock { fill: url(#bBlock); stroke: rgba(0,0,0,.45); stroke-width: 1.5; } .bbevel { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 1.2; }
 .bpart { cursor: grab; } .bsel { fill: none; stroke: #ffb000; stroke-width: 2.5; stroke-dasharray: 7 5; }
 .blead { fill: none; stroke: #9ea3a6; stroke-width: 2.8; stroke-linecap: round; } .bleadhi { fill: none; stroke: rgba(255,255,255,.55); stroke-width: .9; stroke-linecap: round; }
@@ -121,9 +122,11 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bsmoke path { fill: none; stroke: rgba(200,200,200,.55); stroke-width: 4; stroke-linecap: round; pointer-events: none; animation: bsmoke 1.6s ease-in-out infinite; }
 .bsmoke path + path { animation-delay: .8s; }
 @keyframes bsmoke { 0% { opacity: 0; transform: translateY(6px); } 40% { opacity: .9; } 100% { opacity: 0; transform: translateY(-14px); } }
+/*CIRCUIT-END*/
 #statusbar { min-height: 36px; }
 
 /* Schaltplan-Symbole (Arbeitsflaeche bleibt immer dunkel) */
+/*CIRCUIT-START*/
 .griddot { fill: #2b2d27; }
 .sym { fill: none; stroke: var(--sym); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .sym.fillsym { fill: var(--sym); } .sym.thin { stroke-width: 1.5; } .sym.thick { stroke-width: 4; } .sym.thick2 { stroke-width: 7; }
@@ -143,6 +146,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .probe path { stroke-width: 3; fill: none; } .probe text { font: 700 11px var(--font-code); text-anchor: middle; fill: #fff; pointer-events: none; }
 .probe-red path { stroke: #ff3b30; } .probe-red circle { fill: #ff3b30; } .probe-black path { stroke: #bbb; } .probe-black circle { fill: #222; stroke: #bbb; }
 
+/*CIRCUIT-END*/
 /* Messgeraete */
 .meter { background: linear-gradient(#2b2a22, #1e1d17); border: 2px solid #3a3625; border-radius: 14px; padding: 10px; margin-bottom: 12px; }
 .lcd { background: #9fb28a; color: #1b2413; font-size: 28px; font-weight: 700; text-align: right; padding: 6px 10px; border-radius: 6px; box-shadow: inset 0 2px 6px rgba(0,0,0,.4); min-height: 48px; letter-spacing: 1px; }
@@ -194,6 +198,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .map-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 /* Werkbank-Details */
+/*CIRCUIT-START*/
 .bside { fill: url(#bSide); stroke: rgba(0,0,0,.45); stroke-width: 1.2; }
 .bgloss { fill: rgba(255,255,255,.28); pointer-events: none; }
 .bsym .sym { stroke: #46505a; stroke-width: 5; } .bsym .sym.fillsym, .bsym .fillsym { fill: #46505a; } .bsym .symtxt, .bsym .plus { fill: #46505a; font-size: 26px; }
@@ -208,6 +213,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bdot { fill: #fff6c2; stroke: rgba(120,80,0,.8); stroke-width: 1; filter: drop-shadow(0 0 2px #ffd54a); pointer-events: none; }
 .bilabel { font: 700 11px var(--font-code); fill: #ffe9a8; text-anchor: middle; paint-order: stroke; stroke: rgba(0,0,0,.8); stroke-width: 3px; pointer-events: none; }
 .bprint.w { fill: #e8e8e8; }
+/*CIRCUIT-END*/
 /* Wahrheitstabellen in Auftraegen und Lektionen */
 table.tt { border-collapse: collapse; margin: 8px 0; font: 13px var(--font-code); }
 table.tt th, table.tt td { border: 1px solid var(--line); padding: 3px 10px; text-align: center; }
@@ -355,6 +361,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .chapter.workshop { border-color: rgba(30,200,224,.35); }
 .chapter.workshop .node svg { stroke: var(--accent-cyan); } .chapter.workshop .node.done svg { stroke: var(--accent-green); }
 
+/*CIRCUIT-START*/
 /* Mini-Schaltung in Theorie-Lektionen (mini.js) */
 .mini { margin: 14px 0 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-secondary); overflow: hidden; }
 .mini-stage { position: relative; background: var(--bg-editor); }
@@ -369,6 +376,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .mini-ro { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; } .mini-ro b { color: var(--text-dim); font-weight: 400; } .mini-ro .mono { color: var(--accent-green); }
 .mini-scope { display: block; width: 100%; height: 130px; border-top: 1px solid var(--line); }
 @media (max-width: 600px) { .mini-sl { grid-template-columns: 1fr 70px; } .mini-sl span { grid-column: 1 / -1; } }
+/*CIRCUIT-END*/
 /* Bilder/Animationen in Lektionen (visuals.js) */
 .lesson-visual { margin: 14px 0 18px; } .lesson-visual .mini { margin: 0; }
 .visual-cap { margin: 6px 2px 0; font-size: 13px; color: var(--text-dim); }
