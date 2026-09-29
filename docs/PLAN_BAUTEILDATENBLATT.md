@@ -24,7 +24,9 @@ Zwei Situationen, unterschiedlich gelöst, damit nichts an der bestehenden, funk
 - **In der Palette** (Bauteil noch nicht platziert): Hover zeigt sofort das volle Datenblatt – hier gibt es noch keine Simulationswerte, die im Weg stehen könnten.
 - **Auf einem platzierten Bauteil** (Schema oder Werkbank): Der bestehende Schnell-Tooltip (U/I/P, DEFEKT) bleibt wie er ist – der ist beim Messen wichtig und soll nicht verzögert werden. Zusätzlich öffnet ein längeres Verweilen (z. B. 500–700 ms) oder ein kleines „ⓘ"-Zeichen am Tooltip das volle Datenblatt. So gibt es keine Konkurrenz zwischen „schnell den Messwert sehen" und „das Bauteil verstehen".
 
-Diese Aufteilung ist mein Vorschlag, kein fixer Entscheid – wenn du es lieber einheitlich (z. B. immer per Klick statt Hover) haben willst, sag Bescheid, dann halte ich das stattdessen fest.
+**Umgesetzt 29.09.2026** (siehe `docs/STAND.md`): wie vorgeschlagen, nur das „ⓘ“ sitzt im Eigenschaften-Panel statt im Tooltip (das native Tooltip ist nicht anklickbar) – funktioniert so auch auf Touch.
+
+Urspruenglich: Diese Aufteilung ist mein Vorschlag, kein fixer Entscheid – wenn du es lieber einheitlich (z. B. immer per Klick statt Hover) haben willst, sag Bescheid, dann halte ich das stattdessen fest.
 
 ## Umsetzungsprojektplan
 
