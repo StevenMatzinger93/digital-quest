@@ -360,6 +360,56 @@
       '<path d="M' + (x + 15) + ' ' + (y - 33) + 'l20 -36" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round"/></g>';
   }
 
+  /* Farbverlaeufe, Muster und Filter der Werkbank – gemeinsam fuer den Renderer und die freistehenden Bilder (icon) */
+  var DEFS = '<defs>' +
+      '<linearGradient id="bBlock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6ebef"/><stop offset=".55" stop-color="#cbd3d9"/><stop offset="1" stop-color="#b0bbc3"/></linearGradient>' +
+      '<linearGradient id="bSide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8e99a1"/><stop offset="1" stop-color="#6b757c"/></linearGradient>' +
+      '<linearGradient id="bResBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ecd9b8"/><stop offset="1" stop-color="#c7aa7c"/></linearGradient>' +
+      '<linearGradient id="bCyl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".3" stop-color="#fff" stop-opacity="0"/><stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>' +
+      '<linearGradient id="bCylV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset=".4" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>' +
+      '<linearGradient id="bBatWrap" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1f4fa8"/><stop offset=".6" stop-color="#2f6fd6"/><stop offset="1" stop-color="#244f9e"/></linearGradient>' +
+      '<linearGradient id="bMetalV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2f2f2"/><stop offset=".5" stop-color="#a4aaaf"/><stop offset="1" stop-color="#666b6f"/></linearGradient>' +
+      '<linearGradient id="bHolster" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffc928"/><stop offset=".5" stop-color="#f2b705"/><stop offset="1" stop-color="#c99600"/></linearGradient>' +
+      '<linearGradient id="bScopeBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#48546a"/><stop offset="1" stop-color="#2f3847"/></linearGradient>' +
+      '<radialGradient id="bBrass" cx=".35" cy=".35"><stop offset="0" stop-color="#fff1b8"/><stop offset=".6" stop-color="#c9a227"/><stop offset="1" stop-color="#7a5e10"/></radialGradient>' +
+      '<radialGradient id="bMetal" cx=".35" cy=".35"><stop offset="0" stop-color="#f4f4f4"/><stop offset=".7" stop-color="#9da3a8"/><stop offset="1" stop-color="#5d6266"/></radialGradient>' +
+      '<radialGradient id="bRedCap" cx=".35" cy=".35"><stop offset="0" stop-color="#ff7a6e"/><stop offset=".6" stop-color="#d32f2f"/><stop offset="1" stop-color="#8e1717"/></radialGradient>' +
+      '<radialGradient id="bLens" cx=".35" cy=".3"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></radialGradient>' +
+      '<radialGradient id="bRingShine" cx=".35" cy=".3"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></radialGradient>' +
+      '<radialGradient id="bGlow"><stop offset="0" stop-color="#fff3c4" stop-opacity=".95"/><stop offset=".45" stop-color="#ffcf4a" stop-opacity=".55"/><stop offset="1" stop-color="#ffb000" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="bVignette" cx=".5" cy=".45" r=".75"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></radialGradient>' +
+      '<pattern id="bGY" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#2e9d44"/><rect width="3" height="6" fill="#e3c21b"/></pattern>' +
+      '<pattern id="bMat" width="50" height="50" patternUnits="userSpaceOnUse"><rect width="50" height="50" fill="#35645a"/>' +
+        '<path d="M50 0H0V50" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1.5"/><path d="M25 0V50M0 25H50" stroke="rgba(255,255,255,.03)" stroke-width="1"/>' +
+        '<circle cx="12" cy="37" r=".8" fill="rgba(0,0,0,.18)"/><circle cx="38" cy="14" r=".7" fill="rgba(255,255,255,.06)"/></pattern>' +
+      '<pattern id="bGrain" width="420" height="90" patternUnits="userSpaceOnUse"><rect width="420" height="90" fill="url(#bWood)"/>' +
+        '<path d="M0 12C80 6 160 20 240 12S380 4 420 12M0 34C90 40 170 28 260 36S370 42 420 34M0 58C70 52 150 64 230 56S360 50 420 58M0 80C100 86 190 74 280 82S380 88 420 80" fill="none" stroke="rgba(60,35,15,.22)" stroke-width="1.6"/>' +
+        '<path d="M0 22C110 18 200 28 300 22S400 18 420 22M0 70C120 74 220 64 320 70S400 74 420 70" fill="none" stroke="rgba(255,230,190,.08)" stroke-width="2.5"/>' +
+        '<ellipse cx="300" cy="46" rx="14" ry="5" fill="none" stroke="rgba(60,35,15,.25)" stroke-width="1.2"/></pattern>' +
+      '<linearGradient id="bWood" x1="0" y1="0" x2="1" y2=".3"><stop offset="0" stop-color="#8b6a47"/><stop offset=".5" stop-color="#a07c55"/><stop offset="1" stop-color="#7d5e3e"/></linearGradient>' +
+      '<linearGradient id="bEdge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b4c2f"/><stop offset="1" stop-color="#3e2a18"/></linearGradient>' +
+      '<filter id="bShadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="5" dy="10" stdDeviation="5" flood-color="#000" flood-opacity=".45"/></filter>' +
+      '<filter id="bCable" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="2" dy="6" stdDeviation="3" flood-color="#000" flood-opacity=".4"/></filter>' +
+      '<filter id="bBlur" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="9"/></filter>' +
+      '<filter id="bSoft" x="-2" y="-2" width="5" height="5"><feGaussianBlur stdDeviation="1.5"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
+      '<filter id="bSoft2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5"/></filter>' +
+      '</defs>';
+
+  /* Freistehendes Werkbank-Bild eines Bauteiltyps als eigenes <svg> (Datenblatt, spaeter Theorie-Bilder): dieselbe Illustration
+   * wie auf dem Tisch (illus), ohne Simulationswerte, mit Seitenkante und Tischneigung K. Bringt eigene <defs> mit eindeutigen
+   * IDs mit – Verlaeufe aus der ausgeblendeten Werkbank wuerden sonst nicht gezeichnet. */
+  var iconSeq = 0;
+  function icon(type, props, value) {
+    var sz = size(type), w = sz[0], h = sz[1], pad = 16, n = 'i' + (++iconSeq);
+    var p = { type: type, props: props || {} }; if (value !== undefined) p.value = value;
+    var body = '<g transform="translate(' + (w / 2 + pad) + ' ' + ((h / 2 + pad) * K) + ') scale(1 ' + K + ')">' +
+      '<rect class="bside" x="' + (-w / 2) + '" y="' + (-h / 2 + 10) + '" width="' + w + '" height="' + h + '" rx="9" style="fill:url(#bSide)"/>' +
+      '<g filter="url(#bShadow)">' + illus(p).replace('class="bblock"', 'class="bblock" style="fill:url(#bBlock)"') + '</g></g>';
+    var out = DEFS + body;
+    out = out.replace(/(id="|url\(#|href="#)b([A-Z])/g, '$1' + n + 'b$2');
+    return '<svg class="benchicon" viewBox="0 0 ' + (w + 2 * pad) + ' ' + ((h + 2 * pad + 10) * K) + '" aria-hidden="true">' + out + '</svg>';
+  }
+
   function Bench(svg, opts) {
     this.svg = svg; this.opts = opts || {};
     this.core = this.opts.core || new Circuit(this.opts);
@@ -370,7 +420,7 @@
     this.core.attach(this);
     this._bind();
   }
-  Bench.GEO = GEO; Bench.K = K; Bench.illus = illus; Bench.DEV = DEV; Bench.wireCurrents = wireCurrents;
+  Bench.GEO = GEO; Bench.K = K; Bench.illus = illus; Bench.DEV = DEV; Bench.wireCurrents = wireCurrents; Bench.icon = icon;
 
   Bench.prototype._hidden = function () { return !this.svg.getClientRects().length; };
   Bench.prototype.pinPos = function (part, pin) {
@@ -499,39 +549,7 @@
     var used = {}; L.wires.forEach(function (w) { used[w.from] = (used[w.from] || 0) + 1; used[w.to] = (used[w.to] || 0) + 1; });
     function pp(pid) { var s = pid.split('.'); return byId[s[0]] ? self.pinPos(byId[s[0]], s[1]) : [0, 0]; }
     var h = [];
-    h.push('<defs>' +
-      '<linearGradient id="bBlock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6ebef"/><stop offset=".55" stop-color="#cbd3d9"/><stop offset="1" stop-color="#b0bbc3"/></linearGradient>' +
-      '<linearGradient id="bSide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8e99a1"/><stop offset="1" stop-color="#6b757c"/></linearGradient>' +
-      '<linearGradient id="bResBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ecd9b8"/><stop offset="1" stop-color="#c7aa7c"/></linearGradient>' +
-      '<linearGradient id="bCyl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".3" stop-color="#fff" stop-opacity="0"/><stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>' +
-      '<linearGradient id="bCylV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset=".4" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>' +
-      '<linearGradient id="bBatWrap" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1f4fa8"/><stop offset=".6" stop-color="#2f6fd6"/><stop offset="1" stop-color="#244f9e"/></linearGradient>' +
-      '<linearGradient id="bMetalV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2f2f2"/><stop offset=".5" stop-color="#a4aaaf"/><stop offset="1" stop-color="#666b6f"/></linearGradient>' +
-      '<linearGradient id="bHolster" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffc928"/><stop offset=".5" stop-color="#f2b705"/><stop offset="1" stop-color="#c99600"/></linearGradient>' +
-      '<linearGradient id="bScopeBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#48546a"/><stop offset="1" stop-color="#2f3847"/></linearGradient>' +
-      '<radialGradient id="bBrass" cx=".35" cy=".35"><stop offset="0" stop-color="#fff1b8"/><stop offset=".6" stop-color="#c9a227"/><stop offset="1" stop-color="#7a5e10"/></radialGradient>' +
-      '<radialGradient id="bMetal" cx=".35" cy=".35"><stop offset="0" stop-color="#f4f4f4"/><stop offset=".7" stop-color="#9da3a8"/><stop offset="1" stop-color="#5d6266"/></radialGradient>' +
-      '<radialGradient id="bRedCap" cx=".35" cy=".35"><stop offset="0" stop-color="#ff7a6e"/><stop offset=".6" stop-color="#d32f2f"/><stop offset="1" stop-color="#8e1717"/></radialGradient>' +
-      '<radialGradient id="bLens" cx=".35" cy=".3"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></radialGradient>' +
-      '<radialGradient id="bRingShine" cx=".35" cy=".3"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></radialGradient>' +
-      '<radialGradient id="bGlow"><stop offset="0" stop-color="#fff3c4" stop-opacity=".95"/><stop offset=".45" stop-color="#ffcf4a" stop-opacity=".55"/><stop offset="1" stop-color="#ffb000" stop-opacity="0"/></radialGradient>' +
-      '<radialGradient id="bVignette" cx=".5" cy=".45" r=".75"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></radialGradient>' +
-      '<pattern id="bGY" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#2e9d44"/><rect width="3" height="6" fill="#e3c21b"/></pattern>' +
-      '<pattern id="bMat" width="50" height="50" patternUnits="userSpaceOnUse"><rect width="50" height="50" fill="#35645a"/>' +
-        '<path d="M50 0H0V50" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1.5"/><path d="M25 0V50M0 25H50" stroke="rgba(255,255,255,.03)" stroke-width="1"/>' +
-        '<circle cx="12" cy="37" r=".8" fill="rgba(0,0,0,.18)"/><circle cx="38" cy="14" r=".7" fill="rgba(255,255,255,.06)"/></pattern>' +
-      '<pattern id="bGrain" width="420" height="90" patternUnits="userSpaceOnUse"><rect width="420" height="90" fill="url(#bWood)"/>' +
-        '<path d="M0 12C80 6 160 20 240 12S380 4 420 12M0 34C90 40 170 28 260 36S370 42 420 34M0 58C70 52 150 64 230 56S360 50 420 58M0 80C100 86 190 74 280 82S380 88 420 80" fill="none" stroke="rgba(60,35,15,.22)" stroke-width="1.6"/>' +
-        '<path d="M0 22C110 18 200 28 300 22S400 18 420 22M0 70C120 74 220 64 320 70S400 74 420 70" fill="none" stroke="rgba(255,230,190,.08)" stroke-width="2.5"/>' +
-        '<ellipse cx="300" cy="46" rx="14" ry="5" fill="none" stroke="rgba(60,35,15,.25)" stroke-width="1.2"/></pattern>' +
-      '<linearGradient id="bWood" x1="0" y1="0" x2="1" y2=".3"><stop offset="0" stop-color="#8b6a47"/><stop offset=".5" stop-color="#a07c55"/><stop offset="1" stop-color="#7d5e3e"/></linearGradient>' +
-      '<linearGradient id="bEdge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b4c2f"/><stop offset="1" stop-color="#3e2a18"/></linearGradient>' +
-      '<filter id="bShadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="5" dy="10" stdDeviation="5" flood-color="#000" flood-opacity=".45"/></filter>' +
-      '<filter id="bCable" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="2" dy="6" stdDeviation="3" flood-color="#000" flood-opacity=".4"/></filter>' +
-      '<filter id="bBlur" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="9"/></filter>' +
-      '<filter id="bSoft" x="-2" y="-2" width="5" height="5"><feGaussianBlur stdDeviation="1.5"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
-      '<filter id="bSoft2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5"/></filter>' +
-      '</defs>');
+    h.push(DEFS);
     // Tisch (Holz mit Maserung) und Tischkante vorne
     h.push('<rect class="btable" x="-2000" y="-2000" width="' + (W + 4000) + '" height="' + (2000 + H * K + 20) + '" fill="url(#bGrain)"/>' +
       '<rect x="-2000" y="' + (H * K + 20) + '" width="' + (W + 4000) + '" height="28" fill="url(#bEdge)"/><path d="M-2000 ' + (H * K + 20.5) + 'H' + (W + 2000) + '" stroke="rgba(255,220,170,.25)" stroke-width="1.5"/>' +

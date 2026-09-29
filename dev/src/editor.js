@@ -160,6 +160,19 @@
     if (r && r.burnt) tip += '\nDEFEKT';
     return tip;
   }
+  /* Freistehendes Schaltzeichen eines Bauteiltyps als eigenes <svg> (Datenblatt, Palette, spaeter Theorie-Bilder).
+   * Dieselbe Zeichenlogik wie im Schaltplan (symbol), ohne Simulationswerte. opt: {pins: true → Anschlusskuerzel anschreiben} */
+  function icon(type, props, opt) {
+    opt = opt || {};
+    var g = GEO[type] || {}, x0 = -46, y0 = -46, x1 = 46, y1 = 46;
+    Object.keys(g).forEach(function (k) { x0 = Math.min(x0, g[k][0] - 16); x1 = Math.max(x1, g[k][0] + 16); y0 = Math.min(y0, g[k][1] - 26); y1 = Math.max(y1, g[k][1] + 26); });
+    var s = symbol({ type: type, props: props || {} });
+    if (opt.pins) Object.keys(g).forEach(function (k) {
+      var x = g[k][0], y = g[k][1], side = Math.abs(x) >= Math.abs(y) ? (x < 0 ? -1 : 1) : 0;
+      s += '<circle class="pin" cx="' + x + '" cy="' + y + '" r="3.5"/><text class="icopin" x="' + (x + (side ? side * 6 : 7)) + '" y="' + (y - (side ? 7 : -4)) + '" text-anchor="' + (side < 0 ? 'end' : 'start') + '">' + esc(k) + '</text>';
+    });
+    return '<svg class="symicon" viewBox="' + x0 + ' ' + y0 + ' ' + (x1 - x0) + ' ' + (y1 - y0) + '" aria-hidden="true"><g>' + s + '</g></svg>';
+  }
   function voltColor(v, vmax) {
     var t = vmax > 0 ? Math.max(0, Math.min(1, v / vmax)) : 0; // 0 V blau → max rot
     var h = 220 - 220 * t; return 'hsl(' + h.toFixed(0) + ',85%,58%)';
@@ -173,7 +186,7 @@
     this.core.attach(this);
     this._bind();
   }
-  Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText; Editor.partTip = partTip; Editor.voltColor = voltColor;
+  Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText; Editor.partTip = partTip; Editor.voltColor = voltColor; Editor.icon = icon;
   // Zustand liegt im Kern; die bisherigen Eigenschaften bleiben fuer app.js erhalten
   ['layout', 'locked', 'sel', 'wireStart', 'tool', 'probes', 'drag'].forEach(function (k) {
     Object.defineProperty(Editor.prototype, k, { get: function () { return this.core[k]; }, set: function (v) { this.core[k] = v; } });
