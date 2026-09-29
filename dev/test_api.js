@@ -131,6 +131,27 @@ const ok = (c, name, info) => { if (c) pass++; else { failN++; console.log('FEHL
   r = await call('DELETE', '/api/zuweisungen/' + zid, null, D.token); ok(r.status === 200, 'Zuweisung loeschen');
   r = await call('GET', '/api/klassen/' + K1.id + '/zuweisungen', null, D.token); ok(r.body.zuweisungen.length === 3, 'Nach dem Loeschen 3 Zuweisungen');
 
+  /* ===== Phase 4: Schueler-Sicht, Fortschritt-Spiegel ===== */
+  const SB = await login('blitz', 'neu-123', '10.0.10.1'), SW = await login('welle', 'geheim3', '10.0.10.2');
+  r = await call('GET', '/api/meine', null, SB.token);
+  ok(r.status === 200 && r.body.zuweisungen.length === 2 && r.body.zuweisungen.every(z => z.dozent === 'Frau K.'), 'Schueler sieht Klassen- und eigene Vorgaben mit Dozent', r.body);
+  ok(r.body.zuweisungen.some(z => z.ziel_id === 'W3' && z.fuer === 'dich') && r.body.zuweisungen.some(z => z.ziel_id === '14.3' && z.fuer === 'klasse' && z.faellig_am === '2026-10-20'), 'Vorgabe kennzeichnet Klasse/dich und Frist');
+  r = await call('GET', '/api/meine', null, D.token); ok(r.status === 403, 'Dozent hat keine Schueler-Sicht');
+  r = await call('POST', '/api/sync', { erledigt: { '1.1': 1000, T1A: 900, 'bad id!': 5 }, ereignisse: [{ t: 900, type: 'theory_check', id: 'T1A', score: 1, tags: ['elektro.stromkreis'] }, { t: 1000, type: 'task_done', id: '1.1', tries: 2 }] }, SB.token);
+  ok(r.status === 200 && r.body.erledigt['1.1'] === 1000 && r.body.erledigt.T1A === 900 && !r.body.erledigt['bad id!'], 'Sync speichert erledigt, verwirft unsaubere IDs', r.body);
+  r = await call('POST', '/api/sync', { erledigt: { '1.1': 5000, '1.2': 2000 }, ereignisse: [{ t: 1000, type: 'task_done', id: '1.1', tries: 2 }] }, SB.token);
+  ok(r.body.erledigt['1.1'] === 1000 && r.body.erledigt['1.2'] === 2000, 'Fruehester Zeitpunkt gewinnt, Neues kommt dazu');
+  const ev = await env.DB.prepare('SELECT COUNT(*) AS n FROM ereignisse WHERE schueler_id = ?').bind(S1.id).first();
+  ok(ev.n === 2, 'Doppelte Ereignisse werden ignoriert', ev);
+  const evd = await env.DB.prepare("SELECT daten FROM ereignisse WHERE typ = 'theory_check'").first();
+  ok(JSON.parse(evd.daten).tags[0] === 'elektro.stromkreis', 'Ereignis behaelt Zusatzfelder (Tags) als JSON');
+  r = await call('POST', '/api/sync', { erledigt: { '1.1': 1 } }, D.token); ok(r.status === 403, 'Nur Schueler synchronisieren');
+  r = await call('POST', '/api/sync', { erledigt: Object.fromEntries(Array.from({ length: 1001 }, (_, i) => ['X' + i, 1])) }, SB.token); ok(r.status === 413, 'Zu grosse Sync-Anfrage abgewiesen');
+  r = await call('GET', '/api/meine', null, SW.token); ok(Object.keys(r.body.erledigt).length === 0, 'Fortschritt ist pro Schueler getrennt');
+  r = await call('GET', '/api/klassen/' + K1.id, null, D.token);
+  const bl = r.body.schueler.find(x => x.benutzer === 'blitz');
+  ok(bl.erledigt['1.2'] === 2000 && bl.zuletzt > 0, 'Dozent sieht den gespiegelten Fortschritt und "zuletzt"');
+
   globalThis.__t = { D, D2, K1, S1, S3, adm };
   if (globalThis.__more) await globalThis.__more({ call, login, ok, env, W });
   console.log(`API-Tests: ${pass} ok, ${failN} Fehler`);

@@ -233,7 +233,82 @@
     }, function (e) { el.textContent = e.message; });
   }
 
+  /* ---------- Schueler: Vorgaben laden, Fortschritt spiegeln ----------
+   * Lokal bleibt die Basis: Der Server-Stand wird nur ergaenzt (Vereinigung von done). Vorgaben werden lokal
+   * zwischengespeichert (account.vorgaben), damit die Karte sie auch offline zeigt. */
+  var syncTimer = 0, syncing = null;
+  function doneTimes() { // Zeitpunkt je erledigter Station aus den Ereignissen (fruehester), sonst jetzt
+    var s = S(), t = {};
+    s.events.forEach(function (e) { if ((e.type === 'task_done' || (e.type === 'theory_check' && e.pass)) && e.id && s.done[e.id] && !(t[e.id] <= e.t)) t[e.id] = e.t; });
+    Object.keys(s.done).forEach(function (id) { if (s.done[id] && !t[id]) t[id] = Date.now(); });
+    return t;
+  }
+  function mergeServer(erledigt) {
+    var s = S(), added = 0;
+    Object.keys(erledigt || {}).forEach(function (id) { if (root.DQ.byId[id] && !s.done[id]) { s.done[id] = true; added++; } });
+    return added;
+  }
+  function sync() {
+    var a = acc(); if (!a || a.konto.rolle !== 'schueler') return Promise.resolve(null);
+    if (syncing) return syncing;
+    var since = a.syncT || 0, evs = S().events.filter(function (e) { return e.t > since; }).slice(0, 500);
+    syncing = api('POST', '/api/sync', { erledigt: doneTimes(), ereignisse: evs }).then(function (res) {
+      var b = acc(); if (!b) return null;
+      if (evs.length) b.syncT = evs[evs.length - 1].t;
+      b.lastSync = res.zeit || Date.now();
+      var added = mergeServer(res.erledigt); ctx.save();
+      syncing = null;
+      if (S().events.some(function (e) { return e.t > (b.syncT || 0); })) return sync(); // mehr als 500 Ereignisse: weiter
+      if (added) ctx.renderMap();
+      return res;
+    }, function (e) { syncing = null; throw e; });
+    return syncing;
+  }
+  function loadMine() {
+    var a = acc(); if (!a || a.konto.rolle !== 'schueler') return Promise.resolve(null);
+    return api('GET', '/api/meine').then(function (res) {
+      var b = acc(); if (!b) return null;
+      b.vorgaben = res.zuweisungen; b.vorgabenT = Date.now(); mergeServer(res.erledigt); ctx.save(); ctx.renderMap();
+      return res;
+    });
+  }
+  function refresh() { return loadMine().then(sync).catch(function () { /* offline: lokal weiterspielen */ }); }
+  /* Nach dem Anmelden: gehoert der lokale Spielstand einer anderen Person, fragen, ob zusammengefuehrt werden soll */
+  function afterStudentLogin() {
+    var s = S(), a = acc(), local = Object.keys(s.done).filter(function (k) { return s.done[k]; }).length;
+    if (s.syncOwner && s.syncOwner !== a.konto.id && local) {
+      ctx.modal('<h2>Spielstand auf diesem Geraet</h2><p>Hier liegt der Fortschritt einer anderen Anmeldung (' + local + ' Stationen). Soll er zu <b>' + esc(a.konto.pseudonym) + '</b> hinzugefuegt werden?</p>',
+        [{ label: 'Nein – nur meinen Stand laden', action: function () { s.done = {}; s.drafts = {}; a.syncT = Date.now(); s.syncOwner = a.konto.id; ctx.save(); refresh().then(function () { render(); }); } },
+          { label: 'Ja, zusammenfuehren', primary: true, action: function () { s.syncOwner = a.konto.id; ctx.save(); refresh().then(function () { render(); }); } }]);
+      return;
+    }
+    s.syncOwner = a.konto.id; ctx.save();
+    refresh().then(function () { render(); });
+  }
+  function onProgress() { clearTimeout(syncTimer); if (role() === 'schueler') syncTimer = setTimeout(function () { sync().catch(function () {}); }, 1500); }
+
+  /* Vorgaben mit Status fuer Karte und Kontoansicht: {z, label, items, done, over, next} */
+  function vorgaben() {
+    var a = acc(); if (!a || a.konto.rolle !== 'schueler' || !a.vorgaben) return [];
+    var s = S(), t = today();
+    return a.vorgaben.map(function (z) {
+      var items = targetItems(z), open = items.filter(function (id) { return !s.done[id]; }), fin = items.length > 0 && !open.length;
+      return { z: z, label: targetLabel(z), items: items, done: fin, left: open.length, over: !!(z.faellig_am && z.faellig_am < t && !fin), next: open[0] || items[0] };
+    }).filter(function (v) { return v.items.length; });
+  }
+  function renderStudent(el) {
+    var a = acc(), vs = vorgaben();
+    el.innerHTML = '<section class="acc-card"><h3>Vorgaben</h3>' + (vs.length ? '<table class="acc-t"><tr><th>Vorgabe</th><th>Frist</th><th>Stand</th><th></th></tr>' + vs.map(function (v) {
+      return '<tr><td>' + esc(v.label) + ' <span class="dim small">(' + (v.z.fuer === 'dich' ? 'fuer dich' : 'Klasse') + ', ' + esc(v.z.dozent) + ')</span></td><td class="' + (v.over ? 'due-over' : '') + '">' + (v.z.faellig_am ? fmtDue(v.z.faellig_am) : '–') + '</td>' +
+        '<td>' + (v.done ? '<span class="chip ok">erledigt</span>' : v.left + ' offen') + '</td><td class="acc-act"><button class="btn small" data-vgo="' + esc(v.next) + '">Oeffnen</button></td></tr>';
+    }).join('') + '</table>' : '<p class="dim">Keine Vorgaben – spiel einfach frei weiter.</p>') +
+      '<p class="dim small">Fortschritt gespiegelt: ' + (a.lastSync ? new Date(a.lastSync).toLocaleString('de-CH') : 'noch nie') + ' <button class="btn small" id="accSync">Jetzt synchronisieren</button></p></section>';
+    $$('[data-vgo]', el).forEach(function (b) { b.onclick = function () { ctx.openItem(b.dataset.vgo); }; });
+    $('#accSync', el).onclick = function () { refresh().then(function () { done('Synchronisiert.'); }); };
+  }
+
   root.DQAccount = {
+    sync: sync, refresh: refresh, afterStudentLogin: afterStudentLogin, onProgress: onProgress, vorgaben: vorgaben, renderStudent: renderStudent,
     renderAssignments: renderAssignments, targetItems: targetItems, targetLabel: targetLabel, isDone: isDone, today: today, fmtDue: fmtDue, chapterOf: chapterOf,
     init: function (c) { ctx = c; },
     render: render, api: api, apiBase: apiBase, acc: acc, role: role, esc: esc, ask: ask, done: done, fail: fail, field: field,

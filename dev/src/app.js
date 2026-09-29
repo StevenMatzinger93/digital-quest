@@ -34,13 +34,17 @@
   function log(type, data) {
     var ev = { t: Date.now(), type: type }; for (var k in data) ev[k] = data[k];
     S.events.push(ev); if (S.events.length > 5000) S.events.splice(0, S.events.length - 5000); save();
+    if (root.DQAccount && (type === 'task_done' || type === 'theory_check')) root.DQAccount.onProgress();
   }
 
   /* ================= Reihenfolge / Freischaltung ================= */
   var ORDER = []; DQ.chapters.forEach(function (c) { c.sequence.forEach(function (id) { ORDER.push(id); }); });
   /* Dozentenmodus (settings.teacher, per Code in den Einstellungen) oder ?alle: alles offen, Werkbank mit allen Bauteilen */
   function allOpen() { return UNLOCK_ALL || !!S.settings.teacher; }
-  function unlocked(id) { var i = ORDER.indexOf(id); return allOpen() || i <= 0 || !!S.done[ORDER[i - 1]]; }
+  /* Vorgaben vom Dozent (Konto): zugewiesene Stationen sind immer offen – eine Vorgabe soll man auch bearbeiten koennen */
+  function vorgaben() { return root.DQAccount ? root.DQAccount.vorgaben() : []; }
+  function assigned(id) { return vorgaben().some(function (v) { return v.items.indexOf(id) >= 0; }); }
+  function unlocked(id) { var i = ORDER.indexOf(id); return allOpen() || i <= 0 || !!S.done[ORDER[i - 1]] || assigned(id); }
   function nextOf(id) { var i = ORDER.indexOf(id); return ORDER[i + 1]; }
 
   /* ================= Navigation ================= */
@@ -79,6 +83,7 @@
       (S.settings.teacher ? '<div class="teacher-bar"><b>Dozentenmodus</b> <span class="dim small">Alle Stationen offen, Freie Werkbank mit allen Bauteilen.</span><label class="fld"><span>Springe zu</span><select id="jump"><option value="">Station waehlen …</option>' +
         DQ.chapters.map(function (c) { return '<optgroup label="Kapitel ' + c.id + ' – ' + esc(c.title) + '">' + c.sequence.map(function (id) { var it = DQ.byId[id]; return '<option value="' + id + '">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : id) + ' ' + esc(it.title) + '</option>'; }).join('') + '</optgroup>'; }).join('') +
         '</select></label></div>' : '') +
+      vorgabenBox() +
       '<div class="map-actions"><button class="btn" data-open="sandbox" title="Frei bauen und messen – ohne Auftrag">Freie Werkbank</button><div class="progress"><div class="bar"><i style="width:' + (100 * done / Math.max(1, total)).toFixed(1) + '%"></i></div><span>' + done + ' / ' + total + '</span></div></div></div>';
     var parts = DQ.parts || [{ no: '', title: '', chapters: DQ.chapters.map(function (c) { return c.id; }) }];
     parts.forEach(function (pt) {
@@ -88,11 +93,11 @@
       if (pt.no) h += '<div class="part-head part-' + (pt.stage || 'grund') + '"><span class="part-no">Teil ' + pt.no + '</span><h2>' + esc(pt.title) + '</h2>' +
         (pt.stage ? '<span class="stage-tag ' + pt.stage + '">' + esc(DQ.stages[pt.stage]) + '</span>' : '') + '<span class="part-prog mono">' + pd + ' / ' + ids.length + '</span></div>';
       chs.forEach(function (c) {
-        h += '<section class="chapter"><header><span class="chno">Kapitel ' + c.id + '</span><h2>' + esc(c.title) + '</h2><p>' + esc(c.intro || '') + '</p></header><div class="nodes">';
+        h += '<section class="chapter"><header><span class="chno">Kapitel ' + c.id + '</span>' + vgTag('kapitel', String(c.id)) + '<h2>' + esc(c.title) + '</h2><p>' + esc(c.intro || '') + '</p></header><div class="nodes">';
         c.sequence.forEach(function (id) {
           var it = DQ.byId[id], open = unlocked(id), ok = S.done[id];
           h += '<button class="node ' + it.kind + (ok ? ' done' : '') + (open ? '' : ' locked') + (it.boss ? ' boss' : '') + '" data-open="' + id + '"' + (open ? '' : ' disabled') + '>' +
-            '<span class="ic">' + (ok ? ICON.ok : open ? ICON[it.kind] : ICON.lock) + '</span><span class="nid">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : 'Aufgabe ' + id) + '</span><span class="nt">' + esc(it.title) + '</span></button>';
+            '<span class="ic">' + (ok ? ICON.ok : open ? ICON[it.kind] : ICON.lock) + '</span><span class="nid">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : 'Aufgabe ' + id) + vgTag('aufgabe', id, true) + '</span><span class="nt">' + esc(it.title) + '</span></button>';
         });
         h += '</div></section>';
       });
@@ -102,6 +107,22 @@
     $$('[data-open]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openItem(b.dataset.open); }; });
     $$('[data-award]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openAward(b.dataset.award); }; });
     if ($('#jump')) $('#jump').onchange = function () { if (this.value) openItem(this.value); };
+  }
+
+  /* Vorgaben vom Dozent auf der Karte: Kasten oben mit Frist und Stand, Hinweis an Kapitel und Station. Nichts wird gesperrt. */
+  function vorgabenBox() {
+    var vs = vorgaben(); if (!vs.length) return '';
+    var fmt = root.DQAccount.fmtDue, open = vs.filter(function (v) { return !v.done; }).length;
+    return '<div class="vg-box"><div class="vg-head"><b>Vorgaben vom Dozent</b><span class="dim small">' + (open ? open + ' offen' : 'alles erledigt') + '</span></div><ul>' + vs.map(function (v) {
+      return '<li class="' + (v.done ? 'vg-done' : v.over ? 'vg-over' : '') + '"><button class="vg-go" data-open="' + esc(v.next) + '">' + esc(v.label) + '</button>' +
+        '<span class="vg-meta">' + (v.z.fuer === 'dich' ? 'fuer dich · ' : '') + (v.z.faellig_am ? (v.over ? 'ueberfaellig seit ' : 'bis ') + fmt(v.z.faellig_am) : 'ohne Frist') + ' · ' + (v.done ? 'erledigt' : v.left + ' offen') + '</span></li>';
+    }).join('') + '</ul></div>';
+  }
+  function vgTag(typ, id, small) {
+    var v = vorgaben().filter(function (x) { return x.z.ziel_typ === typ && x.z.ziel_id === id; })[0];
+    if (!v) return '';
+    var d = v.z.faellig_am ? ' · bis ' + root.DQAccount.fmtDue(v.z.faellig_am) : '';
+    return '<span class="vg-tag' + (v.done ? ' done' : v.over ? ' over' : '') + (small ? ' small' : '') + '" title="Vorgabe vom Dozent' + esc(d) + '">Vorgabe' + (small ? '' : esc(d)) + '</span>';
   }
 
   /* ================= Auszeichnungen (Zertifikat Grundstufe, Abzeichen Profi-Stufe) ================= */
@@ -739,7 +760,8 @@
   /* ================= Start ================= */
   function init() {
     applyTheme(); applyMode();
-    if (root.DQAccount) root.DQAccount.init({ state: function () { return S; }, save: save, modal: modal, esc: esc, log: log, renderMap: renderMap, order: function () { return ORDER; },
+    if (root.DQAccount) root.DQAccount.init({ state: function () { return S; }, save: save, modal: modal, esc: esc, log: log, order: function () { return ORDER; },
+      renderMap: function () { if (current.screen === 'map') renderMap(); }, openItem: openItem,
       setTeacher: function (on) { S.settings.teacher = !!on; applyMode(); save(); } });
     $$('[data-go]').forEach(function (b) {
       b.onclick = function () {
@@ -782,6 +804,7 @@
     });
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
     renderMap(); show('map');
+    if (root.DQAccount && root.DQAccount.role() === 'schueler') root.DQAccount.refresh(); // Vorgaben holen, Fortschritt spiegeln (offline: still)
   }
 
   window.DigitalQuest = { get state() { return S; }, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward };

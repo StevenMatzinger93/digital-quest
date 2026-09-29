@@ -325,6 +325,46 @@ on('DELETE', '/api/zuweisungen/:id', async ({ s, db, p }) => {
   return { ok: true };
 });
 
+/* ---------- Schueler: eigene Vorgaben, Fortschritt-Spiegel ---------- */
+async function doneMap(db, id) {
+  const r = (await db.prepare('SELECT item_id, erledigt FROM fortschritt WHERE schueler_id = ?').bind(id).all()).results, m = {};
+  r.forEach(x => { m[x.item_id] = x.erledigt; });
+  return m;
+}
+on('GET', '/api/meine', async ({ s, db }) => {
+  need(s, 'schueler');
+  const me = await db.prepare('SELECT klasse_id FROM schueler WHERE id = ?').bind(s.id).first();
+  if (!me) fail(401, 'Konto gibt es nicht mehr.');
+  const r = await db.prepare('SELECT ' + Z_COLS + ', d.pseudonym AS dozent FROM zuweisungen z JOIN dozenten d ON d.id = z.dozent_id ' +
+    'WHERE z.klasse_id = ? OR z.schueler_id = ? ORDER BY z.faellig_am IS NULL, z.faellig_am, z.erstellt').bind(me.klasse_id, s.id).all();
+  return { zuweisungen: r.results.map(z => ({ id: z.id, ziel_typ: z.ziel_typ, ziel_id: z.ziel_id, faellig_am: z.faellig_am, erstellt: z.erstellt, dozent: z.dozent, fuer: z.schueler_id ? 'dich' : 'klasse' })), erledigt: await doneMap(db, s.id) };
+});
+/* Lokalen Fortschritt spiegeln: erledigt {item: t} (fruehester Zeitpunkt gewinnt), ereignisse [{t, type, id, …}] (doppelte ignoriert).
+ * Antwort: gesamter Server-Stand, damit ein anderes Geraet ihn uebernehmen kann. */
+on('POST', '/api/sync', async ({ s, req, db, now }) => {
+  need(s, 'schueler');
+  const b = await body(req), done = b.erledigt && typeof b.erledigt === 'object' ? b.erledigt : {}, evs = Array.isArray(b.ereignisse) ? b.ereignisse : [];
+  const ids = Object.keys(done);
+  if (ids.length > 1000 || evs.length > 500) fail(413, 'Zu viele Eintraege auf einmal (hoechstens 1000 erledigt / 500 Ereignisse).');
+  const stmts = [];
+  ids.forEach(id => {
+    if (!RE_ITEM.test(id)) return;
+    const t = Math.min(now, Math.max(0, Math.round(+done[id]) || now));
+    stmts.push(db.prepare('INSERT INTO fortschritt (schueler_id, item_id, erledigt) VALUES (?, ?, ?) ON CONFLICT(schueler_id, item_id) DO UPDATE SET erledigt = MIN(erledigt, excluded.erledigt)').bind(s.id, id, t));
+  });
+  evs.forEach(e => {
+    if (!e || typeof e !== 'object') return;
+    const t = Math.round(+e.t), typ = String(e.type || ''), item = String(e.id || '');
+    if (!(t > 0) || !/^[a-z_]{1,24}$/.test(typ) || (item && !RE_ITEM.test(item))) return;
+    const rest = {}; Object.keys(e).forEach(k => { if (k !== 't' && k !== 'type' && k !== 'id') rest[k] = e[k]; });
+    const daten = JSON.stringify(rest);
+    stmts.push(db.prepare('INSERT OR IGNORE INTO ereignisse (schueler_id, t, typ, item_id, daten) VALUES (?, ?, ?, ?, ?)').bind(s.id, t, typ, item, daten.length > 2000 ? daten.slice(0, 2000) : daten));
+  });
+  stmts.push(db.prepare('UPDATE schueler SET zuletzt = ? WHERE id = ?').bind(now, s.id));
+  await db.batch(stmts);
+  return { erledigt: await doneMap(db, s.id), zeit: now };
+});
+
 /* ---------- Einstieg ---------- */
 export async function handle(req, env) {
   const url = new URL(req.url);

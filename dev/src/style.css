@@ -337,3 +337,15 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .zt-items label:has(input:disabled) { opacity: .45; }
 .zr { display: block; margin: 4px 0; } .zuw-studs { display: grid; gap: 2px; margin: 4px 0 10px 22px; font-size: 14px; }
 @media (max-width: 760px) { .zuw-cols { grid-template-columns: 1fr; } }
+/* Vorgaben vom Dozent auf der Karte */
+.vg-box { flex-basis: 100%; order: 4; border: 1px solid var(--accent-lead); border-radius: 12px; padding: 10px 14px; background: var(--bg-secondary); }
+.vg-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; } .vg-head b { color: var(--accent-lead); }
+.vg-box ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+.vg-box li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 4px 0; border-top: 1px solid var(--line); }
+.vg-go { background: none; border: 0; padding: 0; color: var(--text-primary); font-weight: 600; cursor: pointer; text-align: left; }
+.vg-go:hover { color: var(--accent-lead); text-decoration: underline; }
+.vg-meta { font-size: 13px; color: var(--text-dim); }
+.vg-over .vg-meta { color: var(--accent-red); font-weight: 600; } .vg-done .vg-go { color: var(--text-dim); } .vg-done .vg-meta { color: var(--accent-green); }
+.vg-tag { display: inline-block; margin-left: 10px; font: 700 10px var(--font-code); letter-spacing: 1px; text-transform: uppercase; color: #111; background: var(--accent-lead); padding: 2px 7px; border-radius: 4px; vertical-align: middle; }
+.vg-tag.small { margin-left: 6px; padding: 0 5px; font-size: 9px; }
+.vg-tag.over { background: var(--accent-red); color: #fff; } .vg-tag.done { background: var(--accent-green); color: #111; }
