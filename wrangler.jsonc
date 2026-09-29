@@ -7,10 +7,15 @@
   "assets": {
     "directory": "./web",
     "binding": "ASSETS"
-  }
-  // Datenbank fuer Konten, Klassen, Zuweisungen und Fortschritt: EIGENE D1-Datenbank (nicht die von SCL Quest).
-  // Wird gemeinsam mit Steven angelegt (npx wrangler d1 create digitalquest), danach hier eintragen:
-  // "d1_databases": [ { "binding": "DB", "database_name": "digitalquest", "database_id": "<id aus wrangler d1 create>" } ]
-  // Solange der Block fehlt, antwortet /api/… mit 503 "Konten … noch nicht eingerichtet" – die Website laeuft unveraendert.
-  // Secrets (nicht in dieser Datei!): npx wrangler secret put ADMIN_USER / ADMIN_PASSWORD
+  },
+  // Datenbank fuer Konten, Klassen, Zuweisungen und Fortschritt: EIGENE D1-Datenbank (nicht die von SCL Quest),
+  // angelegt am 29.09.2026 (npx wrangler d1 create digitalquest, Region EEUR). Schema: migrations/ (wrangler d1 migrations apply).
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "digitalquest",
+      "database_id": "04e24744-b4ae-4d58-a6bf-0e5b0e71e94a"
+    }
+  ]
+  // Secrets (nicht in dieser Datei!): npx wrangler secret put ADMIN_USER / ADMIN_PASSWORD – im Projektordner ausfuehren
 }
