@@ -7,6 +7,8 @@ import { ensureSchema } from './db.js';
 import { challengeRoutes } from './challenge.js';
 import { reportRoutes } from './reports.js';
 import { assignRoutes, wipeAssignments } from './assign.js';
+import { examRoutes } from './exam.js';
+import { certRoutes, verifyPage } from './cert.js';
 
 const COOKIE = 'dq_sess';
 const HEADER = 'x-dquest';
@@ -18,10 +20,12 @@ const LOCK = { user: 5, ip: 40, window: 15 * 60 * 1000 };
 export default {
   async fetch(request, env, ctx){
     const url = new URL(request.url);
-    if(!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
+    const zc = url.pathname.match(/^\/z\/([A-Za-z0-9-]{1,40})\/?$/);   // oeffentliche Pruefseite eines Zertifikats
+    if(!zc && !url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     try{
       if(!env.DB) fail(500, 'Datenbank nicht verbunden (Binding DB fehlt).');
       await ensureSchema(env.DB);
+      if(zc) return await verifyPage({ req: request, env, url, db: env.DB }, zc[1]);
       return await route(request, env, url, ctx);
     }catch(e){
       if(e instanceof HttpError) return json(Object.assign({ error: e.message }, e.extra || {}), e.status);
@@ -48,7 +52,7 @@ async function route(req, env, url, ctx){
   if(p === '/api/class-info' && m === 'GET') return classInfo(C);
 
   const H = { currentUser, requireRole, ownClass, studentOf };
-  const r = (await challengeRoutes(C, p, m, H)) || (await reportRoutes(C, p, m, H)) || (await assignRoutes(C, p, m, H));
+  const r = (await challengeRoutes(C, p, m, H)) || (await reportRoutes(C, p, m, H)) || (await assignRoutes(C, p, m, H)) || (await examRoutes(C, p, m, H)) || (await certRoutes(C, p, m, H));
   if(r) return r;
 
   C.user = await currentUser(C);
@@ -261,11 +265,15 @@ async function ackNotice(C){
 async function deleteSelf(C){
   if(C.user.role !== 'student') fail(400, 'Nur Schülerkonten können sich selbst löschen.');
   if(!await verifyPassword(String(C.body.password || ''), C.user.pw)) fail(401, 'Passwort falsch.');
-  await wipeUser(C, C.user.id);
+  await wipeUser(C, C.user.id, !!C.body.deleteCertificates);
   return json({ ok: true }, 200, { 'set-cookie': sessionCookie(C.url, '', 0) });
 }
-async function wipeUser(C, id){
+async function wipeUser(C, id, deleteCertificates){
   await C.db.batch([
+    C.db.prepare('DELETE FROM exam_answers WHERE exam_id IN (SELECT id FROM exams WHERE user_id = ?)').bind(id),
+    C.db.prepare('DELETE FROM exams WHERE user_id = ?').bind(id),
+    // Zertifikate bleiben pruefbar (ohne Bezug zum Konto), ausser die Person will sie mitloeschen
+    deleteCertificates ? C.db.prepare('DELETE FROM certificates WHERE user_id = ?').bind(id) : C.db.prepare('UPDATE certificates SET user_id = NULL WHERE user_id = ?').bind(id),
     C.db.prepare('DELETE FROM progress WHERE user_id = ?').bind(id),
     C.db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id),
     C.db.prepare('DELETE FROM challenge_players WHERE user_id = ?').bind(id),

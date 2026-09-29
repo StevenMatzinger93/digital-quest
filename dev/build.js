@@ -6,12 +6,13 @@
 //     data/dq.json         Kapitel, Aufgaben, Theorien, Uebungswerkstatt (fuer Leitstand und Challenge)
 //     data/dq_live.json    Musterschaltungen und Stoerungsszenarien (aus den wrong-Loesungen)
 //     sw.js                ein Service Worker fuer Portal und Spiel, /api/ nie aus dem Cache
+//   ../worker/gen/exam_bundle.js   Engine + Pruefungspool fuer den Worker (Bewertung der Pruefungen auf dem Server)
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const src = p => fs.readFileSync(path.join(__dirname, 'src', p), 'utf8');
 const P = f => fs.readFileSync(path.join(__dirname, 'portal', f), 'utf8');
 const script = (title, code) => { if (/<\/script/i.test(code)) throw new Error(title + ' enthaelt </script>'); return '<script>\n/* ==== ' + title + ' ==== */\n' + code + '\n</script>\n'; };
 const content = fs.readdirSync(path.join(__dirname, 'src/content')).filter(f => f.endsWith('.js') && f !== '_helpers.js' && f !== 'manual.js').sort();
-const files = ['engine.js', 'content/_helpers.js', ...content.map(f => 'content/' + f), 'content/manual.js', 'circuit-ui.js', 'editor.js', 'bench.js', 'mini.js', 'visuals.js', 'tiles.js', 'account.js', 'live.js', 'app.js'].filter(f => fs.existsSync(path.join(__dirname, 'src', f)));
+const files = ['engine.js', 'content/_helpers.js', ...content.map(f => 'content/' + f), 'content/manual.js', 'circuit-ui.js', 'editor.js', 'bench.js', 'mini.js', 'visuals.js', 'tiles.js', 'account.js', 'live.js', 'exam.js', 'app.js'].filter(f => fs.existsSync(path.join(__dirname, 'src', f)));
 const js = files.map(f => `/* ==== ${f} ==== */\n` + src(f)).join('\n');
 if (/<\/script/i.test(js)) throw new Error('JS enthaelt </script>');
 const tpl = src('index.template.html');
@@ -106,6 +107,20 @@ fs.writeFileSync(path.join(web, 'manifest.webmanifest'), JSON.stringify({
   icons: icons.map(i => Object.assign({}, i, { src: i.src.replace('../', '') }))
 }, null, 2));
 
+/* ---------- Worker: Engine + Pruefungspool (nie im Browser) ---------- */
+const XP = require('./exam_pool.js');
+const bundleParts = ['engine.js', 'content/_helpers.js', 'content/_logic.js', 'exam_core.js'].concat(XP.POOL_FILES.map(f => 'content_exam/' + f));
+const QUEST_TASKS = { dq: DQ.tasks.filter(t => typeof t.ch === 'number').map(t => ({ id: t.id, ch: t.ch, final: !!t.boss && (t.ch === 10 || t.ch === 15) })) };
+const NL = String.fromCharCode(10);
+const bundle = ['// GENERIERT von dev/build.js – nicht von Hand aendern. Engine, Pruefungskern und Pruefungspool fuer den Worker.']
+  .concat(bundleParts.map(f => '/* ==== ' + f + ' ==== */' + NL + src(f)))
+  .concat(['/* ==== Theoriefragen (aus den Lektionen) ==== */', JSON.stringify(XP.questions) + '.forEach(q => globalThis.defExamQuestion(q));',
+    'export const Exam = globalThis.DQExam;', 'export const QUEST_TASKS = ' + JSON.stringify(QUEST_TASKS) + ';', '']).join(NL);
+fs.mkdirSync(path.join(root, 'worker', 'gen'), { recursive: true });
+fs.writeFileSync(path.join(root, 'worker', 'gen', 'exam_bundle.js'), bundle);
+for (const f of files) if (/content_exam|exam_core/.test(f)) throw new Error('Pruefungspool darf nicht ins Spiel: ' + f);
+if (/defExamTask|"hidden"/.test(game)) throw new Error('Pruefungspool ist im Spiel gelandet');
+
 /* ---------- Service Worker (Wurzel): Portal und Spiel offline, /api/ und /z/ nie aus dem Cache ---------- */
 const FILES = ['./', './index.html', './impressum.html', './datenschutz.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png',
   './data/dq.json', './data/dq_live.json', './labor/', './labor/index.html', './labor/manifest.webmanifest'];
@@ -125,4 +140,4 @@ self.addEventListener('fetch', e => {
 });
 `);
 const kb = f => (fs.statSync(f).size / 1024).toFixed(0) + ' KB';
-console.log(`Build ok: index.html (${kb(path.join(root, 'index.html'))}), web/ Portal (${kb(path.join(web, 'index.html'))}) + labor/ (${kb(path.join(lab, 'index.html'))}), ${bugs.length} Stoerungsszenarien, Cache ${ver}, ${files.length} Quelldateien`);
+console.log(`Build ok: index.html (${kb(path.join(root, 'index.html'))}), web/ Portal (${kb(path.join(web, 'index.html'))}) + labor/ (${kb(path.join(lab, 'index.html'))}), ${bugs.length} Stoerungsszenarien, Worker-Bundle ${(bundle.length / 1024).toFixed(0)} KB (${XP.Exam.X.tasks.length} Pruefungsvorlagen, ${XP.questions.length} Fragen), Cache ${ver}, ${files.length} Quelldateien`);
