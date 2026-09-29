@@ -138,6 +138,31 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   await page.click('[data-mt="trms"]');
   await page.click('#btnView'); // zurueck ins Schema fuer die folgenden Tests
 
+  // Karte nach Teilen I–IV, Handbuch, Boss mit Auszeichnung (Loesung als Entwurf geladen), Zertifikat/Abzeichen
+  await page.click('[data-go="map"]');
+  const heads = await page.$$eval('.part-head .part-no', els => els.map(e => e.textContent));
+  if (heads.join('|') !== 'Teil I|Teil II|Teil III|Teil IV') errors.push('Karte: Teile ' + heads.join('|'));
+  if (await page.$$eval('.award-card', els => els.length) !== 2) errors.push('Karte: 2 Auszeichnungs-Karten erwartet');
+  await page.click('[data-go="manual"]');
+  for (const id of await page.$$eval('[data-man]', els => els.map(e => e.dataset.man))) {
+    await page.click(`[data-man="${id}"]`);
+    if ((await page.textContent('.manual article')).length < 80) errors.push('Handbuch-Seite leer: ' + id);
+  }
+  if (!/Motor/.test(await page.evaluate(() => DQ.manual.map(p => p.html).join(' ')))) errors.push('Handbuch: Motor fehlt');
+  await page.evaluate(() => { const t = DQ.byId['15.10']; DigitalQuest.state.drafts['15.10'] = { layout: JSON.parse(JSON.stringify(t.ref)), answers: {} }; DigitalQuest.openItem('15.10'); });
+  if (!/Erlaubt: hoechstens/.test(await page.textContent('#taskInfo'))) errors.push('15.10: Limit-Hinweis fehlt');
+  await page.click('#btnCheck'); await page.waitForTimeout(150);
+  if (!await page.isVisible('#modal.open .award-note')) errors.push('15.10: Abzeichen im Erfolgsdialog fehlt: ' + (await page.textContent('#results')).slice(0, 200));
+  else {
+    await page.click('#modal .modal-btns button:nth-child(2)'); // "Abzeichen anzeigen"
+    if (!await page.isVisible('#scr-award .certificate.profi')) errors.push('Abzeichen-Seite nicht geoeffnet');
+    await page.fill('#awName', 'Alex Muster');
+    if ((await page.textContent('#awNameOut')) !== 'Alex Muster') errors.push('Name auf dem Abzeichen wird nicht uebernommen');
+    await page.screenshot({ path: shots + '/12_abzeichen.png' });
+    await page.click('#awBack');
+    if (!await page.isVisible('[data-award="profi"]')) errors.push('Karte: Abzeichen nicht als erhalten markiert');
+  }
+
   // Handy
   const m =await browser.newPage({ viewport: { width: 390, height: 844 } });
   m.on('pageerror', e => errors.push('mobil: ' + e.message));

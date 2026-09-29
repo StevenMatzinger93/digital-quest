@@ -8,12 +8,8 @@ Idee: „zwischen Fritzing und LTspice“ – Lernende **bauen Schaltungen** im 
 
 Methode, Qualitaetsregeln und Design folgen dem Bauplan aus SCL Quest (`docs/BAUPLAN_LERNSPIEL.md`).
 
-## Naechster Arbeitsschritt (Stand 29.09.2026 – Uebergabe an neue Session)
-**Kapitel 1–13 sind fertig** (130 Aufgaben, 26 Theorien, alle in Schaltplan UND Werkbank per `tests/tasks.js` loesbar), Werkbank/Labor fertig. Offen, in dieser Reihenfolge (Details in `docs/STAND.md` → "Uebergabe"):
-1. **Kapitel 14** (RC-Filter/Frequenzgang) liegt fast fertig auf Branch `wip/kapitel-14` (`dev/src/content/ch14.js`) – zwei Validator-Fehler in 14.7 und 14.8 beheben, dann nach `main`.
-2. **Kapitel 15** Anwendungsprojekt "Antriebsstation" (nach Quelle TP1410) mit Profi-Boss schreiben – Plan in `docs/STAND.md`.
-3. **Zertifikat** nach Grundstufen-Boss (10.10) und **Abzeichen** nach Profi-Boss (15.10); Karte nach **Teilen I–IV** gliedern; Handbuch um die neuen Bauteile ergaenzen.
-4. `docs/THEMEN.md` ist bereits an die tatsaechliche Kapitelfolge angepasst; nach Abschluss STAND/ENTSCHEIDUNGEN nachfuehren, voller Testlauf (`node tests/smoke.js`, `node tests/tasks.js`).
+## Stand (29.09.2026)
+**Alle 15 Kapitel sind fertig** (150 Aufgaben, 30 Theorien, alle in Schaltplan UND Werkbank per `tests/tasks.js` loesbar), Werkbank/Labor fertig, Karte nach Teilen I–IV, Zertifikat Grundstufe (Boss 10.10) und Abzeichen Profi-Stufe (Boss 15.10). Moegliche Weiterentwicklung (nicht blockierend) steht in `docs/STAND.md` → "Naechste Schritte" (Labor-Feinheiten wie A~-Bereich und 2-Kanal-Oszilloskop, Editor Stufe 2, Komfort nach Bauplan, Figuren/Kapitel-Intros).
 
 ## Einrichtung (neue Maschine / Cloud-Session)
 ```
@@ -21,7 +17,7 @@ cd dev
 npm install                         # Playwright (nur fuer die Browser-Tests)
 npx playwright install chromium     # Browser fuer tests/smoke.js und tests/tasks.js
 ```
-Das Quellmaterial `99_inputs/` (Stevens Unterrichtsunterlagen) ist **bewusst nicht im Repository** (`.gitignore`) – es liegt lokal in Stevens OneDrive. Fuer Kapitel 14/15 steht das Noetige in `docs/STAND.md` → "Uebergabe"; wer das Original braucht, fragt Steven.
+Das Quellmaterial `99_inputs/` (Stevens Unterrichtsunterlagen) ist **bewusst nicht im Repository** (`.gitignore`) – es liegt lokal in Stevens OneDrive. Wer das Original braucht, fragt Steven.
 Jeder Push auf `main` deployt automatisch (Cloudflare Worker). Halbfertiges daher auf einem Branch (`wip/…`) ablegen und erst mit gruenem Validator nach `main`.
 
 ## Aufbau
@@ -36,7 +32,7 @@ Jeder Push auf `main` deployt automatisch (Cloudflare Worker). Halbfertiges dahe
   - `src/bench.js` – `window.DQBench` (Grundgeruest steht seit Phase 2, **Herzstueck/Prioritaet**): 2.5D Werkbank-Renderer ueber demselben Interaktionskern wie `editor.js` (Bauteile, Kabel mit Messspitzen, Multimeter/Oszilloskop mit echten Geraetefronten). **Voll interaktiv** (bauen/verdrahten/drehen/loeschen genau wie im Schema, nicht nur Ansehen/Messen). Liest/schreibt denselben Schaltungszustand wie die Schema-Ansicht; Umschalt-Button Schema <-> Werkbank aendert nur die Darstellung. Positionen kommen aus dem `bench`-Layout der jeweiligen Aufgabe (siehe "Aufgaben schreiben"), nicht automatisch aus dem Schema-Layout abgeleitet. Stilvorbild: echtes Elektroniklabor/Physik-Praktikum, kein frei drehbares 3D. Siehe `docs/KONZEPT.md`, `docs/ENTSCHEIDUNGEN.md`.
   - `src/app.js` – Spielsteuerung (Karte, Aufgabe, Theorie, Handbuch, Einstellungen, Speicherstand). Plus **Sandbox-Modus (Quick Win)**: freie Werkbank ohne Auftrag/Pruefung, alle bereits freigeschalteten Bauteile, ueber Karte erreichbar.
   - `src/style.css`, `src/index.template.html`
-  - `src/content/` – `_helpers.js` (`defChapter`, `defTask`, `defTheory`, `W`), `_logic.js` (`LG`: Board-Layouts, Wahrheitstabellen-Tests, Tabellen-HTML, Minterme – fuer Logik-Kapitel), `chNN.js` (je Kapitel Aufgaben + 2 Theorien), `manual.js`
+  - `src/content/` – `_helpers.js` (`defChapter`, `defTask`, `defTheory`, `W`), `_parts.js` (`DQ.parts` Teile I–IV der Karte, `DQ.awards` Zertifikat/Abzeichen), `_logic.js` (`LG`: Board-Layouts, Wahrheitstabellen-Tests, Tabellen-HTML, Minterme – fuer Logik-Kapitel), `chNN.js` (je Kapitel Aufgaben + 2 Theorien), `manual.js`
   - `build.js`, `validate.js`, `test_engine.js`, `tests/smoke.js` (Playwright)
 
 ## Arbeitsablauf
@@ -57,7 +53,7 @@ Fertig heisst: Tests gruen, Validator 0 Fehler, Browser-Durchlauf fehlerfrei, `t
 - Dioden/LEDs stueckweise linear (U_F + r_s), iterativ. LED-Farben: rot 1,8 V, gelb 2,0, gruen 2,1, blau 3,0, weiss 3,1; `imax` 30 mA → durchgebrannt (bleibt defekt bis „Reparieren“).
 - Logikgatter: 5-V-Logik, Schwelle 2,5 V, Ausgang 25 Ω, Versorgung implizit (brauchen aber einen Bezugspunkt). Gatter werden einzeln nachgefuehrt (Gauss-Seidel) → Speicherschaltungen (RS aus NOR) stabil; Rueckkopplungen ohne Ruhelage → `UNSTABLE`.
 - Kondensator: Backward Euler (`dt`), im Gleichstrom-Arbeitspunkt offen. Taktgeber: Rechteck `freq`.
-- Wechselspannungsquelle `acsource` (Praefix G, p/n): `value` = Scheitelwert Û, `freq`, `shape` sine|square|triangle, `offset`; Momentanwert `E.wave(q, t)`. `E.acMeasure(layout, {a,b})` simuliert 5 Perioden der langsamsten Wechselquelle und liefert `dc`, `rms` (TRMS, AC-gekoppelt), `avg` (Mittelwert-Gleichrichter × 1,1107), `peak`, `pp`.
+- Wechselspannungsquelle `acsource` (Praefix G, p/n): `value` = Scheitelwert Û, `freq`, `shape` sine|square|triangle, `offset`; Momentanwert `E.wave(q, t)`. `E.acMeasure(layout, {a,b})` simuliert 5 Perioden der langsamsten Wechselquelle (vorher Einschwingen bis 5·R·C, Abtastung fein genug fuer das kleinste R·C) und liefert `dc`, `rms` (TRMS, AC-gekoppelt), `avg` (Mittelwert-Gleichrichter × 1,1107), `peak`, `pp`.
 - Zustand (`newState`): `burnt`, `vC`, `logic`, `diode`, `fuse`, `t`.
 - **Zeitlupen-Replay (umgesetzt)**: `step(net, state, {trace:true})` liefert `res.trace` = Rechenschritte `{iter, kind:'diode'|'gate'|'done'|'unstable', changed:[{id,to}], res}`, max. `E.TRACE_MAX` (200). Zeitschritte dynamischer Schaltungen haelt die App (letzte 300). UI: Toolbar "Zeitlupe".
 - **Diagnose aus echten Werten (umgesetzt)**: Stoerungen tragen Ist-/Grenzwerte (`LED_BURNT` i/imax/vf, `SHORT` i/imax/u/ri, `OVERLOAD` p/pmax/v/i, `LAMP_BURNT` p/pnom, `LED_REVERSE` v/vmax, `AMMETER_OVERLOAD` i/imax); Werte beim Durchbrennen in `state.burnInfo`, Sicherungsstrom in `state.fuseInfo`. Texte in `app.js` (`FAULT_TEXT`) rechnen daraus vor.

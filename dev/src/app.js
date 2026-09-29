@@ -73,17 +73,76 @@
     var total = ORDER.length, done = ORDER.filter(function (id) { return S.done[id]; }).length;
     var h = '<div class="map-head"><div><h1>Laborkarte</h1><p class="dim">Baue, miss, verstehe. Jede Station schaltet die naechste frei.</p></div>' +
       '<div class="map-actions"><button class="btn" data-open="sandbox" title="Frei bauen und messen – ohne Auftrag">Freie Werkbank</button><div class="progress"><div class="bar"><i style="width:' + (100 * done / Math.max(1, total)).toFixed(1) + '%"></i></div><span>' + done + ' / ' + total + '</span></div></div></div>';
-    DQ.chapters.forEach(function (c) {
-      h += '<section class="chapter"><header><span class="chno">Kapitel ' + c.id + '</span><h2>' + esc(c.title) + '</h2><p>' + esc(c.intro || '') + '</p></header><div class="nodes">';
-      c.sequence.forEach(function (id) {
-        var it = DQ.byId[id], open = unlocked(id), ok = S.done[id];
-        h += '<button class="node ' + it.kind + (ok ? ' done' : '') + (open ? '' : ' locked') + (it.boss ? ' boss' : '') + '" data-open="' + id + '"' + (open ? '' : ' disabled') + '>' +
-          '<span class="ic">' + (ok ? ICON.ok : open ? ICON[it.kind] : ICON.lock) + '</span><span class="nid">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : 'Aufgabe ' + id) + '</span><span class="nt">' + esc(it.title) + '</span></button>';
+    var parts = DQ.parts || [{ no: '', title: '', chapters: DQ.chapters.map(function (c) { return c.id; }) }];
+    parts.forEach(function (pt) {
+      var chs = DQ.chapters.filter(function (c) { return pt.chapters.indexOf(c.id) >= 0; }), ids = [];
+      chs.forEach(function (c) { ids = ids.concat(c.sequence); });
+      var pd = ids.filter(function (id) { return S.done[id]; }).length;
+      if (pt.no) h += '<div class="part-head part-' + (pt.stage || 'grund') + '"><span class="part-no">Teil ' + pt.no + '</span><h2>' + esc(pt.title) + '</h2>' +
+        (pt.stage ? '<span class="stage-tag ' + pt.stage + '">' + esc(DQ.stages[pt.stage]) + '</span>' : '') + '<span class="part-prog mono">' + pd + ' / ' + ids.length + '</span></div>';
+      chs.forEach(function (c) {
+        h += '<section class="chapter"><header><span class="chno">Kapitel ' + c.id + '</span><h2>' + esc(c.title) + '</h2><p>' + esc(c.intro || '') + '</p></header><div class="nodes">';
+        c.sequence.forEach(function (id) {
+          var it = DQ.byId[id], open = unlocked(id), ok = S.done[id];
+          h += '<button class="node ' + it.kind + (ok ? ' done' : '') + (open ? '' : ' locked') + (it.boss ? ' boss' : '') + '" data-open="' + id + '"' + (open ? '' : ' disabled') + '>' +
+            '<span class="ic">' + (ok ? ICON.ok : open ? ICON[it.kind] : ICON.lock) + '</span><span class="nid">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : 'Aufgabe ' + id) + '</span><span class="nt">' + esc(it.title) + '</span></button>';
+        });
+        h += '</div></section>';
       });
-      h += '</div></section>';
+      if (pt.award) h += awardCard(DQ.awards[pt.award]);
     });
     $('#scr-map').innerHTML = h;
     $$('[data-open]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openItem(b.dataset.open); }; });
+    $$('[data-award]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openAward(b.dataset.award); }; });
+  }
+
+  /* ================= Auszeichnungen (Zertifikat Grundstufe, Abzeichen Profi-Stufe) ================= */
+  function awardEarned(a) { return !!S.done[a.boss]; }
+  function awardDate(a) { // erster erfolgreicher Abschluss der Boss-Aufgabe
+    var ev = S.events.filter(function (e) { return e.type === 'task_done' && e.id === a.boss; })[0];
+    return new Date(ev ? ev.t : Date.now());
+  }
+  function fmtDate(d) { return d.getDate() + '. ' + ['Januar', 'Februar', 'Maerz', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'][d.getMonth()] + ' ' + d.getFullYear(); }
+  function personName() { var p = S.profile; return (p.vorname + ' ' + p.nachname).trim() || p.pseudonym || ''; }
+  function medal(a, size) { // Abzeichen/Siegel als SVG, Farbe je Stufe
+    var gold = a.id === 'profi', c1 = gold ? '#ffcf4a' : '#c9d3dc', c2 = gold ? '#b07a00' : '#6f7c88', s = size || 120;
+    return '<svg class="medal" viewBox="0 0 120 120" width="' + s + '" height="' + s + '" aria-hidden="true">' +
+      '<path d="M38 70 L24 116 L44 106 L54 118 L60 78Z" fill="' + (gold ? '#c41d1d' : '#1f5fae') + '"/><path d="M82 70 L96 116 L76 106 L66 118 L60 78Z" fill="' + (gold ? '#c41d1d' : '#1f5fae') + '"/>' +
+      '<circle cx="60" cy="52" r="44" fill="' + c2 + '"/><circle cx="60" cy="52" r="38" fill="' + c1 + '"/><circle cx="60" cy="52" r="31" fill="none" stroke="' + c2 + '" stroke-width="2" stroke-dasharray="3 3"/>' +
+      (gold ? '<path d="M60 30 L66 45 L82 46 L69 56 L74 72 L60 63 L46 72 L51 56 L38 46 L54 45Z" fill="' + c2 + '"/>'
+        : '<path d="M42 52 h10 l4-10 6 20 4-10 h12" fill="none" stroke="' + c2 + '" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>') + '</svg>';
+  }
+  function awardCard(a) {
+    if (!a) return '';
+    var got = awardEarned(a);
+    return '<div class="award-card' + (got ? ' earned' : '') + '">' + medal(a, 72) + '<div><span class="part-no">' + esc(a.kind) + '</span><h3>' + esc(a.title) + '</h3>' +
+      '<p class="dim small">' + (got ? 'Erhalten am ' + fmtDate(awardDate(a)) + '.' : 'Wird mit der Boss-Aufgabe ' + a.boss + ' freigeschaltet.') + '</p></div>' +
+      (got ? '<button class="btn primary" data-award="' + a.id + '">' + esc(a.kind) + ' anzeigen</button>' : '<span class="award-lock">' + ICON.lock + '</span>') + '</div>';
+  }
+  function openAward(id) {
+    var a = DQ.awards[id]; if (!a || !(awardEarned(a) || UNLOCK_ALL)) return;
+    show('award');
+    var nm = personName(), chs = DQ.chapters.filter(function (c) { return c.id >= a.chapters[0] && c.id <= a.chapters[1]; }), n = 0;
+    chs.forEach(function (c) { n += c.sequence.filter(function (x) { return S.done[x]; }).length; });
+    $('#scr-award').innerHTML = '<div class="award-tools noprint"><button class="btn" id="awBack">Zur Karte</button>' +
+      '<label class="fld"><span>Name auf dem ' + esc(a.kind) + '</span><input id="awName" value="' + esc(nm) + '" placeholder="Vorname Nachname"></label>' +
+      '<button class="btn primary" id="awPrint">Drucken</button></div>' +
+      '<article class="certificate ' + a.id + '">' + medal(a, 130) +
+      '<div class="cert-brand">DIGITAL <b>QUEST</b></div><h1>' + esc(a.title) + '</h1>' +
+      '<p class="cert-name" id="awNameOut">' + (esc(nm) || '<span class="dim">(Name eintragen)</span>') + '</p>' +
+      '<p class="cert-text">' + esc(a.text) + '</p>' +
+      '<ul class="cert-list">' + chs.map(function (c) { return '<li><b>' + c.id + '</b> ' + esc(c.title) + '</li>'; }).join('') + '</ul>' +
+      '<p class="cert-meta">' + n + ' Stationen geloest · ' + DQ.stages[a.id] + ' · ' + fmtDate(awardDate(a)) + '</p>' +
+      '<div class="cert-sign"><span>Datum</span><span>Unterschrift Lehrperson</span></div>' +
+      '<p class="cert-id mono">ID ' + esc(S.profile.id.slice(0, 8)) + ' · ' + esc(a.id) + '</p></article>';
+    $('#awBack').onclick = function () { renderMap(); show('map'); };
+    $('#awPrint').onclick = function () { window.print(); };
+    $('#awName').oninput = function () {
+      var v = this.value.trim(), sp = v.split(/\s+/);
+      S.profile.vorname = sp.shift() || ''; S.profile.nachname = sp.join(' '); save();
+      $('#awNameOut').textContent = v;
+    };
+    log('award_view', { id: a.id });
   }
   function openItem(id) { if (id === 'sandbox') { openTask(sandboxTask()); return; } var it = DQ.byId[id]; if (!it) return; if (it.kind === 'theory') openTheory(it); else openTask(it); }
 
@@ -118,6 +177,14 @@
     var mult = { p: 1e-12, n: 1e-9, u: 1e-6, m: 1e-3, k: 1e3, K: 1e3, M: 1e6 }[m[2]] || 1;
     var num = m[3] ? parseFloat(m[1] + '.' + m[3]) : parseFloat(m[1]); // 4k7 = 4.7k
     return num * mult;
+  }
+
+  /* task.limit {gates: 2, and: 0 …} als Hinweis im Auftrag */
+  function limitText(lim) {
+    return '<p class="limit">Erlaubt: ' + Object.keys(lim).map(function (k) {
+      var n = lim[k], name = k === 'gates' ? 'Logikgatter' : (E.PARTS[k] ? E.PARTS[k].label : k);
+      return n === 0 ? (k === 'gates' ? 'keine ' : 'kein ') + name : 'hoechstens <b>' + n + '</b> ' + name;
+    }).join(', ') + '.</p>';
   }
 
   function openTask(t) {
@@ -162,7 +229,7 @@
     var h = '<div class="crumb">Kapitel ' + t.ch + ' · Aufgabe ' + t.id + (t.boss ? ' · <b class="boss-tag">BOSS</b>' : '') + '</div>' +
       '<h2>' + esc(t.title) + '</h2>' +
       (t.story ? '<p class="story">' + t.story + '</p>' : '') +
-      '<div class="brief">' + t.brief + '</div>' +
+      '<div class="brief">' + t.brief + (t.limit && t.brief.indexOf('class="limit"') < 0 ? limitText(t.limit) : '') + '</div>' +
       (t.learn ? '<div class="learn"><b>Lernziel</b> ' + t.learn + '</div>' : '') +
       '<div class="hints"><button class="btn small" id="hint1">Tipp 1</button><button class="btn small" id="hint2">Tipp 2</button></div><div id="hintBox"></div>';
     if (t.measure.length) {
@@ -486,9 +553,14 @@
     log(r.pass ? 'task_done' : 'task_try', { id: t.id, tries: current.tries, hints: current.hints, dur: Math.round((Date.now() - current.started) / 1000), tags: t.tags });
     if (r.pass) {
       var first = !S.done[t.id]; S.done[t.id] = true; save();
-      var nx = nextOf(t.id);
-      modal('<h2 class="win">Geschafft!</h2><p>' + t.take + '</p>' + (first ? '' : '<p class="dim">(bereits geloest)</p>'),
-        [{ label: 'Zur Karte', action: function () { renderMap(); show('map'); } }].concat(nx ? [{ label: 'Weiter', primary: true, action: function () { openItem(nx); } }] : []));
+      var nx = nextOf(t.id), aw = null;
+      Object.keys(DQ.awards || {}).forEach(function (k) { if (DQ.awards[k].boss === t.id) aw = DQ.awards[k]; });
+      if (aw && first) log('award', { id: aw.id, tags: t.tags });
+      modal('<h2 class="win">Geschafft!</h2><p>' + t.take + '</p>' + (first ? '' : '<p class="dim">(bereits geloest)</p>') +
+        (aw ? '<div class="award-note">' + medal(aw, 64) + '<p><b>' + esc(aw.title) + '</b><br>Du hast die ' + esc(DQ.stages[aw.id]) + ' abgeschlossen. Dein ' + esc(aw.kind) + ' kannst du anzeigen und drucken.</p></div>' : ''),
+        [{ label: 'Zur Karte', action: function () { renderMap(); show('map'); } }]
+          .concat(aw ? [{ label: aw.kind + ' anzeigen', primary: !nx, action: function () { openAward(aw.id); } }] : [])
+          .concat(nx ? [{ label: 'Weiter', primary: true, action: function () { openItem(nx); } }] : []));
     }
   }
 
@@ -607,6 +679,6 @@
     renderMap(); show('map');
   }
 
-  window.DigitalQuest = { get state() { return S; }, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal };
+  window.DigitalQuest = { get state() { return S; }, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

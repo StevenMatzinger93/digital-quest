@@ -22,6 +22,20 @@ DQ.chapters.forEach(c => c.sequence.forEach(id => {
 }));
 [...DQ.tasks, ...DQ.theories].forEach(x => { if (!seen.has(x.id)) warn(x.id, 'in keiner Kapitel-Sequenz'); });
 
+// Teile der Karte und Auszeichnungen
+DQ.chapters.forEach(c => {
+  const n = (DQ.parts || []).filter(p => p.chapters.includes(c.id)).length;
+  if (n !== 1) err('Kap ' + c.id, n ? 'in mehreren Teilen' : 'in keinem Teil (DQ.parts)');
+});
+(DQ.parts || []).forEach(p => {
+  p.chapters.forEach(id => { if (!DQ.chapters.some(c => c.id === id)) err('Teil ' + p.no, 'Kapitel ' + id + ' fehlt'); });
+  if (p.award) {
+    const a = (DQ.awards || {})[p.award];
+    if (!a) err('Teil ' + p.no, 'Auszeichnung ' + p.award + ' fehlt');
+    else if (!DQ.byId[a.boss] || !DQ.byId[a.boss].boss) err('Auszeichnung ' + a.id, 'Boss-Aufgabe ' + a.boss + ' fehlt oder ist nicht als boss markiert');
+  }
+});
+
 // Aufgaben
 DQ.tasks.forEach(t => {
   if (!t.tags.length) warn(t.id, 'keine Kompetenz-Tags');

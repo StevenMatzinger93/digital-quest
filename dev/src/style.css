@@ -212,3 +212,51 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 table.tt { border-collapse: collapse; margin: 8px 0; font: 13px var(--font-code); }
 table.tt th, table.tt td { border: 1px solid var(--line); padding: 3px 10px; text-align: center; }
 table.tt th { background: var(--bg-tertiary); color: var(--text-dim); } table.tt .o { color: var(--accent-lead); font-weight: 700; }
+p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; background: var(--bg-tertiary); border-radius: 0 6px 6px 0; }
+
+/* Karte: Teile I–IV, Stufen, Auszeichnungen */
+.part-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 14px; margin: 34px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--line); }
+.map-head + .part-head { margin-top: 8px; }
+.part-head h2 { margin: 0; font-size: 22px; }
+.part-no { font-family: var(--font-code); color: var(--accent-lead); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
+.part-prog { margin-left: auto; color: var(--text-dim); font-size: 13px; }
+.stage-tag { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 2px 8px; border-radius: 10px; border: 1px solid; }
+.stage-tag.grund { color: var(--accent-cyan); border-color: var(--accent-cyan); }
+.stage-tag.profi { color: var(--accent-red); border-color: var(--accent-red); }
+.award-card { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; background: var(--bg-secondary); border: 1px dashed var(--line); border-radius: 12px; padding: 14px 18px; margin-bottom: 18px; }
+.award-card > div { flex: 1; min-width: 180px; } .award-card h3 { margin: 2px 0; } .award-card p { margin: 0; }
+.award-card:not(.earned) .medal { filter: grayscale(1); opacity: .35; }
+.award-card.earned { border: 1px solid var(--accent-lead); box-shadow: 0 0 24px rgba(255,176,0,.12); }
+.award-lock svg { width: 26px; height: 26px; fill: none; stroke: var(--text-faint); stroke-width: 2; }
+.award-note { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 10px; border: 1px solid var(--accent-lead-dim); border-radius: 10px; }
+.award-note p { margin: 0; }
+
+/* Zertifikat / Abzeichen (druckbar) */
+#scr-award { max-width: 900px; margin: 0 auto; padding: 24px 18px 60px; }
+.award-tools { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.award-tools .fld { flex: 1; min-width: 220px; margin: 0; grid-template-columns: auto 1fr; font-family: var(--font-ui); }
+.certificate { --ink: #1f2219; --gold: #a86a00; position: relative; background: #fffdf6; color: var(--ink); border: 10px double var(--gold); border-radius: 6px; padding: 40px 48px 28px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+.certificate.grund { --gold: #4d6275; }
+.certificate .medal { display: block; margin: 0 auto 6px; }
+.cert-brand { letter-spacing: 6px; font-weight: 800; font-size: 14px; color: #555; } .cert-brand b { color: var(--gold); }
+.certificate h1 { font-size: 34px; margin: 6px 0 18px; color: var(--gold); letter-spacing: 1px; }
+.cert-name { font-size: 30px; font-weight: 700; margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid #c9c2ad; display: inline-block; min-width: 60%; }
+.cert-name .dim { color: #999; font-weight: 400; font-size: 18px; }
+.cert-text { max-width: 620px; margin: 10px auto 16px; font-size: 16px; line-height: 1.6; }
+.cert-list { list-style: none; padding: 0; margin: 0 auto 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 4px 16px; max-width: 680px; text-align: left; font-size: 13px; color: #444; }
+.cert-list li { display: flex; gap: 8px; } .cert-list b { flex: 0 0 22px; color: var(--gold); font-family: var(--font-code); }
+.cert-meta { font-size: 13px; color: #666; margin: 0 0 30px; }
+.cert-sign { display: flex; justify-content: space-around; gap: 30px; font-size: 12px; color: #777; }
+.cert-sign span { flex: 1; max-width: 240px; border-top: 1px solid #999; padding-top: 4px; }
+.cert-id { font-size: 10px; color: #aaa; margin: 18px 0 0; }
+@media (max-width: 760px) {
+  .certificate { padding: 24px 16px; border-width: 6px; } .certificate h1 { font-size: 24px; } .cert-name { font-size: 22px; min-width: 90%; }
+  .part-prog { margin-left: 0; }
+}
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  html, body { background: #fff !important; }
+  .top, .noprint, #modal, .screen:not(#scr-award) { display: none !important; }
+  #scr-award { padding: 0; max-width: none; }
+  .certificate { box-shadow: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
