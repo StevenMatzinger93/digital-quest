@@ -276,7 +276,7 @@
    * Ausloeser: Palette (Maus, sofort) · platziertes Bauteil (Maus verweilt ~0,7 s; der kurze U/I/P-Tooltip bleibt)
    * · Knopf „ⓘ Datenblatt“ im Eigenschaften-Panel (auch fuer Touch) · Handbuch-Seite „Datenblaetter“. */
   function sheetHtml(type, p, opt) {
-    var d = DQ.datasheet(type, E), props = (p && p.props) || {}, vt = p ? Editor.valueText(p) : '';
+    var d = DQ.datasheet(type, E, p), props = (p && p.props) || {}, vt = p ? Editor.valueText(p) : '';
     var rows = function (list, withText) { return list.map(function (r) { return '<tr><th>' + r.label + '</th><td class="mono">' + esc(r.value) + '</td></tr>' + (withText && r.text ? '<tr class="ds-note"><td colspan="2">' + r.text + '</td></tr>' : ''); }).join(''); };
     return '<div class="ds-head"><div><span class="ds-kind">Datenblatt</span><h3>' + esc(d.label) + '</h3>' +
       (p ? '<span class="dim small mono">' + esc(p.id) + (vt ? ' · ' + esc(vt) : '') + '</span>' : '<span class="dim small">Kurzzeichen ' + esc(d.prefix) + '</span>') + '</div>' +
