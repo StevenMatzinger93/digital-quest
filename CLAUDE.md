@@ -87,7 +87,7 @@ Fertig heisst: Tests gruen, Validator 0 Fehler, Browser-Durchlauf fehlerfrei, `t
   - `{type:'kmap', vars:2..4, minterms:[…], dc?:[…], names? ('e1'…), out? ('A'), edit? (true)}` – KV-Diagramm wie in Kapitel 8 (Spalten e2 e1, Zeilen e3 bzw. e4 e3, Gray-Reihenfolge); Felder anklicken (0 → 1 → X), „Paeckchen bilden“ = minimale Ueberdeckung (exakt) mit farbigen Schleifen und Term.
   - `{type:'bode', stages:[{kind:'lp'|'hp', r, c}, …], fmin?, fmax?, f?, dbMin?}` – Frequenzgang (dB ueber log f) einer unbelasteten RC-Kette wie in Kapitel 14, komplex gerechnet; Grenzfrequenzen und −3 dB markiert, Frequenz-Regler mit U_a/U_e, dB und Phase. Der Validator vergleicht die Kurve an jeder Grenzfrequenz mit der Engine (E.acMeasure an der echten Schaltung).
   - `{type:'block', svg:'<svg …>'}` – Blockbild als fertiges Inline-SVG.
-  - Validator: Typ bekannt, Pflichtfelder je Typ (circuit: Layout baubar, bench-/Regler-/Anzeige-IDs vorhanden), nicht mehr Platzhalter als Bilder.
+  - Validator: jede Theorie hat `visual` oder `visualNone: 'Grund'`; Typ bekannt, Pflichtfelder je Typ (circuit: Layout baubar, bench-/Regler-/Anzeige-IDs vorhanden; bode: Kurve = Engine), nicht mehr Platzhalter als Bilder. `tests/smoke.js` oeffnet alle 30 Lektionen: jeder Baustein rendert und reagiert (Mini-Schaltung: echter Klick auf einen Schalter aendert die Schaltung, Zeit laeuft mit; Instanzen unter `DigitalQuest.visuals`).
 
 ## Speicherstand
 `localStorage` Schluessel `digitalquest_state_v1`: `profile {id (UUID), vorname, nachname, pseudonym}`, `done`, `drafts {taskId:{layout, answers}}`, `theory`, `events [{t, type, id, …}]`, `settings`.

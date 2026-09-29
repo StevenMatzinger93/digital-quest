@@ -38,6 +38,7 @@ DQ.tasks.filter(t => t.messOnly).forEach(t => {
 // Theorie-Bilder (visual): Typ bekannt, Pflichtfelder je Typ, Platzhalter passen zur Anzahl
 DQ.theories.forEach(th => {
   const list = V.listOf(th.visual);
+  if (!list.length && !th.visualNone) err(th.id, 'kein visual – entweder Bild/Animation oder visualNone: "Grund" angeben');
   list.forEach((v, i) => V.check(v, E).forEach(m => err(th.id, 'visual' + (list.length > 1 ? ' ' + (i + 1) : '') + ': ' + m)));
   const ph = (th.lesson.match(/{{visual(?::(d+))?}}/g) || []).length;
   if (ph > list.length) err(th.id, 'mehr {{visual}}-Platzhalter als Bilder');

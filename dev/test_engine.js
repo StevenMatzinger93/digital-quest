@@ -265,5 +265,18 @@ ok(am.dc > 2.2 && am.dc < 2.6 && am.pp < 0.1, 'Tiefpass am Takt schwingt vor der
 const rcDiff = { parts: [{ id: 'G1', type: 'acsource', value: 10, props: { freq: 50, shape: 'square' } }, { id: 'C1', type: 'capacitor', value: 100e-9 }, { id: 'R1', type: 'resistor', value: 1000 }], wires: [W('G1.p', 'C1.a'), W('C1.b', 'R1.a'), W('R1.b', 'G1.n')] };
 am = E.acMeasure(rcDiff, { a: 'R1.a', b: 'G1.n' });
 ok(am.pp > 34 && am.pp < 41, 'Differenzierglied: Nadeln fein genug abgetastet (≈ 40 V Spitze-Spitze)');
+// 26 Theorie-Bilder (visuals.js): reine Rechenfunktionen
+globalThis.DQEngine = E; require('./src/visuals.js'); const VIS = globalThis.DQVisuals;
+const cells = ps => ps.map(p => p.cells.slice().sort((a, b) => a - b).join(',')).sort();
+ok(cells(VIS.minimize(3, [1, 3, 5, 7])).join('|') === '1,3,5,7', 'KV: Summe m(1,3,5,7) = ein Paeckchen e1');
+ok(cells(VIS.minimize(4, [0, 2, 8, 10])).join('|') === '0,2,8,10', 'KV: vier Ecken sind benachbart');
+ok(VIS.minimize(3, [1, 2, 4, 7]).length === 4, 'KV: XOR aus drei Variablen laesst sich nicht vereinfachen');
+ok(VIS.minimize(3, [1], [3, 5, 7]).length === 1 && VIS.minimize(3, [1], [3, 5, 7])[0].cells.length === 4, 'KV: X vergroessern das Paeckchen');
+const gs = VIS.gen.gray({ bits: 3 });
+ok(gs.length === 9 && gs.slice(1).every(s => s.rows[2].hl.length === 1), 'Gray: jeder Schritt aendert genau ein Bit (auch 7 → 0)');
+ok(/101011/.test(VIS.gen.divide({ value: 43, base: 2 }).slice(-1)[0].text), 'Division: 43 = 101011 (dual)');
+ok(VIS.gen.bases({ value: 173 }).slice(-1)[0].rows[1].cells[0] === 173, 'Horner: AD (hex) = 173');
+const h = VIS.transfer([{ kind: 'lp', r: 1000, c: 1e-6 }], 1 / (2 * Math.PI * 1e-3));
+ok(Math.abs(Math.hypot(h.re, h.im) - Math.SQRT1_2) < 1e-6, 'Frequenzgang: Tiefpass bei f_g = 1/√2');
 console.log(`Engine-Tests: ${pass} ok, ${fail} Fehler`);
 process.exit(fail ? 1 : 0);

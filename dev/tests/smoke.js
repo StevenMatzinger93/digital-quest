@@ -211,6 +211,46 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   if (!await tp.isDisabled('[data-open="12.5"]') || await tp.isVisible('#modeTag')) errors.push('Dozent: Ausschalten wirkt nicht');
   await tctx.close();
 
+  // Theorie-Bilder: alle 30 Lektionen – jeder Baustein rendert und reagiert (Mini-Schaltung: Klick aendert die Schaltung, Zeit laeuft mit)
+  for (const id of await page.evaluate(() => DQ.theories.map(t => t.id))) {
+    await page.evaluate(i => DigitalQuest.openItem(i), id); await page.waitForTimeout(250);
+    const kinds = await page.evaluate(() => Array.prototype.map.call(document.querySelectorAll('.lesson-visual'), el => (el.className.match(/visual-(\w+)/) || [])[1]));
+    if (!kinds.length) { errors.push(id + ': kein Bild in der Lektion'); continue; }
+    for (let k = 0; k < kinds.length; k++) {
+      const sel = '.lesson-visual:nth-of-type(' + (k + 1) + ')', vis = (await page.$$('.lesson-visual'))[k], t = kinds[k], tag = id + ' Bild ' + (k + 1) + ' (' + t + ')';
+      if (!(await vis.evaluate(el => el.querySelector('.visual-body') && el.querySelector('.visual-body').innerHTML.length > 50))) { errors.push(tag + ': leer'); continue; }
+      if (t === 'circuit') {
+        const ci = await page.evaluate(() => DigitalQuest.visuals.slice(0).map(v => !!(v && v.core)));
+        const idx = ci.slice(0, k + 1).filter(Boolean).length - 1;
+        const toggle = await page.evaluate(i => { const v = DigitalQuest.visuals.filter(x => x && x.core)[i]; const p = v.core.layout.parts.find(q => ['switch', 'logicin'].includes(q.type)); return p ? p.id : null; }, idx);
+        if (!(await page.evaluate(i => !!DigitalQuest.visuals.filter(x => x && x.core)[i].sim(), idx))) errors.push(tag + ': keine Simulation');
+        if (toggle) {
+          const before = await page.evaluate(([i, p]) => !!(DigitalQuest.visuals.filter(x => x && x.core)[i].core.part(p).props || {}).closed, [idx, toggle]);
+          // echter Mausklick wie eine Person; Position frisch holen (Schaltungen mit Zeitverhalten zeichnen jedes Bild neu)
+          const bb = await vis.evaluate((el, p) => { el.scrollIntoView({ block: 'center' }); const h = el.querySelector('.mini-svg:not([style*="none"]) [data-part="' + p + '"]'); if (!h) return null; const r = h.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; }, toggle);
+          if (!bb) errors.push(tag + ': Schalter ' + toggle + ' nicht sichtbar'); else await page.mouse.click(bb.x, bb.y);
+          const after = await page.evaluate(([i, p]) => !!(DigitalQuest.visuals.filter(x => x && x.core)[i].core.part(p).props || {}).closed, [idx, toggle]);
+          if (before === after) errors.push(tag + ': Klick auf ' + toggle + ' wirkt nicht');
+        }
+        const dyn = await page.evaluate(i => DigitalQuest.visuals.filter(x => x && x.core)[i].core.layout.parts.some(p => ['clock', 'capacitor', 'acsource'].includes(p.type)), idx);
+        if (dyn) { const t0 = await page.evaluate(i => DigitalQuest.visuals.filter(x => x && x.core)[i].time(), idx); await page.waitForTimeout(600); const t1 = await page.evaluate(i => DigitalQuest.visuals.filter(x => x && x.core)[i].time(), idx);
+          if (!(t1 > t0 + 0.2 && isFinite(t1))) errors.push(tag + ': Zeit laeuft nicht (' + t0 + ' → ' + t1 + ')'); }
+
+      } else if (t === 'numberSteps') {
+        const a = await vis.$eval('.ns-pos', el => el.textContent); await vis.$eval('[data-ns="1"]', el => el.click()); const b = await vis.$eval('.ns-pos', el => el.textContent);
+        if (a === b) errors.push(tag + ': ▶ wirkt nicht');
+      } else if (t === 'kmap') {
+        await vis.$eval('[data-kv="g"]', el => el.click()); if (!/=/.test(await vis.$eval('.kv-term', el => el.textContent))) errors.push(tag + ': kein Term');
+      } else if (t === 'bode') {
+        const a = await vis.$eval('.bode-ro', el => el.textContent); await vis.$eval('input', el => { el.value = +el.min + 0.3 * (el.max - el.min); el.dispatchEvent(new Event('input')); });
+        if (a === await vis.$eval('.bode-ro', el => el.textContent)) errors.push(tag + ': Regler wirkt nicht');
+      } else if (t === 'block') {
+        if (!(await vis.$('svg'))) errors.push(tag + ': kein SVG');
+      }
+    }
+  }
+  await page.screenshot({ path: shots + '/17_theorie_bild.png' });
+
   // Konten, Klassen, Vorgaben – gegen den echten Worker-Code mit D1-Nachbau (tests/apiroute.js), ohne Cloudflare
   {
     const { attachApi, API } = require('./apiroute.js');
