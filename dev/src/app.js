@@ -48,6 +48,7 @@
     $$('[data-go]').forEach(function (b) { b.classList.toggle('active', b.dataset.go === name); });
     current.screen = name;
     if (name !== 'task') stopLoop();
+    if (typeof hideSheet === 'function') hideSheet(true);
     window.scrollTo(0, 0);
   }
   var current = { screen: 'map' };
@@ -212,6 +213,7 @@
       });
       ed = new Editor($('#board'), { core: core });
       bench = new Bench($('#bench'), { core: core, onDial: function (m) { setMeterMode(m); }, onScope: scope });
+      bindSheetHover($('#board')); bindSheetHover($('#bench'));
     }
     setView(t.sandbox ? 'bench' : preferredView(), t.sandbox);
     bench.scope = null;
@@ -261,7 +263,82 @@
       pal += '<button class="palbtn" data-add="' + type + '" title="' + esc(E.PARTS[type].label) + ' hinzufuegen"><svg viewBox="-46 -46 92 92"><g>' + Editor.symbol({ type: type, props: {} }) + '</g></svg><span>' + esc(E.PARTS[type].label) + '</span></button>';
     });
     $('#palette').innerHTML = pal || '<span class="dim small">Keine neuen Bauteile – nur messen.</span>';
-    $$('[data-add]').forEach(function (b) { b.onclick = function () { view().addPart(b.dataset.add); renderInspector(); }; });
+    $$('[data-add]').forEach(function (b) {
+      b.onclick = function () { hideSheet(true); view().addPart(b.dataset.add); renderInspector(); };
+      // Palette: Maus drueber → sofort das volle Datenblatt (noch keine Messwerte, die im Weg stehen)
+      b.onpointerenter = function (ev) { if (ev.pointerType === 'mouse') sheetSoon(function () { showSheet(b.dataset.add, null, b.getBoundingClientRect(), { from: 'palette' }); }, 120); };
+      b.onpointerleave = function () { sheetLeave(); };
+    });
+  }
+
+  /* ================= Bauteil-Datenblatt =================
+   * Inhalt: DQ.datasheet(type, E) aus content/datasheets.js (Texte) + Engine-Werte; Bilder: Editor.icon und Bench.icon.
+   * Ausloeser: Palette (Maus, sofort) · platziertes Bauteil (Maus verweilt ~0,7 s; der kurze U/I/P-Tooltip bleibt)
+   * · Knopf „ⓘ Datenblatt“ im Eigenschaften-Panel (auch fuer Touch) · Handbuch-Seite „Datenblaetter“. */
+  function sheetHtml(type, p, opt) {
+    var d = DQ.datasheet(type, E), props = (p && p.props) || {}, vt = p ? Editor.valueText(p) : '';
+    var rows = function (list, withText) { return list.map(function (r) { return '<tr><th>' + r.label + '</th><td class="mono">' + esc(r.value) + '</td></tr>' + (withText && r.text ? '<tr class="ds-note"><td colspan="2">' + r.text + '</td></tr>' : ''); }).join(''); };
+    return '<div class="ds-head"><div><span class="ds-kind">Datenblatt</span><h3>' + esc(d.label) + '</h3>' +
+      (p ? '<span class="dim small mono">' + esc(p.id) + (vt ? ' · ' + esc(vt) : '') + '</span>' : '<span class="dim small">Kurzzeichen ' + esc(d.prefix) + '</span>') + '</div>' +
+      (opt && opt.close ? '<button class="ds-x" aria-label="Schliessen" title="Schliessen">×</button>' : '') + '</div>' +
+      '<div class="ds-pics"><figure>' + Editor.icon(type, props, { pins: true }) + '<figcaption>Schaltzeichen</figcaption></figure>' +
+      '<figure>' + Bench.icon(type, props, p ? p.value : undefined) + '<figcaption>Werkbank</figcaption></figure></div>' +
+      '<p class="ds-fn">' + d.funktion + '</p>' +
+      (d.pins.length ? '<h4>Anschluesse</h4><table class="ds-t">' + d.pins.map(function (x) { return '<tr><th class="mono">' + esc(x.pin) + '</th><td>' + x.text + '</td></tr>'; }).join('') + '</table>' : '') +
+      (d.grenzen.length ? '<h4>Grenzen</h4><table class="ds-t ds-lim">' + rows(d.grenzen, true) + '</table>' : '') +
+      (d.kennwerte.length ? '<h4>Kennwerte</h4><table class="ds-t">' + rows(d.kennwerte) + '</table>' : '') +
+      (d.formel ? '<div class="formula ds-f">' + d.formel + '</div>' : '');
+  }
+  var sheet = { timer: 0, hideTimer: 0, key: null, pinned: false, hover: null };
+  function sheetEl() {
+    var el = $('#dsPop');
+    if (!el) {
+      el = document.createElement('div'); el.id = 'dsPop'; el.className = 'ds-pop'; el.hidden = true; el.setAttribute('role', 'dialog');
+      el.onpointerenter = function () { clearTimeout(sheet.hideTimer); };
+      el.onpointerleave = function () { sheetLeave(); };
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+  function sheetSoon(fn, ms) { clearTimeout(sheet.timer); clearTimeout(sheet.hideTimer); sheet.timer = setTimeout(fn, ms); }
+  function sheetLeave() { clearTimeout(sheet.timer); if (sheet.pinned) return; clearTimeout(sheet.hideTimer); sheet.hideTimer = setTimeout(function () { hideSheet(); }, 220); }
+  function hideSheet(force) {
+    clearTimeout(sheet.timer); clearTimeout(sheet.hideTimer);
+    if (sheet.pinned && !force) return;
+    var el = $('#dsPop'); if (el) el.hidden = true; sheet.key = null; sheet.pinned = false;
+  }
+  /* anchor: DOMRect, neben dem das Blatt erscheint; opt.pinned: bleibt offen bis Schliessen/Klick daneben */
+  function showSheet(type, p, anchor, opt) {
+    opt = opt || {};
+    var el = sheetEl(), key = type + '|' + (p ? p.id : '');
+    if (sheet.key !== key || el.hidden) {
+      el.innerHTML = sheetHtml(type, p, { close: true });
+      var x = el.querySelector('.ds-x'); if (x) x.onclick = function () { hideSheet(true); };
+      log('datasheet', { type: type, from: opt.from || '' });
+    }
+    sheet.key = key; sheet.pinned = !!opt.pinned; el.hidden = false; el.dataset.type = type;
+    var vw = innerWidth, vh = innerHeight, w = el.offsetWidth, h = el.offsetHeight, m = 10;
+    if (vw < 700) { el.style.left = ''; el.style.top = ''; el.classList.add('sheet-bottom'); return; } // Handy: als Blatt von unten
+    el.classList.remove('sheet-bottom');
+    var left = anchor.right + m; if (left + w > vw - m) left = anchor.left - w - m; if (left < m) left = Math.max(m, Math.min(vw - w - m, anchor.left));
+    var top = Math.max(m, Math.min(vh - h - m, anchor.top + anchor.height / 2 - h / 2));
+    el.style.left = left + 'px'; el.style.top = top + 'px';
+  }
+  /* Platziertes Bauteil: Maus verweilt ~0,7 s auf demselben Bauteil (ohne Taste, ohne Ziehen) → Datenblatt neben dem Bauteil */
+  function bindSheetHover(svg) {
+    svg.addEventListener('pointermove', function (ev) {
+      if (ev.pointerType !== 'mouse') return;
+      var g = ev.buttons ? null : ev.target.closest && ev.target.closest('[data-part]'), id = g ? g.getAttribute('data-part') : null;
+      if (id === sheet.hover) return;
+      sheet.hover = id;
+      if (!id) { sheetLeave(); return; }
+      sheetSoon(function () {
+        var p = ed && ed.part(id), el = svg.querySelector('[data-part="' + id + '"]');
+        if (p && el && sheet.hover === id) showSheet(p.type, p, el.getBoundingClientRect(), { from: 'part' });
+      }, 700);
+    });
+    svg.addEventListener('pointerleave', function () { sheet.hover = null; sheetLeave(); });
+    svg.addEventListener('pointerdown', function () { sheet.hover = null; hideSheet(true); });
   }
 
   function answers() { var a = {}; $$('[data-ans]').forEach(function (i) { a[i.dataset.ans] = i.value; }); return a; }
@@ -479,7 +556,7 @@
     if (!p) { el.innerHTML = '<p class="dim small">Bauteil anklicken, um Werte zu aendern. <kbd>R</kbd> dreht, <kbd>Entf</kbd> loescht.</p>'; return; }
     var d = E.PARTS[p.type], q = p.props || (p.props = {}), lock = ed.locked[p.id] && p.type !== 'acsource' && p.type !== 'clock', val = p.value !== undefined ? p.value : (q.value !== undefined ? q.value : d.props.value);
     var r = live.res && live.res.parts[p.id];
-    var h = '<div class="insp-head"><b>' + esc(p.id) + '</b> ' + esc(d.label) + (lock ? ' <span class="tag">Aufgabe</span>' : '') + '</div>';
+    var h = '<div class="insp-head"><b>' + esc(p.id) + '</b> ' + esc(d.label) + (lock ? ' <span class="tag">Aufgabe</span>' : '') + '<button class="btn small ds-btn" id="dsBtn" title="Datenblatt: Funktion, Anschluesse, Grenzen">ⓘ Datenblatt</button></div>';
     function field(label, key, v, unit) { return '<label class="fld"><span>' + label + '</span><input data-prop="' + key + '" value="' + esc(v) + '"' + (lock ? ' disabled' : '') + '><em>' + unit + '</em></label>'; }
     if (p.type === 'battery') h += field('Spannung', 'value', Editor.fmtVal(val), 'V');
     if (p.type === 'resistor' || p.type === 'lamp' || p.type === 'pot' || p.type === 'motor') h += field('Widerstand', 'value', Editor.fmtVal(val), 'Ω');
@@ -517,6 +594,7 @@
         persistDraft(); rebuild(); core.redraw(); if (k !== 'pos') renderInspector();
       };
     });
+    $('#dsBtn').onclick = function () { showSheet(p.type, p, this.getBoundingClientRect(), { pinned: true, from: 'inspector' }); };
     var tg = $('#tgl'); if (tg) tg.onclick = function () { q.closed = !q.closed; persistDraft(); rebuild(); renderInspector(); };
   }
 
@@ -608,10 +686,16 @@
 
   /* ================= Handbuch ================= */
   function renderManual(pageId) {
-    var pages = DQ.manual || [], p = pages.filter(function (x) { return x.id === pageId; })[0] || pages[0];
+    var pages = (DQ.manual || []).concat([{ id: 'datenblaetter', title: 'Datenblaetter', html: '' }]), p = pages.filter(function (x) { return x.id === pageId; })[0] || pages[0];
     $('#scr-manual').innerHTML = '<div class="manual"><nav>' + pages.map(function (x) { return '<button class="' + (x === p ? 'on' : '') + '" data-man="' + x.id + '">' + esc(x.title) + '</button>'; }).join('') +
-      '</nav><article>' + (p ? '<h2>' + esc(p.title) + '</h2>' + p.html : '') + '</article></div>';
+      '</nav><article>' + (p ? '<h2>' + esc(p.title) + '</h2>' + (p.id === 'datenblaetter' ? manualSheets() : p.html) : '') + '</article></div>';
     $$('[data-man]').forEach(function (b) { b.onclick = function () { renderManual(b.dataset.man); }; });
+  }
+
+  /* Handbuch-Seite: alle Datenblaetter zum Nachschlagen (auch ohne Maus) */
+  function manualSheets() {
+    return '<p>Jedes Bauteil mit Funktion, Anschluessen und Grenzwerten. In einer Aufgabe siehst du das Datenblatt auch, wenn du mit der Maus ueber ein Bauteil der Palette faehrst, laenger auf einem eingebauten Bauteil verweilst oder im Eigenschaften-Panel auf „ⓘ Datenblatt“ tippst.</p>' +
+      Object.keys(E.PARTS).map(function (t) { return '<section class="ds-card" id="ds-' + t + '">' + sheetHtml(t, null) + '</section>'; }).join('');
   }
 
   /* ================= Einstellungen ================= */
@@ -686,7 +770,9 @@
     $('#btnFuse').onclick = function () { live.state.fuse = false; tick(0); };
     $$('[data-mm]').forEach(function (b) { b.onclick = function () { setMeterMode(b.dataset.mm); }; });
     $('#btnScope').onclick = scope;
+    document.addEventListener('pointerdown', function (ev) { var el = $('#dsPop'); if (el && !el.hidden && !el.contains(ev.target) && !(ev.target.closest && ev.target.closest('#dsBtn'))) hideSheet(true); }, true);
     document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && $('#dsPop') && !$('#dsPop').hidden) { hideSheet(true); return; }
       if (current.screen !== 'task' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
       if (live.replay) { if (ev.key === 'ArrowLeft') showStep(live.replay.i - 1); else if (ev.key === 'ArrowRight') showStep(live.replay.i + 1); else if (ev.key === 'Escape') closeReplay(); return; }
       ed && ed.key(ev); renderInspector();
