@@ -163,6 +163,32 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     if (!await page.isVisible('[data-award="profi"]')) errors.push('Karte: Abzeichen nicht als erhalten markiert');
   }
 
+  // Bauteil-Datenblatt: Palette (sofort), platziertes Bauteil (Verweilen) in Schema und Werkbank, Knopf im Panel, Handbuch
+  const sheetOk = async (type, label, needText) => {
+    const s = await page.evaluate(() => { const el = document.getElementById('dsPop'); return el && !el.hidden ? { type: el.dataset.type, txt: el.textContent, sym: !!el.querySelector('svg.symicon'), bench: !!el.querySelector('svg.benchicon') } : null; });
+    if (!s) { errors.push('Datenblatt ' + label + ': nicht sichtbar'); return; }
+    if (s.type !== type || !s.sym || !s.bench || !s.txt.includes(needText)) errors.push('Datenblatt ' + label + ': ' + JSON.stringify({ type: s.type, sym: s.sym, bench: s.bench, text: s.txt.slice(0, 60) }));
+  };
+  const dwell = async sel => { const b = await page.locator(sel).boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.move(b.x + b.width / 2 + 2, b.y + b.height / 2 + 1); await page.waitForTimeout(1000); };
+  await page.evaluate(() => { DigitalQuest.openItem('1.8'); DigitalQuest.setView('schema'); });
+  await page.hover('[data-add="resistor"]'); await page.waitForTimeout(350);
+  await sheetOk('resistor', 'Palette', 'Hoechstleistung');
+  await page.mouse.move(5, 890); await page.waitForTimeout(400);
+  if (await page.isVisible('#dsPop')) errors.push('Datenblatt schliesst nach dem Wegfahren nicht');
+  await dwell('#board [data-part="D1"]'); await sheetOk('led', 'Schaltplan D1', 'Anode');
+  await page.mouse.move(5, 890); await page.waitForTimeout(400);
+  await page.evaluate(() => DigitalQuest.setView('bench'));
+  await dwell('#bench [data-part="B1"]'); await sheetOk('battery', 'Werkbank B1', 'Kurzschluss');
+  await page.mouse.move(5, 890); await page.waitForTimeout(400); await page.evaluate(() => DigitalQuest.setView('schema'));
+  await page.click('#board [data-part="D1"] .hit', { force: true }); await page.click('#dsBtn');
+  await sheetOk('led', 'Knopf im Panel', 'Hoechststrom');
+  await page.keyboard.press('Escape'); if (await page.isVisible('#dsPop')) errors.push('Datenblatt schliesst nicht mit Esc');
+  await page.click('[data-go="manual"]'); await page.click('[data-man="datenblaetter"]');
+  const cards = await page.$$eval('.ds-card', els => els.map(e => !!e.querySelector('svg.symicon') && !!e.querySelector('svg.benchicon')));
+  const nTypes = await page.evaluate(() => Object.keys(DigitalQuest.engine.PARTS).length);
+  if (cards.length !== nTypes || cards.includes(false)) errors.push('Handbuch Datenblaetter: ' + cards.length + ' von ' + nTypes + ' mit beiden Bildern');
+  await page.screenshot({ path: shots + '/14_datenblaetter.png' });
+
   // Dozentenmodus: frischer Spielstand ohne ?alle
   const tctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }), tp = await tctx.newPage();
   tp.on('pageerror', e => errors.push('Dozent: ' + e.message));

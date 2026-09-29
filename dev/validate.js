@@ -22,6 +22,29 @@ DQ.chapters.forEach(c => c.sequence.forEach(id => {
 }));
 [...DQ.tasks, ...DQ.theories].forEach(x => { if (!seen.has(x.id)) warn(x.id, 'in keiner Kapitel-Sequenz'); });
 
+// Bauteil-Datenblaetter: jeder Engine-Typ hat ein vollstaendiges Datenblatt, Werte kommen aus der Engine
+const DS = DQ.datasheets || {};
+Object.keys(E.PARTS).forEach(type => {
+  const t = DS[type], d = E.PARTS[type], id = 'Datenblatt ' + type;
+  if (!t) { err(id, 'fehlt in content/datasheets.js'); return; }
+  if (!t.funktion) err(id, 'Funktionstext fehlt');
+  d.pins.forEach(p => { if (!(t.anschluesse || {})[p]) err(id, 'Anschluss ' + p + ' ohne Text'); });
+  Object.keys(t.anschluesse || {}).forEach(p => { if (!d.pins.includes(p)) err(id, 'Anschluss ' + p + ' gibt es in E.PARTS nicht'); });
+  (t.grenzen || []).forEach(g => { if (!(g.key in d.props)) err(id, 'Grenze ' + g.key + ' nicht in E.PARTS.props'); if (!g.text) err(id, 'Grenze ' + g.key + ' ohne Text'); });
+  (t.kennwerte || []).forEach(k => { if (!(k in d.props)) err(id, 'Kennwert ' + k + ' nicht in E.PARTS.props'); });
+  try {
+    const m = DQ.datasheet(type, E);
+    [...m.grenzen, ...m.kennwerte].forEach(r => { if (/NaN|undefined|Infinity/.test(String(r.value))) err(id, r.label + ': Wert ' + r.value); });
+  } catch (e) { err(id, e.message); }
+});
+Object.keys(DS).forEach(type => { if (!E.PARTS[type]) err('Datenblatt ' + type, 'Bauteiltyp gibt es in der Engine nicht'); });
+{ // Grenzwerte werden live gelesen: Engine-Wert aendern → Datenblatt zieht mit
+  const old = E.PARTS.led.props.imax; E.PARTS.led.props.imax = 0.05;
+  const shown = DQ.datasheet('led', E).grenzen.find(r => r.key === 'imax');
+  if (!shown || !/^50 mA$/.test(shown.value)) err('Datenblatt led', 'Grenzwert nicht live aus E.PARTS gelesen: ' + (shown && shown.value));
+  E.PARTS.led.props.imax = old;
+}
+
 // Teile der Karte und Auszeichnungen
 DQ.chapters.forEach(c => {
   const n = (DQ.parts || []).filter(p => p.chapters.includes(c.id)).length;
