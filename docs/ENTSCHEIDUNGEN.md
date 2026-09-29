@@ -53,6 +53,16 @@ Gleiches Muster wie bei SCL Quest: eigenes GitHub-Repo + Cloudflare Worker (`wra
 ## Klassen, Zuweisungen und Uebungswerkstatt (Entscheid 29.09.2026, hebt Zurueckstellung auf)
 Der Punkt "Klassen und Personen" (oben) und die bewusste Zurueckstellung der Plattform (siehe Hosting-Umgebung und "Offen" unten) sind hiermit aufgehoben – Steven moechte dies jetzt doch bauen: Admin/Dozent/Schueler/Klassen genau wie bei SCL Quest dokumentiert (Benutzername+Passwort, PBKDF2, Klassencode, Pseudonyme, Rate-Limiting), dazu neu: Dozent weist Kapitel oder einzelne Aufgaben einer Klasse oder Einzelperson zu, mit optionalem Abgabedatum; Schueler sehen das als "Vorgabe vom Dozent" auf der Karte. Zusaetzlich ein neuer Bereich "Uebungswerkstatt" mit fertigen, gesperrten Schaltungen nur zum Messen (Oszilloskop-Schwerpunkt). Die Zuweisungs-/Abgabedatum-Funktion existiert bei SCL Quest nicht zum Kopieren (in dessen Docs/Code nicht gefunden) – sie wird hier neu entworfen. Damit braucht `wrangler.jsonc` jetzt doch eine D1-Datenbank (bisher bewusst keine, siehe Hosting-Umgebung oben). Voller Plan: `docs/PLAN_KLASSEN_ZUWEISUNG.md`.
 
+## Konten und Zuweisungen – Entscheide beim Bau (29.09.2026)
+- **Token statt Cookie** (`Authorization: Bearer`, 30 Tage, in D1 nur der SHA-256): so kann auch die Offline-Datei (file://) die API nutzen; CORS offen, keine Cookies → kein CSRF-Risiko. PBKDF2-SHA-256 mit 100 000 Iterationen (Hoechstwert der Workers-Laufzeit).
+- **Benutzernamen eindeutig ueber Dozenten und Schueler**; Anmeldung ohne Rollenwahl. Rate-Limiting in D1 (Tabelle `sperren`): 5 Fehlversuche in 15 min je Name und je Adresse, ebenso fuer das Raten von Klassencodes.
+- **Zuweisung = ein Ziel an einen Empfaenger** (Klasse ODER Person), Frist optional; erneut zuweisen aendert nur die Frist. Der Server kennt keine Kapitelinhalte – den Erledigt-Status rechnet der Client aus dem gespiegelten Fortschritt.
+- **Zugewiesene Stationen sind offen**, auch ausserhalb der normalen Reihenfolge (eine Vorgabe muss bearbeitbar sein). Fristen sperren nie, sie markieren nur "ueberfaellig".
+- **Fortschritt-Spiegel als Vereinigung**: lokal bleibt die Basis; der Server ergaenzt, nichts wird lokal geloescht – ausser die Person waehlt bei fremdem Spielstand ausdruecklich "nur meinen Stand laden".
+- **Dozenten-/Admin-Konto schaltet den Dozentenmodus ein**, Abmelden wieder aus (nur wenn er durch die Anmeldung eingeschaltet wurde).
+- **Uebungswerkstatt** als eigener Bereich (`DQ.workshop`), nicht als 16. Kapitel: zaehlt nicht in Fortschritt, Freischaltung oder Auszeichnungen.
+- **D1-Block in `wrangler.jsonc` erst nach dem gemeinsamen `wrangler d1 create`** – eine Platzhalter-ID wuerde den automatischen Build scheitern lassen; bis dahin antwortet die API mit 503.
+
 ## Technik
 - Offline-Einzeldatei + PWA, keine externen Bibliotheken noetig (Google Fonts optional).
 - Leitfarbe Bernstein `#ffb000`, Token-Namen wie SCL Quest.

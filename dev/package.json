@@ -4,7 +4,7 @@
   "private": true,
   "description": "Digital Quest – Schaltungen bauen, messen, verstehen",
   "scripts": {
-    "test": "node test_engine.js && node validate.js",
+    "test": "node test_engine.js && node test_api.js && node validate.js",
     "build": "node build.js",
     "e2e": "node tests/smoke.js"
   },

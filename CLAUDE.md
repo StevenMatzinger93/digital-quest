@@ -23,6 +23,7 @@ Jeder Push auf `main` deployt automatisch (Cloudflare Worker). Halbfertiges dahe
 ## Aufbau
 - `index.html` – ausgelieferte Einzeldatei, offline. **Generiert – nicht von Hand aendern.**
 - `web/` – PWA-Version (Manifest, Service Worker mit Content-Hash, Icons). Ordner auf beliebigen HTTPS-Webspace laden.
+- `worker/index.js` – Cloudflare Worker (nur `/api/…`): Konten (Admin per Secrets, Dozent, Schueler), PBKDF2, Bearer-Token, Rate-Limiting, Klassen/Klassencode, Zuweisungen mit Frist, Fortschritt-Spiegel. `migrations/` – D1-Schema. Plan: `docs/PLAN_KLASSEN_ZUWEISUNG.md`.
 - `theorie/` – Stevens Theoriedokumente (Quellmaterial). Claude leitet daraus Lektionen, Fragen und Aufgaben ab.
 - `docs/` – KONZEPT, ENTSCHEIDUNGEN, STAND, THEMEN, BAUPLAN_LERNSPIEL.
 - `dev/`
@@ -30,9 +31,10 @@ Jeder Push auf `main` deployt automatisch (Cloudflare Worker). Halbfertiges dahe
   - `src/circuit-ui.js` – `window.DQCircuit`, ansichtsneutraler Interaktionskern (Phase 1 erledigt): Bauteil hinzufuegen/bewegen/drehen/loeschen, Leitung ziehen, ID-Vergabe. Kein eigenes Rendering – wird von `editor.js` UND `bench.js` genutzt, damit Editier-Logik nicht zweimal existiert. Renderer melden nur Ereignisse in Modellkoordinaten (`clickPin`, `pressPart`, `dragTo`, `release` …) und haengen sich per `attach(view)` an. Zwei Koordinatenraeume: 'schema' (`p.x/p.y/p.rot`) und 'bench' (`p.bench = {x, y, rot}`, gespeichert im Entwurf).
   - `src/editor.js` – `window.DQEditor`: SVG-Schaltplan-Renderer (Raster 20 px, IEC-Symbole, Live-Anzeige) ueber dem Interaktionskern.
   - `src/bench.js` – `window.DQBench` (Grundgeruest steht seit Phase 2, **Herzstueck/Prioritaet**): 2.5D Werkbank-Renderer ueber demselben Interaktionskern wie `editor.js` (Bauteile, Kabel mit Messspitzen, Multimeter/Oszilloskop mit echten Geraetefronten). **Voll interaktiv** (bauen/verdrahten/drehen/loeschen genau wie im Schema, nicht nur Ansehen/Messen). Liest/schreibt denselben Schaltungszustand wie die Schema-Ansicht; Umschalt-Button Schema <-> Werkbank aendert nur die Darstellung. Positionen kommen aus dem `bench`-Layout der jeweiligen Aufgabe (siehe "Aufgaben schreiben"), nicht automatisch aus dem Schema-Layout abgeleitet. Stilvorbild: echtes Elektroniklabor/Physik-Praktikum, kein frei drehbares 3D. Siehe `docs/KONZEPT.md`, `docs/ENTSCHEIDUNGEN.md`.
+  - `src/account.js` – `window.DQAccount`: Menuepunkt Konto (Anmelden, Klassencode-Registrierung, Admin-/Dozentenansicht, Vorgaben), Sync und Vorgaben fuer die Karte. Konto ist freiwillig.
   - `src/app.js` – Spielsteuerung (Karte, Aufgabe, Theorie, Handbuch, Einstellungen, Speicherstand). Plus **Sandbox-Modus (Quick Win)**: freie Werkbank ohne Auftrag/Pruefung, alle bereits freigeschalteten Bauteile, ueber Karte erreichbar.
   - `src/style.css`, `src/index.template.html`
-  - `src/content/` – `_helpers.js` (`defChapter`, `defTask`, `defTheory`, `W`), `_parts.js` (`DQ.parts` Teile I–IV der Karte, `DQ.awards` Zertifikat/Abzeichen), `datasheets.js` (Bauteil-Datenblaetter: nur Texte, Zahlen live aus der Engine; neuer Bauteiltyp braucht einen Eintrag, sonst meldet der Validator einen Fehler), `_logic.js` (`LG`: Board-Layouts, Wahrheitstabellen-Tests, Tabellen-HTML, Minterme – fuer Logik-Kapitel), `chNN.js` (je Kapitel Aufgaben + 2 Theorien), `manual.js`
+  - `src/content/` – `_helpers.js` (`defChapter`, `defTask`, `defTheory`, `W`), `_parts.js` (`DQ.parts` Teile I–IV der Karte, `DQ.awards` Zertifikat/Abzeichen), `werkstatt.js` (Uebungswerkstatt `DQ.workshop`, id `W`, Mess-Aufgaben W1–W10 mit `defMessaufgabe` = defTask mit `palette: []`, `ref = start`; ausserhalb der 15 Kapitel, immer offen), `datasheets.js` (Bauteil-Datenblaetter: nur Texte, Zahlen live aus der Engine; neuer Bauteiltyp braucht einen Eintrag, sonst meldet der Validator einen Fehler), `_logic.js` (`LG`: Board-Layouts, Wahrheitstabellen-Tests, Tabellen-HTML, Minterme – fuer Logik-Kapitel), `chNN.js` (je Kapitel Aufgaben + 2 Theorien), `manual.js`
   - `build.js`, `validate.js`, `test_engine.js`, `tests/smoke.js` (Playwright)
 
 ## Arbeitsablauf
@@ -42,7 +44,8 @@ node test_engine.js      # Engine-Tests
 node validate.js         # muss "OK — keine Fehler" ausgeben
 node build.js            # erzeugt ../index.html und ../web/
 node tests/smoke.js      # Browser-Durchlauf (Playwright/Chromium), Screenshots in tests/shots
-node tests/tasks.js      # jede Aufgabe + jedes Bauteil in Schaltplan UND Werkbank nur ueber die Bedienung loesbar
+node tests/tasks.js      # jede Aufgabe + jedes Bauteil in Schaltplan UND Werkbank nur ueber die Bedienung loesbar (Filter: 2.5 | 2. | W*)
+node test_api.js         # Worker-API gegen D1-Nachbau (node:sqlite), ohne Cloudflare
 ```
 Fertig heisst: Tests gruen, Validator 0 Fehler, Browser-Durchlauf fehlerfrei, `tests/tasks.js` gruen (Regel: **jede Aufgabe muss im Schaltplan und auf der Werkbank loesbar sein**), Handy ok, offline spielbar. Nach jedem Abschnitt `docs/STAND.md` aktualisieren.
 
@@ -81,7 +84,8 @@ Fertig heisst: Tests gruen, Validator 0 Fehler, Browser-Durchlauf fehlerfrei, `t
 
 ## Speicherstand
 `localStorage` Schluessel `digitalquest_state_v1`: `profile {id (UUID), vorname, nachname, pseudonym}`, `done`, `drafts {taskId:{layout, answers}}`, `theory`, `events [{t, type, id, …}]`, `settings`.
-Vorbereitung Buehler Quest: UUID als Personen-ID, Namen getrennt, Ereignisliste mit Zeitstempel und Tags. **Keine** Verknuepfung zu SPS Quest bauen, solange nicht ausdruecklich verlangt.
+Mit Konto zusaetzlich `account {token, konto, vorgaben, syncT, lastSync}` und `syncOwner` (wem der lokale Stand zuletzt gespiegelt wurde). localStorage bleibt die Basis, das Spiel laeuft ohne Konto und offline. Nur Pseudonym und Benutzername gehen an den Server, nie Vor-/Nachname.
+Vorbereitung Buehler Quest: UUID als Personen-ID, Namen getrennt, Ereignisliste mit Zeitstempel und Tags. **Keine** Verknuepfung zu SPS Quest bauen, solange nicht ausdruecklich verlangt. Eigene D1-Datenbank (nicht die von SCL Quest).
 
 ## Entwickeln
 `index.html?alle` schaltet alle Stationen frei (und gibt der Freien Werkbank alle Bauteile). Dasselbe fuer Lehrpersonen ohne URL: **Dozentenmodus** in den Einstellungen (`settings.teacher`, Code `DQ.teacherCode` in `src/content/_parts.js`, Kennzeichen DOZENT, Sprungliste auf der Karte, Fortschritt bleibt unveraendert), `?werkbank` startet in der Werkbank-Ansicht (sonst gilt `settings.view`, Umschalt-Button in der Toolbar). `window.DigitalQuest` (state, openItem, editor, bench, core, setView, engine) fuer Tests.

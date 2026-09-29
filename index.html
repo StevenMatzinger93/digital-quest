@@ -4893,6 +4893,10 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
       '<p><b>Strom zeigen</b> („⇢ Strom“ in der Werkzeugleiste): Punkte wandern entlang der Leitungen in <b>technischer Stromrichtung</b> (von + nach −) – je schneller, desto mehr Strom. An jedem Kabel steht der Stromwert. So siehst du, wo sich der Strom aufteilt und wo gar keiner fliesst.</p>' +
       '<p><b>Freie Werkbank:</b> auf der Karte. Bauen und messen ohne Auftrag, mit allen bisher freigeschalteten Bauteilen.</p>' +
       '<p><b>Limits:</b> Manche Aufgaben erlauben nur eine bestimmte Anzahl Gatter („Erlaubt: hoechstens 3 Logikgatter“). Die Pruefung zaehlt mit.</p>' },
+    { id: 'konto', title: 'Konto und Vorgaben', html:
+      '<p>Ein <b>Konto ist freiwillig</b>. Ohne Konto spielst du ganz normal, der Fortschritt bleibt auf diesem Geraet (auch offline). Unter <b>Konto</b> meldest du dich an oder legst mit dem <b>Klassencode</b> deiner Lehrperson selbst ein Konto an. Gespeichert werden nur Benutzername und Pseudonym – dein echter Name (z. B. auf dem Zertifikat) bleibt auf dem Geraet.</p>' +
+      '<p>Mit Konto wird dein Fortschritt auf den Server gespiegelt und ist auch auf anderen Geraeten da. Oben auf der Karte stehen die <b>Vorgaben vom Dozent</b>, mit Frist; ist die Frist vorbei und noch etwas offen, wird sie rot. Gesperrt wird nichts – vorgegebene Stationen sind immer offen.</p>' +
+      '<p><b>Fuer Lehrpersonen:</b> Das Dozenten-Konto legt der Admin an. Unter Konto: Klassen anlegen, Klassencode weitergeben oder Konten selbst anlegen, Passwoerter zuruecksetzen, und <b>Vorgaben</b> machen – ganze Kapitel oder einzelne Stationen, fuer die ganze Klasse oder einzelne Personen, optional mit Frist. Die Liste zeigt, wer was erledigt hat. Mit dem Dozenten-Konto ist der Dozentenmodus automatisch an.</p>' },
     { id: 'karte', title: 'Karte und Auszeichnungen', html:
       '<p>Die Karte ist in <b>vier Teile</b> gegliedert: <b>I</b> Elektrotechnische Grundlagen (Kapitel 1–4), <b>II</b> Digitaltechnik Grundlagen (5–8), <b>III</b> Kombinatorik und Anzeigen (9–10) – zusammen die <b>Grundstufe</b> – und <b>IV</b> Zeitverhalten und Praxis (11–15), die <b>Profi-Stufe</b>.</p>' +
       '<p>Jede Station schaltet die naechste frei. Theorien bestehst du ab 80 % richtigen Antworten, Aufgaben mit „Pruefen“. Rot umrandet sind die <b>Boss-Aufgaben</b>.</p>' +
@@ -6239,7 +6243,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
       if (view.klasse) loadKlasse(view.klasse);
     }, function (e) { $('#accDoz').textContent = e.message; });
   }
-  function progressOf(x) { var n = Object.keys(x.erledigt || {}).length; return n; }
+  function progressOf(x) { var e = x.erledigt || {}; return ctx.order().filter(function (id) { return e[id]; }).length; } // nur Kapitel-Stationen (ohne Werkstatt)
   function loadKlasse(id) {
     api('GET', '/api/klassen/' + id).then(function (res) {
       var k = res.klasse, xs = res.schueler, total = ctx.order().length;
@@ -6272,7 +6276,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   function targetLabel(z) {
     var DQ = root.DQ, c, it;
     if (z.ziel_typ === 'kapitel') { c = chapterOf(z.ziel_id); return c ? (c === DQ.workshop ? '' : 'Kapitel ' + c.id + ' – ') + c.title : 'Kapitel ' + z.ziel_id + ' (unbekannt)'; }
-    it = DQ.byId[z.ziel_id]; return it ? (it.kind === 'theory' ? 'Theorie ' + it.id.slice(1) : 'Aufgabe ' + it.id) + ' – ' + it.title : 'Station ' + z.ziel_id + ' (unbekannt)';
+    it = DQ.byId[z.ziel_id]; return it ? (it.kind === 'theory' ? 'Theorie ' + it.id.slice(1) : (it.messOnly ? 'Messaufgabe ' : 'Aufgabe ') + it.id) + ' – ' + it.title : 'Station ' + z.ziel_id + ' (unbekannt)';
   }
   function isDone(z, doneMap) { var items = targetItems(z); return items.length > 0 && items.every(function (id) { return !!doneMap[id]; }); }
   function today() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }

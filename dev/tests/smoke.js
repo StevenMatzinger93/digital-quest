@@ -141,7 +141,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   // Karte nach Teilen I–IV, Handbuch, Boss mit Auszeichnung (Loesung als Entwurf geladen), Zertifikat/Abzeichen
   await page.click('[data-go="map"]');
   const heads = await page.$$eval('.part-head .part-no', els => els.map(e => e.textContent));
-  if (heads.join('|') !== 'Teil I|Teil II|Teil III|Teil IV') errors.push('Karte: Teile ' + heads.join('|'));
+  if (heads.join('|') !== 'Teil I|Teil II|Teil III|Teil IV|Frei ueben') errors.push('Karte: Teile ' + heads.join('|'));
   if (await page.$$eval('.award-card', els => els.length) !== 2) errors.push('Karte: 2 Auszeichnungs-Karten erwartet');
   await page.click('[data-go="manual"]');
   for (const id of await page.$$eval('[data-man]', els => els.map(e => e.dataset.man))) {
@@ -210,6 +210,59 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   await tp.click('[data-go="settings"]'); await tp.click('#tOff'); await tp.click('[data-go="map"]');
   if (!await tp.isDisabled('[data-open="12.5"]') || await tp.isVisible('#modeTag')) errors.push('Dozent: Ausschalten wirkt nicht');
   await tctx.close();
+
+  // Konten, Klassen, Vorgaben – gegen den echten Worker-Code mit D1-Nachbau (tests/apiroute.js), ohne Cloudflare
+  {
+    const { attachApi, API } = require('./apiroute.js');
+    const actx = await browser.newContext({ viewport: { width: 1300, height: 900 } }), { W, env } = await attachApi(actx), R = env.DB.raw;
+    R.prepare("INSERT INTO dozenten VALUES ('d1', 'frau.keller', ?, 'Frau K.', 0)").run(await W.hashPassword('lehrer1'));
+    const ap = await actx.newPage(); ap.on('pageerror', e => errors.push('Konto: ' + e.message));
+    const msg = async () => ((await ap.textContent('#scr-account .st').catch(() => '')) || '').trim();
+    await ap.goto(url.replace('?alle', '') + '?api=' + API, { waitUntil: 'domcontentloaded' });
+    await ap.click('[data-go="account"]'); await ap.fill('#lU', 'frau.keller'); await ap.fill('#lP', 'lehrer1'); await ap.click('#fLogin button');
+    await ap.waitForSelector('#fKl'); if (!await ap.isVisible('#modeTag')) errors.push('Konto: Dozent-Anmeldung schaltet den Dozentenmodus nicht ein');
+    await ap.fill('#kN', 'EL 1a'); await ap.click('#fKl button'); await ap.waitForSelector('#fSch');
+    await ap.fill('#sU', 'blitz'); await ap.fill('#sN', 'Blitz'); await ap.fill('#sP', 'geheim1'); await ap.click('#fSch button'); await ap.waitForSelector('[data-zs]');
+    await ap.check('[data-zk="2"]'); await ap.fill('#zDue', '2099-12-31'); await ap.click('#fZuw button[type=submit]'); await ap.waitForTimeout(300); await ap.waitForSelector('#fZuw');
+    await ap.click('details.zt:has([data-zk="W"]) summary', { position: { x: 4, y: 8 } }); await ap.check('[data-za="W3"]'); await ap.check('input[name=zfor][value=s]'); await ap.check('[data-zs]'); await ap.click('#fZuw button[type=submit]'); await ap.waitForTimeout(300); await ap.waitForSelector('#fZuw');
+    if (await ap.$$eval('#accZuw .acc-t tr', t => t.length) !== 3) errors.push('Konto: zwei Vorgaben erwartet: ' + await msg());
+    await ap.click('#accOut'); await ap.waitForSelector('#fLogin');
+    if (await ap.isVisible('#modeTag')) errors.push('Konto: Abmelden schaltet den Dozentenmodus nicht aus');
+    // Schueler: fremder lokaler Spielstand → Dialog, dann Vorgaben auf der Karte
+    await ap.evaluate(() => { const S = DigitalQuest.state; S.syncOwner = 'jemand-anderes'; S.done['1.1'] = true; });
+    await ap.fill('#lU', 'blitz'); await ap.fill('#lP', 'geheim1'); await ap.click('#fLogin button');
+    await ap.waitForSelector('#modal.open'); if (!/anderen Anmeldung/.test(await ap.textContent('#modal'))) errors.push('Konto: Dialog zum fremden Spielstand fehlt');
+    await ap.click('#modal .modal-btns button:last-child'); await ap.waitForTimeout(600);
+    if (!R.prepare("SELECT 1 FROM fortschritt WHERE item_id = '1.1'").get()) errors.push('Konto: zusammengefuehrter Stand nicht auf dem Server');
+    await ap.click('[data-go="map"]'); await ap.waitForSelector('.vg-box');
+    if (await ap.$$eval('.vg-box li', l => l.length) !== 2) errors.push('Konto: Karte zeigt nicht beide Vorgaben');
+    if (await ap.isDisabled('[data-open="2.5"]')) errors.push('Konto: zugewiesenes Kapitel 2 ist nicht offen');
+    if (!await ap.isDisabled('[data-open="3.1"]')) errors.push('Konto: nicht zugewiesenes Kapitel 3 sollte gesperrt sein');
+    await ap.screenshot({ path: shots + '/15_vorgaben_karte.png' });
+    // Werkstatt-Vorgabe W3 loesen (Sollwerte eintragen, Pruefen) → Spiegel auf dem Server
+    await ap.click('.chapter.workshop [data-open="W3"]');
+    const ex = await ap.evaluate(() => DigitalQuest.engine.expectedAnswers(DQ.byId.W3, DQ.byId.W3.ref));
+    for (const k of Object.keys(ex)) await ap.fill(`[data-ans="${k}"]`, String(ex[k]));
+    await ap.click('#btnCheck'); await ap.waitForSelector('#modal.open .win'); await ap.click('#modal .modal-btns button:first-child');
+    await ap.waitForTimeout(2200);
+    if (!R.prepare("SELECT 1 FROM fortschritt WHERE item_id = 'W3'").get()) errors.push('Konto: W3 nach dem Loesen nicht gespiegelt');
+    if (!R.prepare("SELECT 1 FROM ereignisse WHERE typ = 'task_done' AND item_id = 'W3'").get()) errors.push('Konto: Ereignis task_done W3 fehlt auf dem Server');
+    if (!await ap.isVisible('.vg-box li.vg-done')) errors.push('Konto: erledigte Vorgabe nicht markiert');
+    // Dozent sieht die Erledigung
+    await ap.click('[data-go="account"]'); await ap.click('#accOut'); await ap.waitForSelector('#fLogin');
+    await ap.fill('#lU', 'frau.keller'); await ap.fill('#lP', 'lehrer1'); await ap.click('#fLogin button'); await ap.waitForSelector('#accZuw .chip');
+    if (!await ap.isVisible('#accZuw .chip.ok')) errors.push('Konto: Dozent sieht die Erledigung von W3 nicht');
+    await ap.screenshot({ path: shots + '/16_dozent_vorgaben.png', fullPage: true });
+    await actx.close();
+    // Ohne Server: freundliche Meldung, Spiel laeuft weiter
+    const octx = await browser.newContext(); await octx.route('https://offline.test/**', r => r.abort());
+    const op = await octx.newPage(); op.on('pageerror', e => errors.push('offline: ' + e.message));
+    await op.goto(url.replace('?alle', '') + '?api=https://offline.test', { waitUntil: 'domcontentloaded' });
+    await op.click('[data-go="account"]'); await op.fill('#lU', 'x'); await op.fill('#lP', 'y'); await op.click('#fLogin button'); await op.waitForTimeout(300);
+    if (!/Keine Verbindung/.test(await op.textContent('#scr-account'))) errors.push('offline: keine verstaendliche Meldung');
+    await op.click('[data-go="map"]'); await op.click('[data-open="T1A"]'); if (!await op.isVisible('#toQuiz')) errors.push('offline: Spiel nicht spielbar');
+    await octx.close();
+  }
 
   // Handy
   const m =await browser.newPage({ viewport: { width: 390, height: 844 } });

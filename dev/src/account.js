@@ -146,7 +146,7 @@
       if (view.klasse) loadKlasse(view.klasse);
     }, function (e) { $('#accDoz').textContent = e.message; });
   }
-  function progressOf(x) { var n = Object.keys(x.erledigt || {}).length; return n; }
+  function progressOf(x) { var e = x.erledigt || {}; return ctx.order().filter(function (id) { return e[id]; }).length; } // nur Kapitel-Stationen (ohne Werkstatt)
   function loadKlasse(id) {
     api('GET', '/api/klassen/' + id).then(function (res) {
       var k = res.klasse, xs = res.schueler, total = ctx.order().length;
@@ -179,7 +179,7 @@
   function targetLabel(z) {
     var DQ = root.DQ, c, it;
     if (z.ziel_typ === 'kapitel') { c = chapterOf(z.ziel_id); return c ? (c === DQ.workshop ? '' : 'Kapitel ' + c.id + ' – ') + c.title : 'Kapitel ' + z.ziel_id + ' (unbekannt)'; }
-    it = DQ.byId[z.ziel_id]; return it ? (it.kind === 'theory' ? 'Theorie ' + it.id.slice(1) : 'Aufgabe ' + it.id) + ' – ' + it.title : 'Station ' + z.ziel_id + ' (unbekannt)';
+    it = DQ.byId[z.ziel_id]; return it ? (it.kind === 'theory' ? 'Theorie ' + it.id.slice(1) : (it.messOnly ? 'Messaufgabe ' : 'Aufgabe ') + it.id) + ' – ' + it.title : 'Station ' + z.ziel_id + ' (unbekannt)';
   }
   function isDone(z, doneMap) { var items = targetItems(z); return items.length > 0 && items.every(function (id) { return !!doneMap[id]; }); }
   function today() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
