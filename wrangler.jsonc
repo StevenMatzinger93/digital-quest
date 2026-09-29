@@ -1,10 +1,16 @@
 {
-  // Cloudflare Worker fuer Digital Quest: liefert den Ordner web/ als Website aus.
-  // Bewusst ohne D1-Datenbank/Klassen-Anbindung - das ist laut docs/ENTSCHEIDUNGEN.md
-  // ("Klassen und Personen") noch nicht dran. Wird ergaenzt, sobald diese Funktion gebaut wird.
+  // Cloudflare Worker fuer Digital Quest: liefert den Ordner web/ als Website aus (statische Dateien direkt durch Cloudflare)
+  // und beantwortet unter /api/… Konten, Klassen, Zuweisungen und Fortschritt (worker/index.js, docs/PLAN_KLASSEN_ZUWEISUNG.md).
   "name": "digital-quest",
   "compatibility_date": "2025-09-01",
+  "main": "worker/index.js",
   "assets": {
-    "directory": "./web"
+    "directory": "./web",
+    "binding": "ASSETS"
   }
+  // Datenbank fuer Konten, Klassen, Zuweisungen und Fortschritt: EIGENE D1-Datenbank (nicht die von SCL Quest).
+  // Wird gemeinsam mit Steven angelegt (npx wrangler d1 create digitalquest), danach hier eintragen:
+  // "d1_databases": [ { "binding": "DB", "database_name": "digitalquest", "database_id": "<id aus wrangler d1 create>" } ]
+  // Solange der Block fehlt, antwortet /api/… mit 503 "Konten … noch nicht eingerichtet" – die Website laeuft unveraendert.
+  // Secrets (nicht in dieser Datei!): npx wrangler secret put ADMIN_USER / ADMIN_PASSWORD
 }
