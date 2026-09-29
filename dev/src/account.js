@@ -173,7 +173,68 @@
     }, function (e) { $('#accKlasse').textContent = e.message; });
   }
 
+  /* ---------- Ziele einer Zuweisung (gemeinsam fuer Dozentenansicht und Karte der Schueler) ---------- */
+  function chapterOf(id) { var DQ = root.DQ; return DQ.chapters.filter(function (c) { return String(c.id) === String(id); })[0] || (DQ.workshop && DQ.workshop.id === id ? DQ.workshop : null); }
+  function targetItems(z) { var c; if (z.ziel_typ === 'kapitel') { c = chapterOf(z.ziel_id); return c ? c.sequence.slice() : []; } return root.DQ.byId[z.ziel_id] ? [z.ziel_id] : []; }
+  function targetLabel(z) {
+    var DQ = root.DQ, c, it;
+    if (z.ziel_typ === 'kapitel') { c = chapterOf(z.ziel_id); return c ? (c === DQ.workshop ? '' : 'Kapitel ' + c.id + ' – ') + c.title : 'Kapitel ' + z.ziel_id + ' (unbekannt)'; }
+    it = DQ.byId[z.ziel_id]; return it ? (it.kind === 'theory' ? 'Theorie ' + it.id.slice(1) : 'Aufgabe ' + it.id) + ' – ' + it.title : 'Station ' + z.ziel_id + ' (unbekannt)';
+  }
+  function isDone(z, doneMap) { var items = targetItems(z); return items.length > 0 && items.every(function (id) { return !!doneMap[id]; }); }
+  function today() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function fmtDue(d) { if (!d) return ''; var p = d.split('-'); return +p[2] + '.' + +p[1] + '.' + p[0]; }
+  function allChapters() { var DQ = root.DQ; return DQ.chapters.concat(DQ.workshop ? [DQ.workshop] : []); }
+
+  /* ---------- Dozent: Vorgaben einer Klasse ---------- */
+  function renderAssignments(el, k, xs) {
+    api('GET', '/api/klassen/' + k.id + '/zuweisungen').then(function (res) {
+      var zs = res.zuweisungen, t = today();
+      var list = zs.length ? '<table class="acc-t"><tr><th>Vorgabe</th><th>Fuer</th><th>Frist</th><th>Erledigt</th><th></th></tr>' + zs.map(function (z) {
+        var who = z.schueler_id ? xs.filter(function (x) { return x.id === z.schueler_id; }) : xs;
+        var fin = who.filter(function (x) { return isDone(z, x.erledigt || {}); });
+        var over = z.faellig_am && z.faellig_am < t && fin.length < who.length;
+        return '<tr><td>' + esc(targetLabel(z)) + '</td><td>' + (z.schueler_id ? esc(z.pseudonym || '?') : '<i>ganze Klasse</i>') + '</td>' +
+          '<td class="' + (over ? 'due-over' : '') + '">' + (z.faellig_am ? fmtDue(z.faellig_am) + (over ? ' · ueberfaellig' : '') : '–') + '</td>' +
+          '<td><span class="mono small">' + fin.length + ' / ' + who.length + '</span>' + (who.length ? ' <span class="acc-who-done">' + who.map(function (x) { return '<span class="chip ' + (isDone(z, x.erledigt || {}) ? 'ok' : '') + '" title="' + (isDone(z, x.erledigt || {}) ? 'erledigt' : 'offen') + '">' + esc(x.pseudonym) + '</span>'; }).join('') + '</span>' : '') + '</td>' +
+          '<td class="acc-act"><button class="btn small" data-zdue="' + z.id + '" data-due="' + (z.faellig_am || '') + '">Frist</button><button class="btn small danger" data-zdel="' + z.id + '">Entfernen</button></td></tr>';
+      }).join('') + '</table>' : '<p class="dim">Noch keine Vorgaben fuer diese Klasse.</p>';
+      var tree = allChapters().map(function (c) {
+        return '<details class="zt"><summary><label><input type="checkbox" data-zk="' + c.id + '"> ' + esc(c === root.DQ.workshop ? c.title : 'Kapitel ' + c.id + ' – ' + c.title) + '</label></summary><div class="zt-items">' +
+          c.sequence.map(function (id) { var it = root.DQ.byId[id]; return '<label><input type="checkbox" data-za="' + id + '"> <span class="mono small">' + (it.kind === 'theory' ? 'T' + id.slice(1) : id) + '</span> ' + esc(it.title) + '</label>'; }).join('') + '</div></details>';
+      }).join('');
+      el.innerHTML = '<section class="acc-card"><h3>Vorgaben fuer ' + esc(k.name) + '</h3>' + list +
+        '<form id="fZuw" class="zuw-new"><h4>Neue Vorgabe</h4>' +
+        '<div class="zuw-cols"><div><span class="dim small">Was? – ganze Kapitel ankreuzen oder aufklappen und einzelne Stationen waehlen</span><div class="zt-list">' + tree + '</div></div>' +
+        '<div><span class="dim small">Fuer wen?</span><label class="zr"><input type="radio" name="zfor" value="k" checked> ganze Klasse</label><label class="zr"><input type="radio" name="zfor" value="s"> einzelne Schueler</label>' +
+        '<div class="zuw-studs">' + (xs.length ? xs.map(function (x) { return '<label><input type="checkbox" data-zs="' + x.id + '"> ' + esc(x.pseudonym) + '</label>'; }).join('') : '<span class="dim small">Noch keine Schueler.</span>') + '</div>' +
+        '<label class="fld acc-fld"><span>Frist (optional)</span><input type="date" id="zDue" min="' + t + '"></label>' +
+        '<p class="dim small">Die Frist ist eine Erinnerung – nichts wird gesperrt.</p><button class="btn primary" type="submit">Zuweisen</button></div></div></form></section>';
+      $$('[data-zk]', el).forEach(function (cb) { cb.onchange = function () { $$('[data-za]', cb.closest('details')).forEach(function (i) { i.disabled = cb.checked; if (cb.checked) i.checked = false; }); }; });
+      $$('[data-zk]', el).forEach(function (cb) { cb.onclick = function (ev) { ev.stopPropagation(); }; });
+      $('#fZuw', el).onsubmit = function (ev) {
+        ev.preventDefault();
+        var ziele = $$('[data-zk]:checked', el).map(function (i) { return { typ: 'kapitel', id: i.dataset.zk }; })
+          .concat($$('[data-za]:checked', el).map(function (i) { return { typ: 'aufgabe', id: i.dataset.za }; }));
+        var single = $('input[name="zfor"]:checked', el).value === 's', sids = $$('[data-zs]:checked', el).map(function (i) { return i.dataset.zs; });
+        if (!ziele.length) { fail(new Error('Bitte mindestens ein Kapitel oder eine Station ankreuzen.')); return; }
+        if (single && !sids.length) { fail(new Error('Bitte mindestens eine Person ankreuzen.')); return; }
+        var data = { ziele: ziele, faellig_am: $('#zDue', el).value || null };
+        if (single) data.schueler_ids = sids; else data.klasse_id = k.id;
+        api('POST', '/api/zuweisungen', data).then(function (r) { done(r.ids.length + ' Vorgabe' + (r.ids.length > 1 ? 'n' : '') + ' gespeichert.'); }, fail);
+      };
+      $$('[data-zdel]', el).forEach(function (b) { b.onclick = function () { api('DELETE', '/api/zuweisungen/' + b.dataset.zdel).then(function () { done('Vorgabe entfernt.'); }, fail); }; });
+      $$('[data-zdue]', el).forEach(function (b) {
+        b.onclick = function () {
+          ctx.modal('<h2>Frist aendern</h2><label class="fld acc-fld"><span>Frist (leer = keine)</span><input type="date" id="askDue" value="' + esc(b.dataset.due) + '"></label>',
+            [{ label: 'Abbrechen' }, { label: 'Speichern', primary: true, action: function () { api('POST', '/api/zuweisungen/' + b.dataset.zdue, { faellig_am: ($('#askDue') || {}).value || null }).then(function () { done('Frist gespeichert.'); }, fail); } }]);
+        };
+      });
+    }, function (e) { el.textContent = e.message; });
+  }
+
   root.DQAccount = {
+    renderAssignments: renderAssignments, targetItems: targetItems, targetLabel: targetLabel, isDone: isDone, today: today, fmtDue: fmtDue, chapterOf: chapterOf,
     init: function (c) { ctx = c; },
     render: render, api: api, apiBase: apiBase, acc: acc, role: role, esc: esc, ask: ask, done: done, fail: fail, field: field,
     reload: function () { render(); }

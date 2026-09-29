@@ -106,7 +106,32 @@ const ok = (c, name, info) => { if (c) pass++; else { failN++; console.log('FEHL
   r = await call('DELETE', '/api/klassen/' + KW.id, null, D.token); ok(r.status === 200, 'Klasse loeschen');
   ok(!(await env.DB.prepare("SELECT 1 AS x FROM schueler WHERE benutzer = 'weg1'").first()), 'Schueler einer geloeschten Klasse sind mit geloescht');
 
-  globalThis.__t = { D, D2, K1, S1, adm };
+  /* ===== Phase 3: Zuweisungen ===== */
+  r = await call('POST', '/api/klassen/' + K1.id + '/schueler', { benutzer: 'welle', passwort: 'geheim3', pseudonym: 'Welle' }, D.token);
+  const S3 = r.body.schueler;
+  r = await call('POST', '/api/zuweisungen', { ziele: [{ typ: 'kapitel', id: '12' }, { typ: 'aufgabe', id: '14.3' }], klasse_id: K1.id, faellig_am: '2026-10-20' }, D.token);
+  ok(r.status === 200 && r.body.ids.length === 2, 'Zwei Ziele an die ganze Klasse', r.body);
+  r = await call('POST', '/api/zuweisungen', { ziele: [{ typ: 'aufgabe', id: 'W3' }], schueler_ids: [S1.id, S3.id] }, D.token);
+  ok(r.status === 200 && r.body.ids.length === 2, 'Ein Ziel an zwei einzelne Schueler (ohne Frist)');
+  r = await call('POST', '/api/zuweisungen', { ziele: [{ typ: 'kapitel', id: '12' }], klasse_id: K1.id, faellig_am: '2026-10-27' }, D.token);
+  r = await call('GET', '/api/klassen/' + K1.id + '/zuweisungen', null, D.token);
+  const z12 = r.body.zuweisungen.filter(z => z.ziel_id === '12');
+  ok(r.body.zuweisungen.length === 4 && z12.length === 1 && z12[0].faellig_am === '2026-10-27', 'Erneut zuweisen aktualisiert nur die Frist (kein Duplikat)', r.body);
+  ok(r.body.zuweisungen.filter(z => z.schueler_id).every(z => z.pseudonym), 'Einzel-Zuweisungen tragen das Pseudonym');
+  r = await call('POST', '/api/zuweisungen', { ziele: [{ typ: 'kapitel', id: '12' }], klasse_id: K1.id, faellig_am: '20.10.2026' }, D.token); ok(r.status === 400, 'Falsches Datumsformat abgewiesen');
+  r = await call('POST', '/api/zuweisungen', { ziele: [{ typ: 'raum', id: '12' }], klasse_id: K1.id }, D.token); ok(r.status === 400, 'Unbekannter Ziel-Typ abgewiesen');
+  r = await call('POST', '/api/zuweisungen', { ziele: [{ typ: 'kapitel', id: "1'; DROP" }], klasse_id: K1.id }, D.token); ok(r.status === 400, 'Unsaubere Ziel-ID abgewiesen');
+  r = await call('POST', '/api/zuweisungen', { ziele: [{ typ: 'kapitel', id: '3' }] }, D.token); ok(r.status === 400, 'Ohne Empfaenger abgewiesen');
+  r = await call('POST', '/api/zuweisungen', { ziele: [{ typ: 'kapitel', id: '3' }], klasse_id: K1.id }, D2.token); ok(r.status === 404, 'Fremder Dozent kann der Klasse nichts zuweisen');
+  r = await call('POST', '/api/zuweisungen', { ziele: [{ typ: 'kapitel', id: '3' }], schueler_ids: [S1.id] }, D2.token); ok(r.status === 404, 'Fremder Dozent kann fremden Schuelern nichts zuweisen');
+  r = await call('GET', '/api/klassen/' + K1.id + '/zuweisungen', null, D2.token); ok(r.status === 404, 'Fremder Dozent sieht die Zuweisungen nicht');
+  const zid = z12[0].id;
+  r = await call('POST', '/api/zuweisungen/' + zid, { faellig_am: null }, D.token); ok(r.status === 200, 'Frist entfernen');
+  r = await call('DELETE', '/api/zuweisungen/' + zid, null, D2.token); ok(r.status === 404, 'Fremder Dozent kann nicht loeschen');
+  r = await call('DELETE', '/api/zuweisungen/' + zid, null, D.token); ok(r.status === 200, 'Zuweisung loeschen');
+  r = await call('GET', '/api/klassen/' + K1.id + '/zuweisungen', null, D.token); ok(r.body.zuweisungen.length === 3, 'Nach dem Loeschen 3 Zuweisungen');
+
+  globalThis.__t = { D, D2, K1, S1, S3, adm };
   if (globalThis.__more) await globalThis.__more({ call, login, ok, env, W });
   console.log(`API-Tests: ${pass} ok, ${failN} Fehler`);
   process.exit(failN ? 1 : 0);

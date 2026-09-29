@@ -325,3 +325,15 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .acc-bar i { display: block; height: 100%; background: var(--accent-green); }
 .acc-danger { text-align: right; margin: 12px 0 0; }
 @media (max-width: 760px) { .acc-t { font-size: 13px; } .acc-t .mono { word-break: break-all; } .acc-act .btn { display: block; margin: 0 0 4px auto !important; } }
+/* Konto: Vorgaben (Zuweisungen) */
+.due-over { color: var(--accent-red); font-weight: 600; }
+.chip { display: inline-block; font-size: 11px; padding: 0 6px; margin: 1px 2px; border-radius: 8px; border: 1px solid var(--line); color: var(--text-dim); }
+.chip.ok { border-color: var(--accent-green); color: var(--accent-green); }
+.zuw-new { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 4px; }
+.zuw-cols { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; }
+.zt-list { max-height: 340px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; margin-top: 4px; background: var(--bg-tertiary); }
+.zt summary { cursor: pointer; padding: 3px 0; } .zt summary label { cursor: pointer; }
+.zt-items { display: grid; gap: 2px; padding: 2px 0 6px 22px; font-size: 13px; }
+.zt-items label:has(input:disabled) { opacity: .45; }
+.zr { display: block; margin: 4px 0; } .zuw-studs { display: grid; gap: 2px; margin: 4px 0 10px 22px; font-size: 14px; }
+@media (max-width: 760px) { .zuw-cols { grid-template-columns: 1fr; } }

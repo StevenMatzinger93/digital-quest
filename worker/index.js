@@ -264,6 +264,67 @@ on('POST', '/api/registrieren', async ({ req, db, now }) => {
   return { token, konto: await konto(db, { rolle: 'schueler', id: x.id }) };
 });
 
+/* ---------- Zuweisungen (neu entworfen, siehe Plan Baustein 2) ----------
+ * Eine Zeile = ein Ziel (Kapitel 'kapitel' oder Station 'aufgabe') an eine Klasse ODER eine Person, optional mit Frist.
+ * Mehrfachauswahl legt mehrere Zeilen an; dasselbe Ziel an denselben Empfaenger aktualisiert nur die Frist.
+ * Nichts wird gesperrt – die Frist ist nur Sichtbarkeit/Erinnerung. Erledigt-Status rechnet der Client aus dem Fortschritt. */
+function dueDate(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const s = String(v); if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || isNaN(Date.parse(s))) fail(400, 'Datum im Format JJJJ-MM-TT.');
+  return s;
+}
+function targets(list) {
+  if (!Array.isArray(list) || !list.length || list.length > 200) fail(400, 'Bitte mindestens ein Kapitel oder eine Station waehlen.');
+  return list.map(z => {
+    const typ = z && z.typ, id = String(z && z.id || '');
+    if (typ !== 'kapitel' && typ !== 'aufgabe') fail(400, 'Ziel-Typ muss kapitel oder aufgabe sein.');
+    if (!RE_ITEM.test(id)) fail(400, 'Ungueltige Kapitel-/Stations-ID: ' + id);
+    return { typ, id };
+  });
+}
+const Z_COLS = 'z.id, z.ziel_typ, z.ziel_id, z.klasse_id, z.schueler_id, z.faellig_am, z.erstellt';
+
+on('POST', '/api/zuweisungen', async ({ s, req, db, now }) => {
+  need(s, 'dozent');
+  const b = await body(req), ziele = targets(b.ziele), faellig = dueDate(b.faellig_am);
+  let empf = [];
+  if (b.klasse_id) { await ownClass(db, s, b.klasse_id); empf = [{ col: 'klasse_id', id: b.klasse_id }]; }
+  else if (Array.isArray(b.schueler_ids) && b.schueler_ids.length) {
+    for (const id of b.schueler_ids) { await ownStudent(db, s, id); empf.push({ col: 'schueler_id', id }); }
+  } else fail(400, 'Bitte eine Klasse oder einzelne Schueler waehlen.');
+  const out = [];
+  for (const z of ziele) for (const e of empf) {
+    const ex = await db.prepare('SELECT id FROM zuweisungen WHERE dozent_id = ? AND ziel_typ = ? AND ziel_id = ? AND ' + e.col + ' = ?').bind(s.id, z.typ, z.id, e.id).first();
+    if (ex) { await db.prepare('UPDATE zuweisungen SET faellig_am = ? WHERE id = ?').bind(faellig, ex.id).run(); out.push(ex.id); continue; }
+    const id = uuid();
+    await db.prepare('INSERT INTO zuweisungen (id, dozent_id, ziel_typ, ziel_id, klasse_id, schueler_id, faellig_am, erstellt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(id, s.id, z.typ, z.id, e.col === 'klasse_id' ? e.id : null, e.col === 'schueler_id' ? e.id : null, faellig, now).run();
+    out.push(id);
+  }
+  return { ids: out };
+});
+/* Alle Zuweisungen einer Klasse: an die ganze Klasse und an einzelne Schueler der Klasse */
+on('GET', '/api/klassen/:id/zuweisungen', async ({ s, db, p }) => {
+  need(s, 'dozent');
+  const k = await ownClass(db, s, p.id);
+  const r = await db.prepare('SELECT ' + Z_COLS + ', x.pseudonym FROM zuweisungen z LEFT JOIN schueler x ON x.id = z.schueler_id ' +
+    'WHERE z.dozent_id = ? AND (z.klasse_id = ? OR x.klasse_id = ?) ORDER BY z.faellig_am IS NULL, z.faellig_am, z.erstellt').bind(s.id, k.id, k.id).all();
+  return { zuweisungen: r.results };
+});
+on('POST', '/api/zuweisungen/:id', async ({ s, req, db, p }) => {
+  need(s, 'dozent');
+  const faellig = dueDate((await body(req)).faellig_am);
+  const r = await db.prepare('UPDATE zuweisungen SET faellig_am = ? WHERE id = ? AND dozent_id = ?').bind(faellig, p.id, s.id).run();
+  if (!r.meta.changes) fail(404, 'Zuweisung nicht gefunden.');
+  return { ok: true };
+});
+on('DELETE', '/api/zuweisungen/:id', async ({ s, db, p }) => {
+  need(s, 'dozent');
+  const r = await db.prepare('DELETE FROM zuweisungen WHERE id = ? AND dozent_id = ?').bind(p.id, s.id).run();
+  if (!r.meta.changes) fail(404, 'Zuweisung nicht gefunden.');
+  return { ok: true };
+});
+
 /* ---------- Einstieg ---------- */
 export async function handle(req, env) {
   const url = new URL(req.url);
