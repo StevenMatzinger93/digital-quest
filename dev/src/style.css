@@ -397,3 +397,11 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .kv-loop { fill: none; stroke-width: 3; pointer-events: none; }
 .kv-term { margin-top: 12px; font: 18px var(--font-code); } .kv-term p { font-family: var(--font-ui); margin-top: 6px; }
 .ov { text-decoration: overline; }
+/* bode: Frequenzgang */
+.bodew { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-secondary); padding: 10px 14px 12px; display: grid; gap: 8px; }
+.bode { width: 100%; display: block; background: var(--bg-editor); border-radius: 8px; }
+.bode-g { stroke: rgba(255,255,255,.07); } .bode-t { font: 10px var(--font-code); fill: var(--text-faint); text-anchor: middle; }
+.bode-3 { stroke: var(--accent-cyan); stroke-dasharray: 4 4; opacity: .7; } .bode-3t { font: 10px var(--font-code); fill: var(--accent-cyan); }
+.bode-fg { stroke: var(--accent-lead-dim); stroke-dasharray: 2 4; } .bode-fgt { font: 10px var(--font-code); fill: var(--accent-lead); }
+.bode-c { fill: none; stroke: var(--accent-lead); stroke-width: 2.5; }
+.bode-cl { stroke: rgba(255,255,255,.35); } .bode-cd { fill: #fff; stroke: var(--accent-lead); stroke-width: 2; }

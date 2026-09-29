@@ -234,5 +234,76 @@
     }
   });
 
-  root.DQVisuals = { minimize: minimize, gray: GEN.gray, register: register, mount: mount, mountAll: mountAll, lessonHtml: lessonHtml, check: check, listOf: listOf, types: function () { return Object.keys(TYPES); } };
+  /* ---------- bode: Frequenzgang ----------
+   * {type:'bode', stages:[{kind:'lp'|'hp', r, c}, …], fmin?, fmax?, f? (Startwert Cursor)}
+   * Kette aus RC-Stufen wie in Kapitel 14 (unbelastet hintereinander – Stufe 2 belastet Stufe 1): exakt mit komplexen
+   * Widerstaenden gerechnet. Der Validator vergleicht die Kurve mit der Engine (E.acMeasure an der echten Schaltung). */
+  function cx(re, im) { return { re: re, im: im || 0 }; }
+  function cadd(a, b) { return cx(a.re + b.re, a.im + b.im); }
+  function cmul(a, b) { return cx(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re); }
+  function cdiv(a, b) { var d = b.re * b.re + b.im * b.im; return cx((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); }
+  function cpar(a, b) { return b === null ? a : cdiv(cmul(a, b), cadd(a, b)); } // b = null: offen
+  function transfer(stages, f) { // U_a / U_e als komplexe Zahl
+    var w = 2 * Math.PI * f, zin = null, h = cx(1, 0);
+    for (var k = stages.length - 1; k >= 0; k--) {
+      var s = stages[k], zr = cx(s.r, 0), zc = cx(0, -1 / (w * s.c));
+      var zs = s.kind === 'lp' ? zr : zc, zp = s.kind === 'lp' ? zc : zr, zpar = cpar(zp, zin);
+      h = cmul(h, cdiv(zpar, cadd(zs, zpar))); zin = cadd(zs, zpar);
+    }
+    return h;
+  }
+  function fgOf(s) { return 1 / (2 * Math.PI * s.r * s.c); }
+  function bodeRange(v) {
+    var fgs = v.stages.map(fgOf), lo = Math.min.apply(null, fgs), hi = Math.max.apply(null, fgs);
+    return [v.fmin || Math.pow(10, Math.floor(Math.log10(lo / 30))), v.fmax || Math.pow(10, Math.ceil(Math.log10(hi * 30)))];
+  }
+  /* Echte Schaltung zu den Stufen (fuer den Vergleich mit der Engine): G1 → Stufe 1 → Stufe 2 …, Ausgang am letzten Querglied */
+  function bodeLayout(stages, f) {
+    var P = [{ id: 'G1', type: 'acsource', value: 10, props: { freq: f, shape: 'sine', offset: 0 } }], Wr = [], node = 'G1.p', out = null;
+    stages.forEach(function (s, k) {
+      var ser = { id: 'S' + k, type: s.kind === 'lp' ? 'resistor' : 'capacitor', value: s.kind === 'lp' ? s.r : s.c };
+      var sh = { id: 'P' + k, type: s.kind === 'lp' ? 'capacitor' : 'resistor', value: s.kind === 'lp' ? s.c : s.r };
+      P.push(ser, sh); Wr.push({ from: node, to: ser.id + '.a' }, { from: ser.id + '.b', to: sh.id + '.a' }, { from: sh.id + '.b', to: 'G1.n' });
+      node = ser.id + '.b'; out = sh.id + '.a';
+    });
+    return { layout: { parts: P, wires: Wr }, out: out };
+  }
+  function fmtF(f) { return f >= 1000 ? +(f / 1000).toPrecision(3) + ' kHz' : +f.toPrecision(3) + ' Hz'; }
+  register('bode', {
+    mount: function (el, v) {
+      var rg = bodeRange(v), W = 560, H = 250, L = 52, T = 14, Rm = 30, B = 34, lo = Math.log10(rg[0]), hi = Math.log10(rg[1]), dbMin = v.dbMin || -60;
+      var X = function (f) { return L + (Math.log10(f) - lo) / (hi - lo) * (W - L - Rm); }, Y = function (db) { return T + (0 - Math.max(dbMin, db)) / (0 - dbMin) * (H - T - B); };
+      var s = '<svg class="bode" viewBox="0 0 ' + W + ' ' + H + '">', k, d = '';
+      for (var e = Math.ceil(lo); e <= Math.floor(hi); e++) s += '<line class="bode-g" x1="' + X(Math.pow(10, e)) + '" x2="' + X(Math.pow(10, e)) + '" y1="' + T + '" y2="' + (H - B) + '"/><text class="bode-t" x="' + X(Math.pow(10, e)) + '" y="' + (H - B + 16) + '">' + fmtF(Math.pow(10, e)) + '</text>';
+      for (var db = 0; db >= dbMin; db -= 20) s += '<line class="bode-g" x1="' + L + '" x2="' + (W - Rm) + '" y1="' + Y(db) + '" y2="' + Y(db) + '"/><text class="bode-t" x="' + (L - 6) + '" y="' + (Y(db) + 4) + '" text-anchor="end">' + db + ' dB</text>';
+      s += '<line class="bode-3" x1="' + L + '" x2="' + (W - Rm) + '" y1="' + Y(-3) + '" y2="' + Y(-3) + '"/><text class="bode-3t" x="' + (W - Rm) + '" y="' + (Y(-3) - 4) + '" text-anchor="end">−3 dB</text>';
+      v.stages.forEach(function (st) { var fg = fgOf(st), x = X(fg); s += '<line class="bode-fg" x1="' + x + '" x2="' + x + '" y1="' + T + '" y2="' + (H - B) + '"/><text class="bode-fgt" x="' + (x + 4) + '" y="' + (T + 12) + '">f_g ' + fmtF(fg) + '</text>'; });
+      for (k = 0; k <= 200; k++) { var f = Math.pow(10, lo + (hi - lo) * k / 200), m = transfer(v.stages, f), g = 20 * Math.log10(Math.hypot(m.re, m.im)); d += (k ? 'L' : 'M') + X(f).toFixed(1) + ' ' + Y(g).toFixed(1); }
+      s += '<path class="bode-c" d="' + d + '"/><g class="bode-cur"><line class="bode-cl" y1="' + T + '" y2="' + (H - B) + '"/><circle class="bode-cd" r="5"/></g></svg>';
+      var f0 = v.f || fgOf(v.stages[0]);
+      el.innerHTML = '<div class="bodew">' + s + '<label class="mini-sl"><span>Frequenz</span><input type="range" min="' + lo + '" max="' + hi + '" step="0.005" value="' + Math.log10(f0) + '"><b class="mono"></b></label><div class="mini-ro bode-ro"></div></div>';
+      var inp = el.querySelector('input'), out = el.querySelector('.mini-sl b'), ro = el.querySelector('.bode-ro'), cur = el.querySelector('.bode-cur'), cl = el.querySelector('.bode-cl'), cd = el.querySelector('.bode-cd');
+      function upd() {
+        var f = Math.pow(10, +inp.value), m = transfer(v.stages, f), a = Math.hypot(m.re, m.im), g = 20 * Math.log10(a), ph = Math.atan2(m.im, m.re) * 180 / Math.PI;
+        out.textContent = fmtF(f); cl.setAttribute('x1', X(f)); cl.setAttribute('x2', X(f)); cd.setAttribute('cx', X(f)); cd.setAttribute('cy', Y(g));
+        ro.innerHTML = '<span><b>U<sub>a</sub> / U<sub>e</sub></b> <span class="mono">' + (a * 100).toFixed(1) + ' %</span></span><span><b>Verstaerkung</b> <span class="mono">' + g.toFixed(1) + ' dB</span></span><span><b>Phase</b> <span class="mono">' + ph.toFixed(0) + '°</span></span>';
+        void cur;
+      }
+      inp.oninput = upd; upd();
+      return null;
+    },
+    check: function (v, E) {
+      if (!Array.isArray(v.stages) || !v.stages.length) return ['bode: stages [{kind, r, c}] fehlt'];
+      var err = [];
+      v.stages.forEach(function (s, k) { if ((s.kind !== 'lp' && s.kind !== 'hp') || !(s.r > 0) || !(s.c > 0)) err.push('bode: Stufe ' + (k + 1) + ' braucht kind lp|hp, r > 0, c > 0'); });
+      if (err.length || !E || !E.acMeasure) return err;
+      v.stages.map(fgOf).forEach(function (f) { // Kurve = Engine? An jeder Grenzfrequenz nachmessen
+        var b = bodeLayout(v.stages, f), m = E.acMeasure(b.layout, { a: b.out, b: 'G1.n' }), eng = m.rms / (10 / Math.SQRT2), t = transfer(v.stages, f), mine = Math.hypot(t.re, t.im);
+        if (Math.abs(eng - mine) > Math.max(0.02 * mine, 0.005)) err.push('bode: weicht bei ' + fmtF(f) + ' von der Engine ab (' + mine.toFixed(3) + ' statt ' + eng.toFixed(3) + ')');
+      });
+      return err;
+    }
+  });
+
+  root.DQVisuals = { transfer: transfer, bodeLayout: bodeLayout, minimize: minimize, gray: GEN.gray, register: register, mount: mount, mountAll: mountAll, lessonHtml: lessonHtml, check: check, listOf: listOf, types: function () { return Object.keys(TYPES); } };
 })(typeof window !== 'undefined' ? window : globalThis);
