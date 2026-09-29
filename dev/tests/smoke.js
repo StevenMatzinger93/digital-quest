@@ -189,26 +189,19 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   if (cards.length !== nTypes || cards.includes(false)) errors.push('Handbuch Datenblaetter: ' + cards.length + ' von ' + nTypes + ' mit beiden Bildern');
   await page.screenshot({ path: shots + '/14_datenblaetter.png' });
 
-  // Dozentenmodus: frischer Spielstand ohne ?alle
+  // Einzeldatei ohne Konto: kein Dozentenmodus, keine Code-Eingabe, kein Konto-Chip; Sterne beim Loesen
   const tctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }), tp = await tctx.newPage();
-  tp.on('pageerror', e => errors.push('Dozent: ' + e.message));
+  tp.on('pageerror', e => errors.push('Einzeldatei: ' + e.message));
   await tp.goto(url.replace('?alle', ''), { waitUntil: 'domcontentloaded' });
-  if (!await tp.isDisabled('[data-open="12.5"]')) errors.push('Dozent: ohne Modus sollte 12.5 gesperrt sein');
-  await tp.click('[data-go="settings"]'); await tp.fill('#tCode', 'falsch'); await tp.click('#tOn');
-  if (!/falsch/.test(await tp.textContent('#tMsg'))) errors.push('Dozent: falscher Code nicht abgewiesen');
-  await tp.fill('#tCode', await tp.evaluate(() => DQ.teacherCode)); await tp.click('#tOn');
-  if (!await tp.isVisible('#modeTag')) errors.push('Dozent: Kennzeichen DOZENT fehlt');
-  await tp.click('[data-go="map"]');
-  if (await tp.isDisabled('[data-open="15.10"]')) errors.push('Dozent: 15.10 nicht offen');
-  await tp.selectOption('#jump', '12.5');
-  if (!/Aufgabe 12\.5/.test(await tp.textContent('#taskInfo .crumb'))) errors.push('Dozent: Sprung zu 12.5 fehlgeschlagen');
-  await tp.click('[data-go="map"]'); await tp.screenshot({ path: shots + '/13_dozent_karte.png' });
-  await tp.click('.map-actions [data-open="sandbox"]');
-  const pal = await tp.$$eval('[data-add]', els => els.map(e => e.dataset.add));
-  if (!['motor', 'npn', 'dec7', 'acsource', 'jkff'].every(k => pal.includes(k))) errors.push('Dozent: Werkbank ohne alle Bauteile: ' + pal.join(','));
-  if (await tp.evaluate(() => Object.keys(DigitalQuest.state.done).length)) errors.push('Dozent: Fortschritt wurde veraendert');
-  await tp.click('[data-go="settings"]'); await tp.click('#tOff'); await tp.click('[data-go="map"]');
-  if (!await tp.isDisabled('[data-open="12.5"]') || await tp.isVisible('#modeTag')) errors.push('Dozent: Ausschalten wirkt nicht');
+  if (!await tp.isDisabled('[data-open="12.5"]')) errors.push('Einzeldatei: 12.5 sollte gesperrt sein');
+  if (await tp.isVisible('#modeTag') || await tp.isVisible('#acctChip') || await tp.isVisible('#jump')) errors.push('Einzeldatei: Dozentenmodus/Konto-Chip sichtbar');
+  await tp.click('[data-go="settings"]');
+  if (await tp.$('#tCode')) errors.push('Einzeldatei: Code-Eingabe fuer den Dozentenmodus ist noch da');
+  await tp.evaluate(() => { localStorage.setItem('digitalquest_state_v1', JSON.stringify({ version: 1, profile: { id: 'x' }, done: { '1.1': true }, events: [{ t: 5, type: 'task_done', id: '1.1', tries: 2, hints: 0 }], settings: { teacher: true } })); });
+  await tp.reload({ waitUntil: 'domcontentloaded' });
+  const old = await tp.evaluate(() => ({ di: DigitalQuest.state.doneInfo['1.1'], t: DigitalQuest.state.settings.teacher, dr: typeof DigitalQuest.state.drafts }));
+  if (!old.di || old.di.stars !== 2 || old.di.at !== 5 || old.t || old.dr !== 'object') errors.push('Einzeldatei: alter Spielstand nicht sauber uebernommen: ' + JSON.stringify(old));
+  if (await tp.isVisible('#modeTag')) errors.push('Einzeldatei: alter Dozentenmodus (settings.teacher) wirkt noch');
   await tctx.close();
 
   // Theorie-Bilder: alle 30 Lektionen – jeder Baustein rendert und reagiert (Mini-Schaltung: Klick aendert die Schaltung, Zeit laeuft mit)
@@ -251,56 +244,127 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   }
   await page.screenshot({ path: shots + '/17_theorie_bild.png' });
 
-  // Konten, Klassen, Vorgaben – gegen den echten Worker-Code mit D1-Nachbau (tests/apiroute.js), ohne Cloudflare
+  // Portal-Version des Spiels (web/labor/) gegen den echten Worker-Code mit D1-Nachbau (tests/apiroute.js), ohne Cloudflare:
+  // Dozentenmodus am Konto, Spielstand-Abgleich, Vorgaben auf der Karte, Live-Challenge, offline
   {
-    const { attachApi, API } = require('./apiroute.js');
-    const actx = await browser.newContext({ viewport: { width: 1300, height: 900 } }), { W, env } = await attachApi(actx), R = env.DB.raw;
-    R.prepare("INSERT INTO dozenten VALUES ('d1', 'frau.keller', ?, 'Frau K.', 0)").run(await W.hashPassword('lehrer1'));
+    const { attachSite, SITE } = require('./apiroute.js');
+    const actx = await browser.newContext({ viewport: { width: 1300, height: 900 } }), site = await attachSite(actx), R = site.env.DB.raw;
+    const tid = await site.addUser('frau.keller', 'lehrerin-1', 'teacher'), cid = site.addClass('EL 1a', tid, 'ABC234'), sid = await site.addUser('blitz', 'geheim1', 'student', cid);
+    const sid2 = await site.addUser('funke', 'geheim2', 'student', cid);
     const ap = await actx.newPage(); ap.on('pageerror', e => errors.push('Konto: ' + e.message));
-    const msg = async () => ((await ap.textContent('#scr-account .st').catch(() => '')) || '').trim();
-    await ap.goto(url.replace('?alle', '') + '?api=' + API, { waitUntil: 'domcontentloaded' });
-    await ap.click('[data-go="account"]'); await ap.fill('#lU', 'frau.keller'); await ap.fill('#lP', 'lehrer1'); await ap.click('#fLogin button');
-    await ap.waitForSelector('#fKl'); if (!await ap.isVisible('#modeTag')) errors.push('Konto: Dozent-Anmeldung schaltet den Dozentenmodus nicht ein');
-    await ap.fill('#kN', 'EL 1a'); await ap.click('#fKl button'); await ap.waitForSelector('#fSch');
-    await ap.fill('#sU', 'blitz'); await ap.fill('#sN', 'Blitz'); await ap.fill('#sP', 'geheim1'); await ap.click('#fSch button'); await ap.waitForSelector('[data-zs]');
-    await ap.check('[data-zk="2"]'); await ap.fill('#zDue', '2099-12-31'); await ap.click('#fZuw button[type=submit]'); await ap.waitForTimeout(300); await ap.waitForSelector('#fZuw');
-    await ap.click('details.zt:has([data-zk="W"]) summary', { position: { x: 4, y: 8 } }); await ap.check('[data-za="W3"]'); await ap.check('input[name=zfor][value=s]'); await ap.check('[data-zs]'); await ap.click('#fZuw button[type=submit]'); await ap.waitForTimeout(300); await ap.waitForSelector('#fZuw');
-    if (await ap.$$eval('#accZuw .acc-t tr', t => t.length) !== 3) errors.push('Konto: zwei Vorgaben erwartet: ' + await msg());
-    await ap.click('#accOut'); await ap.waitForSelector('#fLogin');
-    if (await ap.isVisible('#modeTag')) errors.push('Konto: Abmelden schaltet den Dozentenmodus nicht aus');
-    // Schueler: fremder lokaler Spielstand → Dialog, dann Vorgaben auf der Karte
-    await ap.evaluate(() => { const S = DigitalQuest.state; S.syncOwner = 'jemand-anderes'; S.done['1.1'] = true; });
-    await ap.fill('#lU', 'blitz'); await ap.fill('#lP', 'geheim1'); await ap.click('#fLogin button');
-    await ap.waitForSelector('#modal.open'); if (!/anderen Anmeldung/.test(await ap.textContent('#modal'))) errors.push('Konto: Dialog zum fremden Spielstand fehlt');
-    await ap.click('#modal .modal-btns button:last-child'); await ap.waitForTimeout(600);
-    if (!R.prepare("SELECT 1 FROM fortschritt WHERE item_id = '1.1'").get()) errors.push('Konto: zusammengefuehrter Stand nicht auf dem Server');
-    await ap.click('[data-go="map"]'); await ap.waitForSelector('.vg-box');
+    const call = (pg, method, path, body) => pg.evaluate(async a => { const r = await fetch('/api/' + a.path, { method: a.method, headers: { 'content-type': 'application/json', 'x-dquest': '1' }, body: a.body ? JSON.stringify(a.body) : undefined }); return { status: r.status, data: await r.json().catch(() => ({})) }; }, { method, path, body });
+    const login = async (pg, u, p) => { await pg.goto(SITE + '/impressum.html'); const r = await call(pg, 'POST', 'login', { username: u, password: p }); if (r.status !== 200) errors.push('Konto: Anmeldung ' + u + ' → ' + r.status + ' ' + JSON.stringify(r.data)); };
+    const lab = async (pg, q) => { await pg.goto(SITE + '/labor/' + (q || ''), { waitUntil: 'domcontentloaded' }); await pg.waitForFunction(() => window.DigitalQuest && DigitalQuest.account.ready); await pg.evaluate(() => DigitalQuest.account.ready); await pg.waitForTimeout(150); };
+    const srv = id => { const r = R.prepare("SELECT state, summary FROM progress WHERE user_id = ? AND quest = 'dq'").get(id); return r ? { state: JSON.parse(r.state), summary: JSON.parse(r.summary) } : null; };
+
+    // nicht angemeldet: Chip „Anmelden“, alles wie lokal
+    await lab(ap);
+    if (!/Anmelden/.test(await ap.textContent('#acctChip')) || await ap.isVisible('#modeTag') || !await ap.isDisabled('[data-open="12.5"]')) errors.push('Konto: ohne Anmeldung falscher Zustand');
+    // Dozenten-Konto = Dozentenmodus
+    await login(ap, 'frau.keller', 'lehrerin-1'); await lab(ap);
+    if (!await ap.isVisible('#modeTag')) errors.push('Konto: Dozenten-Konto schaltet den Dozentenmodus nicht ein');
+    if (!/frau\.keller/.test(await ap.textContent('#acctChip'))) errors.push('Konto: Chip zeigt den Benutzernamen nicht');
+    if (await ap.isDisabled('[data-open="15.10"]')) errors.push('Dozent: 15.10 nicht offen');
+    await ap.selectOption('#jump', '12.5');
+    if (!/Aufgabe 12\.5/.test(await ap.textContent('#taskInfo .crumb'))) errors.push('Dozent: Sprung zu 12.5 fehlgeschlagen');
+    await ap.click('[data-go="map"]'); await ap.screenshot({ path: shots + '/13_dozent_karte.png' });
+    await ap.click('.map-actions [data-open="sandbox"]');
+    const pal = await ap.$$eval('[data-add]', els => els.map(e => e.dataset.add));
+    if (!['motor', 'npn', 'dec7', 'acsource', 'jkff'].every(k => pal.includes(k))) errors.push('Dozent: Werkbank ohne alle Bauteile: ' + pal.join(','));
+    await lab(ap, '?frei=1'); if (!/Freie Werkbank/.test(await ap.textContent('#taskInfo h2'))) errors.push('Portal: ?frei=1 oeffnet die Freie Werkbank nicht');
+    // Vorgaben: Kapitel 2 fuer die Klasse, W3 fuer eine Person
+    const v1 = await call(ap, 'POST', 'assignments', { targets: [{ type: 'kapitel', id: '2' }], classId: cid, due: '2099-12-31' });
+    const v2 = await call(ap, 'POST', 'assignments', { targets: [{ type: 'aufgabe', id: 'W3' }], studentIds: [sid] });
+    if (v1.status > 201 || v2.status > 201) errors.push('Konto: Vorgaben anlegen → ' + v1.status + '/' + v2.status + ' ' + JSON.stringify(v2.data));
+    // Abmelden im Portal: Dozentenmodus aus, lokaler Stand leer
+    await ap.goto(SITE + '/'); await ap.waitForSelector('#userBtn:visible'); await ap.click('#userBtn'); await ap.click('#logoutBtn'); await ap.waitForSelector('#loginBtn:visible');
+    await lab(ap);
+    if (await ap.isVisible('#modeTag') || !await ap.isDisabled('[data-open="12.5"]')) errors.push('Konto: Abmelden schaltet den Dozentenmodus nicht aus');
+    // Lernende: Browser-Spielstand ohne Besitzer → Frage, dann ins Konto
+    await ap.evaluate(() => { localStorage.removeItem('dquest_sync_dq'); localStorage.setItem('digitalquest_state_v1', JSON.stringify({ version: 1, profile: { id: 'p-1', vorname: 'Bea', nachname: 'Blitz', pseudonym: '' }, done: { '1.1': true }, events: [], settings: { theme: 'dark' } })); });
+    await login(ap, 'blitz', 'geheim1');
+    await ap.goto(SITE + '/labor/', { waitUntil: 'domcontentloaded' });
+    await ap.waitForSelector('#modal.open'); if (!/ins Konto uebernehmen/.test(await ap.textContent('#modal'))) errors.push('Konto: Frage zum Browser-Spielstand fehlt');
+    await ap.click('#modal .modal-btns button:last-child'); await ap.waitForTimeout(500);
+    let sv = srv(sid);
+    if (!sv || !sv.state.done['1.1']) errors.push('Konto: uebernommener Stand nicht auf dem Server');
+    else if (sv.state.profile.vorname || sv.state.profile.nachname) errors.push('Konto: Name liegt auf dem Server');
+    if (await ap.evaluate(() => DigitalQuest.state.profile.vorname) !== 'Bea') errors.push('Konto: Name lokal verloren');
+    await ap.waitForSelector('.vg-box');
     if (await ap.$$eval('.vg-box li', l => l.length) !== 2) errors.push('Konto: Karte zeigt nicht beide Vorgaben');
     if (await ap.isDisabled('[data-open="2.5"]')) errors.push('Konto: zugewiesenes Kapitel 2 ist nicht offen');
     if (!await ap.isDisabled('[data-open="3.1"]')) errors.push('Konto: nicht zugewiesenes Kapitel 3 sollte gesperrt sein');
     await ap.screenshot({ path: shots + '/15_vorgaben_karte.png' });
-    // Werkstatt-Vorgabe W3 loesen (Sollwerte eintragen, Pruefen) → Spiegel auf dem Server
+    // Werkstatt-Vorgabe W3 loesen → Stand, Sterne und Kurzfassung auf dem Server
     await ap.click('.chapter.workshop [data-open="W3"]');
     const ex = await ap.evaluate(() => DigitalQuest.engine.expectedAnswers(DQ.byId.W3, DQ.byId.W3.ref));
     for (const k of Object.keys(ex)) await ap.fill(`[data-ans="${k}"]`, String(ex[k]));
-    await ap.click('#btnCheck'); await ap.waitForSelector('#modal.open .win'); await ap.click('#modal .modal-btns button:first-child');
-    await ap.waitForTimeout(2200);
-    if (!R.prepare("SELECT 1 FROM fortschritt WHERE item_id = 'W3'").get()) errors.push('Konto: W3 nach dem Loesen nicht gespiegelt');
-    if (!R.prepare("SELECT 1 FROM ereignisse WHERE typ = 'task_done' AND item_id = 'W3'").get()) errors.push('Konto: Ereignis task_done W3 fehlt auf dem Server');
+    await ap.click('#btnCheck'); await ap.waitForSelector('#modal.open .win');
+    if (await ap.$$eval('#modal .stars-win .star.on', l => l.length) !== 3) errors.push('Sterne: 3 Sterne im Erfolgsdialog erwartet');
+    await ap.click('#modal .modal-btns button:first-child');
+    await ap.waitForTimeout(3600);
+    sv = srv(sid);
+    if (!sv.state.done.W3 || (sv.state.doneInfo.W3 || {}).stars !== 3) errors.push('Konto: W3 mit 3 Sternen nicht auf dem Server');
+    if (!sv.summary.done.includes('W3') || sv.summary.tasks !== 2) errors.push('Konto: Kurzfassung falsch: ' + JSON.stringify(sv.summary));
     if (!await ap.isVisible('.vg-box li.vg-done')) errors.push('Konto: erledigte Vorgabe nicht markiert');
-    // Dozent sieht die Erledigung
-    await ap.click('[data-go="account"]'); await ap.click('#accOut'); await ap.waitForSelector('#fLogin');
-    await ap.fill('#lU', 'frau.keller'); await ap.fill('#lP', 'lehrer1'); await ap.click('#fLogin button'); await ap.waitForSelector('#accZuw .chip');
-    if (!await ap.isVisible('#accZuw .chip.ok')) errors.push('Konto: Dozent sieht die Erledigung von W3 nicht');
-    await ap.screenshot({ path: shots + '/16_dozent_vorgaben.png', fullPage: true });
-    await actx.close();
-    // Ohne Server: freundliche Meldung, Spiel laeuft weiter
-    const octx = await browser.newContext(); await octx.route('https://offline.test/**', r => r.abort());
+    // Zweites Geraet war weiter: beim Laden gilt der Konto-Stand
+    const st2 = Object.assign({}, sv.state, { done: Object.assign({}, sv.state.done, { T1A: true, '1.2': true }) });
+    R.prepare("UPDATE progress SET state = ?, updated_at = updated_at + 5000 WHERE user_id = ?").run(JSON.stringify(st2), sid);
+    await lab(ap);
+    if (!await ap.evaluate(() => DigitalQuest.state.done['1.2'] && DigitalQuest.state.done.W3)) errors.push('Konto: weiterer Stand vom Server nicht uebernommen');
+    // Anderes Konto am selben PC: Staende werden nie gemischt
+    await login(ap, 'funke', 'geheim2'); await lab(ap);
+    if (await ap.evaluate(() => Object.keys(DigitalQuest.state.done).length)) errors.push('Konto: Stand eines anderen Kontos uebernommen');
+    if (await ap.$$eval('.vg-box li', l => l.length) !== 1) errors.push('Konto: funke sollte nur die Klassen-Vorgabe sehen');
+
+    // Leitstand: Schuelerdetail zeigt W3 mit 3 Sternen
+    const bctx = await browser.newContext({ viewport: { width: 1300, height: 900 } }); await attachSite(bctx, site.env);
+    const bp = await bctx.newPage(); bp.on('pageerror', e => errors.push('Leitstand: ' + e.message));
+    await login(bp, 'frau.keller', 'lehrerin-1');
+    await bp.goto(SITE + '/#/leitstand/schueler/' + sid); await bp.waitForSelector('[data-task="W3"]');
+    if (!/\bs3\b/.test(await bp.getAttribute('[data-task="W3"]', 'class'))) errors.push('Leitstand: W3 nicht als 3 Sterne markiert');
+    await bp.click('[data-task="W3"]'); await bp.waitForSelector('#stCircuit svg'); await bp.screenshot({ path: shots + '/16_leitstand_schueler.png' });
+
+    // Live-Challenge Stoerungsjagd: Lobby → Start → fehlerhafter Aufbau auf dem Tisch → beheben → Punkte und Rangliste
+    const bug = await bp.evaluate(async () => (await (await fetch('/data/dq_live.json')).json()).bugs.filter(b => b.task === '1.8')[0]);
+    if (!bug) errors.push('Live: kein Stoerungsszenario zu 1.8');
+    else {
+      const c = await call(bp, 'POST', 'challenges', { mode: 'bug', taskId: '1.8', bugId: bug.id, duration: 300, classId: cid, title: 'Test' });
+      await login(ap, 'blitz', 'geheim1');
+      const j = await call(ap, 'POST', 'live/join', { code: c.data.code }); if (j.status !== 200) errors.push('Live: Beitritt → ' + j.status);
+      await ap.goto(SITE + '/labor/?live=' + c.data.id, { waitUntil: 'domcontentloaded' });
+      await ap.waitForFunction(() => /Warte auf den Start/.test((document.querySelector('#liveOverlay') || {}).textContent || ''));
+      await ap.screenshot({ path: shots + '/18_live_lobby.png' });
+      await call(bp, 'POST', 'challenges/' + c.data.id + '/start', {});
+      await ap.waitForSelector('.live-note', { timeout: 8000 });
+      if (!/STOERUNGSMELDUNG/.test(await ap.textContent('.live-note')) || !/Nicht erfüllt/.test(await ap.textContent('.live-note'))) errors.push('Live: Stoerungsmeldung fehlt');
+      const same = await ap.evaluate(() => JSON.stringify(DigitalQuest.editor.layout.wires.length) === JSON.stringify(DQ.byId['1.8'].wrong[0].wires.length));
+      if (!same) errors.push('Live: fehlerhafter Aufbau liegt nicht auf dem Tisch');
+      await ap.click('#btnCheck'); await ap.waitForTimeout(400);
+      if (await ap.isVisible('#modal.open .win')) errors.push('Live: fehlerhafter Aufbau besteht die Pruefung');
+      await ap.screenshot({ path: shots + '/19_live_stoerung.png' });
+      // beheben: Musterloesung einsetzen (die Bedienung selbst prueft tests/tasks.js), Messwerte eintragen
+      await ap.evaluate(() => { const t = DQ.byId['1.8']; DigitalQuest.editor.load(t.ref, t.start.parts.map(p => p.id), t.bench); });
+      const ex8 = await ap.evaluate(() => DigitalQuest.engine.expectedAnswers(DQ.byId['1.8'], DQ.byId['1.8'].ref));
+      for (const k of Object.keys(ex8)) await ap.fill(`[data-ans="${k}"]`, String(ex8[k]));
+      await ap.click('#btnCheck'); await ap.waitForSelector('#modal.open .win');
+      await ap.waitForFunction(() => /Punkte/.test((document.querySelector('#livePts') || {}).textContent || '') && /\+\d+/.test(document.querySelector('#livePts').textContent), null, { timeout: 8000 }).catch(() => errors.push('Live: Punkte kommen nicht an'));
+      const row = R.prepare('SELECT attempts, points, solved_at, code FROM challenge_players WHERE challenge_id = ? AND user_id = ?').get(c.data.id, sid);
+      if (!row || !row.solved_at || row.attempts !== 2 || !(row.points > 0) || !row.code || !JSON.parse(row.code).layout) errors.push('Live: Ergebnis auf dem Server falsch: ' + JSON.stringify(row && { a: row.attempts, p: row.points }));
+      if (await ap.evaluate(() => !!DigitalQuest.state.done['1.8'] || !!DigitalQuest.state.drafts['1.8'])) errors.push('Live: Challenge hat den Spielstand veraendert');
+      await ap.click('#modal .modal-btns button:last-child'); await ap.waitForSelector('#liveOverlay .podium');
+      await ap.screenshot({ path: shots + '/20_live_rang.png' });
+      // Beamer zeigt die Loesung als Schaltung
+      await bp.goto(SITE + '/#/live/' + c.data.id); await bp.waitForTimeout(1500); await bp.screenshot({ path: shots + '/21_live_beamer.png' });
+    }
+    await bctx.close(); await actx.close();
+
+    // Ohne Verbindung zum Server: Chip „offline“, Spiel laeuft lokal weiter
+    const octx = await browser.newContext(); await attachSite(octx); await octx.route(SITE + '/api/**', r => r.abort());
     const op = await octx.newPage(); op.on('pageerror', e => errors.push('offline: ' + e.message));
-    await op.goto(url.replace('?alle', '') + '?api=https://offline.test', { waitUntil: 'domcontentloaded' });
-    await op.click('[data-go="account"]'); await op.fill('#lU', 'x'); await op.fill('#lP', 'y'); await op.click('#fLogin button'); await op.waitForTimeout(300);
-    if (!/Keine Verbindung/.test(await op.textContent('#scr-account'))) errors.push('offline: keine verstaendliche Meldung');
-    await op.click('[data-go="map"]'); await op.click('[data-open="T1A"]'); if (!await op.isVisible('#toQuiz')) errors.push('offline: Spiel nicht spielbar');
+    await op.goto(SITE + '/labor/', { waitUntil: 'domcontentloaded' }); await op.waitForTimeout(400);
+    if (!/offline/.test(await op.textContent('#acctChip'))) errors.push('offline: Chip zeigt nicht „offline“');
+    await op.click('[data-open="T1A"]'); if (!await op.isVisible('#toQuiz')) errors.push('offline: Spiel nicht spielbar');
     await octx.close();
   }
 

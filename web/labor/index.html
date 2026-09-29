@@ -429,14 +429,56 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .bb-line { fill: none; stroke: var(--text-dim); stroke-width: 2; } .bb-arrow { fill: var(--text-dim); }
 .bb-mp { fill: var(--bg-secondary); stroke: var(--accent-green); stroke-width: 1.5; } .bb-mpt { font: 700 8px var(--font-code); fill: var(--accent-green); text-anchor: middle; }
 .bb-dash { stroke: var(--accent-green); stroke-dasharray: 3 3; }
+
+/* ---- Konto-Chip, Sterne, Meldung (Portal-Version) ---- */
+.acct-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 190px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 20px; color: var(--text-dim); text-decoration: none; font-size: 13px; white-space: nowrap; overflow: hidden; }
+.acct-chip[hidden] { display: none; }
+.acct-chip span { overflow: hidden; text-overflow: ellipsis; }
+.acct-chip svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.acct-chip.on { border-color: var(--accent-green); color: var(--accent-green); }
+.acct-chip:hover { border-color: var(--accent-lead); color: var(--accent-lead); }
+.teacher-bar a { color: var(--accent-cyan); }
+.star { color: var(--text-faint); } .star.on { color: var(--accent-lead); text-shadow: 0 0 8px rgba(255,176,0,.5); }
+.stars-win { font-size: 30px; letter-spacing: 6px; margin: 0 0 6px; }
+.toast { position: fixed; right: 16px; bottom: 16px; z-index: 500; max-width: 340px; display: grid; gap: 2px; padding: 12px 16px; background: var(--bg-secondary); border: 1px solid var(--accent-cyan); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.5); font-size: 14px; transition: opacity .4s; }
+.toast b { color: var(--accent-cyan); } .toast.out { opacity: 0; }
+/* ---- Live-Challenge (Portal-Version) ---- */
+.live-overlay { position: fixed; inset: 0; z-index: 350; display: none; align-items: center; justify-content: center; padding: 16px; overflow: auto; background: radial-gradient(80% 70% at 50% 30%, rgba(40,10,10,.92), rgba(5,5,5,.97)); }
+.live-card { width: min(620px, 100%); background: var(--bg-secondary); border: 1px solid var(--line); border-radius: 14px; padding: 28px; text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+.live-card h2 { margin: 6px 0 10px; font-size: 26px; }
+.live-eyebrow { font: 12px var(--font-code); letter-spacing: .24em; color: var(--accent-red); }
+.live-big { font-size: 19px; margin: 10px 0; }
+.live-small { color: var(--text-dim); font-size: 13px; }
+.live-pulse { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--accent-red); margin-right: 6px; animation: livePulse 1.2s ease-in-out infinite; vertical-align: middle; }
+@keyframes livePulse { 50% { opacity: .25; transform: scale(.8); } }
+.live-actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+.live-actions a.btn { text-decoration: none; }
+.live-bar { position: fixed; left: 50%; top: 8px; transform: translateX(-50%); z-index: 240; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; justify-content: center; background: rgba(10,10,10,.94); color: #e0e0e0; border: 1px solid rgba(255,51,51,.5); border-radius: 30px; padding: 6px 16px; font-size: 13px; box-shadow: 0 8px 30px rgba(0,0,0,.5); max-width: calc(100% - 16px); }
+.lb-live { font: 700 13px var(--font-code); color: var(--accent-red); letter-spacing: .12em; display: inline-flex; align-items: center; gap: 6px; }
+.lb-live i { width: 9px; height: 9px; border-radius: 50%; background: var(--accent-red); animation: livePulse 1.2s infinite; }
+.lb-mode, .lb-count { color: #8a8a8a; } .lb-count { font-family: var(--font-code); }
+.lb-time { font: 700 15px var(--font-code); } .lb-time.low { color: var(--accent-red); } .lb-ok { color: var(--accent-green); }
+body.live-mode .top nav, body.live-mode #btnReset { display: none; }
+.live-note { border: 1px solid var(--accent-red); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; background: rgba(255,51,51,.07); }
+.live-note b { font: 700 12px var(--font-code); letter-spacing: .14em; color: var(--accent-red); } .live-note p { margin: 6px 0 0; }
+.podium { display: flex; align-items: flex-end; justify-content: center; gap: 10px; margin: 22px 0 8px; }
+.pod { width: 130px; display: flex; flex-direction: column; align-items: center; }
+.pod-name { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.pod-pts { font: 12px var(--font-code); color: var(--text-dim); margin-bottom: 4px; }
+.pod-step { width: 100%; border-radius: 8px 8px 0 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; font-size: 24px; font-weight: 800; color: #111; }
+.pod.p1 .pod-step { height: 110px; background: linear-gradient(#ffe066, #d4a200); } .pod.p2 .pod-step { height: 80px; background: linear-gradient(#e6e6e6, #9e9e9e); } .pod.p3 .pod-step { height: 60px; background: linear-gradient(#e0a060, #a0602a); }
+.live-list { text-align: left; max-width: 340px; margin: 10px auto 0; padding-left: 28px; }
+.live-list li { padding: 3px 0; } .live-list li span { float: right; color: var(--text-dim); font-family: var(--font-code); }
+@media (max-width: 640px) { .pod { width: 96px; } .live-card { padding: 20px 16px; } .live-bar { top: auto; bottom: 8px; gap: 8px; font-size: 12px; padding: 5px 12px; flex-wrap: nowrap; white-space: nowrap; } .lb-mode, .lb-count { display: none; } .acct-chip span { display: none; } }
 </style>
 </head>
 <body>
 <script>window.DQ_PORTAL = true;</script>
 <header class="top">
   <div class="brand"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 4 12 2-6h8"/></svg><span>DIGITAL<b>QUEST</b></span></div>
-  <span id="modeTag" class="mode-tag" hidden title="Dozentenmodus aktiv – beenden in den Einstellungen">DOZENT</span>
-  <nav><button data-go="map">Karte</button><button data-go="manual">Handbuch</button><button data-go="account">Konto</button><button data-go="settings">Einstellungen</button></nav>
+  <span id="modeTag" class="mode-tag" hidden title="Dozentenmodus: mit einem Dozenten-Konto angemeldet – alle Stationen offen">DOZENT</span>
+  <nav><button data-go="map">Karte</button><button data-go="manual">Handbuch</button><button data-go="settings">Einstellungen</button></nav>
+  <a id="acctChip" class="acct-chip" href="../" hidden></a>
   <span id="saveInd"></span>
 </header>
 <main>
@@ -484,7 +526,6 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   <section id="scr-manual" class="screen"></section>
   <section id="scr-settings" class="screen"></section>
   <section id="scr-award" class="screen"></section>
-  <section id="scr-account" class="screen"></section>
 </main>
 <div id="modal"></div>
 <script>/* ==== engine.js ==== */
@@ -1318,7 +1359,6 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   ];
   DQ.stages = { grund: 'Grundstufe', profi: 'Profi-Stufe' };
   /* Code fuer den Dozentenmodus (Einstellungen). Kein echter Schutz – die Datei ist offline lesbar –, haelt aber Lernende vom zufaelligen Einschalten ab. */
-  DQ.teacherCode = 'labor2026';
   DQ.awards = {
     grund: { id: 'grund', kind: 'Zertifikat', title: 'Zertifikat Grundstufe', boss: '10.10', chapters: [1, 10],
       text: 'hat die Grundstufe von Digital Quest erfolgreich abgeschlossen: Stromkreis und Messtechnik, Zahlensysteme, Logikgatter, Boolesche Algebra, Schaltungsentwurf und Kombinatorik – mit der Boss-Aufgabe „Das Codeschloss“.' },
@@ -6808,322 +6848,279 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* ==== account.js ==== */
-/* Digital Quest – Konto-Bereich (window.DQAccount): Anmeldung, Selbstregistrierung, Admin- und Dozentenansicht.
- * Freiwillig: Ohne Konto bleibt alles wie bisher (localStorage ist die Basis). Mit Konto kommen Klassen, Vorgaben
- * mit Frist und der Fortschritt-Spiegel auf dem Server dazu (worker/index.js).
- * app.js ruft DQAccount.init(ctx) auf; ctx: { state(), save(), modal(), esc(), log(), renderMap(), setTeacher(on) } */
+/* Digital Quest – Konto-Abgleich mit dem Portal (window.DQAccount), nach dem Vorbild von SPS Quest.
+ * Nur in der Portal-Version (window.DQ_PORTAL, Spiel unter /labor/). Angemeldet wird im Portal; das Spiel liest die Sitzung
+ * (Cookie) und gleicht den Spielstand ab: PUT /api/progress/dq mit base, bei 409 gilt der weitere Stand.
+ * Ohne Anmeldung, offline oder als Einzeldatei laeuft alles wie bisher lokal.
+ * SYNC_KEY merkt sich, zu welchem Konto der lokale Spielstand gehoert (wichtig an geteilten Schul-PCs).
+ * Dozent/Admin-Konto = Dozentenmodus: alle Stationen offen, Sprungliste, Werkbank mit allen Bauteilen. */
 (function (root) {
   'use strict';
-  var DEFAULT_API = 'https://digital-quest.steven-matzinger93.workers.dev'; // fuer die Offline-Datei (file://)
-  var ctx = null, view = { klasse: null, msg: '' };
-  var $ = function (s, r) { return (r || document).querySelector(s); };
-  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
-  function S() { return ctx.state(); }
+  var Q = 'dq', KEY = 'digitalquest_state_v1', SYNC_KEY = 'dquest_sync_' + Q, VG_KEY = 'dquest_vorgaben_' + Q;
+  var PORTAL = !!root.DQ_PORTAL;
+  var ctx = null, user = null, offline = false, timer = 0, busy = false, again = false, ready = null, mine = null;
+  var $ = function (s) { return document.querySelector(s); };
   function esc(s) { return ctx.esc(s); }
-  function acc() { return S().account || null; }
-  function role() { return acc() ? acc().konto.rolle : null; }
+  function S() { return ctx.state(); }
 
-  function apiBase() {
-    var q = /[?&]api=([^&]+)/.exec(location.search);
-    if (q) return decodeURIComponent(q[1]).replace(/\/$/, '');
-    if (/^https?:$/.test(location.protocol)) return location.origin;
-    return DEFAULT_API;
+  function api(method, url, body) {
+    var text = body ? JSON.stringify(body) : undefined;
+    return fetch('/api/' + url, { method: method, credentials: 'same-origin', keepalive: method === 'PUT' && !!text && text.length < 60000,
+      headers: { 'content-type': 'application/json', 'x-dquest': '1' }, body: text })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, data: d }; }); });
   }
-  /* Aufruf der API; wirft Error(Meldung) mit .status. 401 mit Token → lokal abmelden */
-  function api(method, path, data) {
-    var h = { 'Content-Type': 'application/json' }, a = acc();
-    if (a && a.token) h.Authorization = 'Bearer ' + a.token;
-    return fetch(apiBase() + path, { method: method, headers: h, body: data ? JSON.stringify(data) : undefined })
-      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (b) { return { r: r, b: b }; }); },
-        function () { var e = new Error('Keine Verbindung zum Server. Ohne Internet spielst du einfach lokal weiter.'); e.status = 0; throw e; })
-      .then(function (x) {
-        if (x.r.ok) return x.b;
-        if (x.r.status === 401 && a && a.token && path !== '/api/login') { dropAccount(); }
-        var e = new Error(x.b.fehler || ('Fehler ' + x.r.status)); e.status = x.r.status; throw e;
+  function read(key) { try { return JSON.parse(localStorage.getItem(key) || 'null') || {}; } catch (e) { return {}; } }
+  function write(key, o) { try { localStorage.setItem(key, JSON.stringify(o)); } catch (e) { /* voll oder gesperrt */ } }
+  function getSync() { return read(SYNC_KEY); }
+  function setSync(o) { if (user) o.role = user.role; write(SYNC_KEY, o); }
+  function count(st) { var d = (st && st.done) || {}; return Object.keys(d).filter(function (k) { return d[k]; }).length; }
+  function localHas(st) { return count(st) > 0 || Object.keys(st.drafts || {}).length > 0; }
+
+  /* Was der Server bekommt: der Spielstand ohne Namen, Ereignisliste gekuerzt (Platz) */
+  function payload() {
+    var s = JSON.parse(JSON.stringify(S()));
+    if (s.profile) { delete s.profile.vorname; delete s.profile.nachname; }
+    delete s.account; delete s.syncOwner;
+    if (s.settings) delete s.settings.teacher;
+    if (s.events && s.events.length > 1500) s.events = s.events.slice(-1500);
+    return s;
+  }
+  function adopt(state, updatedAt) {
+    var old = S(), n = Object.assign(ctx.fresh(), state || {});
+    n.settings = Object.assign({}, old.settings);
+    var p = state && state.profile && state.profile.id ? state.profile : ctx.fresh().profile;
+    n.profile = { id: p.id, vorname: '', nachname: '', pseudonym: p.pseudonym || '' };
+    if (getSync().user && user && getSync().user.toLowerCase() === user.username.toLowerCase()) { n.profile.vorname = old.profile.vorname || ''; n.profile.nachname = old.profile.nachname || ''; }
+    ctx.setState(n);
+    setSync({ user: user.username, base: updatedAt || 0, dirty: false });
+    ctx.refresh();
+  }
+  function push(force) {
+    if (!user || (user.role === 'admin' && user.secretAdmin)) return Promise.resolve();
+    if (busy) { again = true; return Promise.resolve(); }
+    busy = true;
+    var sy = getSync(), sum = ctx.summary();
+    return api('PUT', 'progress/' + Q, { state: payload(), summary: sum, base: sy.base || 0, force: !!force }).then(function (r) {
+      if (r.status === 200) { setSync({ user: user.username, base: r.data.updatedAt, dirty: false, summary: sum }); chip(); return; }
+      if (r.status === 409) return api('GET', 'progress/' + Q).then(function (g) {
+        if (g.status === 200 && g.data.state && count(g.data.state) > count(S())) {
+          adopt(g.data.state, g.data.updatedAt);
+          ctx.toast('Spielstand abgeglichen', 'Auf einem anderen Geraet warst du schon weiter – dieser Stand wird jetzt verwendet.');
+        } else { busy = false; return push(true); }
       });
+      if (r.status === 401) { user = null; chip(); ctx.refresh(); }
+    }).catch(function () { /* offline: bleibt "dirty" und wird spaeter uebertragen */ }).then(function () {
+      busy = false;
+      if (again) { again = false; schedule(); }
+    });
   }
-  function setAccount(res) {
-    var s = S(), wasTeacher = !!s.settings.teacher;
-    s.account = { token: res.token, konto: res.konto, api: apiBase(), seit: Date.now() };
-    // Dozenten- und Admin-Konten schalten den Dozentenmodus ein (nur Freischaltung, veraendert keinen Fortschritt)
-    if (res.konto.rolle !== 'schueler' && !wasTeacher) { s.account.teacherAuto = true; ctx.setTeacher(true); }
-    ctx.log('login', { rolle: res.konto.rolle }); ctx.save();
+  function schedule() { clearTimeout(timer); timer = setTimeout(push, 3000); }
+  function changed() {
+    if (!user) return;
+    var sy = getSync(); sy.user = user.username; sy.dirty = true; setSync(sy);
+    schedule();
   }
-  function dropAccount() {
-    var s = S(), a = s.account; if (!a) return;
-    if (a.teacherAuto) ctx.setTeacher(false);
-    delete s.account; view.klasse = null; ctx.save();
+  function ask(html, yes, no) {
+    return new Promise(function (res) { ctx.modal(html, [{ label: no, action: function () { res(false); } }, { label: yes, primary: true, action: function () { res(true); } }]); });
+  }
+  function keep(name) { try { localStorage.setItem(KEY + '_' + name, JSON.stringify(S())); } catch (e) { /* Sicherungskopie ist freiwillig */ } }
+
+  function loadMine() {
+    if (!user || user.role !== 'student') { mine = null; return Promise.resolve(); }
+    return api('GET', 'assignments/mine').then(function (r) {
+      if (r.status !== 200) return;
+      mine = r.data.assignments || []; write(VG_KEY, { user: user.username, list: mine });
+      ctx.refresh();
+    }).catch(function () { /* offline: die zuletzt geladenen Vorgaben gelten weiter */ });
   }
 
-  /* ---------- Darstellung ---------- */
-  function render(msg) {
-    if (msg !== undefined) view.msg = msg;
-    var el = $('#scr-account'); if (!el) return;
-    var a = acc(), h = '<div class="account"><h2>Konto</h2>';
-    if (view.msg) h += '<div class="st ' + (view.msg.ok ? 'ok' : 'err') + '">' + esc(view.msg.text) + '</div>';
-    if (!a) h += loggedOut();
-    else {
-      h += '<section class="acc-who"><div><span class="part-no">' + ({ admin: 'Admin', dozent: 'Dozent', schueler: 'Schueler' }[a.konto.rolle]) + '</span><h3>' + esc(a.konto.pseudonym) + '</h3>' +
-        '<span class="dim small mono">' + esc(a.konto.benutzer) + (a.konto.klasse ? ' · Klasse ' + esc(a.konto.klasse) : '') + '</span></div>' +
-        '<button class="btn" id="accOut">Abmelden</button></section>';
-      if (a.konto.rolle === 'admin') h += '<div id="accAdmin" class="dim">Laedt …</div>';
-      if (a.konto.rolle === 'dozent') h += '<div id="accDoz" class="dim">Laedt …</div>';
-      if (a.konto.rolle === 'schueler') h += '<div id="accStud"></div>';
-    }
-    el.innerHTML = h + '</div>';
-    bind();
-    if (a && a.konto.rolle === 'admin') loadAdmin();
-    if (a && a.konto.rolle === 'dozent') loadDozent();
-    if (a && a.konto.rolle === 'schueler' && root.DQAccount.renderStudent) root.DQAccount.renderStudent($('#accStud'));
-  }
-  function loggedOut() {
-    return '<p class="dim">Ein Konto ist <b>freiwillig</b>. Ohne Konto spielst du ganz normal – dein Fortschritt bleibt auf diesem Geraet. ' +
-      'Mit Konto siehst du Vorgaben deiner Lehrperson und dein Fortschritt ist auch auf anderen Geraeten da. Es werden nur Benutzername und Pseudonym gespeichert, keine echten Namen.</p>' +
-      '<div class="acc-grid"><form class="acc-card" id="fLogin"><h3>Anmelden</h3>' +
-      field('Benutzername', 'lU', 'text', 'username') + field('Passwort', 'lP', 'password', 'current-password') +
-      '<button class="btn primary" type="submit">Anmelden</button></form>' +
-      '<form class="acc-card" id="fReg"><h3>Neu in einer Klasse?</h3><p class="dim small">Mit dem Klassencode deiner Lehrperson selbst ein Konto anlegen.</p>' +
-      field('Klassencode', 'rC', 'text', 'off') + field('Benutzername', 'rU', 'text', 'username') + field('Pseudonym (wird angezeigt)', 'rN', 'text', 'nickname') +
-      field('Passwort (mind. 6 Zeichen)', 'rP', 'password', 'new-password') + field('Passwort wiederholen', 'rP2', 'password', 'new-password') +
-      '<button class="btn primary" type="submit">Konto anlegen</button></form></div>';
-  }
-  function field(label, id, type, ac) { return '<label class="fld acc-fld"><span>' + label + '</span><input id="' + id + '" type="' + type + '" autocomplete="' + ac + '"></label>'; }
-  function fail(e) { render({ ok: false, text: e.message }); }
-  function done(text) { render({ ok: true, text: text }); }
-
-  function bind() {
-    var fl = $('#fLogin');
-    if (fl) fl.onsubmit = function (ev) {
-      ev.preventDefault();
-      api('POST', '/api/login', { benutzer: $('#lU').value, passwort: $('#lP').value })
-        .then(function (res) { setAccount(res); if (res.konto.rolle === 'schueler' && root.DQAccount.afterStudentLogin) root.DQAccount.afterStudentLogin(); done('Angemeldet als ' + res.konto.pseudonym + '.'); }, fail);
-    };
-    var fr = $('#fReg');
-    if (fr) fr.onsubmit = function (ev) {
-      ev.preventDefault();
-      if ($('#rP').value !== $('#rP2').value) { fail(new Error('Die Passwoerter stimmen nicht ueberein.')); return; }
-      api('POST', '/api/registrieren', { code: $('#rC').value, benutzer: $('#rU').value, pseudonym: $('#rN').value, passwort: $('#rP').value })
-        .then(function (res) { setAccount(res); if (root.DQAccount.afterStudentLogin) root.DQAccount.afterStudentLogin(); done('Willkommen in der Klasse ' + res.konto.klasse + '!'); }, fail);
-    };
-    var out = $('#accOut');
-    if (out) out.onclick = function () {
-      api('POST', '/api/logout').catch(function () {}).then(function () { dropAccount(); ctx.log('logout', {}); done('Abgemeldet. Dein lokaler Fortschritt bleibt auf diesem Geraet.'); ctx.renderMap(); });
-    };
+  function start() {
+    if (!PORTAL) return Promise.resolve();
+    chip();
+    return api('GET', 'me').then(function (r) {
+      if (r.status !== 200 || !r.data.user) { offline = r.status !== 200; user = null; chip(); ctx.refresh(); return; }
+      user = r.data.user; offline = false;
+      var sy0 = getSync(); if (sy0.user && sy0.user.toLowerCase() === user.username.toLowerCase() && sy0.role !== user.role) setSync(sy0);
+      chip(); ctx.refresh();
+      loadMine();
+      if (user.role === 'admin' && user.secretAdmin) return;
+      return api('GET', 'progress/' + Q).then(function (g) {
+        if (g.status !== 200) return;
+        var srv = g.data.state, srvAt = g.data.updatedAt || 0, sy = getSync(), me = user.username;
+        if (sy.user && sy.user.toLowerCase() === me.toLowerCase()) {
+          if (srv && srvAt > (sy.base || 0)) {
+            if (sy.dirty && count(S()) > count(srv)) return push(true);
+            adopt(srv, srvAt);
+          } else if (sy.dirty || !srv) return push();
+          return;
+        }
+        if (sy.user) { // lokaler Stand gehoert einem anderen Konto: nie mischen
+          keep(sy.user.toLowerCase());
+          if (srv) adopt(srv, srvAt); else { adopt(null, 0); return push(true); }
+          return;
+        }
+        if (!localHas(S())) { if (srv) adopt(srv, srvAt); else { setSync({ user: me, base: 0, dirty: true }); return push(true); } return; }
+        if (!srv) return ask('<h2>Spielstand ins Konto uebernehmen?</h2><p>In diesem Browser gibt es schon einen Spielstand (' + count(S()) + ' geloeste Stationen). Soll er in dein Konto <b>' + esc(me) + '</b> uebernommen werden?</p>', 'Uebernehmen', 'Neu beginnen')
+          .then(function (yes) { if (!yes) { keep('lokal'); adopt(null, 0); } setSync({ user: me, base: 0, dirty: true }); return push(true); });
+        return ask('<h2>Welcher Spielstand soll gelten?</h2><p>Konto <b>' + esc(me) + '</b>: ' + count(srv) + ' geloest · dieser Browser: ' + count(S()) + ' geloest.</p><p class="dim small">Der andere Stand wird ueberschrieben.</p>', 'Browser-Spielstand', 'Konto-Spielstand')
+          .then(function (useLocal) { if (useLocal) { setSync({ user: me, base: srvAt, dirty: true }); return push(true); } keep('lokal'); adopt(srv, srvAt); });
+      });
+    }).catch(function () { offline = true; chip(); ctx.refresh(); });
   }
 
-  /* Eingabe-Dialog (Passwort setzen, Bestaetigen) ueber den Modal von app.js */
-  function ask(title, text, input, okLabel, fn) {
-    ctx.modal('<h2>' + esc(title) + '</h2><p>' + text + '</p>' + (input ? '<label class="fld acc-fld"><span>' + input + '</span><input id="askIn" type="text" autocomplete="off"></label>' : ''),
-      [{ label: 'Abbrechen' }, { label: okLabel, primary: true, action: function () { fn(input ? ($('#askIn') || {}).value : true); } }]);
-    setTimeout(function () { var i = $('#askIn'); if (i) i.focus(); }, 30);
+  /* Konto-Chip in der Kopfzeile: fuehrt ins Portal (dort anmelden, abmelden, Leitstand) */
+  function chip() {
+    var el = $('#acctChip'); if (!el) return;
+    el.hidden = !PORTAL; if (!PORTAL) return;
+    if (user) { el.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 4-7 8-7s7 2 8 7"/></svg><span>' + esc(user.username) + '</span>'; el.href = '../'; el.classList.add('on');
+      el.title = 'Angemeldet als ' + user.username + ' – der Fortschritt wird im Konto gespeichert. Klick: Portal'; }
+    else { el.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/></svg><span>' + (offline ? 'offline' : 'Anmelden') + '</span>'; el.href = offline ? '../' : '../#/login'; el.classList.remove('on');
+      el.title = offline ? 'Keine Verbindung – der Fortschritt bleibt in diesem Browser.' : 'Im Portal anmelden, um den Fortschritt im Konto zu speichern'; }
   }
 
-  /* ---------- Admin: Dozenten ---------- */
-  function loadAdmin() {
-    api('GET', '/api/admin/dozenten').then(function (res) {
-      var h = '<section class="acc-card"><h3>Dozentinnen und Dozenten</h3>' +
-        (res.dozenten.length ? '<table class="acc-t"><tr><th>Benutzer</th><th>Pseudonym</th><th>Klassen</th><th>Schueler</th><th></th></tr>' + res.dozenten.map(function (d) {
-          return '<tr><td class="mono">' + esc(d.benutzer) + '</td><td>' + esc(d.pseudonym) + '</td><td>' + d.klassen + '</td><td>' + d.schueler + '</td>' +
-            '<td class="acc-act"><button class="btn small" data-dpw="' + d.id + '">Passwort</button><button class="btn small danger" data-ddel="' + d.id + '" data-name="' + esc(d.benutzer) + '">Loeschen</button></td></tr>';
-        }).join('') + '</table>' : '<p class="dim">Noch keine Dozenten.</p>') +
-        '<form id="fDoz" class="acc-inline"><h4>Dozent anlegen</h4>' + field('Benutzername', 'dU', 'text', 'off') + field('Pseudonym', 'dN', 'text', 'off') + field('Start-Passwort', 'dP', 'text', 'off') +
-        '<button class="btn primary" type="submit">Anlegen</button></form></section>';
-      $('#accAdmin').outerHTML = '<div id="accAdmin">' + h + '</div>';
-      $('#fDoz').onsubmit = function (ev) {
-        ev.preventDefault();
-        api('POST', '/api/admin/dozenten', { benutzer: $('#dU').value, pseudonym: $('#dN').value, passwort: $('#dP').value })
-          .then(function (r) { done('Dozent ' + r.dozent.benutzer + ' angelegt. Start-Passwort bitte sicher weitergeben.'); }, fail);
-      };
-      $$('[data-dpw]').forEach(function (b) { b.onclick = function () { ask('Neues Passwort', 'Die Person wird dabei abgemeldet.', 'Neues Passwort (mind. 6 Zeichen)', 'Setzen', function (pw) { api('POST', '/api/admin/dozenten/' + b.dataset.dpw + '/passwort', { passwort: pw }).then(function () { done('Passwort gesetzt.'); }, fail); }); }; });
-      $$('[data-ddel]').forEach(function (b) { b.onclick = function () { ask('Dozent loeschen?', 'Alle Klassen, Schueler-Konten und Vorgaben von <b>' + esc(b.dataset.name) + '</b> werden ebenfalls geloescht.', null, 'Endgueltig loeschen', function () { api('DELETE', '/api/admin/dozenten/' + b.dataset.ddel).then(function () { done('Geloescht.'); }, fail); }); }; });
-    }, function (e) { $('#accAdmin').textContent = e.message; });
-  }
-
-  /* ---------- Dozent: Klassen, Schueler ---------- */
-  function loadDozent() {
-    api('GET', '/api/klassen').then(function (res) {
-      var ks = res.klassen;
-      if (view.klasse && !ks.some(function (k) { return k.id === view.klasse; })) view.klasse = null;
-      if (!view.klasse && ks.length) view.klasse = ks[0].id;
-      var h = '<section class="acc-card"><h3>Meine Klassen</h3><div class="acc-tabs">' + ks.map(function (k) {
-        return '<button class="btn' + (k.id === view.klasse ? ' on' : '') + '" data-kl="' + k.id + '">' + esc(k.name) + ' <span class="dim small">(' + k.schueler + ')</span></button>';
-      }).join('') + '</div>' +
-        '<form id="fKl" class="acc-inline">' + field('Neue Klasse', 'kN', 'text', 'off') + '<button class="btn" type="submit">Klasse anlegen</button></form></section>' +
-        '<div id="accKlasse"></div>';
-      $('#accDoz').outerHTML = '<div id="accDoz">' + h + '</div>';
-      $$('[data-kl]').forEach(function (b) { b.onclick = function () { view.klasse = b.dataset.kl; render(''); }; });
-      $('#fKl').onsubmit = function (ev) { ev.preventDefault(); api('POST', '/api/klassen', { name: $('#kN').value }).then(function (r) { view.klasse = r.klasse.id; done('Klasse ' + r.klasse.name + ' angelegt – Klassencode ' + r.klasse.code + '.'); }, fail); };
-      if (view.klasse) loadKlasse(view.klasse);
-    }, function (e) { $('#accDoz').textContent = e.message; });
-  }
-  function progressOf(x) { var e = x.erledigt || {}; return ctx.order().filter(function (id) { return e[id]; }).length; } // nur Kapitel-Stationen (ohne Werkstatt)
-  function loadKlasse(id) {
-    api('GET', '/api/klassen/' + id).then(function (res) {
-      var k = res.klasse, xs = res.schueler, total = ctx.order().length;
-      var h = '<section class="acc-card"><div class="acc-kh"><div><span class="part-no">Klasse</span><h3>' + esc(k.name) + '</h3></div>' +
-        '<div class="acc-code"><span class="dim small">Klassencode</span><b class="mono">' + esc(k.code) + '</b><button class="btn small" id="kCode" title="Neuen Code erzeugen – der alte gilt dann nicht mehr">Neu</button></div></div>' +
-        (xs.length ? '<table class="acc-t"><tr><th>Pseudonym</th><th>Benutzer</th><th>Fortschritt</th><th>Zuletzt</th><th></th></tr>' + xs.map(function (x) {
-          var n = progressOf(x);
-          return '<tr><td>' + esc(x.pseudonym) + '</td><td class="mono">' + esc(x.benutzer) + '</td>' +
-            '<td><div class="acc-bar"><i style="width:' + (100 * n / Math.max(1, total)).toFixed(1) + '%"></i></div><span class="small mono">' + n + ' / ' + total + '</span></td>' +
-            '<td class="small">' + (x.zuletzt ? new Date(x.zuletzt).toLocaleDateString('de-CH') : '–') + '</td>' +
-            '<td class="acc-act"><button class="btn small" data-spw="' + x.id + '">Passwort</button><button class="btn small danger" data-sdel="' + x.id + '" data-name="' + esc(x.pseudonym) + '">Entfernen</button></td></tr>';
-        }).join('') + '</table>' : '<p class="dim">Noch keine Schueler. Gib den Klassencode weiter oder lege Konten hier an.</p>') +
-        '<form id="fSch" class="acc-inline"><h4>Schueler anlegen</h4>' + field('Benutzername', 'sU', 'text', 'off') + field('Pseudonym', 'sN', 'text', 'off') + field('Start-Passwort', 'sP', 'text', 'off') +
-        '<button class="btn" type="submit">Anlegen</button></form>' +
-        '<p class="acc-danger"><button class="btn small danger" id="kDel">Klasse loeschen</button></p></section>' +
-        '<div id="accZuw"></div>';
-      $('#accKlasse').innerHTML = h;
-      $('#kCode').onclick = function () { api('POST', '/api/klassen/' + k.id + '/code').then(function (r) { done('Neuer Klassencode: ' + r.code + '. Der alte gilt nicht mehr.'); }, fail); };
-      $('#fSch').onsubmit = function (ev) { ev.preventDefault(); api('POST', '/api/klassen/' + k.id + '/schueler', { benutzer: $('#sU').value, pseudonym: $('#sN').value, passwort: $('#sP').value }).then(function (r) { done(r.schueler.pseudonym + ' angelegt (Benutzer ' + r.schueler.benutzer + ').'); }, fail); };
-      $('#kDel').onclick = function () { ask('Klasse loeschen?', 'Alle Schueler-Konten der Klasse <b>' + esc(k.name) + '</b>, ihr gespiegelter Fortschritt und die Vorgaben werden geloescht. Der lokale Fortschritt auf den Geraeten bleibt.', null, 'Endgueltig loeschen', function () { api('DELETE', '/api/klassen/' + k.id).then(function () { view.klasse = null; done('Klasse geloescht.'); }, fail); }); };
-      $$('[data-spw]').forEach(function (b) { b.onclick = function () { ask('Neues Passwort', 'Die Person wird dabei abgemeldet.', 'Neues Passwort (mind. 6 Zeichen)', 'Setzen', function (pw) { api('POST', '/api/schueler/' + b.dataset.spw + '/passwort', { passwort: pw }).then(function () { done('Passwort gesetzt.'); }, fail); }); }; });
-      $$('[data-sdel]').forEach(function (b) { b.onclick = function () { ask('Schueler entfernen?', 'Das Konto von <b>' + esc(b.dataset.name) + '</b> und sein gespiegelter Fortschritt werden geloescht.', null, 'Entfernen', function () { api('DELETE', '/api/schueler/' + b.dataset.sdel).then(function () { done('Entfernt.'); }, fail); }); }; });
-      if (root.DQAccount.renderAssignments) root.DQAccount.renderAssignments($('#accZuw'), k, xs);
-    }, function (e) { $('#accKlasse').textContent = e.message; });
-  }
-
-  /* ---------- Ziele einer Zuweisung (gemeinsam fuer Dozentenansicht und Karte der Schueler) ---------- */
+  /* ---------- Vorgaben (Lernende) ---------- */
   function chapterOf(id) { var DQ = root.DQ; return DQ.chapters.filter(function (c) { return String(c.id) === String(id); })[0] || (DQ.workshop && DQ.workshop.id === id ? DQ.workshop : null); }
   function targetItems(z) { var c; if (z.ziel_typ === 'kapitel') { c = chapterOf(z.ziel_id); return c ? c.sequence.slice() : []; } return root.DQ.byId[z.ziel_id] ? [z.ziel_id] : []; }
   function targetLabel(z) {
     var DQ = root.DQ, c, it;
-    if (z.ziel_typ === 'kapitel') { c = chapterOf(z.ziel_id); return c ? (c === DQ.workshop ? '' : 'Kapitel ' + c.id + ' – ') + c.title : 'Kapitel ' + z.ziel_id + ' (unbekannt)'; }
-    it = DQ.byId[z.ziel_id]; return it ? (it.kind === 'theory' ? 'Theorie ' + it.id.slice(1) : (it.messOnly ? 'Messaufgabe ' : 'Aufgabe ') + it.id) + ' – ' + it.title : 'Station ' + z.ziel_id + ' (unbekannt)';
+    if (z.ziel_typ === 'kapitel') { c = chapterOf(z.ziel_id); return c ? (c === DQ.workshop ? '' : 'Kapitel ' + c.id + ' – ') + c.title : 'Kapitel ' + z.ziel_id; }
+    it = DQ.byId[z.ziel_id]; return it ? (it.kind === 'theory' ? 'Theorie ' + it.id.slice(1) : (it.messOnly ? 'Messaufgabe ' : 'Aufgabe ') + it.id) + ' – ' + it.title : 'Station ' + z.ziel_id;
   }
-  function isDone(z, doneMap) { var items = targetItems(z); return items.length > 0 && items.every(function (id) { return !!doneMap[id]; }); }
   function today() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function fmtDue(d) { if (!d) return ''; var p = d.split('-'); return +p[2] + '.' + +p[1] + '.' + p[0]; }
-  function allChapters() { var DQ = root.DQ; return DQ.chapters.concat(DQ.workshop ? [DQ.workshop] : []); }
-
-  /* ---------- Dozent: Vorgaben einer Klasse ---------- */
-  function renderAssignments(el, k, xs) {
-    api('GET', '/api/klassen/' + k.id + '/zuweisungen').then(function (res) {
-      var zs = res.zuweisungen, t = today();
-      var list = zs.length ? '<table class="acc-t"><tr><th>Vorgabe</th><th>Fuer</th><th>Frist</th><th>Erledigt</th><th></th></tr>' + zs.map(function (z) {
-        var who = z.schueler_id ? xs.filter(function (x) { return x.id === z.schueler_id; }) : xs;
-        var fin = who.filter(function (x) { return isDone(z, x.erledigt || {}); });
-        var over = z.faellig_am && z.faellig_am < t && fin.length < who.length;
-        return '<tr><td>' + esc(targetLabel(z)) + '</td><td>' + (z.schueler_id ? esc(z.pseudonym || '?') : '<i>ganze Klasse</i>') + '</td>' +
-          '<td class="' + (over ? 'due-over' : '') + '">' + (z.faellig_am ? fmtDue(z.faellig_am) + (over ? ' · ueberfaellig' : '') : '–') + '</td>' +
-          '<td><span class="mono small">' + fin.length + ' / ' + who.length + '</span>' + (who.length ? ' <span class="acc-who-done">' + who.map(function (x) { return '<span class="chip ' + (isDone(z, x.erledigt || {}) ? 'ok' : '') + '" title="' + (isDone(z, x.erledigt || {}) ? 'erledigt' : 'offen') + '">' + esc(x.pseudonym) + '</span>'; }).join('') + '</span>' : '') + '</td>' +
-          '<td class="acc-act"><button class="btn small" data-zdue="' + z.id + '" data-due="' + (z.faellig_am || '') + '">Frist</button><button class="btn small danger" data-zdel="' + z.id + '">Entfernen</button></td></tr>';
-      }).join('') + '</table>' : '<p class="dim">Noch keine Vorgaben fuer diese Klasse.</p>';
-      var tree = allChapters().map(function (c) {
-        return '<details class="zt"><summary><label><input type="checkbox" data-zk="' + c.id + '"> ' + esc(c === root.DQ.workshop ? c.title : 'Kapitel ' + c.id + ' – ' + c.title) + '</label></summary><div class="zt-items">' +
-          c.sequence.map(function (id) { var it = root.DQ.byId[id]; return '<label><input type="checkbox" data-za="' + id + '"> <span class="mono small">' + (it.kind === 'theory' ? 'T' + id.slice(1) : id) + '</span> ' + esc(it.title) + '</label>'; }).join('') + '</div></details>';
-      }).join('');
-      el.innerHTML = '<section class="acc-card"><h3>Vorgaben fuer ' + esc(k.name) + '</h3>' + list +
-        '<form id="fZuw" class="zuw-new"><h4>Neue Vorgabe</h4>' +
-        '<div class="zuw-cols"><div><span class="dim small">Was? – ganze Kapitel ankreuzen oder aufklappen und einzelne Stationen waehlen</span><div class="zt-list">' + tree + '</div></div>' +
-        '<div><span class="dim small">Fuer wen?</span><label class="zr"><input type="radio" name="zfor" value="k" checked> ganze Klasse</label><label class="zr"><input type="radio" name="zfor" value="s"> einzelne Schueler</label>' +
-        '<div class="zuw-studs">' + (xs.length ? xs.map(function (x) { return '<label><input type="checkbox" data-zs="' + x.id + '"> ' + esc(x.pseudonym) + '</label>'; }).join('') : '<span class="dim small">Noch keine Schueler.</span>') + '</div>' +
-        '<label class="fld acc-fld"><span>Frist (optional)</span><input type="date" id="zDue" min="' + t + '"></label>' +
-        '<p class="dim small">Die Frist ist eine Erinnerung – nichts wird gesperrt.</p><button class="btn primary" type="submit">Zuweisen</button></div></div></form></section>';
-      $$('[data-zk]', el).forEach(function (cb) { cb.onchange = function () { $$('[data-za]', cb.closest('details')).forEach(function (i) { i.disabled = cb.checked; if (cb.checked) i.checked = false; }); }; });
-      $$('[data-zk]', el).forEach(function (cb) { cb.onclick = function (ev) { ev.stopPropagation(); }; });
-      $('#fZuw', el).onsubmit = function (ev) {
-        ev.preventDefault();
-        var ziele = $$('[data-zk]:checked', el).map(function (i) { return { typ: 'kapitel', id: i.dataset.zk }; })
-          .concat($$('[data-za]:checked', el).map(function (i) { return { typ: 'aufgabe', id: i.dataset.za }; }));
-        var single = $('input[name="zfor"]:checked', el).value === 's', sids = $$('[data-zs]:checked', el).map(function (i) { return i.dataset.zs; });
-        if (!ziele.length) { fail(new Error('Bitte mindestens ein Kapitel oder eine Station ankreuzen.')); return; }
-        if (single && !sids.length) { fail(new Error('Bitte mindestens eine Person ankreuzen.')); return; }
-        var data = { ziele: ziele, faellig_am: $('#zDue', el).value || null };
-        if (single) data.schueler_ids = sids; else data.klasse_id = k.id;
-        api('POST', '/api/zuweisungen', data).then(function (r) { done(r.ids.length + ' Vorgabe' + (r.ids.length > 1 ? 'n' : '') + ' gespeichert.'); }, fail);
-      };
-      $$('[data-zdel]', el).forEach(function (b) { b.onclick = function () { api('DELETE', '/api/zuweisungen/' + b.dataset.zdel).then(function () { done('Vorgabe entfernt.'); }, fail); }; });
-      $$('[data-zdue]', el).forEach(function (b) {
-        b.onclick = function () {
-          ctx.modal('<h2>Frist aendern</h2><label class="fld acc-fld"><span>Frist (leer = keine)</span><input type="date" id="askDue" value="' + esc(b.dataset.due) + '"></label>',
-            [{ label: 'Abbrechen' }, { label: 'Speichern', primary: true, action: function () { api('POST', '/api/zuweisungen/' + b.dataset.zdue, { faellig_am: ($('#askDue') || {}).value || null }).then(function () { done('Frist gespeichert.'); }, fail); } }]);
-        };
-      });
-    }, function (e) { el.textContent = e.message; });
+  function list() {
+    if (!PORTAL) return [];
+    if (mine) return mine;
+    var c = read(VG_KEY), sy = getSync(); // offline: zuletzt geladene Vorgaben des Kontos, dem der Spielstand gehoert
+    var who = user ? user.username : (offline ? sy.user : null);
+    return who && c.user && c.user.toLowerCase() === String(who).toLowerCase() && (user ? user.role === 'student' : sy.role === 'student') ? c.list || [] : [];
   }
-
-  /* ---------- Schueler: Vorgaben laden, Fortschritt spiegeln ----------
-   * Lokal bleibt die Basis: Der Server-Stand wird nur ergaenzt (Vereinigung von done). Vorgaben werden lokal
-   * zwischengespeichert (account.vorgaben), damit die Karte sie auch offline zeigt. */
-  var syncTimer = 0, syncing = null;
-  function doneTimes() { // Zeitpunkt je erledigter Station aus den Ereignissen (fruehester), sonst jetzt
-    var s = S(), t = {};
-    s.events.forEach(function (e) { if ((e.type === 'task_done' || (e.type === 'theory_check' && e.pass)) && e.id && s.done[e.id] && !(t[e.id] <= e.t)) t[e.id] = e.t; });
-    Object.keys(s.done).forEach(function (id) { if (s.done[id] && !t[id]) t[id] = Date.now(); });
-    return t;
-  }
-  function mergeServer(erledigt) {
-    var s = S(), added = 0;
-    Object.keys(erledigt || {}).forEach(function (id) { if (root.DQ.byId[id] && !s.done[id]) { s.done[id] = true; added++; } });
-    return added;
-  }
-  function sync() {
-    var a = acc(); if (!a || a.konto.rolle !== 'schueler') return Promise.resolve(null);
-    if (syncing) return syncing;
-    var since = a.syncT || 0, evs = S().events.filter(function (e) { return e.t > since; }).slice(0, 500);
-    syncing = api('POST', '/api/sync', { erledigt: doneTimes(), ereignisse: evs }).then(function (res) {
-      var b = acc(); if (!b) return null;
-      if (evs.length) b.syncT = evs[evs.length - 1].t;
-      b.lastSync = res.zeit || Date.now();
-      var added = mergeServer(res.erledigt); ctx.save();
-      syncing = null;
-      if (S().events.some(function (e) { return e.t > (b.syncT || 0); })) return sync(); // mehr als 500 Ereignisse: weiter
-      if (added) ctx.renderMap();
-      return res;
-    }, function (e) { syncing = null; throw e; });
-    return syncing;
-  }
-  function loadMine() {
-    var a = acc(); if (!a || a.konto.rolle !== 'schueler') return Promise.resolve(null);
-    return api('GET', '/api/meine').then(function (res) {
-      var b = acc(); if (!b) return null;
-      b.vorgaben = res.zuweisungen; b.vorgabenT = Date.now(); mergeServer(res.erledigt); ctx.save(); ctx.renderMap();
-      return res;
-    });
-  }
-  function refresh() { return loadMine().then(sync).catch(function () { /* offline: lokal weiterspielen */ }); }
-  /* Nach dem Anmelden: gehoert der lokale Spielstand einer anderen Person, fragen, ob zusammengefuehrt werden soll */
-  function afterStudentLogin() {
-    var s = S(), a = acc(), local = Object.keys(s.done).filter(function (k) { return s.done[k]; }).length;
-    if (s.syncOwner && s.syncOwner !== a.konto.id && local) {
-      ctx.modal('<h2>Spielstand auf diesem Geraet</h2><p>Hier liegt der Fortschritt einer anderen Anmeldung (' + local + ' Stationen). Soll er zu <b>' + esc(a.konto.pseudonym) + '</b> hinzugefuegt werden?</p>',
-        [{ label: 'Nein – nur meinen Stand laden', action: function () { s.done = {}; s.drafts = {}; a.syncT = Date.now(); s.syncOwner = a.konto.id; ctx.save(); refresh().then(function () { render(); }); } },
-          { label: 'Ja, zusammenfuehren', primary: true, action: function () { s.syncOwner = a.konto.id; ctx.save(); refresh().then(function () { render(); }); } }]);
-      return;
-    }
-    s.syncOwner = a.konto.id; ctx.save();
-    refresh().then(function () { render(); });
-  }
-  function onProgress() { clearTimeout(syncTimer); if (role() === 'schueler') syncTimer = setTimeout(function () { sync().catch(function () {}); }, 1500); }
-
-  /* Vorgaben mit Status fuer Karte und Kontoansicht: {z, label, items, done, over, next} */
+  /* Vorgaben mit Stand fuer die Karte: {z, label, items, done, over, left, next} */
   function vorgaben() {
-    var a = acc(); if (!a || a.konto.rolle !== 'schueler' || !a.vorgaben) return [];
     var s = S(), t = today();
-    return a.vorgaben.map(function (z) {
+    return list().map(function (a) {
+      var z = { id: a.id, ziel_typ: a.type, ziel_id: a.target, faellig_am: a.due, fuer: a.forMe ? 'dich' : 'klasse', dozent: a.teacher };
       var items = targetItems(z), open = items.filter(function (id) { return !s.done[id]; }), fin = items.length > 0 && !open.length;
       return { z: z, label: targetLabel(z), items: items, done: fin, left: open.length, over: !!(z.faellig_am && z.faellig_am < t && !fin), next: open[0] || items[0] };
     }).filter(function (v) { return v.items.length; });
   }
-  function renderStudent(el) {
-    var a = acc(), vs = vorgaben();
-    el.innerHTML = '<section class="acc-card"><h3>Vorgaben</h3>' + (vs.length ? '<table class="acc-t"><tr><th>Vorgabe</th><th>Frist</th><th>Stand</th><th></th></tr>' + vs.map(function (v) {
-      return '<tr><td>' + esc(v.label) + ' <span class="dim small">(' + (v.z.fuer === 'dich' ? 'fuer dich' : 'Klasse') + ', ' + esc(v.z.dozent) + ')</span></td><td class="' + (v.over ? 'due-over' : '') + '">' + (v.z.faellig_am ? fmtDue(v.z.faellig_am) : '–') + '</td>' +
-        '<td>' + (v.done ? '<span class="chip ok">erledigt</span>' : v.left + ' offen') + '</td><td class="acc-act"><button class="btn small" data-vgo="' + esc(v.next) + '">Oeffnen</button></td></tr>';
-    }).join('') + '</table>' : '<p class="dim">Keine Vorgaben – spiel einfach frei weiter.</p>') +
-      '<p class="dim small">Fortschritt gespiegelt: ' + (a.lastSync ? new Date(a.lastSync).toLocaleString('de-CH') : 'noch nie') + ' <button class="btn small" id="accSync">Jetzt synchronisieren</button></p></section>';
-    $$('[data-vgo]', el).forEach(function (b) { b.onclick = function () { ctx.openItem(b.dataset.vgo); }; });
-    $('#accSync', el).onclick = function () { refresh().then(function () { done('Synchronisiert.'); }); };
+  /* Dozentenmodus: am Konto (Rolle), offline gilt die zuletzt bekannte Rolle des Kontos, dem der Spielstand gehoert */
+  function staff() {
+    if (!PORTAL) return false;
+    if (user) return user.role === 'teacher' || user.role === 'admin';
+    var r = getSync().role; return offline && (r === 'teacher' || r === 'admin');
+  }
+
+  if (PORTAL) {
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden' && user && getSync().dirty) { clearTimeout(timer); push(); } });
+    root.addEventListener('online', function () { if (user && getSync().dirty) push(); else if (!user) start(); });
   }
 
   root.DQAccount = {
-    sync: sync, refresh: refresh, afterStudentLogin: afterStudentLogin, onProgress: onProgress, vorgaben: vorgaben, renderStudent: renderStudent,
-    renderAssignments: renderAssignments, targetItems: targetItems, targetLabel: targetLabel, isDone: isDone, today: today, fmtDue: fmtDue, chapterOf: chapterOf,
     init: function (c) { ctx = c; },
-    render: render, api: api, apiBase: apiBase, acc: acc, role: role, esc: esc, ask: ask, done: done, fail: fail, field: field,
-    reload: function () { render(); }
+    start: function () { return (ready = start()); },
+    get ready() { return ready; }, get user() { return user; }, get portal() { return PORTAL; }, get offline() { return offline; },
+    changed: changed, push: push, staff: staff, vorgaben: vorgaben, fmtDue: fmtDue, api: api, chip: chip
   };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== live.js ==== */
+/* Digital Quest – Live-Challenge im Spiel (window.DQLive), Portal-Version: labor/?live=ID (nach dem Vorbild von SPS Quest).
+ * Die Aufgabe erscheint erst nach dem Start. Versuche, Tipps und die Loesung (Schaltung + Messwerte) gehen an den Worker,
+ * alle 2,5 s wird der Stand abgefragt. Sprint: Aufgabe vom Startaufbau aus loesen. Stoerungsjagd: auf dem Tisch liegt
+ * eine fehlerhafte Schaltung (eine wrong-Loesung der Aufgabe, bugId = b<Aufgabe>_<Nummer>), die Ursache ist zu beheben. */
+(function (root) {
+  'use strict';
+  function create(ctx) {
+    var id = root.DQ_PORTAL ? +(new URLSearchParams(location.search).get('live') || 0) : 0;
+    var ch = null, me = null, top = [], info = {}, timer = 0, tick = 0, offset = 0, started = false, done = false, sending = Promise.resolve(), bugs = null;
+    var esc = ctx.esc, $ = function (s) { return document.querySelector(s); };
+    function api(method, url, body) {
+      return fetch('/api/' + url, { method: method, credentials: 'same-origin', headers: { 'content-type': 'application/json', 'x-dquest': '1' }, body: body ? JSON.stringify(body) : undefined })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, data: d }; }); });
+    }
+    function fmt(sec) { sec = Math.max(0, Math.round(sec)); return Math.floor(sec / 60) + ':' + ('0' + sec % 60).slice(-2); }
+    function left() { return ch && ch.state === 'running' ? (ch.endsAt - (Date.now() + offset)) / 1000 : 0; }
+    function modeName() { return ch && ch.mode === 'bug' ? 'Stoerungsjagd' : 'Sprint'; }
+    function overlay(html) {
+      var o = $('#liveOverlay');
+      if (!o) { o = document.createElement('div'); o.id = 'liveOverlay'; o.className = 'live-overlay'; o.setAttribute('role', 'dialog'); document.body.appendChild(o); }
+      o.innerHTML = '<div class="live-card">' + html + '</div>'; o.style.display = 'flex';
+    }
+    function hideOverlay() { var o = $('#liveOverlay'); if (o) o.style.display = 'none'; }
+    function bar() {
+      var b = $('#liveBar');
+      if (!b) { b = document.createElement('div'); b.id = 'liveBar'; b.className = 'live-bar'; b.setAttribute('role', 'status'); document.body.appendChild(b); document.body.classList.add('has-live-bar'); }
+      var l = left();
+      b.innerHTML = '<span class="lb-live"><i></i>LIVE</span><span class="lb-mode">' + modeName() + '</span><span class="lb-time' + (l < 60 ? ' low' : '') + '">' + fmt(l) + '</span>' +
+        '<span>' + (me && me.solved ? '<b class="lb-ok">✔ geloest · ' + me.points + ' P' + (me.rank ? ' · Rang ' + me.rank : '') + '</b>' : 'Versuche ' + (me ? me.attempts : 0) + ' · Tipps ' + (me ? me.hints : 0)) + '</span>' +
+        '<span class="lb-count">' + (info.solved || 0) + '/' + (info.players || 0) + ' geloest</span>';
+    }
+    function board() {
+      if (!ch) return;
+      ctx.closeModal();
+      var pod = top.slice(0, 3);
+      overlay('<div class="live-eyebrow">LIVE-CHALLENGE · ' + modeName().toUpperCase() + '</div><h2>' + (ch.state === 'ended' ? 'Challenge beendet' : 'Rangliste') + '</h2>' +
+        (me && me.solved ? '<p class="live-big">Rang <b>' + (me.rank || '–') + '</b> · ' + me.points + ' Punkte</p>' : '<p class="live-big">' + (ch.state === 'ended' ? 'Diesmal nicht geloest – beim naechsten Mal!' : 'Noch nicht geloest') + '</p>') +
+        (pod.length ? '<div class="podium">' + [1, 0, 2].filter(function (i) { return pod[i]; }).map(function (i) { return '<div class="pod p' + (i + 1) + '"><div class="pod-name">' + esc(pod[i].username) + '</div><div class="pod-pts">' + pod[i].points + ' P</div><div class="pod-step">' + (i + 1) + '</div></div>'; }).join('') + '</div>' : '') +
+        (top.length > 3 ? '<ol class="live-list" start="4">' + top.slice(3).map(function (p) { return '<li>' + esc(p.username) + ' <span>' + p.points + ' P</span></li>'; }).join('') + '</ol>' : '') +
+        '<div class="live-actions">' + (ch.state === 'running' ? '<button class="btn" id="liveBack">Zurueck zur Aufgabe</button>' : '') + '<a class="btn primary" href="../#/live">Zum Portal</a></div>');
+      var bk = $('#liveBack'); if (bk) bk.onclick = hideOverlay;
+    }
+    function loadBugs() {
+      if (bugs) return Promise.resolve(bugs);
+      return fetch('../data/dq_live.json').then(function (r) { return r.json(); }).then(function (d) { bugs = d.bugs || []; return bugs; }).catch(function () { return []; });
+    }
+    function begin() {
+      if (started) return; started = true;
+      var t = ctx.byId[ch.taskId];
+      if (!t || t.kind === 'theory') { overlay('<h2>Aufgabe nicht gefunden</h2><p>Diese Challenge nutzt eine Aufgabe, die es in dieser Version nicht gibt. Bitte die Seite neu laden.</p>'); return; }
+      if (ch.mode !== 'bug') { ctx.open(t, { live: { id: id }, layout: null }); hideOverlay(); bar(); return; }
+      var m = /^b(.+)_(\d+)$/.exec(ch.bugId || ''), w = m && m[1] === t.id ? (t.wrong || [])[+m[2] - 1] : null;
+      loadBugs().then(function (list) {
+        var b = list.filter(function (x) { return x.id === ch.bugId; })[0] || {};
+        ctx.open(t, { live: { id: id, bug: { id: ch.bugId, symptom: b.symptom || '' } }, layout: w ? { parts: w.parts, wires: w.wires } : null });
+        hideOverlay(); bar();
+      });
+    }
+    function stop() { clearInterval(timer); clearInterval(tick); }
+    function refresh() {
+      return api('GET', 'live/' + id).then(function (r) {
+        if (r.status === 401) { overlay('<h2>Nicht angemeldet</h2><p>Fuer die Live-Challenge brauchst du dein Konto.</p><div class="live-actions"><a class="btn primary" href="../#/login">Anmelden</a></div>'); stop(); return; }
+        if (r.status !== 200) { overlay('<h2>Live-Challenge</h2><p>' + esc(r.data.error || 'Fehler') + '</p><div class="live-actions"><a class="btn primary" href="../#/live">Code eingeben</a></div>'); stop(); return; }
+        ch = r.data.challenge; me = r.data.me; top = r.data.top || []; info = { players: r.data.players, solved: r.data.solved };
+        offset = ch.serverTime - Date.now();
+        if (ch.state === 'lobby') overlay('<div class="live-eyebrow">LIVE-CHALLENGE · ' + modeName().toUpperCase() + '</div><h2>Gleich geht es los</h2><p class="live-big"><span class="live-pulse"></span> Warte auf den Start …</p><p>' + info.players + ' Teilnehmende · ' + fmt(ch.duration) + ' min Zeit</p><p class="live-small">Angemeldet als <b>' + esc(ctx.acct && ctx.acct.user ? ctx.acct.user.username : '') + '</b></p>');
+        else if (ch.state === 'running') { begin(); if (started) bar(); }
+        else if (ch.state === 'ended' && !done) { done = true; if (started) bar(); board(); stop(); }
+      }).catch(function () { /* kurz ohne Verbindung: naechste Abfrage versucht es wieder */ });
+    }
+    function start() {
+      if (!id) return Promise.resolve();
+      document.body.classList.add('live-mode');
+      overlay('<h2>Live-Challenge</h2><p class="live-big"><span class="live-pulse"></span> Verbinde …</p>');
+      return refresh().then(function () {
+        if (done) return;
+        timer = setInterval(refresh, 2500);
+        tick = setInterval(function () { if (ch && ch.state === 'running' && started) { bar(); if (left() <= 0) refresh(); } }, 1000);
+      });
+    }
+    function attempt(ok, code) {
+      if (!id || !ch || ch.state !== 'running') return;
+      if (me && !me.solved) me.attempts++;
+      sending = sending.then(function () { return api('POST', 'live/' + id + '/attempt', { ok: ok, code: ok ? code : undefined }); }).then(function (r) {
+        if (r && r.data && r.data.solved) {
+          me.solved = true; me.points = r.data.points; bar();
+          var p = $('#livePts'); if (p) p.innerHTML = '<b>+' + r.data.points + ' Punkte</b> in der Live-Challenge';
+          refresh();
+        }
+      }).catch(function () {});
+      bar();
+    }
+    function hint() { if (!id || !ch || ch.state !== 'running') return; if (me) me.hints++; bar(); sending = sending.then(function () { return api('POST', 'live/' + id + '/hint', {}); }).catch(function () {}); }
+    return { id: id, start: start, attempt: attempt, hint: hint, board: board, get challenge() { return ch; }, get me() { return me; } };
+  }
+  root.DQLive = { create: create };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* ==== app.js ==== */
@@ -7146,11 +7143,29 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   }
   function fresh() {
     return { version: 1, created: Date.now(), profile: { id: uuid(), vorname: '', nachname: '', pseudonym: '' },
-      done: {}, drafts: {}, theory: {}, events: [], settings: { theme: 'dark', zoom: 1 } };
+      done: {}, doneInfo: {}, drafts: {}, theory: {}, events: [], settings: { theme: 'dark', zoom: 1 } };
+  }
+  /* Sterne: 3 = ohne Fehlversuch und ohne Tipp, 2 = hoechstens 2 Fehlversuche und 1 Tipp, sonst 1 */
+  function starsFor(tries, hints) { return tries <= 1 && !hints ? 3 : tries <= 3 && hints <= 1 ? 2 : 1; }
+  /* Spielstand auf den heutigen Aufbau bringen: fehlende Felder ergaenzen, doneInfo aus den Ereignissen nachfuellen */
+  function normalize(d) {
+    var f = fresh(), s = Object.assign(f, d && typeof d === 'object' ? d : {});
+    ['done', 'doneInfo', 'drafts', 'theory'].forEach(function (k) { if (!s[k] || typeof s[k] !== 'object') s[k] = {}; });
+    if (!Array.isArray(s.events)) s.events = [];
+    s.settings = Object.assign({ theme: 'dark', zoom: 1 }, s.settings || {}); delete s.settings.teacher;
+    if (!s.profile || !s.profile.id) s.profile = fresh().profile;
+    ['vorname', 'nachname', 'pseudonym'].forEach(function (k) { if (typeof s.profile[k] !== 'string') s.profile[k] = ''; });
+    delete s.account; delete s.syncOwner;
+    Object.keys(s.done).forEach(function (id) {
+      if (!s.done[id] || s.doneInfo[id]) return;
+      var ev = s.events.filter(function (e) { return e.id === id && (e.type === 'task_done' || (e.type === 'theory_check' && e.pass)); })[0];
+      s.doneInfo[id] = ev ? { at: ev.t, tries: ev.tries || 1, hints: ev.hints || 0, stars: ev.type === 'task_done' ? starsFor(ev.tries || 1, ev.hints || 0) : 2 } : { at: 0, tries: 1, hints: 0, stars: 1 };
+    });
+    return s;
   }
   var S;
-  try { S = JSON.parse(localStorage.getItem(KEY)) || fresh(); } catch (e) { S = fresh(); }
-  if (!S.profile || !S.profile.id) S.profile = fresh().profile;
+  try { S = normalize(JSON.parse(localStorage.getItem(KEY))); } catch (e) { S = fresh(); }
+  var ACCT = root.DQAccount || null, LIVE = null;
   var saveTimer = null;
   function save() {
     clearTimeout(saveTimer);
@@ -7158,20 +7173,21 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
       try { localStorage.setItem(KEY, JSON.stringify(S)); indicator('Gespeichert', 'ok'); }
       catch (e) { indicator('Nicht gespeichert!', 'err'); }
     }, 250);
+    if (ACCT) ACCT.changed();
   }
   function indicator(t, cls) { var el = $('#saveInd'); if (el) { el.textContent = t; el.className = cls; } }
   function log(type, data) {
     var ev = { t: Date.now(), type: type }; for (var k in data) ev[k] = data[k];
     S.events.push(ev); if (S.events.length > 5000) S.events.splice(0, S.events.length - 5000); save();
-    if (root.DQAccount && (type === 'task_done' || type === 'theory_check')) root.DQAccount.onProgress();
   }
 
   /* ================= Reihenfolge / Freischaltung ================= */
   var ORDER = []; DQ.chapters.forEach(function (c) { c.sequence.forEach(function (id) { ORDER.push(id); }); });
-  /* Dozentenmodus (settings.teacher, per Code in den Einstellungen) oder ?alle: alles offen, Werkbank mit allen Bauteilen */
-  function allOpen() { return UNLOCK_ALL || !!S.settings.teacher; }
+  /* Dozentenmodus (am Dozenten- oder Admin-Konto des Portals) oder ?alle: alles offen, Werkbank mit allen Bauteilen */
+  function staff() { return !!ACCT && ACCT.staff(); }
+  function allOpen() { return UNLOCK_ALL || staff(); }
   /* Vorgaben vom Dozent (Konto): zugewiesene Stationen sind immer offen – eine Vorgabe soll man auch bearbeiten koennen */
-  function vorgaben() { return root.DQAccount ? root.DQAccount.vorgaben() : []; }
+  function vorgaben() { return ACCT ? ACCT.vorgaben() : []; }
   function assigned(id) { return vorgaben().some(function (v) { return v.items.indexOf(id) >= 0; }); }
   function unlocked(id) { var i = ORDER.indexOf(id); return allOpen() || i <= 0 || !!S.done[ORDER[i - 1]] || assigned(id); }
   function nextOf(id) {
@@ -7214,7 +7230,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   function renderMap() {
     var total = ORDER.length, done = ORDER.filter(function (id) { return S.done[id]; }).length;
     var h = '<div class="map-head"><div><h1>Laborkarte</h1><p class="dim">Baue, miss, verstehe. Jede Station schaltet die naechste frei.</p></div>' +
-      (S.settings.teacher ? '<div class="teacher-bar"><b>Dozentenmodus</b> <span class="dim small">Alle Stationen offen, Freie Werkbank mit allen Bauteilen.</span><label class="fld"><span>Springe zu</span><select id="jump"><option value="">Station waehlen …</option>' +
+      (staff() ? '<div class="teacher-bar"><b>Dozentenmodus</b> <span class="dim small">Alle Stationen offen, Freie Werkbank mit allen Bauteilen. <a href="../#/leitstand">Zum Leitstand</a></span><label class="fld"><span>Springe zu</span><select id="jump"><option value="">Station waehlen …</option>' +
         DQ.chapters.concat(DQ.workshop ? [DQ.workshop] : []).map(function (c) { return '<optgroup label="' + (c.kind === 'workshop' ? '' : 'Kapitel ' + c.id + ' – ') + esc(c.title) + '">' + c.sequence.map(function (id) { var it = DQ.byId[id]; return '<option value="' + id + '">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : id) + ' ' + esc(it.title) + '</option>'; }).join('') + '</optgroup>'; }).join('') +
         '</select></label></div>' : '') +
       vorgabenBox() +
@@ -7257,7 +7273,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   /* Vorgaben vom Dozent auf der Karte: Kasten oben mit Frist und Stand, Hinweis an Kapitel und Station. Nichts wird gesperrt. */
   function vorgabenBox() {
     var vs = vorgaben(); if (!vs.length) return '';
-    var fmt = root.DQAccount.fmtDue, open = vs.filter(function (v) { return !v.done; }).length;
+    var fmt = ACCT.fmtDue, open = vs.filter(function (v) { return !v.done; }).length;
     return '<div class="vg-box"><div class="vg-head"><b>Vorgaben vom Dozent</b><span class="dim small">' + (open ? open + ' offen' : 'alles erledigt') + '</span></div><ul>' + vs.map(function (v) {
       return '<li class="' + (v.done ? 'vg-done' : v.over ? 'vg-over' : '') + '"><button class="vg-go" data-open="' + esc(v.next) + '">' + esc(v.label) + '</button>' +
         '<span class="vg-meta">' + (v.z.fuer === 'dich' ? 'fuer dich · ' : '') + (v.z.faellig_am ? (v.over ? 'ueberfaellig seit ' : 'bis ') + fmt(v.z.faellig_am) : 'ohne Frist') + ' · ' + (v.done ? 'erledigt' : v.left + ' offen') + '</span></li>';
@@ -7266,7 +7282,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   function vgTag(typ, id, small) {
     var v = vorgaben().filter(function (x) { return x.z.ziel_typ === typ && x.z.ziel_id === id; })[0];
     if (!v) return '';
-    var d = v.z.faellig_am ? ' · bis ' + root.DQAccount.fmtDue(v.z.faellig_am) : '';
+    var d = v.z.faellig_am ? ' · bis ' + ACCT.fmtDue(v.z.faellig_am) : '';
     return '<span class="vg-tag' + (v.done ? ' done' : v.over ? ' over' : '') + (small ? ' small' : '') + '" title="Vorgabe vom Dozent' + esc(d) + '">Vorgabe' + (small ? '' : esc(d)) + '</span>';
   }
 
@@ -7361,10 +7377,12 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     }).join(', ') + '.</p>';
   }
 
-  function openTask(t) {
+  /* opt.live: Live-Challenge – eigener Aufbau (opt.layout), Stoerungsmeldung (opt.live.bug); der Spielstand bleibt unberuehrt */
+  function openTask(t, opt) {
+    opt = opt || {};
     show('task');
-    current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0;
-    var draft = S.drafts[t.id];
+    current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0; current.live = opt.live || null;
+    var draft = opt.live ? (opt.layout ? { layout: E.clone(opt.layout) } : null) : S.drafts[t.id];
     var layout = draft && draft.layout ? draft.layout : t.start;
     var lockedIds = t.start.parts.map(function (p) { return p.id; });
     closeReplay(true);
@@ -7389,7 +7407,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     ed.load(layout, lockedIds, t.bench); bench.fit();
     setMeterMode('OFF');
     rebuild(); renderInspector();
-    log(t.sandbox ? 'sandbox_open' : 'task_open', { id: t.id });
+    log(t.sandbox ? 'sandbox_open' : current.live ? 'live_open' : 'task_open', { id: t.id });
   }
 
   function renderTaskPanels(t, draft) {
@@ -7401,7 +7419,9 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
       $('#toMap').onclick = function () { renderMap(); show('map'); };
       renderPalette(t); return;
     }
-    var h = '<div class="crumb">' + (t.ch === 'W' ? 'Uebungswerkstatt · Messaufgabe ' : 'Kapitel ' + t.ch + ' · Aufgabe ') + t.id + (t.boss ? ' · <b class="boss-tag">BOSS</b>' : '') + '</div>' +
+    var lv = current.live;
+    var h = (lv ? '<div class="live-note"><b>' + (lv.bug ? 'STOERUNGSMELDUNG' : 'LIVE-CHALLENGE · SPRINT') + '</b>' + (lv.bug ? '<p>' + esc(lv.bug.symptom || 'Die Schaltung arbeitet nicht wie verlangt.') + '</p><p class="dim small">Auf dem Tisch liegt der fehlerhafte Aufbau. Finde die Ursache, behebe sie und lass pruefen.</p>' : '<p class="dim small">Loese die Aufgabe so schnell und sauber wie moeglich. Fehlversuche und Tipps kosten Punkte.</p>') + '</div>' : '') +
+      '<div class="crumb">' + (t.ch === 'W' ? 'Uebungswerkstatt · Messaufgabe ' : 'Kapitel ' + t.ch + ' · Aufgabe ') + t.id + (t.boss ? ' · <b class="boss-tag">BOSS</b>' : '') + '</div>' +
       '<h2>' + esc(t.title) + '</h2>' +
       (t.story ? '<p class="story">' + t.story + '</p>' : '') +
       '<div class="brief">' + t.brief + (t.limit && t.brief.indexOf('class="limit"') < 0 ? limitText(t.limit) : '') + '</div>' +
@@ -7417,8 +7437,8 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     }
     h += '<button class="btn primary big" id="btnCheck">Pruefen</button><div id="results"></div>';
     $('#taskInfo').innerHTML = h;
-    $('#hint1').onclick = function () { current.hints = Math.max(current.hints, 1); $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div>'; };
-    $('#hint2').onclick = function () { current.hints = 2; $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div><div class="hint">' + t.hint2 + '</div>'; };
+    $('#hint1').onclick = function () { if (current.hints < 1 && LIVE) LIVE.hint(); current.hints = Math.max(current.hints, 1); $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div>'; };
+    $('#hint2').onclick = function () { if (current.hints < 2 && LIVE) LIVE.hint(); current.hints = 2; $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div><div class="hint">' + t.hint2 + '</div>'; };
     $$('[data-ans]').forEach(function (inp) { inp.oninput = persistDraft; });
     $('#btnCheck').onclick = check;
     renderPalette(t);
@@ -7510,7 +7530,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   function answers() { var a = {}; $$('[data-ans]').forEach(function (i) { a[i.dataset.ans] = i.value; }); return a; }
   function persistDraft() {
-    if (!current.task || !ed) return;
+    if (!current.task || !ed || current.live) return;
     S.drafts[current.task.id] = { layout: ed.layout, answers: answers(), t: Date.now() }; save();
   }
 
@@ -7801,13 +7821,22 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     }).join('') + '</ul>';
     var an = E.analyze(ed.layout); if (an.faults.length) h += diagnose(an.faults).map(function (d) { return '<div class="st err">' + esc(d.text) + '</div>'; }).join('');
     $('#results').innerHTML = h;
+    if (current.live) {
+      log(r.pass ? 'live_done' : 'live_try', { id: t.id, tries: current.tries, hints: current.hints });
+      if (LIVE) LIVE.attempt(r.pass, { layout: ed.layout, answers: ans });
+      if (r.pass) modal('<h2 class="win">Geloest!</h2><p>' + t.take + '</p><p class="dim" id="livePts">Punkte werden berechnet …</p>', [{ label: 'Rangliste', primary: true, action: function () { if (LIVE) LIVE.board(); } }]);
+      return;
+    }
     log(r.pass ? 'task_done' : 'task_try', { id: t.id, tries: current.tries, hints: current.hints, dur: Math.round((Date.now() - current.started) / 1000), tags: t.tags });
     if (r.pass) {
-      var first = !S.done[t.id]; S.done[t.id] = true; save();
+      var first = !S.done[t.id], st = starsFor(current.tries, current.hints), di = S.doneInfo[t.id];
+      S.done[t.id] = true;
+      if (!di || st > (di.stars || 0)) S.doneInfo[t.id] = { at: di && di.at ? di.at : Date.now(), tries: current.tries, hints: current.hints, stars: st };
+      save();
       var nx = nextOf(t.id), aw = null;
       Object.keys(DQ.awards || {}).forEach(function (k) { if (DQ.awards[k].boss === t.id) aw = DQ.awards[k]; });
       if (aw && first) log('award', { id: aw.id, tags: t.tags });
-      modal('<h2 class="win">Geschafft!</h2><p>' + t.take + '</p>' + (first ? '' : '<p class="dim">(bereits geloest)</p>') +
+      modal('<h2 class="win">Geschafft!</h2><p class="stars-win" title="' + st + ' von 3 Sternen">' + starRow(st) + '</p><p>' + t.take + '</p>' + (first ? '' : '<p class="dim">(bereits geloest)</p>') +
         (aw ? '<div class="award-note">' + medal(aw, 64) + '<p><b>' + esc(aw.title) + '</b><br>Du hast die ' + esc(DQ.stages[aw.id]) + ' abgeschlossen. Dein ' + esc(aw.kind) + ' kannst du anzeigen und drucken.</p></div>' : ''),
         [{ label: 'Zur Karte', action: function () { renderMap(); show('map'); } }]
           .concat(aw ? [{ label: aw.kind + ' anzeigen', primary: !nx, action: function () { openAward(aw.id); } }] : [])
@@ -7844,7 +7873,8 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
       var score = right / th.questions.length, pass = score >= th.pass - 1e-9;
       S.theory[th.id] = { best: Math.max(score, (S.theory[th.id] || {}).best || 0) };
       log('theory_check', { id: th.id, score: score, pass: pass, dur: Math.round((Date.now() - current.started) / 1000), tags: th.tags });
-      if (pass) S.done[th.id] = true; save();
+      if (pass) { S.done[th.id] = true; var ts = score >= 1 - 1e-9 ? 3 : 2, td = S.doneInfo[th.id]; if (!td || ts > (td.stars || 0)) S.doneInfo[th.id] = { at: td && td.at ? td.at : Date.now(), tries: 1, hints: 0, stars: ts }; }
+      save();
       var nx = nextOf(th.id);
       $('#quizRes').innerHTML = '<div class="st ' + (pass ? 'ok' : 'err') + '">' + right + ' von ' + th.questions.length + ' richtig – ' + (pass ? 'bestanden!' : 'noch nicht bestanden. Lies die Erklaerungen und versuche es erneut.') + '</div>' +
         (pass && nx ? '<button class="btn primary" id="thNext">Weiter</button>' : '<button class="btn" id="thRetry">Nochmals</button>');
@@ -7875,17 +7905,9 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
       '<section><h3>Profil (lokal)</h3><p class="dim small">Wird spaeter fuer Klassen und die questuebergreifende Auswertung (Buehler Quest) verwendet. Personen-ID: <code>' + esc(pr.id) + '</code></p>' +
       '<label class="fld"><span>Vorname</span><input id="pfV" value="' + esc(pr.vorname) + '"></label><label class="fld"><span>Nachname</span><input id="pfN" value="' + esc(pr.nachname) + '"></label>' +
       '<label class="fld"><span>Pseudonym</span><input id="pfP" value="' + esc(pr.pseudonym) + '"></label></section>' +
-      '<section><h3>Dozentenmodus</h3>' + (S.settings.teacher
-        ? '<p class="small">Aktiv: Alle Stationen sind offen, auf der Karte gibt es eine Sprungliste, die Freie Werkbank hat alle Bauteile.</p><button class="btn" id="tOff">Dozentenmodus beenden</button>'
-        : '<p class="dim small">Fuer Lehrpersonen: schaltet alle Stationen und alle Bauteile frei. Der Fortschritt der Lernenden bleibt unveraendert.</p><label class="fld"><span>Code</span><input id="tCode" type="password" autocomplete="off"></label><button class="btn" id="tOn">Einschalten</button> <span id="tMsg" class="small"></span>') + '</section>' +
+      (ACCT && ACCT.portal ? '<section><h3>Konto</h3><p class="small">' + (ACCT.user ? 'Angemeldet als <b>' + esc(ACCT.user.username) + '</b> – der Fortschritt wird im Konto gespeichert.' + (staff() ? ' Dozentenmodus aktiv: alle Stationen offen, Sprungliste auf der Karte, Freie Werkbank mit allen Bauteilen.' : '') : ACCT.offline ? 'Keine Verbindung – der Fortschritt bleibt in diesem Browser und wird spaeter abgeglichen.' : 'Nicht angemeldet – der Fortschritt bleibt in diesem Browser.') + '</p><a class="btn" href="../">Zum Portal</a></section>' : '') +
       '<section><h3>Spielstand</h3><button class="btn" id="exp">Exportieren</button> <label class="btn">Importieren<input type="file" id="imp" accept=".json" hidden></label> <button class="btn danger" id="rst">Zuruecksetzen</button></section></div>';
     $('#setTheme').value = S.settings.theme;
-    if ($('#tOn')) $('#tOn').onclick = $('#tCode').onkeydown = function (ev) {
-      if (ev && ev.type === 'keydown' && ev.key !== 'Enter') return;
-      if ($('#tCode').value.trim().toLowerCase() !== String(DQ.teacherCode).toLowerCase()) { $('#tMsg').textContent = 'Code falsch.'; $('#tMsg').className = 'small err'; return; }
-      S.settings.teacher = true; log('teacher_on', {}); save(); applyMode(); renderSettings();
-    };
-    if ($('#tOff')) $('#tOff').onclick = function () { S.settings.teacher = false; log('teacher_off', {}); save(); applyMode(); renderSettings(); };
     $('#setTheme').onchange = function () { S.settings.theme = this.value; applyTheme(); save(); };
     [['#pfV', 'vorname'], ['#pfN', 'nachname'], ['#pfP', 'pseudonym']].forEach(function (x) { $(x[0]).oninput = function () { S.profile[x[1]] = this.value; save(); }; });
     $('#exp').onclick = function () {
@@ -7894,7 +7916,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     };
     $('#imp').onchange = function () {
       var f = this.files[0]; if (!f) return; var rd = new FileReader();
-      rd.onload = function () { try { var d = JSON.parse(rd.result); if (!d.profile || !d.done) throw 0; S = d; save(); applyMode(); renderSettings(); modal('<p>Spielstand geladen.</p>'); } catch (e) { modal('<p>Die Datei ist kein gueltiger Spielstand.</p>'); } };
+      rd.onload = function () { try { var d = JSON.parse(rd.result); if (!d.profile || !d.done) throw 0; S = normalize(d); save(); applyMode(); renderSettings(); modal('<p>Spielstand geladen.</p>'); } catch (e) { modal('<p>Die Datei ist kein gueltiger Spielstand.</p>'); } };
       rd.readAsText(f);
     };
     $('#rst').onclick = function () {
@@ -7902,18 +7924,43 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     };
   }
   function applyTheme() { document.documentElement.dataset.theme = S.settings.theme; }
-  function applyMode() { var t = $('#modeTag'); if (t) t.hidden = !S.settings.teacher; }
+  function applyMode() { var t = $('#modeTag'); if (t) t.hidden = !staff(); }
+  function starRow(n) { return [1, 2, 3].map(function (i) { return '<span class="star' + (i <= n ? ' on' : '') + '">★</span>'; }).join(''); }
+  function toast(title, text) {
+    var el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status');
+    el.innerHTML = '<b>' + esc(title) + '</b><span>' + esc(text) + '</span>'; document.body.appendChild(el);
+    setTimeout(function () { el.classList.add('out'); setTimeout(function () { el.remove(); }, 400); }, 6000);
+  }
+  /* Kurzfassung fuer Leitstand und Klassenliste (der Server liest den ganzen Spielstand nur im Schuelerdetail) */
+  function summary() {
+    var ids = Object.keys(S.done).filter(function (id) { return S.done[id] && DQ.byId[id]; });
+    var nT = ids.filter(function (id) { return DQ.byId[id].kind !== 'theory'; }).length, stars = 0;
+    ids.forEach(function (id) { stars += (S.doneInfo[id] || {}).stars || 1; });
+    var nx = ORDER.filter(function (id) { return !S.done[id]; })[0], it = nx && DQ.byId[nx];
+    return { tasks: nT, theory: ids.length - nT, points: stars * 10, stars: stars, ch: it ? +it.ch || 0 : 15,
+      totalTasks: DQ.tasks.length, totalTheory: DQ.theories.length, lastAt: Date.now(), done: ids,
+      current: it ? 'Kapitel ' + it.ch + (it.kind === 'theory' ? ' · Theorie ' + nx.slice(1) : ' · Aufgabe ' + nx) : 'fertig' };
+  }
+  /* Nach Anmeldung, Abgleich oder neuen Vorgaben: sichtbare Ansicht auffrischen */
+  function refreshView() {
+    applyTheme(); applyMode();
+    if (current.screen === 'map') renderMap(); else if (current.screen === 'settings') renderSettings();
+  }
 
   /* ================= Start ================= */
   function init() {
     applyTheme(); applyMode();
-    if (root.DQAccount) root.DQAccount.init({ state: function () { return S; }, save: save, modal: modal, esc: esc, log: log, order: function () { return ORDER; },
-      renderMap: function () { if (current.screen === 'map') renderMap(); }, openItem: openItem,
-      setTeacher: function (on) { S.settings.teacher = !!on; applyMode(); save(); } });
+    if (ACCT) ACCT.init({ state: function () { return S; }, fresh: fresh, modal: modal, esc: esc, toast: toast, summary: summary, refresh: refreshView,
+      setState: function (n) { S = normalize(n); clearTimeout(saveTimer); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { indicator('Nicht gespeichert!', 'err'); } } });
+    root.DQ_REPORT_CONTEXT = function () {
+      var c = current.screen === 'task' && current.task ? (current.task.sandbox ? 'Freie Werkbank' : 'Aufgabe ' + current.task.id) + ' (' + (viewMode === 'bench' ? 'Werkbank' : 'Schaltplan') + ')' :
+        current.screen === 'theory' && current.theory ? 'Theorie ' + current.theory.id : ({ map: 'Laborkarte', manual: 'Handbuch', settings: 'Einstellungen', award: 'Auszeichnung' })[current.screen] || current.screen;
+      return { quest: 'dq', context: c };
+    };
     $$('[data-go]').forEach(function (b) {
       b.onclick = function () {
         var g = b.dataset.go;
-        if (g === 'map') renderMap(); if (g === 'manual') renderManual(); if (g === 'settings') renderSettings(); if (g === 'account' && root.DQAccount) root.DQAccount.render('');
+        if (g === 'map') renderMap(); if (g === 'manual') renderManual(); if (g === 'settings') renderSettings();
         show(g);
       };
     });
@@ -7951,10 +7998,17 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     });
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
     renderMap(); show('map');
-    if (root.DQAccount && root.DQAccount.role() === 'schueler') root.DQAccount.refresh(); // Vorgaben holen, Fortschritt spiegeln (offline: still)
+    /* Einstieg aus dem Portal: ?frei=1 Freie Werkbank, ?werkstatt=1 Uebungswerkstatt, ?live=ID Live-Challenge */
+    var qs = new URLSearchParams(location.search);
+    LIVE = root.DQLive ? root.DQLive.create({ modal: modal, esc: esc, acct: ACCT, byId: DQ.byId,
+      open: function (t, o) { openTask(t, o); }, closeModal: function () { $('#modal').classList.remove('open'); } }) : null;
+    if (LIVE && !LIVE.id) LIVE = null;
+    if (!LIVE && qs.get('frei')) openItem('sandbox');
+    else if (!LIVE && qs.get('werkstatt')) { var w = $('#werkstatt'); if (w) w.scrollIntoView(); }
+    if (ACCT) { var rd = ACCT.start(); if (LIVE) rd.then(function () { LIVE.start(); }); }
   }
 
-  window.DigitalQuest = { get state() { return S; }, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; } };
+  window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>

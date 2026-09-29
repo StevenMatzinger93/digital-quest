@@ -17,11 +17,29 @@
   }
   function fresh() {
     return { version: 1, created: Date.now(), profile: { id: uuid(), vorname: '', nachname: '', pseudonym: '' },
-      done: {}, drafts: {}, theory: {}, events: [], settings: { theme: 'dark', zoom: 1 } };
+      done: {}, doneInfo: {}, drafts: {}, theory: {}, events: [], settings: { theme: 'dark', zoom: 1 } };
+  }
+  /* Sterne: 3 = ohne Fehlversuch und ohne Tipp, 2 = hoechstens 2 Fehlversuche und 1 Tipp, sonst 1 */
+  function starsFor(tries, hints) { return tries <= 1 && !hints ? 3 : tries <= 3 && hints <= 1 ? 2 : 1; }
+  /* Spielstand auf den heutigen Aufbau bringen: fehlende Felder ergaenzen, doneInfo aus den Ereignissen nachfuellen */
+  function normalize(d) {
+    var f = fresh(), s = Object.assign(f, d && typeof d === 'object' ? d : {});
+    ['done', 'doneInfo', 'drafts', 'theory'].forEach(function (k) { if (!s[k] || typeof s[k] !== 'object') s[k] = {}; });
+    if (!Array.isArray(s.events)) s.events = [];
+    s.settings = Object.assign({ theme: 'dark', zoom: 1 }, s.settings || {}); delete s.settings.teacher;
+    if (!s.profile || !s.profile.id) s.profile = fresh().profile;
+    ['vorname', 'nachname', 'pseudonym'].forEach(function (k) { if (typeof s.profile[k] !== 'string') s.profile[k] = ''; });
+    delete s.account; delete s.syncOwner;
+    Object.keys(s.done).forEach(function (id) {
+      if (!s.done[id] || s.doneInfo[id]) return;
+      var ev = s.events.filter(function (e) { return e.id === id && (e.type === 'task_done' || (e.type === 'theory_check' && e.pass)); })[0];
+      s.doneInfo[id] = ev ? { at: ev.t, tries: ev.tries || 1, hints: ev.hints || 0, stars: ev.type === 'task_done' ? starsFor(ev.tries || 1, ev.hints || 0) : 2 } : { at: 0, tries: 1, hints: 0, stars: 1 };
+    });
+    return s;
   }
   var S;
-  try { S = JSON.parse(localStorage.getItem(KEY)) || fresh(); } catch (e) { S = fresh(); }
-  if (!S.profile || !S.profile.id) S.profile = fresh().profile;
+  try { S = normalize(JSON.parse(localStorage.getItem(KEY))); } catch (e) { S = fresh(); }
+  var ACCT = root.DQAccount || null, LIVE = null;
   var saveTimer = null;
   function save() {
     clearTimeout(saveTimer);
@@ -29,20 +47,21 @@
       try { localStorage.setItem(KEY, JSON.stringify(S)); indicator('Gespeichert', 'ok'); }
       catch (e) { indicator('Nicht gespeichert!', 'err'); }
     }, 250);
+    if (ACCT) ACCT.changed();
   }
   function indicator(t, cls) { var el = $('#saveInd'); if (el) { el.textContent = t; el.className = cls; } }
   function log(type, data) {
     var ev = { t: Date.now(), type: type }; for (var k in data) ev[k] = data[k];
     S.events.push(ev); if (S.events.length > 5000) S.events.splice(0, S.events.length - 5000); save();
-    if (root.DQAccount && (type === 'task_done' || type === 'theory_check')) root.DQAccount.onProgress();
   }
 
   /* ================= Reihenfolge / Freischaltung ================= */
   var ORDER = []; DQ.chapters.forEach(function (c) { c.sequence.forEach(function (id) { ORDER.push(id); }); });
-  /* Dozentenmodus (settings.teacher, per Code in den Einstellungen) oder ?alle: alles offen, Werkbank mit allen Bauteilen */
-  function allOpen() { return UNLOCK_ALL || !!S.settings.teacher; }
+  /* Dozentenmodus (am Dozenten- oder Admin-Konto des Portals) oder ?alle: alles offen, Werkbank mit allen Bauteilen */
+  function staff() { return !!ACCT && ACCT.staff(); }
+  function allOpen() { return UNLOCK_ALL || staff(); }
   /* Vorgaben vom Dozent (Konto): zugewiesene Stationen sind immer offen – eine Vorgabe soll man auch bearbeiten koennen */
-  function vorgaben() { return root.DQAccount ? root.DQAccount.vorgaben() : []; }
+  function vorgaben() { return ACCT ? ACCT.vorgaben() : []; }
   function assigned(id) { return vorgaben().some(function (v) { return v.items.indexOf(id) >= 0; }); }
   function unlocked(id) { var i = ORDER.indexOf(id); return allOpen() || i <= 0 || !!S.done[ORDER[i - 1]] || assigned(id); }
   function nextOf(id) {
@@ -85,7 +104,7 @@
   function renderMap() {
     var total = ORDER.length, done = ORDER.filter(function (id) { return S.done[id]; }).length;
     var h = '<div class="map-head"><div><h1>Laborkarte</h1><p class="dim">Baue, miss, verstehe. Jede Station schaltet die naechste frei.</p></div>' +
-      (S.settings.teacher ? '<div class="teacher-bar"><b>Dozentenmodus</b> <span class="dim small">Alle Stationen offen, Freie Werkbank mit allen Bauteilen.</span><label class="fld"><span>Springe zu</span><select id="jump"><option value="">Station waehlen …</option>' +
+      (staff() ? '<div class="teacher-bar"><b>Dozentenmodus</b> <span class="dim small">Alle Stationen offen, Freie Werkbank mit allen Bauteilen. <a href="../#/leitstand">Zum Leitstand</a></span><label class="fld"><span>Springe zu</span><select id="jump"><option value="">Station waehlen …</option>' +
         DQ.chapters.concat(DQ.workshop ? [DQ.workshop] : []).map(function (c) { return '<optgroup label="' + (c.kind === 'workshop' ? '' : 'Kapitel ' + c.id + ' – ') + esc(c.title) + '">' + c.sequence.map(function (id) { var it = DQ.byId[id]; return '<option value="' + id + '">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : id) + ' ' + esc(it.title) + '</option>'; }).join('') + '</optgroup>'; }).join('') +
         '</select></label></div>' : '') +
       vorgabenBox() +
@@ -128,7 +147,7 @@
   /* Vorgaben vom Dozent auf der Karte: Kasten oben mit Frist und Stand, Hinweis an Kapitel und Station. Nichts wird gesperrt. */
   function vorgabenBox() {
     var vs = vorgaben(); if (!vs.length) return '';
-    var fmt = root.DQAccount.fmtDue, open = vs.filter(function (v) { return !v.done; }).length;
+    var fmt = ACCT.fmtDue, open = vs.filter(function (v) { return !v.done; }).length;
     return '<div class="vg-box"><div class="vg-head"><b>Vorgaben vom Dozent</b><span class="dim small">' + (open ? open + ' offen' : 'alles erledigt') + '</span></div><ul>' + vs.map(function (v) {
       return '<li class="' + (v.done ? 'vg-done' : v.over ? 'vg-over' : '') + '"><button class="vg-go" data-open="' + esc(v.next) + '">' + esc(v.label) + '</button>' +
         '<span class="vg-meta">' + (v.z.fuer === 'dich' ? 'fuer dich · ' : '') + (v.z.faellig_am ? (v.over ? 'ueberfaellig seit ' : 'bis ') + fmt(v.z.faellig_am) : 'ohne Frist') + ' · ' + (v.done ? 'erledigt' : v.left + ' offen') + '</span></li>';
@@ -137,7 +156,7 @@
   function vgTag(typ, id, small) {
     var v = vorgaben().filter(function (x) { return x.z.ziel_typ === typ && x.z.ziel_id === id; })[0];
     if (!v) return '';
-    var d = v.z.faellig_am ? ' · bis ' + root.DQAccount.fmtDue(v.z.faellig_am) : '';
+    var d = v.z.faellig_am ? ' · bis ' + ACCT.fmtDue(v.z.faellig_am) : '';
     return '<span class="vg-tag' + (v.done ? ' done' : v.over ? ' over' : '') + (small ? ' small' : '') + '" title="Vorgabe vom Dozent' + esc(d) + '">Vorgabe' + (small ? '' : esc(d)) + '</span>';
   }
 
@@ -232,10 +251,12 @@
     }).join(', ') + '.</p>';
   }
 
-  function openTask(t) {
+  /* opt.live: Live-Challenge – eigener Aufbau (opt.layout), Stoerungsmeldung (opt.live.bug); der Spielstand bleibt unberuehrt */
+  function openTask(t, opt) {
+    opt = opt || {};
     show('task');
-    current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0;
-    var draft = S.drafts[t.id];
+    current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0; current.live = opt.live || null;
+    var draft = opt.live ? (opt.layout ? { layout: E.clone(opt.layout) } : null) : S.drafts[t.id];
     var layout = draft && draft.layout ? draft.layout : t.start;
     var lockedIds = t.start.parts.map(function (p) { return p.id; });
     closeReplay(true);
@@ -260,7 +281,7 @@
     ed.load(layout, lockedIds, t.bench); bench.fit();
     setMeterMode('OFF');
     rebuild(); renderInspector();
-    log(t.sandbox ? 'sandbox_open' : 'task_open', { id: t.id });
+    log(t.sandbox ? 'sandbox_open' : current.live ? 'live_open' : 'task_open', { id: t.id });
   }
 
   function renderTaskPanels(t, draft) {
@@ -272,7 +293,9 @@
       $('#toMap').onclick = function () { renderMap(); show('map'); };
       renderPalette(t); return;
     }
-    var h = '<div class="crumb">' + (t.ch === 'W' ? 'Uebungswerkstatt · Messaufgabe ' : 'Kapitel ' + t.ch + ' · Aufgabe ') + t.id + (t.boss ? ' · <b class="boss-tag">BOSS</b>' : '') + '</div>' +
+    var lv = current.live;
+    var h = (lv ? '<div class="live-note"><b>' + (lv.bug ? 'STOERUNGSMELDUNG' : 'LIVE-CHALLENGE · SPRINT') + '</b>' + (lv.bug ? '<p>' + esc(lv.bug.symptom || 'Die Schaltung arbeitet nicht wie verlangt.') + '</p><p class="dim small">Auf dem Tisch liegt der fehlerhafte Aufbau. Finde die Ursache, behebe sie und lass pruefen.</p>' : '<p class="dim small">Loese die Aufgabe so schnell und sauber wie moeglich. Fehlversuche und Tipps kosten Punkte.</p>') + '</div>' : '') +
+      '<div class="crumb">' + (t.ch === 'W' ? 'Uebungswerkstatt · Messaufgabe ' : 'Kapitel ' + t.ch + ' · Aufgabe ') + t.id + (t.boss ? ' · <b class="boss-tag">BOSS</b>' : '') + '</div>' +
       '<h2>' + esc(t.title) + '</h2>' +
       (t.story ? '<p class="story">' + t.story + '</p>' : '') +
       '<div class="brief">' + t.brief + (t.limit && t.brief.indexOf('class="limit"') < 0 ? limitText(t.limit) : '') + '</div>' +
@@ -288,8 +311,8 @@
     }
     h += '<button class="btn primary big" id="btnCheck">Pruefen</button><div id="results"></div>';
     $('#taskInfo').innerHTML = h;
-    $('#hint1').onclick = function () { current.hints = Math.max(current.hints, 1); $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div>'; };
-    $('#hint2').onclick = function () { current.hints = 2; $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div><div class="hint">' + t.hint2 + '</div>'; };
+    $('#hint1').onclick = function () { if (current.hints < 1 && LIVE) LIVE.hint(); current.hints = Math.max(current.hints, 1); $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div>'; };
+    $('#hint2').onclick = function () { if (current.hints < 2 && LIVE) LIVE.hint(); current.hints = 2; $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div><div class="hint">' + t.hint2 + '</div>'; };
     $$('[data-ans]').forEach(function (inp) { inp.oninput = persistDraft; });
     $('#btnCheck').onclick = check;
     renderPalette(t);
@@ -381,7 +404,7 @@
 
   function answers() { var a = {}; $$('[data-ans]').forEach(function (i) { a[i.dataset.ans] = i.value; }); return a; }
   function persistDraft() {
-    if (!current.task || !ed) return;
+    if (!current.task || !ed || current.live) return;
     S.drafts[current.task.id] = { layout: ed.layout, answers: answers(), t: Date.now() }; save();
   }
 
@@ -672,13 +695,22 @@
     }).join('') + '</ul>';
     var an = E.analyze(ed.layout); if (an.faults.length) h += diagnose(an.faults).map(function (d) { return '<div class="st err">' + esc(d.text) + '</div>'; }).join('');
     $('#results').innerHTML = h;
+    if (current.live) {
+      log(r.pass ? 'live_done' : 'live_try', { id: t.id, tries: current.tries, hints: current.hints });
+      if (LIVE) LIVE.attempt(r.pass, { layout: ed.layout, answers: ans });
+      if (r.pass) modal('<h2 class="win">Geloest!</h2><p>' + t.take + '</p><p class="dim" id="livePts">Punkte werden berechnet …</p>', [{ label: 'Rangliste', primary: true, action: function () { if (LIVE) LIVE.board(); } }]);
+      return;
+    }
     log(r.pass ? 'task_done' : 'task_try', { id: t.id, tries: current.tries, hints: current.hints, dur: Math.round((Date.now() - current.started) / 1000), tags: t.tags });
     if (r.pass) {
-      var first = !S.done[t.id]; S.done[t.id] = true; save();
+      var first = !S.done[t.id], st = starsFor(current.tries, current.hints), di = S.doneInfo[t.id];
+      S.done[t.id] = true;
+      if (!di || st > (di.stars || 0)) S.doneInfo[t.id] = { at: di && di.at ? di.at : Date.now(), tries: current.tries, hints: current.hints, stars: st };
+      save();
       var nx = nextOf(t.id), aw = null;
       Object.keys(DQ.awards || {}).forEach(function (k) { if (DQ.awards[k].boss === t.id) aw = DQ.awards[k]; });
       if (aw && first) log('award', { id: aw.id, tags: t.tags });
-      modal('<h2 class="win">Geschafft!</h2><p>' + t.take + '</p>' + (first ? '' : '<p class="dim">(bereits geloest)</p>') +
+      modal('<h2 class="win">Geschafft!</h2><p class="stars-win" title="' + st + ' von 3 Sternen">' + starRow(st) + '</p><p>' + t.take + '</p>' + (first ? '' : '<p class="dim">(bereits geloest)</p>') +
         (aw ? '<div class="award-note">' + medal(aw, 64) + '<p><b>' + esc(aw.title) + '</b><br>Du hast die ' + esc(DQ.stages[aw.id]) + ' abgeschlossen. Dein ' + esc(aw.kind) + ' kannst du anzeigen und drucken.</p></div>' : ''),
         [{ label: 'Zur Karte', action: function () { renderMap(); show('map'); } }]
           .concat(aw ? [{ label: aw.kind + ' anzeigen', primary: !nx, action: function () { openAward(aw.id); } }] : [])
@@ -715,7 +747,8 @@
       var score = right / th.questions.length, pass = score >= th.pass - 1e-9;
       S.theory[th.id] = { best: Math.max(score, (S.theory[th.id] || {}).best || 0) };
       log('theory_check', { id: th.id, score: score, pass: pass, dur: Math.round((Date.now() - current.started) / 1000), tags: th.tags });
-      if (pass) S.done[th.id] = true; save();
+      if (pass) { S.done[th.id] = true; var ts = score >= 1 - 1e-9 ? 3 : 2, td = S.doneInfo[th.id]; if (!td || ts > (td.stars || 0)) S.doneInfo[th.id] = { at: td && td.at ? td.at : Date.now(), tries: 1, hints: 0, stars: ts }; }
+      save();
       var nx = nextOf(th.id);
       $('#quizRes').innerHTML = '<div class="st ' + (pass ? 'ok' : 'err') + '">' + right + ' von ' + th.questions.length + ' richtig – ' + (pass ? 'bestanden!' : 'noch nicht bestanden. Lies die Erklaerungen und versuche es erneut.') + '</div>' +
         (pass && nx ? '<button class="btn primary" id="thNext">Weiter</button>' : '<button class="btn" id="thRetry">Nochmals</button>');
@@ -746,17 +779,9 @@
       '<section><h3>Profil (lokal)</h3><p class="dim small">Wird spaeter fuer Klassen und die questuebergreifende Auswertung (Buehler Quest) verwendet. Personen-ID: <code>' + esc(pr.id) + '</code></p>' +
       '<label class="fld"><span>Vorname</span><input id="pfV" value="' + esc(pr.vorname) + '"></label><label class="fld"><span>Nachname</span><input id="pfN" value="' + esc(pr.nachname) + '"></label>' +
       '<label class="fld"><span>Pseudonym</span><input id="pfP" value="' + esc(pr.pseudonym) + '"></label></section>' +
-      '<section><h3>Dozentenmodus</h3>' + (S.settings.teacher
-        ? '<p class="small">Aktiv: Alle Stationen sind offen, auf der Karte gibt es eine Sprungliste, die Freie Werkbank hat alle Bauteile.</p><button class="btn" id="tOff">Dozentenmodus beenden</button>'
-        : '<p class="dim small">Fuer Lehrpersonen: schaltet alle Stationen und alle Bauteile frei. Der Fortschritt der Lernenden bleibt unveraendert.</p><label class="fld"><span>Code</span><input id="tCode" type="password" autocomplete="off"></label><button class="btn" id="tOn">Einschalten</button> <span id="tMsg" class="small"></span>') + '</section>' +
+      (ACCT && ACCT.portal ? '<section><h3>Konto</h3><p class="small">' + (ACCT.user ? 'Angemeldet als <b>' + esc(ACCT.user.username) + '</b> – der Fortschritt wird im Konto gespeichert.' + (staff() ? ' Dozentenmodus aktiv: alle Stationen offen, Sprungliste auf der Karte, Freie Werkbank mit allen Bauteilen.' : '') : ACCT.offline ? 'Keine Verbindung – der Fortschritt bleibt in diesem Browser und wird spaeter abgeglichen.' : 'Nicht angemeldet – der Fortschritt bleibt in diesem Browser.') + '</p><a class="btn" href="../">Zum Portal</a></section>' : '') +
       '<section><h3>Spielstand</h3><button class="btn" id="exp">Exportieren</button> <label class="btn">Importieren<input type="file" id="imp" accept=".json" hidden></label> <button class="btn danger" id="rst">Zuruecksetzen</button></section></div>';
     $('#setTheme').value = S.settings.theme;
-    if ($('#tOn')) $('#tOn').onclick = $('#tCode').onkeydown = function (ev) {
-      if (ev && ev.type === 'keydown' && ev.key !== 'Enter') return;
-      if ($('#tCode').value.trim().toLowerCase() !== String(DQ.teacherCode).toLowerCase()) { $('#tMsg').textContent = 'Code falsch.'; $('#tMsg').className = 'small err'; return; }
-      S.settings.teacher = true; log('teacher_on', {}); save(); applyMode(); renderSettings();
-    };
-    if ($('#tOff')) $('#tOff').onclick = function () { S.settings.teacher = false; log('teacher_off', {}); save(); applyMode(); renderSettings(); };
     $('#setTheme').onchange = function () { S.settings.theme = this.value; applyTheme(); save(); };
     [['#pfV', 'vorname'], ['#pfN', 'nachname'], ['#pfP', 'pseudonym']].forEach(function (x) { $(x[0]).oninput = function () { S.profile[x[1]] = this.value; save(); }; });
     $('#exp').onclick = function () {
@@ -765,7 +790,7 @@
     };
     $('#imp').onchange = function () {
       var f = this.files[0]; if (!f) return; var rd = new FileReader();
-      rd.onload = function () { try { var d = JSON.parse(rd.result); if (!d.profile || !d.done) throw 0; S = d; save(); applyMode(); renderSettings(); modal('<p>Spielstand geladen.</p>'); } catch (e) { modal('<p>Die Datei ist kein gueltiger Spielstand.</p>'); } };
+      rd.onload = function () { try { var d = JSON.parse(rd.result); if (!d.profile || !d.done) throw 0; S = normalize(d); save(); applyMode(); renderSettings(); modal('<p>Spielstand geladen.</p>'); } catch (e) { modal('<p>Die Datei ist kein gueltiger Spielstand.</p>'); } };
       rd.readAsText(f);
     };
     $('#rst').onclick = function () {
@@ -773,18 +798,43 @@
     };
   }
   function applyTheme() { document.documentElement.dataset.theme = S.settings.theme; }
-  function applyMode() { var t = $('#modeTag'); if (t) t.hidden = !S.settings.teacher; }
+  function applyMode() { var t = $('#modeTag'); if (t) t.hidden = !staff(); }
+  function starRow(n) { return [1, 2, 3].map(function (i) { return '<span class="star' + (i <= n ? ' on' : '') + '">★</span>'; }).join(''); }
+  function toast(title, text) {
+    var el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status');
+    el.innerHTML = '<b>' + esc(title) + '</b><span>' + esc(text) + '</span>'; document.body.appendChild(el);
+    setTimeout(function () { el.classList.add('out'); setTimeout(function () { el.remove(); }, 400); }, 6000);
+  }
+  /* Kurzfassung fuer Leitstand und Klassenliste (der Server liest den ganzen Spielstand nur im Schuelerdetail) */
+  function summary() {
+    var ids = Object.keys(S.done).filter(function (id) { return S.done[id] && DQ.byId[id]; });
+    var nT = ids.filter(function (id) { return DQ.byId[id].kind !== 'theory'; }).length, stars = 0;
+    ids.forEach(function (id) { stars += (S.doneInfo[id] || {}).stars || 1; });
+    var nx = ORDER.filter(function (id) { return !S.done[id]; })[0], it = nx && DQ.byId[nx];
+    return { tasks: nT, theory: ids.length - nT, points: stars * 10, stars: stars, ch: it ? +it.ch || 0 : 15,
+      totalTasks: DQ.tasks.length, totalTheory: DQ.theories.length, lastAt: Date.now(), done: ids,
+      current: it ? 'Kapitel ' + it.ch + (it.kind === 'theory' ? ' · Theorie ' + nx.slice(1) : ' · Aufgabe ' + nx) : 'fertig' };
+  }
+  /* Nach Anmeldung, Abgleich oder neuen Vorgaben: sichtbare Ansicht auffrischen */
+  function refreshView() {
+    applyTheme(); applyMode();
+    if (current.screen === 'map') renderMap(); else if (current.screen === 'settings') renderSettings();
+  }
 
   /* ================= Start ================= */
   function init() {
     applyTheme(); applyMode();
-    if (root.DQAccount) root.DQAccount.init({ state: function () { return S; }, save: save, modal: modal, esc: esc, log: log, order: function () { return ORDER; },
-      renderMap: function () { if (current.screen === 'map') renderMap(); }, openItem: openItem,
-      setTeacher: function (on) { S.settings.teacher = !!on; applyMode(); save(); } });
+    if (ACCT) ACCT.init({ state: function () { return S; }, fresh: fresh, modal: modal, esc: esc, toast: toast, summary: summary, refresh: refreshView,
+      setState: function (n) { S = normalize(n); clearTimeout(saveTimer); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { indicator('Nicht gespeichert!', 'err'); } } });
+    root.DQ_REPORT_CONTEXT = function () {
+      var c = current.screen === 'task' && current.task ? (current.task.sandbox ? 'Freie Werkbank' : 'Aufgabe ' + current.task.id) + ' (' + (viewMode === 'bench' ? 'Werkbank' : 'Schaltplan') + ')' :
+        current.screen === 'theory' && current.theory ? 'Theorie ' + current.theory.id : ({ map: 'Laborkarte', manual: 'Handbuch', settings: 'Einstellungen', award: 'Auszeichnung' })[current.screen] || current.screen;
+      return { quest: 'dq', context: c };
+    };
     $$('[data-go]').forEach(function (b) {
       b.onclick = function () {
         var g = b.dataset.go;
-        if (g === 'map') renderMap(); if (g === 'manual') renderManual(); if (g === 'settings') renderSettings(); if (g === 'account' && root.DQAccount) root.DQAccount.render('');
+        if (g === 'map') renderMap(); if (g === 'manual') renderManual(); if (g === 'settings') renderSettings();
         show(g);
       };
     });
@@ -822,9 +872,16 @@
     });
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
     renderMap(); show('map');
-    if (root.DQAccount && root.DQAccount.role() === 'schueler') root.DQAccount.refresh(); // Vorgaben holen, Fortschritt spiegeln (offline: still)
+    /* Einstieg aus dem Portal: ?frei=1 Freie Werkbank, ?werkstatt=1 Uebungswerkstatt, ?live=ID Live-Challenge */
+    var qs = new URLSearchParams(location.search);
+    LIVE = root.DQLive ? root.DQLive.create({ modal: modal, esc: esc, acct: ACCT, byId: DQ.byId,
+      open: function (t, o) { openTask(t, o); }, closeModal: function () { $('#modal').classList.remove('open'); } }) : null;
+    if (LIVE && !LIVE.id) LIVE = null;
+    if (!LIVE && qs.get('frei')) openItem('sandbox');
+    else if (!LIVE && qs.get('werkstatt')) { var w = $('#werkstatt'); if (w) w.scrollIntoView(); }
+    if (ACCT) { var rd = ACCT.start(); if (LIVE) rd.then(function () { LIVE.start(); }); }
   }
 
-  window.DigitalQuest = { get state() { return S; }, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; } };
+  window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
