@@ -597,7 +597,7 @@
       for (var si = 0; si < steps.length; si++) {
         var sp = steps[si], r;
         var label = (t.name ? t.name : 'Test') + (t.steps ? ' · ' + (sp.name || 'Schritt ' + (si + 1)) : '') + ' – ';
-        try { applySet(n2, sp.set); } catch (e) { push(false, label + e.message); return; }
+        try { applySet(n2, sp.set); applyMeasureSet({ set: sp.set }, lay2); } catch (e) { push(false, label + e.message); return; }
         r = step(n2, state, {});
         if (sp.run) { var dtr = sp.dt || 1e-3; for (var k = 0; k * dtr < sp.run - 1e-12 && k < 50000; k++) r = step(n2, state, { dt: dtr }); }
         checkAll(sp.expect || [], r, label);

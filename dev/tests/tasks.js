@@ -116,7 +116,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
               const ws = DigitalQuest.core.layout.wires, best = pins.map(pn => id + '.' + pn).map(pid => ({ pid, other: ws.filter(w => w.from === pid || w.to === pid).map(w => w.from === pid ? w.to : w.from) }))
                 .filter(x => x.other.length).sort((a, b) => a.other.length - b.other.length)[0];
               return best || null;
-            }, [part, pins]);
+            }, [part, m.truth.pin ? [m.truth.pin] : pins]);
             if (!plan) fail(m.id + ': keine Leitung an ' + part + ' zum Auftrennen');
             else {
               for (let g = 0; g < 20; g++) { // alle Leitungen am Anschluss loeschen
@@ -134,7 +134,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
         await page.fill(`[data-ans="${m.id}"]`, String(v));
       }
       // 5. Pruefen
-      await page.click('#btnCheck'); await page.waitForTimeout(80);
+      await page.click('#btnCheck', { force: true }); await page.waitForTimeout(120);
       if (await page.isVisible('#modal.open .win')) await page.click('#modal .modal-btns button:first-child');
       else fail('nicht bestanden: ' + (await page.textContent('#results')).replace(/\s+/g, ' ').slice(0, 300));
     } catch (e) { fail('Bedienung gescheitert: ' + e.message.split('\n')[0]); await page.screenshot({ path: path.join(__dirname, 'shots', 'fehler_' + t.id + '_' + view + '.png') }); }

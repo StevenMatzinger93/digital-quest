@@ -877,7 +877,7 @@ table.tt th { background: var(--bg-tertiary); color: var(--text-dim); } table.tt
       for (var si = 0; si < steps.length; si++) {
         var sp = steps[si], r;
         var label = (t.name ? t.name : 'Test') + (t.steps ? ' · ' + (sp.name || 'Schritt ' + (si + 1)) : '') + ' – ';
-        try { applySet(n2, sp.set); } catch (e) { push(false, label + e.message); return; }
+        try { applySet(n2, sp.set); applyMeasureSet({ set: sp.set }, lay2); } catch (e) { push(false, label + e.message); return; }
         r = step(n2, state, {});
         if (sp.run) { var dtr = sp.dt || 1e-3; for (var k = 0; k * dtr < sp.run - 1e-12 && k < 50000; k++) r = step(n2, state, { dt: dtr }); }
         checkAll(sp.expect || [], r, label);
@@ -3113,6 +3113,462 @@ table.tt th { background: var(--bg-tertiary); color: var(--text-dim); } table.tt
     palette: ['and', 'or', 'not', 'nand', 'nor', 'xor', 'xnor'], limit: { gates: 7 }, start: lockStart, ref: lock, bench: LG.bench(lock),
     wrong: [named('Alarm ohne Pruef-Taste', LG.net(5, [['U1', 'not', ['E3']], ['U2', 'and', ['E1', 'E2']], ['U3', 'and', ['E4', 'U1']], ['U4', 'and', ['U2', 'U3']], ['U5', 'and', ['E5', 'U4']], ['U6', 'not', ['U4']]], { L1: 'U5', L2: 'U6' }))],
     tests: LG.truth(5, fL, { outs: ['L1', 'L2'] })
+  });
+})();
+
+/* ==== content/ch11.js ==== */
+/* Kapitel 11 – Zeitabhaengige Vorgaenge I: RC-Glied und Taktgeber (Beginn Profi-Stufe)
+ * Quelle: Praktische Elektronik Kap. 4 (Kondensator im Gleichspannungskreis, Aufgaben 12/13: 10 kΩ · 100 µF, τ = 1 s,
+ * I_max = U0/R), Gleich- & Wechselgroessen (nicht periodische Vorgaenge: Laden C), ET Kurs AU Zusatz (RC-Tief-/Hochpass),
+ * Digitaltechnik zeitabhaengige Vorgaenge (Takt als Grundlage fuer Flipflops und Zaehler). */
+(function () {
+  'use strict';
+  defChapter({
+    id: 11, title: 'RC-Glied und Taktgeber',
+    intro: 'Jetzt kommt die Zeit ins Spiel: Kondensatoren laden und entladen sich, Taktgeber lassen LEDs blinken. Du misst Ladekurven am Oszilloskop und baust Verzoegerungen, Glaettungen und einfache Filter.',
+    sequence: ['T11A', '11.1', '11.2', '11.3', '11.4', '11.5', 'T11B', '11.6', '11.7', '11.8', '11.9', '11.10']
+  });
+  var named = function (name, l) { l.name = name; return l; };
+  var B = function (v) { return { id: 'B1', type: 'battery', value: v, x: 160, y: 300, rot: 0 }; };
+  var R = function (id, v, x, y, rot) { return { id: id, type: 'resistor', value: v, x: x, y: y, rot: rot || 0 }; };
+  var C = function (id, v, x, y, rot) { return { id: id, type: 'capacitor', value: v, x: x, y: y, rot: rot === undefined ? 90 : rot }; };
+  var GND = function (x, y) { return { id: 'GND1', type: 'ground', x: x || 160, y: y || 460, rot: 0 }; };
+  var bB1 = { id: 'B1', x: 240, y: 460, rot: 0 };
+
+  defTheory({
+    id: 'T11A', ch: 11, title: 'Laden und Entladen', tags: ['elektro.kondensator', 'elektro.zeitkonstante'],
+    lesson:
+      '<p>Ein <b>Kondensator</b> speichert Ladung. Ueber einen Widerstand geladen, steigt seine Spannung nicht sprunghaft, sondern <b>e-foermig</b>: Am Anfang fliesst der groesste Strom I<sub>max</sub> = U₀ / R, dann baut der Kondensator eine Gegenspannung auf – der Strom wird kleiner, das Laden langsamer.</p>' +
+      '<div class="formula">τ = R · C &nbsp;&nbsp; u<sub>C</sub>(t) = U₀ · (1 − e<sup>−t/τ</sup>)</div>' +
+      '<p>Nach <b>1 τ</b> ist der Kondensator auf <b>63 %</b> geladen, nach <b>5 τ</b> praktisch voll (99 %). Beim <b>Entladen</b> ueber einen Widerstand faellt die Spannung nach 1 τ auf <b>37 %</b>.</p>' +
+      '<p>Beispiel aus dem Labor: 10 kΩ · 100 µF = 1 s. An 5 V ist I<sub>max</sub> = 5 V / 10 kΩ = 0,5 mA.</p>' +
+      '<p>Im <b>Gleichstrom-Arbeitspunkt</b> (nach langer Zeit) sperrt der Kondensator: Es fliesst kein Strom mehr.</p>' +
+      '<p>Am Oszilloskop siehst du den Verlauf ab dem Einschalten: Zeitbasis passend waehlen (etwa 5 τ ueber die Bildbreite).</p>',
+    questions: [
+      { q: 'Wie gross ist τ bei R = 10 kΩ und C = 100 µF?', options: ['0,1 s', '1 s', '10 s', '100 s'], correct: 1, explain: 'τ = 10 000 Ω · 0,0001 F = 1 s.' },
+      { q: 'Auf wie viel Prozent ist ein Kondensator nach 1 τ geladen?', options: ['37 %', '50 %', '63 %', '100 %'], correct: 2, explain: '1 − e⁻¹ ≈ 0,63.' },
+      { q: 'Nach wie vielen τ gilt ein Kondensator als voll geladen?', options: ['1', '2', '5', '100'], correct: 2, explain: 'Nach 5 τ sind 99 % erreicht.' },
+      { q: 'Wann fliesst beim Laden der groesste Strom?', options: ['Ganz am Anfang', 'Nach 1 τ', 'Am Ende', 'Immer gleich'], correct: 0, explain: 'Am Anfang liegt die ganze Spannung am Widerstand: I = U₀ / R.' },
+      { q: 'Ein voll geladener Kondensator (10 V) entlaedt sich ueber R. Welche Spannung hat er nach 1 τ?', options: ['0 V', '3,7 V', '5 V', '6,3 V'], correct: 1, explain: 'e⁻¹ ≈ 0,37 → 3,7 V.' }
+    ]
+  });
+
+  var charge = function (r) { return { parts: [B(5), { id: 'S1', type: 'switch', x: 300, y: 200, rot: 0 }, R('R1', r, 440, 200), C('C1', 100e-6, 580, 300)],
+    wires: [W('B1.p', 'S1.a'), W('S1.b', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'B1.n')] }; };
+  var bCharge = { parts: [bB1, { id: 'S1', x: 440, y: 290, rot: 0 }, { id: 'R1', x: 620, y: 290, rot: 0 }, { id: 'C1', x: 800, y: 460, rot: 90 }] };
+  defTask({
+    id: '11.1', ch: 11, title: 'Der Kondensator laedt', tags: ['elektro.kondensator', 'elektro.zeitkonstante', 'messen.oszilloskop'],
+    story: 'Das Laborbuch sagt: 10 kΩ und 100 µF an 5 V – nach einer Sekunde 63 %. Pruefe es nach.',
+    brief: 'Baue die Ladeschaltung: Batterie (5 V) → Schalter → <b>R = 10 kΩ</b> → <b>C = 100 µF</b> → zurueck. Schliesse den Schalter und beobachte die Ladekurve (Messspitzen an C1, Oszilloskop, Zeitbasis 5 s). Trage τ und den Anfangsstrom ein.',
+    learn: 'τ = R·C, I_max = U₀/R.', take: 'Nach 1 s (= 1 τ) liegen 3,16 V am Kondensator, nach 5 s fast 5 V.',
+    hint: 'Kondensatorwert im Panel: 100u (µF).', hint2: 'τ = 10 kΩ · 100 µF = 1 s; I_max = 5 V / 10 kΩ = 0,5 mA.',
+    palette: ['switch', 'resistor', 'capacitor'], need: { switch: 1, resistor: 1, capacitor: 1 },
+    start: { parts: [B(5)], wires: [] }, ref: charge(10000), bench: bCharge,
+    wrong: [named('1 kΩ statt 10 kΩ (zu schnell)', charge(1000))],
+    tests: [{ name: 'Laden', steps: [
+      { name: 'offen', set: { S1: { closed: false } }, expect: [{ sel: 'C1', v: [0, 0.01] }] },
+      { name: 'nach 1 s', set: { S1: { closed: true } }, run: 1, expect: [{ sel: 'C1', v: [3.0, 3.35] }] },
+      { name: 'nach 5 s', run: 4, expect: [{ sel: 'C1', v: [4.9, 5.05] }] }] }],
+    measure: [{ id: 'tau', ask: 'Zeitkonstante τ', unit: 's', value: 1, tol: 0.03 }, { id: 'imax', ask: 'Anfangsstrom I_max', unit: 'mA', value: 0.5e-3, tol: 0.03 }]
+  });
+
+  var rc2 = { parts: [B(5), R('R1', 22000, 360, 200), C('C1', 47e-6, 520, 300)], wires: [W('B1.p', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'B1.n')] };
+  defTask({
+    id: '11.2', ch: 11, title: 'τ am Oszilloskop', tags: ['elektro.zeitkonstante', 'messen.oszilloskop'],
+    story: 'Die Werte auf den Bauteilen sind kaum lesbar. Die Zeitkonstante laesst sich aber messen.',
+    brief: 'Nimm die Ladekurve an C1 mit dem Oszilloskop auf (Messspitzen an C1.a und C1.b, Zeitbasis 5 s). Bestimme <b>τ</b> (Zeit bis 63 %) und die Spannung nach einer Zeitkonstante.',
+    learn: 'τ liest man bei 63 % des Endwerts ab.', take: '22 kΩ · 47 µF = 1,03 s – die Kurve erreicht 3,16 V nach gut einer Sekunde.',
+    hint: '63 % von 5 V sind 3,16 V. Bei welcher Zeit schneidet die Kurve diesen Wert? Ein Kaestchen = 1/10 der Zeitbasis.', hint2: 'τ = R·C = 22 kΩ · 47 µF ≈ 1,03 s.',
+    palette: [], start: rc2, ref: rc2, bench: { parts: [bB1, { id: 'R1', x: 520, y: 290, rot: 0 }, { id: 'C1', x: 760, y: 460, rot: 90 }] },
+    tests: [{ name: 'Ladekurve', steps: [{ run: 1.034, expect: [{ sel: 'C1', v: [3.0, 3.3] }] }] }],
+    measure: [{ id: 'tau', ask: 'Zeitkonstante τ (abgelesen)', unit: 's', value: 1.034, tol: 0.1 }, { id: 'u', ask: 'Spannung nach 1 τ', unit: 'V', value: 5 * (1 - Math.exp(-1)), tol: 0.05 }]
+  });
+
+  var dis = function (withR2) {
+    var l = charge(1000); if (withR2) { l.parts.push(R('R2', 10000, 720, 300, 90)); l.wires.push(W('R2.a', 'C1.a'), W('R2.b', 'C1.b')); } return l;
+  };
+  defTask({
+    id: '11.3', ch: 11, title: 'Entladen', tags: ['elektro.kondensator', 'elektro.zeitkonstante'],
+    story: 'Beim Ausschalten soll der Kondensator sich nicht ewig halten – aus Sicherheitsgruenden braucht er einen Entladewiderstand.',
+    brief: 'Schalte einen <b>Entladewiderstand R2 = 10 kΩ</b> parallel zu C1. Nach dem Oeffnen des Schalters soll die Spannung mit τ = R2 · C = 1 s abklingen.',
+    learn: 'Entladen: u(t) = U₀ · e^(−t/τ).', take: 'Nach 1 τ bleiben 37 % – nach 5 τ ist der Kondensator praktisch leer.',
+    hint: 'R2 oben an C1.a, unten an C1.b.', hint2: 'Beim Laden teilt sich die Spannung (R1 : R2) – C laedt auf 10/11 · 5 V ≈ 4,55 V.',
+    palette: ['resistor'], need: { resistor: 2 }, start: dis(false), ref: dis(true),
+    bench: { parts: [bB1, { id: 'S1', x: 440, y: 290, rot: 0 }, { id: 'R1', x: 620, y: 290, rot: 0 }, { id: 'C1', x: 700, y: 480, rot: 90 }, { id: 'R2', x: 860, y: 480, rot: 90 }] },
+    tests: [{ name: 'Laden und Entladen', steps: [
+      { name: 'laden', set: { S1: { closed: true } }, run: 2, expect: [{ sel: 'C1', v: [4.4, 4.6] }] },
+      { name: '1 s nach dem Ausschalten', set: { S1: { closed: false } }, run: 1, expect: [{ sel: 'C1', v: [1.5, 1.8] }] }] }]
+  });
+
+  var blink = function (f, r, withClock) {
+    var l = { parts: [GND(560, 460), R('R1', r || 150, 380, 300), { id: 'D1', type: 'led', props: { color: 'gruen' }, x: 560, y: 380, rot: 90 }], wires: [W('R1.b', 'D1.a'), W('D1.k', 'GND1.g')] };
+    if (withClock !== false) { l.parts.push({ id: 'CLK1', type: 'clock', props: { freq: f }, x: 200, y: 300, rot: 0 }); l.wires.push(W('CLK1.out', 'R1.a')); }
+    return l;
+  };
+  var bBlink = { parts: [{ id: 'CLK1', x: 260, y: 380, rot: 0 }, { id: 'R1', x: 500, y: 380, rot: 0 }, { id: 'D1', x: 740, y: 480, rot: 90 }, { id: 'GND1', x: 740, y: 680, rot: 0 }] };
+  var blinkStart = { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 2 }, x: 200, y: 300, rot: 0 }, GND(560, 460)], wires: [] };
+  defTask({
+    id: '11.4', ch: 11, title: 'Die Blinkleuchte', tags: ['digital.takt', 'bauteil.led'],
+    story: 'Die Warnleuchte an der Rampe soll zweimal pro Sekunde blinken. Der Taktgeber ist schon da.',
+    brief: 'Schliesse eine gruene LED mit <b>Vorwiderstand</b> an den Taktgeber (2 Hz) an. Der Taktgeber liefert 5 V (High) bzw. 0 V (Low); die LED soll mit 10–20 mA leuchten.',
+    learn: 'Ein Taktgeber liefert eine Rechteckspannung: T = 1/f, High und Low je halb so lang.', take: 'Bei 2 Hz ist die LED 0,25 s an und 0,25 s aus.',
+    hint: 'LED-Kathode an Masse (GND1). Vorwiderstand fuer ca. 17 mA: (5 V − 2,1 V) / 0,017 A ≈ 170 Ω.', hint2: 'CLK1.out → R1 (150 Ω) → D1.a, D1.k → GND1.g.',
+    palette: ['resistor', 'led'], need: { resistor: 1, led: 1 }, start: blinkStart, ref: blink(2, 150), bench: bBlink,
+    wrong: [named('ohne Vorwiderstand', { parts: blink(2).parts.filter(function (p) { return p.id !== 'R1'; }), wires: [W('CLK1.out', 'D1.a'), W('D1.k', 'GND1.g')] })],
+    tests: [{ name: 'Takt', steps: [
+      { name: '0,1 s', run: 0.1, expect: [{ sel: 'D1', on: true, i: [0.01, 0.02] }] },
+      { name: '0,4 s', run: 0.3, expect: [{ sel: 'D1', on: false }] },
+      { name: '0,7 s', run: 0.3, expect: [{ sel: 'D1', on: true }, { noFault: true }] }] }]
+  });
+
+  defTask({
+    id: '11.5', ch: 11, title: 'Takt einstellen', tags: ['digital.takt', 'elektro.frequenz'],
+    story: 'Die Norm verlangt fuer diese Warnleuchte 5 Hz. Der alte Taktgeber ist ausgebaut.',
+    brief: 'Setze einen neuen <b>Taktgeber</b> ein und stelle <b>5 Hz</b> ein. Berechne die Periodendauer.',
+    learn: 'f = 1 / T.', take: '5 Hz → T = 0,2 s: 0,1 s an, 0,1 s aus.',
+    hint: 'Taktgeber aus der Palette, im Panel Frequenz 5.', hint2: 'CLK1.out → R1.a.',
+    palette: ['clock'], need: { clock: 1 }, start: blink(5, 150, false), ref: blink(5, 150), bench: bBlink,
+    wrong: [named('1 Hz', blink(1, 150)), named('10 Hz', blink(10, 150))],
+    tests: [{ name: '5 Hz', steps: [
+      { name: '0,05 s', run: 0.05, expect: [{ sel: 'D1', on: true }] },
+      { name: '0,15 s', run: 0.1, expect: [{ sel: 'D1', on: false }] },
+      { name: '0,25 s', run: 0.1, expect: [{ sel: 'D1', on: true }] }] }],
+    measure: [{ id: 't', ask: 'Periodendauer T', unit: 'ms', value: 0.2, tol: 0.02 }]
+  });
+
+  defTheory({
+    id: 'T11B', ch: 11, title: 'RC-Glieder in Schaltungen', tags: ['elektro.rc', 'elektro.filter', 'digital.takt'],
+    lesson:
+      '<p><b>Verzoegerung:</b> Ein RC-Glied vor einem Logikeingang verzoegert das Einschalten: Der Eingang sieht erst eine 1, wenn u<sub>C</sub> die Schaltschwelle (2,5 V bei 5 V) erreicht – nach t = τ · ln 2 ≈ 0,69 τ.</p>' +
+      '<p><b>Glaettung:</b> Ein grosser Kondensator parallel zur Last nach dem Gleichrichter (Ladekondensator) wird in den Spannungsspitzen geladen und versorgt die Last dazwischen. Uebrig bleibt eine kleine <b>Brummspannung</b> – je groesser C, desto kleiner.</p>' +
+      '<p><b>Tiefpass</b> (R in Reihe, C gegen Masse): laesst tiefe Frequenzen durch, daempft hohe. <b>Hochpass</b> (C in Reihe, R gegen Masse): umgekehrt. Grenzfrequenz:</p>' +
+      '<div class="formula">f<sub>g</sub> = 1 / (2·π·R·C)</div>' +
+      '<p>Bei f<sub>g</sub> ist die Ausgangsspannung auf 70,7 % gesunken (−3 dB).</p>' +
+      '<p><b>Taktgeber</b> liefern Rechteckspannung mit Frequenz f und Periodendauer T = 1/f. Mit einem Inverter erhaelt man das Gegentaktsignal – zwei LEDs blinken abwechselnd.</p>',
+    questions: [
+      { q: 'Nach welcher Zeit schaltet ein Logikeingang hinter einem RC-Glied (τ = 1 s) auf 1?', options: ['0,1 s', '0,69 s', '1 s', '5 s'], correct: 1, explain: 'Die Schwelle 2,5 V ist bei 50 % erreicht: t = τ · ln 2 ≈ 0,69 s.' },
+      { q: 'Wie verkleinert man die Brummspannung eines Gleichrichters?', options: ['Kleineren Ladekondensator', 'Groesseren Ladekondensator', 'Kleineren Lastwiderstand', 'Gar nicht'], correct: 1, explain: 'Ein groesserer Kondensator verliert zwischen den Spitzen weniger Spannung.' },
+      { q: 'Grenzfrequenz bei R = 1 kΩ, C = 10 µF?', options: ['1,6 Hz', '15,9 Hz', '159 Hz', '1,59 kHz'], correct: 1, explain: 'f_g = 1 / (2π · 1000 · 0,00001) ≈ 15,9 Hz.' },
+      { q: 'Welches Filter laesst tiefe Frequenzen durch?', options: ['Hochpass', 'Tiefpass', 'Bandsperre', 'Keines'], correct: 1, explain: 'Tiefpass: tiefe Frequenzen passieren.' },
+      { q: 'Auf wie viel Prozent ist die Ausgangsspannung bei der Grenzfrequenz gesunken?', options: ['50 %', '63 %', '70,7 %', '90 %'], correct: 2, explain: '1/√2 ≈ 0,707 – das sind −3 dB.' }
+    ]
+  });
+
+  var delay = function (withC) {
+    var l = { parts: [{ id: 'E1', type: 'logicin', x: 160, y: 200, rot: 0 }, GND(160, 460), R('R1', 10000, 360, 200), { id: 'L1', type: 'logicled', x: 700, y: 200, rot: 0 }], wires: [W('E1.out', 'R1.a'), W('R1.b', 'L1.in')] };
+    if (withC) { l.parts.push(C('C1', 100e-6, 520, 300)); l.wires.push(W('R1.b', 'C1.a'), W('C1.b', 'GND1.g')); }
+    return l;
+  };
+  var delayStart = { parts: delay(false).parts.filter(function (p) { return p.id !== 'R1'; }), wires: [] };
+  defTask({
+    id: '11.6', ch: 11, title: 'Einschaltverzoegerung', tags: ['elektro.rc', 'digital.pegel', 'elektro.zeitkonstante'],
+    story: 'Die Anzeige „Anlage bereit“ soll erst leuchten, wenn nach dem Einschalten alles eingeschwungen ist – etwa 0,7 s spaeter.',
+    brief: 'Baue ein <b>RC-Glied</b> (R = 10 kΩ, C = 100 µF gegen Masse) zwischen Pegelschalter E1 und Logikanzeige L1. Nach dem Umschalten auf 1 soll L1 erst nach etwa 0,7 s leuchten.',
+    learn: 'RC-Glied als Verzoegerung: Schaltschwelle bei 0,69 τ.', take: 'Die Logikanzeige schaltet bei 2,5 V – der Kondensator braucht dafuer 0,69 · 1 s.',
+    hint: 'E1 → R1 → Knoten → L1; vom Knoten C1 gegen Masse.', hint2: 'E1.out → R1.a, R1.b → L1.in und C1.a, C1.b → GND1.g.',
+    palette: ['resistor', 'capacitor'], need: { resistor: 1, capacitor: 1 }, start: delayStart, ref: delay(true),
+    bench: { parts: [{ id: 'E1', x: 200, y: 300, rot: 0 }, { id: 'R1', x: 440, y: 300, rot: 0 }, { id: 'C1', x: 640, y: 480, rot: 90 }, { id: 'L1', x: 820, y: 300, rot: 0 }, { id: 'GND1', x: 640, y: 680, rot: 0 }] },
+    wrong: [named('ohne Kondensator (sofort)', delay(false))],
+    tests: [{ name: 'Verzoegerung', steps: [
+      { name: '0,4 s nach Ein', set: { E1: { closed: true } }, run: 0.4, expect: [{ sel: 'L1', on: false }] },
+      { name: '1 s nach Ein', run: 0.6, expect: [{ sel: 'L1', on: true }, { noFault: true }] }] }]
+  });
+
+  var gen = function (props) { return { id: 'G1', type: 'acsource', value: 10, props: Object.assign({ freq: 50, shape: 'sine', offset: 0 }, props || {}), x: 160, y: 300, rot: 0 }; };
+  var smooth = function (withC) {
+    var l = { parts: [gen(), { id: 'V1', type: 'diode', x: 300, y: 200, rot: 0 }, R('R1', 1000, 480, 300, 90)], wires: [W('G1.p', 'V1.a'), W('V1.k', 'R1.a'), W('R1.b', 'G1.n')] };
+    if (withC) { l.parts.push(C('C1', 470e-6, 620, 300)); l.wires.push(W('C1.a', 'R1.a'), W('C1.b', 'R1.b')); }
+    return l;
+  };
+  defTask({
+    id: '11.7', ch: 11, title: 'Der Ladekondensator', tags: ['elektro.gleichrichter', 'elektro.kondensator', 'messen.oszilloskop'],
+    story: 'Der Einweggleichrichter liefert nur Buckel. Die Elektronik dahinter braucht aber eine ruhige Gleichspannung.',
+    brief: 'Setze einen <b>Ladekondensator 470 µF</b> parallel zu R1. Pruefe am Oszilloskop: Die Spannung soll nahe am Scheitelwert liegen und nur wenig schwanken (Brummspannung unter 1,2 V).',
+    learn: 'Der Kondensator ueberbrueckt die Luecken zwischen den Halbwellen.', take: 'Aus 2,8 V Mittelwert werden fast 9 V – mit kleiner Brummspannung.',
+    hint: 'C1 oben an R1.a, unten an R1.b.', hint2: 'Oszilloskop mit Zeitbasis 50 ms: fast gerade Linie mit kleinen Zacken.',
+    palette: ['capacitor'], need: { capacitor: 1 }, start: smooth(false), ref: smooth(true),
+    bench: { parts: [{ id: 'G1', x: 250, y: 460, rot: 0 }, { id: 'V1', x: 480, y: 290, rot: 0 }, { id: 'R1', x: 660, y: 460, rot: 90 }, { id: 'C1', x: 820, y: 460, rot: 90 }] },
+    tests: [{ name: 'geglaettet', expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [8.2, 9.4] }, { a: 'R1.a', b: 'R1.b', ac: 'pp', range: [0, 1.2] }, { noFault: true }] }],
+    measure: [{ id: 'udc', ask: 'Gleichanteil an R1 (V⎓)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.04 }, { id: 'upp', ask: 'Brummspannung (Spitze-Spitze)', unit: 'V', mode: 'AC', q: 'pp', a: 'R1.a', b: 'R1.b', tol: 0.15 }]
+  });
+
+  var lowpass = function (hp) {
+    return hp ? { parts: [gen(), C('C1', 10e-6, 320, 200, 0), R('R1', 1000, 480, 300, 90)], wires: [W('G1.p', 'C1.a'), W('C1.b', 'R1.a'), W('R1.b', 'G1.n')] }
+      : { parts: [gen(), R('R1', 1000, 320, 200), C('C1', 10e-6, 480, 300)], wires: [W('G1.p', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'G1.n')] };
+  };
+  defTask({
+    id: '11.8', ch: 11, title: 'Der Tiefpass', tags: ['elektro.filter', 'elektro.rc', 'messen.wechselspannung'],
+    story: 'Ein Sensorsignal ist von 50-Hz-Brumm ueberlagert. Ein RC-Tiefpass soll daempfen.',
+    brief: 'Baue einen <b>RC-Tiefpass</b>: R1 = 1 kΩ in Reihe, C1 = 10 µF gegen den Rueckleiter. Miss die Ausgangsspannung am Knoten zwischen R1 und C1 gegen den Rueckleiter G1.– (V~ TRMS).',
+    learn: 'Tiefpass: f_g = 1/(2πRC) = 15,9 Hz – 50 Hz liegen weit darueber.', take: 'Bei 50 Hz bleiben nur rund 30 % uebrig (7,07 V → 2,1 V).',
+    hint: 'G1.+ → R1 → Knoten → C1 → G1.–. Gemessen wird an C1.', hint2: 'U_a/U_e = 1/√(1 + (f/f_g)²) = 1/√(1 + 9,9) ≈ 0,30.',
+    palette: ['resistor', 'capacitor'], need: { resistor: 1, capacitor: 1 }, start: { parts: [gen()], wires: [] }, ref: lowpass(false),
+    bench: { parts: [{ id: 'G1', x: 250, y: 460, rot: 0 }, { id: 'R1', x: 520, y: 290, rot: 0 }, { id: 'C1', x: 760, y: 460, rot: 90 }] },
+    wrong: [named('Hochpass statt Tiefpass', lowpass(true))],
+    tests: [{ name: '50 Hz', expect: [{ a: 'C1.a', b: 'G1.n', ac: 'rms', range: [1.9, 2.4] }] }],
+    measure: [{ id: 'ua', ask: 'Ausgangsspannung (C1.a gegen G1.–, V~)', unit: 'V', mode: 'VAC', meterType: 'trms', a: 'C1.a', b: 'G1.n', tol: 0.04 }]
+  });
+  defTask({
+    id: '11.9', ch: 11, title: 'Der Hochpass', tags: ['elektro.filter', 'elektro.rc', 'messen.wechselspannung'],
+    story: 'Jetzt umgekehrt: Ein Gleichanteil soll weg, das 50-Hz-Signal soll bleiben.',
+    brief: 'Baue einen <b>RC-Hochpass</b>: C1 = 10 µF in Reihe, R1 = 1 kΩ gegen den Rueckleiter. Miss die Ausgangsspannung am Knoten zwischen C1 und R1 gegen den Rueckleiter G1.– (V~ TRMS).',
+    learn: 'Hochpass: laesst Frequenzen weit ueber f_g fast ungedaempft durch.', take: 'Bei 50 Hz (≈ 3 · f_g) kommen 95 % durch: 7,07 V → 6,7 V.',
+    hint: 'Nur die Reihenfolge von R und C tauschen.', hint2: 'G1.+ → C1 → Knoten → R1 → G1.–. Gemessen an R1.',
+    palette: ['resistor', 'capacitor'], need: { resistor: 1, capacitor: 1 }, start: { parts: [gen()], wires: [] }, ref: lowpass(true),
+    bench: { parts: [{ id: 'G1', x: 250, y: 460, rot: 0 }, { id: 'C1', x: 520, y: 290, rot: 0 }, { id: 'R1', x: 760, y: 460, rot: 90 }] },
+    wrong: [named('Tiefpass statt Hochpass', lowpass(false))],
+    tests: [{ name: '50 Hz', expect: [{ a: 'R1.a', b: 'G1.n', ac: 'rms', range: [6.4, 7.0] }] }],
+    measure: [{ id: 'ua', ask: 'Ausgangsspannung (R1.a gegen G1.–, V~)', unit: 'V', mode: 'VAC', meterType: 'trms', a: 'R1.a', b: 'G1.n', tol: 0.04 }]
+  });
+
+  var alt = function (withNot) {
+    var l = { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 1 }, x: 160, y: 200, rot: 0 }, GND(160, 460), R('R1', 150, 400, 160), R('R2', 150, 400, 320),
+      { id: 'D1', type: 'led', props: { color: 'rot' }, x: 560, y: 160, rot: 0 }, { id: 'D2', type: 'led', props: { color: 'gelb' }, x: 560, y: 320, rot: 0 }],
+      wires: [W('CLK1.out', 'R1.a'), W('R1.b', 'D1.a'), W('D1.k', 'GND1.g'), W('R2.b', 'D2.a'), W('D2.k', 'GND1.g')] };
+    if (withNot) { l.parts.push({ id: 'U1', type: 'not', x: 280, y: 320, rot: 0 }); l.wires.push(W('CLK1.out', 'U1.in'), W('U1.out', 'R2.a')); }
+    else l.wires.push(W('CLK1.out', 'R2.a'));
+    return l;
+  };
+  var altStart = { parts: alt(true).parts.filter(function (p) { return p.id !== 'U1'; }), wires: [W('CLK1.out', 'R1.a'), W('R1.b', 'D1.a'), W('D1.k', 'GND1.g'), W('R2.b', 'D2.a'), W('D2.k', 'GND1.g')] };
+  defTask({
+    id: '11.10', ch: 11, title: 'Der Wechselblinker', tags: ['digital.takt', 'digital.nicht'],
+    story: 'Am Bahnuebergang blinken zwei Lampen abwechselnd. Rot ist angeschlossen – Gelb soll genau dann leuchten, wenn Rot aus ist.',
+    brief: 'Steuere D2 (gelb) ueber R2 so an, dass sie im <b>Gegentakt</b> zu D1 blinkt.',
+    learn: 'Ein Inverter erzeugt das Gegentaktsignal.', take: 'CLK und ¬CLK: immer genau eine LED an.',
+    hint: 'Zwischen Taktgeber und R2 gehoert ein NICHT-Gatter.', hint2: 'CLK1.out → U1.in, U1.out → R2.a.',
+    palette: ['not', 'and', 'or'], need: { not: 1 }, start: altStart, ref: alt(true),
+    bench: { parts: [{ id: 'CLK1', x: 240, y: 260, rot: 0 }, { id: 'GND1', x: 240, y: 680, rot: 0 }, { id: 'R1', x: 560, y: 200, rot: 0 }, { id: 'R2', x: 560, y: 440, rot: 0 }, { id: 'D1', x: 790, y: 200, rot: 0 }, { id: 'D2', x: 790, y: 440, rot: 0 }, { id: 'U1', x: 380, y: 440, rot: 0 }] },
+    wrong: [named('beide im Gleichtakt', alt(false))],
+    tests: [{ name: 'Gegentakt', steps: [
+      { name: '0,2 s', run: 0.2, expect: [{ sel: 'D1', on: true }, { sel: 'D2', on: false }] },
+      { name: '0,7 s', run: 0.5, expect: [{ sel: 'D1', on: false }, { sel: 'D2', on: true }, { noFault: true }] }] }]
+  });
+})();
+
+/* ==== content/ch12.js ==== */
+/* Kapitel 12 – Flipflops und Zaehler
+ * Quelle: Digitaltechnik zeitabhaengige Vorgaenge (NOR-Flip-Flop mit Analyse-/Ansteuertabelle, NOR-AND-Flip-Flop,
+ * Steuerungsarten, T-, D-, R-S-, J-K-Flip-Flop, asynchrone Zaehler, synchrone Zaehler, Johnson-Zaehler). */
+(function () {
+  'use strict';
+  defChapter({
+    id: 12, title: 'Flipflops und Zaehler',
+    intro: 'Schaltungen mit Gedaechtnis: Ein Flipflop merkt sich ein Bit, mehrere Flipflops zaehlen. Den Takt gibst du selbst mit einem Pegelschalter – Schritt fuer Schritt, wie im Praktikum.',
+    sequence: ['T12A', '12.1', '12.2', '12.3', '12.4', '12.5', 'T12B', '12.6', '12.7', '12.8', '12.9', '12.10']
+  });
+  var named = function (name, l) { l.name = name; return l; };
+  var G = { id: 'GND1', type: 'ground', x: 120, y: 560, rot: 0 };
+  var E = function (i, x, y, on) { var e = { id: 'E' + i, type: 'logicin', x: x || 160, y: y, rot: 0 }; if (on) e.props = { closed: true }; return e; };
+  var L = function (i, x, y) { return { id: 'L' + i, type: 'logicled', x: x || 860, y: y, rot: 0 }; };
+  var P = function (id, type, x, y) { return { id: id, type: type, x: x, y: y, rot: 0 }; };
+  /* Takt per Pegelschalter: n Pulse (0 → 1 → 0), optional mit Erwartung nach dem letzten Puls */
+  function pulses(key, n, expect) { var s = []; for (var k = 0; k < n; k++) s.push({ set: (function () { var o = {}; o[key] = { closed: true }; return o; })() }, { set: (function () { var o = {}; o[key] = { closed: false }; return o; })() }); if (expect) s[s.length - 1].expect = expect; return s; }
+  var on = function (id, v) { return { sel: id, on: !!v }; };
+
+  defTheory({
+    id: 'T12A', ch: 12, title: 'Das Flipflop – ein Bit Gedaechtnis', tags: ['digital.flipflop', 'digital.speicher'],
+    lesson:
+      '<p>Zwei <b>NOR-Gatter</b>, deren Ausgaenge jeweils auf einen Eingang des anderen zurueckgefuehrt sind, bilden das <b>RS-Flipflop</b>. S = 1 <b>setzt</b> (Q = 1), R = 1 <b>setzt zurueck</b> (Q = 0), S = R = 0 <b>speichert</b> den letzten Zustand. S = R = 1 ist der <b>verbotene Zustand</b> (Q und Q̄ beide 0).</p>' +
+      '<p>Die <b>Analysetabelle</b> zeigt den neuen Zustand A abhaengig vom alten Zustand A<sub>V</sub>; die <b>Ansteuertabelle</b> sagt, welche Eingaenge noetig sind, um von A<sub>V</sub> nach A zu kommen (X = egal).</p>' +
+      '<p><b>Steuerungsarten:</b> <i>Zustandsgesteuert</i> – der Takteingang C gibt die Eingaenge frei, solange C = 1 ist (getaktetes RS mit UND-Gattern davor). <i>Flankengesteuert</i> – nur im Moment der steigenden Taktflanke (0 → 1) wird uebernommen.</p>' +
+      '<p><b>D-Flipflop:</b> uebernimmt D bei der Taktflanke. <b>T-Flipflop:</b> kippt bei jeder Flanke, wenn T = 1 (Frequenzteiler durch 2). <b>JK-Flipflop:</b> J = 1 setzt, K = 1 setzt zurueck, J = K = 1 kippt, J = K = 0 speichert.</p>',
+    questions: [
+      { q: 'RS-Flipflop: Was passiert bei S = 0 und R = 0?', options: ['Q = 0', 'Q = 1', 'Q behaelt seinen Zustand', 'verbotener Zustand'], correct: 2, explain: 'Keine Ansteuerung – das Flipflop speichert.' },
+      { q: 'Welche Kombination ist beim NOR-RS-Flipflop verboten?', options: ['S = 0, R = 0', 'S = 1, R = 0', 'S = 0, R = 1', 'S = 1, R = 1'], correct: 3, explain: 'Beide Ausgaenge werden 0 – Q und Q̄ sind nicht mehr invers.' },
+      { q: 'Wann uebernimmt ein flankengesteuertes D-Flipflop den Eingang D?', options: ['Solange C = 1', 'Bei der steigenden Flanke an C', 'Wenn D sich aendert', 'Immer'], correct: 1, explain: 'Nur im Moment 0 → 1 am Takteingang.' },
+      { q: 'Was macht ein T-Flipflop mit T = 1 bei jeder Taktflanke?', options: ['Nichts', 'Es kippt', 'Es setzt', 'Es setzt zurueck'], correct: 1, explain: 'Toggle – dadurch halbiert es die Taktfrequenz.' },
+      { q: 'JK-Flipflop, J = 1, K = 1, Taktflanke. Was passiert?', options: ['Q = 1', 'Q = 0', 'Q kippt', 'verboten'], correct: 2, explain: 'Beim JK-Flipflop ist 1/1 nicht verboten, sondern kippt.' }
+    ]
+  });
+
+  /* 12.1 RS aus NOR: E1 = S, E2 = R, L1 = Q, L2 = /Q */
+  var rsStart = { parts: [E(1, 160, 200), E(2, 160, 400), G, L(1, 700, 220), L(2, 700, 380)], wires: [] };
+  var rs = { parts: rsStart.parts.concat([P('U1', 'nor', 420, 220), P('U2', 'nor', 420, 380)]),
+    wires: [W('E2.out', 'U1.in1'), W('U2.out', 'U1.in2'), W('E1.out', 'U2.in2'), W('U1.out', 'U2.in1'), W('U1.out', 'L1.in'), W('U2.out', 'L2.in')] };
+  var rsBench = { parts: [{ id: 'E1', x: 190, y: 250, rot: 0 }, { id: 'E2', x: 190, y: 520, rot: 0 }, { id: 'GND1', x: 190, y: 690, rot: 0 }, { id: 'U1', x: 500, y: 260, rot: 0 }, { id: 'U2', x: 500, y: 500, rot: 0 }, { id: 'L1', x: 840, y: 260, rot: 0 }, { id: 'L2', x: 840, y: 500, rot: 0 }] };
+  defTask({
+    id: '12.1', ch: 12, title: 'Das NOR-Flipflop', tags: ['digital.flipflop', 'digital.nor', 'digital.speicher'],
+    story: 'Ein Stoermelder soll sich merken, dass eine Stoerung da war – auch wenn sie wieder verschwindet. Erst die Quittierung loescht die Meldung.',
+    brief: 'Baue aus <b>zwei NOR-Gattern</b> ein RS-Flipflop: E1 = S (Setzen), E2 = R (Ruecksetzen), L1 = Q, L2 = Q̄. Die Rueckkopplung: U1 = NOR(R, Q̄), U2 = NOR(S, Q).',
+    learn: 'Rueckkopplung erzeugt Gedaechtnis.', take: 'S kurz auf 1: Q = 1 – und es bleibt 1, bis R kommt. Mit der Zeitlupe siehst du, wie die Gatter nacheinander umschalten.',
+    hint: 'Jeder NOR-Ausgang geht auf einen Eingang des anderen NOR.', hint2: 'E2 → U1.in1, U2.out → U1.in2, U1.out → U2.in1, E1 → U2.in2; U1 → L1, U2 → L2.',
+    palette: ['nor', 'nand', 'and', 'or', 'not'], need: { nor: 2 }, start: rsStart, ref: rs, bench: rsBench,
+    tests: [{ name: 'Speichern', steps: [
+      { name: 'Setzen', set: { E1: { closed: true } }, expect: [on('L1', 1), on('L2', 0)] },
+      { name: 'Speichern (S wieder 0)', set: { E1: { closed: false } }, expect: [on('L1', 1), on('L2', 0)] },
+      { name: 'Ruecksetzen', set: { E2: { closed: true } }, expect: [on('L1', 0), on('L2', 1)] },
+      { name: 'Speichern (R wieder 0)', set: { E2: { closed: false } }, expect: [on('L1', 0), on('L2', 1), { noFault: true }] }] }]
+  });
+
+  var dStart = { parts: [E(1, 160, 200), E(2, 160, 360), G, L(1, 700, 220)], wires: [] };
+  var dRef = { parts: dStart.parts.concat([P('FF1', 'dff', 420, 240)]), wires: [W('E1.out', 'FF1.D'), W('E2.out', 'FF1.C'), W('FF1.Q', 'L1.in')] };
+  var bFF = function (ids) { var p = [{ id: 'E1', x: 190, y: 250, rot: 0 }, { id: 'E2', x: 190, y: 420, rot: 0 }, { id: 'E3', x: 190, y: 590, rot: 0 }, { id: 'GND1', x: 190, y: 700, rot: 0 }, { id: 'L1', x: 850, y: 260, rot: 0 }, { id: 'L2', x: 850, y: 420, rot: 0 }, { id: 'L3', x: 850, y: 580, rot: 0 }];
+    (ids || ['FF1']).forEach(function (id, i) { p.push({ id: id, x: 480, y: 260 + 170 * i, rot: 0 }); });
+    return function (layout) { var have = {}; layout.parts.forEach(function (q) { have[q.id] = 1; }); return { parts: p.filter(function (q) { return have[q.id]; }) }; }; };
+  defTask({
+    id: '12.2', ch: 12, title: 'Das D-Flipflop', tags: ['digital.flipflop', 'digital.flanke'],
+    story: 'Ein Messwert (E1) soll genau im Moment des Taktes (E2) festgehalten werden – egal, was danach passiert.',
+    brief: 'Setze ein <b>D-Flipflop</b> ein: E1 → D, E2 → C (Takt), Q → L1. Probiere: D aendern ohne Takt – nichts passiert. Takt 0 → 1 – Q uebernimmt D.',
+    learn: 'Flankensteuerung: uebernommen wird nur bei 0 → 1.', take: 'Das D-Flipflop ist die Grundzelle jedes Registers und Speichers.',
+    hint: 'E1.out → FF1.D, E2.out → FF1.C, FF1.Q → L1.', hint2: 'Pegelschalter E2 ist der Takt: 0 → 1 schalten.',
+    palette: ['dff', 'jkff', 'tff'], need: { dff: 1 }, start: dStart, ref: dRef, bench: bFF(['FF1'])(dRef),
+    tests: [{ name: 'Flanke', steps: [
+      { name: 'D = 1 ohne Takt', set: { E1: { closed: true } }, expect: [on('L1', 0)] },
+      { name: 'Taktflanke', set: { E2: { closed: true } }, expect: [on('L1', 1)] },
+      { name: 'D = 0, Takt bleibt 1', set: { E1: { closed: false } }, expect: [on('L1', 1)] },
+      { name: 'Takt 0', set: { E2: { closed: false } }, expect: [on('L1', 1)] },
+      { name: 'neue Flanke', set: { E2: { closed: true } }, expect: [on('L1', 0), { noFault: true }] }] }]
+  });
+
+  var tStart = { parts: [E(1, 160, 200), E(2, 160, 360, true), G, L(1, 700, 220)], wires: [] };
+  var tRef = { parts: tStart.parts.concat([P('FF1', 'tff', 420, 240)]), wires: [W('E2.out', 'FF1.T'), W('E1.out', 'FF1.C'), W('FF1.Q', 'L1.in')] };
+  defTask({
+    id: '12.3', ch: 12, title: 'Der Frequenzteiler', tags: ['digital.flipflop', 'digital.takt'],
+    story: 'Ein Taktsignal ist doppelt so schnell wie gebraucht. Ein T-Flipflop halbiert es.',
+    brief: 'Baue einen <b>Frequenzteiler durch 2</b> mit einem T-Flipflop: E1 = Takt → C, E2 (fest 1) → T, Q → L1. Gib mehrere Takte und beobachte L1.',
+    learn: 'T = 1: Das Flipflop kippt bei jeder steigenden Flanke.', take: 'Zwei Takte am Eingang – ein Takt am Ausgang: f_aus = f_ein / 2.',
+    hint: 'E1.out → FF1.C, E2.out → FF1.T, FF1.Q → L1.', hint2: 'Nach dem 1. Takt leuchtet L1, nach dem 2. nicht mehr, nach dem 3. wieder.',
+    palette: ['tff', 'dff', 'jkff'], need: { tff: 1 }, start: tStart, ref: tRef, bench: bFF(['FF1'])(tRef),
+    tests: [1, 2, 3].map(function (n) { return { name: n + ' Takt(e)', steps: pulses('E1', n, [on('L1', n % 2)]) }; })
+  });
+
+  var jkStart = { parts: [E(1, 160, 180), E(2, 160, 300), E(3, 160, 420), G, L(1, 700, 240)], wires: [] };
+  var jkRef = { parts: jkStart.parts.concat([P('FF1', 'jkff', 420, 260)]), wires: [W('E1.out', 'FF1.J'), W('E2.out', 'FF1.K'), W('E3.out', 'FF1.C'), W('FF1.Q', 'L1.in')] };
+  var jk = function (j, k) { return { E1: { closed: !!j }, E2: { closed: !!k } }; };
+  defTask({
+    id: '12.4', ch: 12, title: 'Das JK-Flipflop', tags: ['digital.flipflop', 'digital.flanke'],
+    story: 'Das Universal-Flipflop: setzen, ruecksetzen, kippen, speichern – alles mit einem Baustein.',
+    brief: 'Setze ein <b>JK-Flipflop</b> ein: E1 → J, E2 → K, E3 → C (Takt), Q → L1. Pruefe alle vier Betriebsarten.',
+    learn: 'JK: 10 setzt, 01 setzt zurueck, 11 kippt, 00 speichert.', take: 'Beim JK gibt es keinen verbotenen Zustand – 11 kippt.',
+    hint: 'Erst J/K einstellen, dann einen Takt geben.', hint2: 'E1 → FF1.J, E2 → FF1.K, E3 → FF1.C, FF1.Q → L1.',
+    palette: ['jkff', 'dff', 'tff'], need: { jkff: 1 }, start: jkStart, ref: jkRef, bench: bFF(['FF1'])(jkRef),
+    tests: [{ name: 'Betriebsarten', steps: [
+      { name: 'J=1 K=0 setzt', set: jk(1, 0) }].concat(pulses('E3', 1, [on('L1', 1)]),
+      [{ name: 'J=0 K=1', set: jk(0, 1) }], pulses('E3', 1, [on('L1', 0)]),
+      [{ name: 'J=1 K=1 kippt', set: jk(1, 1) }], pulses('E3', 1, [on('L1', 1)]), pulses('E3', 1, [on('L1', 0)]),
+      [{ name: 'J=0 K=0 speichert', set: jk(0, 0) }], pulses('E3', 2, [on('L1', 0)])) }]
+  });
+
+  /* 12.5 getaktetes RS (zustandsgesteuert): U3 = S·C, U4 = R·C vor dem NOR-Latch */
+  var gStart = { parts: [E(1, 160, 180), E(2, 160, 440), E(3, 160, 310), G, L(1, 820, 220)], wires: [] };
+  var gRef = { parts: gStart.parts.concat([P('U1', 'nor', 600, 220), P('U2', 'nor', 600, 400), P('U3', 'and', 380, 400), P('U4', 'and', 380, 220)]),
+    wires: [W('E1.out', 'U3.in1'), W('E3.out', 'U3.in2'), W('E2.out', 'U4.in1'), W('E3.out', 'U4.in2'), W('U4.out', 'U1.in1'), W('U2.out', 'U1.in2'), W('U3.out', 'U2.in2'), W('U1.out', 'U2.in1'), W('U1.out', 'L1.in')] };
+  defTask({
+    id: '12.5', ch: 12, title: 'Das getaktete RS-Flipflop', tags: ['digital.flipflop', 'digital.steuerungsart'],
+    story: 'S und R duerfen nur wirken, solange die Freigabe C aktiv ist – sonst stoeren kurze Spitzen den Speicher.',
+    brief: 'Baue ein <b>zustandsgesteuertes RS-Flipflop</b>: Vor das NOR-Flipflop je ein UND, das S (E1) bzw. R (E2) mit der Freigabe C (E3) verknuepft. L1 = Q.',
+    learn: 'Zustandsgesteuert: Die Eingaenge wirken, solange C = 1.', take: 'Mit C = 0 ist das Flipflop gegen S und R gesperrt.',
+    hint: 'U3 = S·C setzt, U4 = R·C setzt zurueck; dahinter das NOR-Flipflop aus 12.1.', hint2: 'U4.out → U1.in1, U2.out → U1.in2, U3.out → U2.in2, U1.out → U2.in1, U1.out → L1.',
+    palette: ['nor', 'and', 'or', 'not', 'nand'], need: { nor: 2, and: 2 }, start: gStart, ref: gRef,
+    bench: { parts: [{ id: 'E1', x: 190, y: 220, rot: 0 }, { id: 'E3', x: 190, y: 400, rot: 0 }, { id: 'E2', x: 190, y: 580, rot: 0 }, { id: 'GND1', x: 190, y: 700, rot: 0 }, { id: 'U3', x: 420, y: 500, rot: 0 }, { id: 'U4', x: 420, y: 250, rot: 0 }, { id: 'U1', x: 640, y: 250, rot: 0 }, { id: 'U2', x: 640, y: 500, rot: 0 }, { id: 'L1', x: 850, y: 250, rot: 0 }] },
+    tests: [{ name: 'Freigabe', steps: [
+      { name: 'Ruecksetzen mit C', set: { E2: { closed: true }, E3: { closed: true } }, expect: [on('L1', 0)] },
+      { name: 'C = 0, R = 0', set: { E2: { closed: false }, E3: { closed: false } } },
+      { name: 'S = 1 ohne Freigabe', set: { E1: { closed: true } }, expect: [on('L1', 0)] },
+      { name: 'Freigabe C = 1', set: { E3: { closed: true } }, expect: [on('L1', 1)] },
+      { name: 'alles 0: speichert', set: { E1: { closed: false }, E3: { closed: false } }, expect: [on('L1', 1), { noFault: true }] }] }]
+  });
+
+  defTheory({
+    id: 'T12B', ch: 12, title: 'Zaehler', tags: ['digital.zaehler', 'digital.flipflop'],
+    lesson:
+      '<p>Mehrere T-Flipflops (T = 1) hintereinander bilden einen <b>Dualzaehler</b>: Jede Stufe teilt die Frequenz durch 2 und stellt ein Bit dar (FF1 = Bit 0 = Wert 1, FF2 = Bit 1 = Wert 2 …).</p>' +
+      '<p><b>Asynchroner Zaehler</b> (Ripple Counter): Nur FF1 bekommt den Takt, jede weitere Stufe wird vom <b>Q̄-Ausgang</b> der vorherigen getaktet (steigende Flanke an Q̄ = fallende an Q → Aufwaertszaehler). Einfach, aber die Stufen schalten nacheinander – kurze falsche Zwischenwerte.</p>' +
+      '<p><b>Synchroner Zaehler:</b> Alle Flipflops haengen am <b>selben Takt</b>. Die Logik an J/K bestimmt, wer kippt: FF1 immer (J = K = 1), FF2 wenn Q1 = 1, FF3 wenn Q1·Q2 = 1 … Alle Stufen schalten gleichzeitig.</p>' +
+      '<p>Ein n-Bit-Zaehler zaehlt von 0 bis 2ⁿ − 1 und beginnt dann von vorn. Ein <b>BCD-Zaehler</b> springt nach 9 auf 0 zurueck.</p>' +
+      '<p><b>Johnson-Zaehler:</b> Schieberegister, dessen invertierter letzter Ausgang auf den Eingang zurueckgefuehrt ist. 2 Stufen: 00 → 10 → 11 → 01 → 00 – pro Takt aendert sich genau ein Bit.</p>',
+    questions: [
+      { q: 'Bis zu welcher Zahl zaehlt ein 3-Bit-Dualzaehler?', options: ['3', '6', '7', '8'], correct: 2, explain: '2³ − 1 = 7, dann wieder 0.' },
+      { q: 'Woher bekommt beim asynchronen Aufwaertszaehler das zweite Flipflop seinen Takt?', options: ['Vom gemeinsamen Takt', 'Vom Q̄-Ausgang der ersten Stufe', 'Von J', 'Gar nicht'], correct: 1, explain: 'Die Stufen takten sich nacheinander – daher „asynchron“.' },
+      { q: 'Was ist der Vorteil des synchronen Zaehlers?', options: ['Weniger Flipflops', 'Alle Stufen schalten gleichzeitig', 'Er braucht keinen Takt', 'Er zaehlt rueckwaerts'], correct: 1, explain: 'Kein Durchlaufen der Stufen – keine falschen Zwischenwerte.' },
+      { q: 'Wann kippt beim synchronen 2-Bit-Zaehler das zweite JK-Flipflop?', options: ['Bei jedem Takt', 'Wenn Q1 = 1', 'Wenn Q1 = 0', 'Nie'], correct: 1, explain: 'J2 = K2 = Q1.' },
+      { q: 'Wie viele Zustaende durchlaeuft ein 2-stufiger Johnson-Zaehler?', options: ['2', '3', '4', '8'], correct: 2, explain: '00, 10, 11, 01 – vier Zustaende (2·n).' }
+    ]
+  });
+
+  function counter(n, withLeds, sync) {
+    var parts = [E(1, 160, 200), E(2, 160, 360, true), G], wires = [];
+    for (var i = 1; i <= n; i++) {
+      parts.push(P('FF' + i, sync ? 'jkff' : 'tff', 320 + 170 * (i - 1), 260));
+      if (withLeds !== false) parts.push(L(i, 860, 120 + 110 * i));
+    }
+    return { parts: parts, wires: wires };
+  }
+  function asyncWires(n, l) {
+    for (var i = 1; i <= n; i++) { l.wires.push(W('E2.out', 'FF' + i + '.T'), W(i === 1 ? 'E1.out' : 'FF' + (i - 1) + '.Qn', 'FF' + i + '.C')); if (l.parts.some(function (p) { return p.id === 'L' + i; })) l.wires.push(W('FF' + i + '.Q', 'L' + i + '.in')); }
+    return l;
+  }
+  var cntExpect = function (n, v) { var e = []; for (var i = 1; i <= n; i++) e.push(on('L' + i, v >> (i - 1) & 1)); return e; };
+  var cntBench = function (n) { var p = [{ id: 'E1', x: 190, y: 250, rot: 0 }, { id: 'E2', x: 190, y: 450, rot: 0 }, { id: 'GND1', x: 190, y: 690, rot: 0 }];
+    for (var i = 1; i <= n; i++) { p.push({ id: 'FF' + i, x: 400 + 140 * (i - 1) * (n > 2 ? 1 : 1.3), y: 260 + (i % 2) * 180, rot: 0 }, { id: 'L' + i, x: 860, y: 160 + 140 * (i - 1), rot: 0 }); } return { parts: p }; };
+
+  var c2s = counter(2); var c2 = asyncWires(2, counter(2));
+  defTask({
+    id: '12.6', ch: 12, title: 'Der asynchrone Zaehler', tags: ['digital.zaehler', 'digital.flipflop'],
+    story: 'Der Pakete-Zaehler: Jede Lichtschrankenunterbrechung (E1) ist ein Takt. Zwei Bits genuegen fuer den Anfang.',
+    brief: 'Baue einen <b>2-Bit-Dualzaehler</b> aus zwei T-Flipflops: T beider Stufen an E2 (fest 1), FF1 getaktet von E1, FF2 getaktet von <b>Q̄ von FF1</b>. L1 = Q1 (Wert 1), L2 = Q2 (Wert 2).',
+    learn: 'Asynchron: Jede Stufe taktet die naechste.', take: 'Nach 1, 2, 3 Takten zeigen die LEDs 01, 10, 11 – nach dem 4. wieder 00.',
+    hint: 'E1 → FF1.C, FF1.Qn → FF2.C, E2 → FF1.T und FF2.T, Q-Ausgaenge an die LEDs.', hint2: 'Q̄ statt Q, damit aufwaerts gezaehlt wird.',
+    palette: ['tff', 'jkff', 'dff'], need: { tff: 2 }, start: c2s, ref: c2, bench: cntBench(2),
+    wrong: [named('FF2 vom Q statt Q̄ getaktet (zaehlt rueckwaerts)', (function () { var l = asyncWires(2, counter(2)); l.wires = l.wires.map(function (w) { return w.from === 'FF1.Qn' ? W('FF1.Q', w.to) : w; }); return l; })())],
+    tests: [1, 2, 3, 4].map(function (k) { return { name: k + ' Takte', steps: pulses('E1', k, cntExpect(2, k % 4)) }; })
+  });
+
+  var c3s = counter(3); var c3 = asyncWires(3, counter(3));
+  defTask({
+    id: '12.7', ch: 12, title: 'Bis sieben zaehlen', tags: ['digital.zaehler', 'digital.flipflop'],
+    story: 'Die Kisten fassen 7 Flaschen. Der Zaehler soll bis 7 zaehlen und dann wieder bei 0 beginnen.',
+    brief: 'Erweitere auf einen <b>3-Bit-Zaehler</b> (drei T-Flipflops, L1 … L3). Pruefe nach 5 und nach 8 Takten.',
+    learn: 'n Stufen → 2ⁿ Zustaende.', take: '3 Bit: 0 … 7. Nach 8 Takten steht der Zaehler wieder auf 0.',
+    hint: 'Die dritte Stufe wird von FF2.Qn getaktet.', hint2: 'E1 → FF1.C, FF1.Qn → FF2.C, FF2.Qn → FF3.C; alle T an E2.',
+    palette: ['tff', 'jkff', 'dff'], need: { tff: 3 }, start: c3s, ref: c3, bench: cntBench(3),
+    tests: [5, 8].map(function (k) { return { name: k + ' Takte', steps: pulses('E1', k, cntExpect(3, k % 8)) }; })
+  });
+
+  var disp = function (wired) {
+    var l = counter(3, false); asyncWires(3, l);
+    l.parts.push({ id: 'IC1', type: 'dec7', x: 700, y: 330, rot: 0 }, { id: 'AZ1', type: 'seg7', x: 880, y: 330, rot: 0 });
+    l.wires.push(W('IC1.D', 'GND1.g'));
+    'abcdefg'.split('').forEach(function (k) { l.wires.push(W('IC1.' + k, 'AZ1.' + k)); });
+    if (wired) l.wires.push(W('FF1.Q', 'IC1.A'), W('FF2.Q', 'IC1.B'), W('FF3.Q', 'IC1.C'));
+    return l;
+  };
+  var dispBench = { parts: [{ id: 'E1', x: 190, y: 250, rot: 0 }, { id: 'E2', x: 190, y: 450, rot: 0 }, { id: 'GND1', x: 190, y: 690, rot: 0 },
+    { id: 'FF1', x: 400, y: 200, rot: 0 }, { id: 'FF2', x: 400, y: 380, rot: 0 }, { id: 'FF3', x: 400, y: 560, rot: 0 }, { id: 'IC1', x: 640, y: 420, rot: 0 }, { id: 'AZ1', x: 840, y: 420, rot: 0 }] };
+  defTask({
+    id: '12.8', ch: 12, title: 'Zaehler mit Anzeige', tags: ['digital.zaehler', 'digital.7segment'],
+    story: 'Der Zaehler laeuft, aber niemand kann Bitmuster lesen. Er soll auf die Ziffernanzeige.',
+    brief: 'Verbinde die Zaehlerausgaenge mit dem Decoder: <b>Q1 → A (1), Q2 → B (2), Q3 → C (4)</b>. D liegt schon an Masse. Gib Takte und beobachte die Ziffer.',
+    learn: 'Zaehler + Decoder + Anzeige = digitaler Zaehler.', take: 'Die Q-Ausgaenge sind die Dualzahl – der Decoder macht die Ziffer daraus.',
+    hint: 'FF1.Q → IC1.A, FF2.Q → IC1.B, FF3.Q → IC1.C.', hint2: 'Nach 6 Takten zeigt die Anzeige 6.',
+    palette: [], start: disp(false), ref: disp(true), bench: dispBench,
+    tests: [3, 6, 7].map(function (k) { return { name: k + ' Takte', steps: pulses('E1', k, [{ sel: 'AZ1', digit: k }]) }; })
+  });
+
+  var syncRef = (function () { var l = counter(2, true, true);
+    l.wires.push(W('E1.out', 'FF1.C'), W('E1.out', 'FF2.C'), W('E2.out', 'FF1.J'), W('E2.out', 'FF1.K'), W('FF1.Q', 'FF2.J'), W('FF1.Q', 'FF2.K'), W('FF1.Q', 'L1.in'), W('FF2.Q', 'L2.in')); return l; })();
+  defTask({
+    id: '12.9', ch: 12, title: 'Der synchrone Zaehler', tags: ['digital.zaehler', 'digital.synchron'],
+    story: 'Der asynchrone Zaehler erzeugt kurze falsche Zwischenwerte – fuer die Steuerung eines Roboters zu riskant.',
+    brief: 'Baue einen <b>synchronen 2-Bit-Zaehler</b> mit zwei JK-Flipflops: Beide C am selben Takt E1. FF1: J = K = 1 (E2). FF2: J = K = Q1. L1 = Q1, L2 = Q2.',
+    learn: 'Synchron: gemeinsamer Takt, die J/K-Logik entscheidet, wer kippt.', take: 'FF2 kippt nur, wenn Q1 = 1 – genau beim Uebertrag.',
+    hint: 'E1 an beide C, E2 an J und K von FF1, FF1.Q an J und K von FF2.', hint2: 'Dieselbe Zaehlfolge wie asynchron: 00, 01, 10, 11, 00.',
+    palette: ['jkff', 'tff', 'dff', 'and'], need: { jkff: 2 }, start: counter(2, true, true), ref: syncRef, bench: cntBench(2),
+    tests: [1, 2, 3, 4].map(function (k) { return { name: k + ' Takte', steps: pulses('E1', k, cntExpect(2, k % 4)) }; })
+  });
+
+  var johnStart = { parts: [E(1, 160, 200), G, L(1, 860, 220), L(2, 860, 380)], wires: [] };
+  var john = { parts: johnStart.parts.concat([P('FF1', 'dff', 400, 240), P('FF2', 'dff', 620, 240)]),
+    wires: [W('E1.out', 'FF1.C'), W('E1.out', 'FF2.C'), W('FF2.Qn', 'FF1.D'), W('FF1.Q', 'FF2.D'), W('FF1.Q', 'L1.in'), W('FF2.Q', 'L2.in')] };
+  var jSeq = [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]];
+  defTask({
+    id: '12.10', ch: 12, title: 'Der Johnson-Zaehler', tags: ['digital.zaehler', 'digital.schieberegister'],
+    story: 'Ein Schrittmotor braucht eine Taktfolge, bei der sich pro Schritt nur ein Signal aendert.',
+    brief: 'Baue einen <b>2-stufigen Johnson-Zaehler</b> aus zwei D-Flipflops am gemeinsamen Takt E1: D1 = Q̄2, D2 = Q1. L1 = Q1, L2 = Q2. Folge: 00 → 10 → 11 → 01 → 00.',
+    learn: 'Schieberegister mit invertierter Rueckfuehrung.', take: 'Pro Takt aendert sich genau ein Ausgang – ideal fuer Schrittmotoren und stoerarme Steuerungen.',
+    hint: 'Der invertierte Ausgang von FF2 geht zurueck auf D von FF1.', hint2: 'FF2.Qn → FF1.D, FF1.Q → FF2.D, E1 → beide C.',
+    palette: ['dff', 'not', 'jkff', 'tff'], need: { dff: 2 }, start: johnStart, ref: john, bench: bFF(['FF1', 'FF2'])(john),
+    tests: [1, 2, 3, 4].map(function (k) { return { name: k + ' Takte', steps: pulses('E1', k, [on('L1', jSeq[k][0]), on('L2', jSeq[k][1])]) }; })
   });
 })();
 
