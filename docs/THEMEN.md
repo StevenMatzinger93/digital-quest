@@ -1,4 +1,8 @@
-# Themenliste – Digital Quest (Stand 28.09.2026)
+# Themenliste – Digital Quest (Stand 28.09.2026, Umsetzung Stand 29.09.2026)
+
+> **Tatsaechliche Kapitelfolge nach dem Sichten der Quellen** (weicht von der Planungstabelle unten ab):
+> 1 Stromkreis & Ohm · 2 Reihen-/Parallelschaltung · 3 Gleich-/Wechselgroessen · 4 Messtechnik · 5 Zahlensysteme · **6 Grundgatter · 7 Boolesche Algebra** (Reihenfolge wie in der Quelle getauscht) · 8 Schaltungsentwurf/KV · 9 Codes, Datenwege, Rechenwerke · 10 Anzeigen & komplexe Kombinatorik (Boss Grundstufe) · 11 RC-Glied & Taktgeber · 12 Flipflops & Zaehler · 13 Diode, Z-Diode, Transistor · 14 RC-Filter & Frequenzgang · 15 Anwendungsprojekt Antriebsstation (Boss Profi).
+> Kapitel 2 behandelt Reihen-/Parallelschaltung (Quelle Praktische Elektronik), die Gleich-/Wechselgroessen sind Kapitel 3.
 
 Kapitelplan, abgeleitet aus Stevens Quellmaterial in `99_inputs/` und `theorie/`. Vier Hauptteile (Teile) mit 15 Unterkapiteln, Grundstufe 1–10, Profi-Stufe 11–15 (Bauplan-Standard). Genaue Aufgaben (10 pro Kapitel) entstehen erst beim Sichten der jeweiligen Quelldokumente – diese Tabelle ist der Rahmen, nicht die fertigen Aufgaben.
 

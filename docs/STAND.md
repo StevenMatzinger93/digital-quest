@@ -46,13 +46,27 @@
 - **Zoom und Verschieben auf der Werkbank**: Mausrad zoomt zur Mausposition, Ziehen auf leerer Flaeche verschiebt, zwei Finger zoomen, "Einpassen" setzt zurueck.
 - QA: 74 Tests, Validator 0 Fehler, Smoke OK (inkl. Zoom/Verschieben), tasks.js OK (3 Aufgaben × 2 Ansichten + Katalog × 2).
 
+## Inhalte Kapitel 1–13 (28./29.09.2026)
+Umgesetzt aus den Quellen in `99_inputs/`, je Kapitel 10 Aufgaben + 2 Theorien, jede Aufgabe mit `bench`-Layout, Werkbank-tauglich (`tests/tasks.js` gruen):
+1 Stromkreis & Ohm · 2 Reihen-/Parallelschaltung, Spannungsteiler, reale Quelle · 3 Gleich-/Wechselgroessen (Gleichrichter, AVG/TRMS) · 4 Messtechnik (Eigenverbrauch, Fehlersuche) · 5 Zahlensysteme (Experimentierboard) · 6 Grundgatter · 7 Boolesche Algebra (Gatter-Limits, NAND/NOR-only) · 8 Schaltungsentwurf/KV (Σm + Don't-Cares) · 9 Codes, Paritaet, MUX/DEMUX, Komparator, Addierer · 10 Anzeigen & komplexe Kombinatorik mit **Grundstufen-Boss 10.10 Codeschloss** · 11 RC-Glied & Taktgeber · 12 Flipflops & Zaehler · 13 Diode, Z-Diode, Transistor.
+Dazu: Engine-Bauteile fuer Digital/Halbleiter, Stromfluss-Animation (Schaltplan + Werkbank), µA-Bereich, Platzsuche nach echten Bauteilgroessen, Generatoren auch in gesperrten Aufbauten einstellbar.
+
+## Uebergabe (29.09.2026) – was als Naechstes zu tun ist
+1. **Kapitel 14 fertigstellen** (Branch `wip/kapitel-14`, Datei `dev/src/content/ch14.js`, Quelle: ET Kurs AU Zusatz – RC-Tief-/Hochpass 1./2. Ordnung, Bandpass/-sperre, Verstaerkung in dB). `node validate.js` meldet noch:
+   - **14.7** "Aus Takt wird Gleichspannung": `acMeasure` simuliert nur 5 Perioden der langsamsten Wechselquelle (hier 1 kHz Takt → 5 ms), der Kondensator (τ = 0,1 s) ist dann noch leer (Gleichanteil 0,12 V statt 2,4 V). Loesung: `acMeasure` um eine Einschwingzeit erweitern (z. B. `opts.settle` oder automatisch 5·τ der groessten R·C) – oder die Aufgabe per Test-Schrittfolge mit `run: 0.6` pruefen.
+   - **14.8** "Differenzierglied": erwartet ~40 V Spitze-Spitze (Rechteck ±10 V, τ = 0,1 ms), gemessen 20 V. Abtastung T/200 = 0,1 ms = τ ist zu grob fuer die Nadel; entweder feiner abtasten (Samples an τ koppeln) oder Erwartung/τ anpassen.
+   Danach `node build.js && node tests/tasks.js 14.` und nach `main` mergen.
+2. **Kapitel 15 "Anwendungsprojekt Antriebsstation"** (Quelle: Brems-/Antriebssystem TP1410 – Bauteile/Blockbild, Motordaten, Drehrichtung/Drehzahl, Hochlauf-/Bremsrampen, Belastung, Sicherheit/Not-Halt). Geplante Aufgaben mit vorhandenen Bauteilen: 15.1 Motor an Spannung messen (U, I, P) · 15.2 Drehzahl ueber Spannung · 15.3 Motor per Transistor schalten mit Freilaufdiode (falsch gepolte Diode → Ueberlast) · 15.4 Start/Stopp mit Selbsthaltung (ODER+UND-Rueckkopplung, Stopp als Oeffner) · 15.5 Not-Halt uebersteuert alles · 15.6 Sanftanlauf/Rampe (RC an der Basis, Test per `run`) · 15.7 Leistung/Widerstand aus Messwerten · 15.8 Drehzahlmessung als Impulszaehler (Taktgeber → T-FF-Zaehler → Decoder/Anzeige, Test per `run`) · 15.9 Fehlersuche Motor mit `props.defect` · **15.10 Profi-Boss Antriebsstation** (Start/Stopp-Selbsthaltung + Not-Halt + Transistor-Treiber + Motor + Betriebs-LED, Schrittfolgen-Tests). Theorien: T15A Anlage/Blockbild/Sicherheit (Not-Halt als Oeffner, drahtbruchsicher, Selbsthaltung), T15B Messen an der Anlage/Protokoll/Leistung.
+3. **App/Design**: Zertifikat nach Boss 10.10 (Grundstufe), Abzeichen nach Boss 15.10 (Profi) – Anzeige auf der Karte + druckbare Seite; Karte nach Teilen I–IV gruppieren (Teil-Ueberschriften, Stufen-Kennzeichnung); Handbuch-Seite "Bauteile" um Pegelschalter, Logikanzeige, Decoder, 7-Segment, Flipflops, Transistor, Z-Diode, Motor und "Strom zeigen" ergaenzen; Limit-Hinweis (`task.limit`) im Aufgaben-Panel anzeigen.
+4. **Abschluss**: `node test_engine.js && node validate.js && node build.js && node tests/smoke.js && node tests/tasks.js` komplett gruen, STAND/ENTSCHEIDUNGEN nachfuehren.
+
 ## Hosting (Stand 28.09.2026)
 GitHub-Repo: github.com/StevenMatzinger93/digital-quest (Branch `main`). Cloudflare Worker `digital-quest` (`wrangler.jsonc`, Assets aus `web/`) per GitHub verbunden – jeder Push nach `main` deployt automatisch. Bewusst ohne D1-Datenbank/Klassen-Anbindung, siehe `docs/ENTSCHEIDUNGEN.md`.
 
 ## Naechste Schritte
 0. ~~Werkbank-Ansicht (Phasen 1–5)~~ und ~~Quick Wins~~ – erledigt 28.09.2026, siehe oben.
 0c. Offene Labor-Feinheiten (nicht blockierend): Live-Anzeige bei schnellen Wechselquellen mitteln statt abtasten (Lampen-/LED-Helligkeit aus Effektivwert), A~-Bereich, Oszilloskop mit eigener Tastkopf-Leitung und 2 Kanaelen, Bausteine auf dem Handy per Pinch zoomen.
-1. Themenliste steht (`docs/THEMEN.md`, Stand 28.09.2026) – als Naechstes: Quelldokumente in `99_inputs/` je Kapitel sichten und daraus die 10 Aufgaben + 2 Theorien pro Kapitel ableiten.
+1. ~~Themenliste in Kapitel umsetzen~~ – Kapitel 1–13 erledigt, 14/15 offen (siehe "Uebergabe").
 1b. ~~Engine-Erweiterung fuer Kapitel 3 (Wechselspannungsquelle, AVG/RMS/TRMS)~~ – erledigt 28.09.2026 (`acsource`, `acMeasure`, V~ mit AVG/TRMS).
 2. Theoriedokumente in `theorie/` sichten → Lektionen und Fragen ableiten.
 3. Editor Stufe 2: Knickpunkte, Zoom/Pan, Rueckgaengig, Touch-Feinschliff.

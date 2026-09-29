@@ -253,5 +253,9 @@ function kcl(layout) {
 }
 ok(kcl(divider) && kcl(npn(10000)) && kcl(zd) && kcl(led(470, true)), 'Anschlussstroeme erfuellen die Knotenregel');
 
+// 24 Ausgang gegen Ausgang, Gatter-Limit
+const clash = (a, b) => ({ parts: [G0, { id: 'E1', type: 'logicin', props: { closed: a } }, { id: 'E2', type: 'logicin', props: { closed: b } }, { id: 'L1', type: 'logicled' }], wires: [W('E1.out', 'L1.in'), W('E2.out', 'L1.in')] });
+ok(E.analyze(clash(true, false)).faults.some(f => f.code === 'OUTPUT_CLASH') && !E.analyze(clash(true, true)).faults.length, 'Zwei Ausgaenge mit unterschiedlichem Pegel: OUTPUT_CLASH');
+ok(!E.runTask({ limit: { gates: 0 }, tests: [{ expect: [{ noFault: true }] }] }, xn(true, true), {}).pass, 'Gatter-Limit wird geprueft');
 console.log(`Engine-Tests: ${pass} ok, ${fail} Fehler`);
 process.exit(fail ? 1 : 0);
