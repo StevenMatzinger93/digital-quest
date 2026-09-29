@@ -1,4 +1,4 @@
-// Jede Aufgabe in beiden Ansichten loesbar? node tests/tasks.js [id, z. B. 2.5, oder Kapitel, z. B. 2.]
+// Jede Aufgabe in beiden Ansichten loesbar? node tests/tasks.js [id, z. B. 2.5, Kapitel, z. B. 2., oder Praefix, z. B. W* fuer die Uebungswerkstatt]
 // Loest jede Aufgabe aus DQ.tasks einmal im Schaltplan und einmal auf der Werkbank – nur ueber die echte Bedienung:
 // Bauteile aus der Palette, Werte im Eigenschaften-Panel, Leitungen per Klick auf Anschluesse, ueberzaehlige
 // Leitungen anklicken + Entf, Messwerte mit dem Multimeter der jeweiligen Ansicht (Schema: Panel, Werkbank: Drehschalter),
@@ -41,7 +41,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
   const tasks = await page.evaluate(() => window.DQ.tasks.map(t => ({ id: t.id, start: t.start, ref: t.ref, measure: t.measure, unitScale: DigitalQuest.engine.UNIT_SCALE,
     expected: DigitalQuest.engine.expectedAnswers(t, t.ref) })));
 
-  for (const t of tasks.filter(x => only !== 'katalog' && (!only || x.id === only || (only.endsWith('.') && x.id.startsWith(only))))) for (const view of ['schema', 'bench']) {
+  for (const t of tasks.filter(x => only !== 'katalog' && (!only || x.id === only || ((only.endsWith('.') && x.id.startsWith(only)) || (only.endsWith('*') && x.id.startsWith(only.slice(0, -1))))))) for (const view of ['schema', 'bench']) {
     const tag = t.id + ' [' + (view === 'bench' ? 'Werkbank' : 'Schaltplan') + ']', fail = m => errors.push(tag + ': ' + m);
     const svg = view === 'bench' ? '#bench' : '#board', hit = view === 'bench' ? '.bpinhit' : '.pinhit', whit = view === 'bench' ? '.bwirehit' : '.wirehit';
     const pin = id => atomicClick(page, `${svg} [data-pin="${id}"] ${hit}`, 'data-pin');

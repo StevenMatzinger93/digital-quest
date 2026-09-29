@@ -45,7 +45,11 @@
   function vorgaben() { return root.DQAccount ? root.DQAccount.vorgaben() : []; }
   function assigned(id) { return vorgaben().some(function (v) { return v.items.indexOf(id) >= 0; }); }
   function unlocked(id) { var i = ORDER.indexOf(id); return allOpen() || i <= 0 || !!S.done[ORDER[i - 1]] || assigned(id); }
-  function nextOf(id) { var i = ORDER.indexOf(id); return ORDER[i + 1]; }
+  function nextOf(id) {
+    var w = DQ.workshop && DQ.workshop.sequence.indexOf(id);
+    if (w >= 0) return DQ.workshop.sequence[w + 1]; // Uebungswerkstatt: weiter innerhalb der Werkstatt
+    var i = ORDER.indexOf(id); return ORDER[i + 1];
+  }
 
   /* ================= Navigation ================= */
   function show(name) {
@@ -75,13 +79,14 @@
     theory: '<svg viewBox="0 0 24 24"><path d="M4 5h7a3 3 0 0 1 3 3v11a2 2 0 0 0-2-2H4zM20 5h-4a3 3 0 0 0-3 3"/></svg>',
     task: '<svg viewBox="0 0 24 24"><path d="M2 12h5l2-5 3 10 2-5h8"/></svg>',
     lock: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
-    ok: '<svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg>'
+    ok: '<svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg>',
+    scope: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M5 13c2-6 4-6 6 0s4 6 6 0"/></svg>'
   };
   function renderMap() {
     var total = ORDER.length, done = ORDER.filter(function (id) { return S.done[id]; }).length;
     var h = '<div class="map-head"><div><h1>Laborkarte</h1><p class="dim">Baue, miss, verstehe. Jede Station schaltet die naechste frei.</p></div>' +
       (S.settings.teacher ? '<div class="teacher-bar"><b>Dozentenmodus</b> <span class="dim small">Alle Stationen offen, Freie Werkbank mit allen Bauteilen.</span><label class="fld"><span>Springe zu</span><select id="jump"><option value="">Station waehlen …</option>' +
-        DQ.chapters.map(function (c) { return '<optgroup label="Kapitel ' + c.id + ' – ' + esc(c.title) + '">' + c.sequence.map(function (id) { var it = DQ.byId[id]; return '<option value="' + id + '">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : id) + ' ' + esc(it.title) + '</option>'; }).join('') + '</optgroup>'; }).join('') +
+        DQ.chapters.concat(DQ.workshop ? [DQ.workshop] : []).map(function (c) { return '<optgroup label="' + (c.kind === 'workshop' ? '' : 'Kapitel ' + c.id + ' – ') + esc(c.title) + '">' + c.sequence.map(function (id) { var it = DQ.byId[id]; return '<option value="' + id + '">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : id) + ' ' + esc(it.title) + '</option>'; }).join('') + '</optgroup>'; }).join('') +
         '</select></label></div>' : '') +
       vorgabenBox() +
       '<div class="map-actions"><button class="btn" data-open="sandbox" title="Frei bauen und messen – ohne Auftrag">Freie Werkbank</button><div class="progress"><div class="bar"><i style="width:' + (100 * done / Math.max(1, total)).toFixed(1) + '%"></i></div><span>' + done + ' / ' + total + '</span></div></div></div>';
@@ -103,12 +108,23 @@
       });
       if (pt.award) h += awardCard(DQ.awards[pt.award]);
     });
+    h += workshopSection();
     $('#scr-map').innerHTML = h;
     $$('[data-open]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openItem(b.dataset.open); }; });
     $$('[data-award]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openAward(b.dataset.award); }; });
     if ($('#jump')) $('#jump').onchange = function () { if (this.value) openItem(this.value); };
   }
 
+  /* Uebungswerkstatt: eigener Bereich, immer offen, zaehlt nicht zum Kapitel-Fortschritt */
+  function workshopSection() {
+    var w = DQ.workshop; if (!w) return '';
+    var d = w.sequence.filter(function (id) { return S.done[id]; }).length;
+    return '<div class="part-head part-werkstatt" id="werkstatt"><span class="part-no">Frei ueben</span><h2>' + esc(w.title) + '</h2><span class="stage-tag werkstatt">nur messen</span><span class="part-prog mono">' + d + ' / ' + w.sequence.length + '</span></div>' +
+      '<section class="chapter workshop"><header>' + vgTag('kapitel', w.id) + '<p>' + esc(w.intro) + '</p></header><div class="nodes">' + w.sequence.map(function (id) {
+        var it = DQ.byId[id], ok = S.done[id];
+        return '<button class="node task' + (ok ? ' done' : '') + '" data-open="' + id + '"><span class="ic">' + (ok ? ICON.ok : ICON.scope) + '</span><span class="nid">Messaufgabe ' + id + vgTag('aufgabe', id, true) + '</span><span class="nt">' + esc(it.title) + '</span></button>';
+      }).join('') + '</div></section>';
+  }
   /* Vorgaben vom Dozent auf der Karte: Kasten oben mit Frist und Stand, Hinweis an Kapitel und Station. Nichts wird gesperrt. */
   function vorgabenBox() {
     var vs = vorgaben(); if (!vs.length) return '';
@@ -256,7 +272,7 @@
       $('#toMap').onclick = function () { renderMap(); show('map'); };
       renderPalette(t); return;
     }
-    var h = '<div class="crumb">Kapitel ' + t.ch + ' · Aufgabe ' + t.id + (t.boss ? ' · <b class="boss-tag">BOSS</b>' : '') + '</div>' +
+    var h = '<div class="crumb">' + (t.ch === 'W' ? 'Uebungswerkstatt · Messaufgabe ' : 'Kapitel ' + t.ch + ' · Aufgabe ') + t.id + (t.boss ? ' · <b class="boss-tag">BOSS</b>' : '') + '</div>' +
       '<h2>' + esc(t.title) + '</h2>' +
       (t.story ? '<p class="story">' + t.story + '</p>' : '') +
       '<div class="brief">' + t.brief + (t.limit && t.brief.indexOf('class="limit"') < 0 ? limitText(t.limit) : '') + '</div>' +

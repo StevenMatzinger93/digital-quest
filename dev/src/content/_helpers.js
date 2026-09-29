@@ -24,6 +24,14 @@
     DQ.tasks.push(t); DQ.byId[t.id] = t; return t;
   };
 
+  /* Mess-Aufgabe (Uebungswerkstatt): fertige, gesperrte Schaltung – nichts bauen, nur messen.
+   * Wie defTask, aber palette = [] und ref = start (Topologie und Werte fix); measure ist Pflicht. */
+  root.defMessaufgabe = function (t) {
+    if (!t.start || !t.measure || !t.measure.length) throw new Error('defMessaufgabe ' + t.id + ': start und measure noetig');
+    t.palette = []; t.ref = t.start; t.messOnly = true;
+    return root.defTask(t);
+  };
+
   /* Theorie-Auftrag: Lektion (HTML) + Fragen; bestanden ab 80 %
    * question: {q, options[], correct, explain, verify?:{layout, mode, a, b} | verifyTruth?:{layout, sel, q}} */
   root.defTheory = function (t) {

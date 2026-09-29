@@ -349,3 +349,8 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .vg-tag { display: inline-block; margin-left: 10px; font: 700 10px var(--font-code); letter-spacing: 1px; text-transform: uppercase; color: #111; background: var(--accent-lead); padding: 2px 7px; border-radius: 4px; vertical-align: middle; }
 .vg-tag.small { margin-left: 6px; padding: 0 5px; font-size: 9px; }
 .vg-tag.over { background: var(--accent-red); color: #fff; } .vg-tag.done { background: var(--accent-green); color: #111; }
+/* Uebungswerkstatt */
+.part-werkstatt { border-bottom-color: var(--accent-cyan); } .part-werkstatt .part-no { color: var(--accent-cyan); }
+.stage-tag.werkstatt { color: var(--accent-cyan); border-color: var(--accent-cyan); }
+.chapter.workshop { border-color: rgba(30,200,224,.35); }
+.chapter.workshop .node svg { stroke: var(--accent-cyan); } .chapter.workshop .node.done svg { stroke: var(--accent-green); }

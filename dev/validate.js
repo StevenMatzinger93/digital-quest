@@ -20,6 +20,18 @@ DQ.chapters.forEach(c => c.sequence.forEach(id => {
   if (!DQ.byId[id]) err('Kap ' + c.id, 'Sequenz verweist auf fehlendes ' + id);
   if (seen.has(id)) err('Kap ' + c.id, 'doppelt in Sequenz: ' + id); seen.add(id);
 }));
+// Uebungswerkstatt: eigener Bereich ausserhalb der 15 Kapitel, nur Mess-Aufgaben (defMessaufgabe)
+if (DQ.workshop) DQ.workshop.sequence.forEach(id => {
+  const t = DQ.byId[id];
+  if (!t) { err('Werkstatt', 'Sequenz verweist auf fehlendes ' + id); return; }
+  if (seen.has(id)) err('Werkstatt', 'doppelt: ' + id); seen.add(id);
+  if (!t.messOnly) err(id, 'Werkstatt-Stationen muessen Mess-Aufgaben sein (defMessaufgabe)');
+  if (t.ch !== DQ.workshop.id) err(id, 'ch muss ' + DQ.workshop.id + ' sein');
+});
+DQ.tasks.filter(t => t.messOnly).forEach(t => {
+  if (t.palette.length || t.ref !== t.start) err(t.id, 'Mess-Aufgabe: keine Palette, Loesung = Startaufbau');
+  try { const ex = E.expectedAnswers(t, t.ref); t.measure.forEach(m => { if (!isFinite(ex[m.id])) err(t.id, 'Messung ' + m.id + ' ohne Sollwert'); }); } catch (e) { err(t.id, 'Sollwerte: ' + e.message); }
+});
 [...DQ.tasks, ...DQ.theories].forEach(x => { if (!seen.has(x.id)) warn(x.id, 'in keiner Kapitel-Sequenz'); });
 
 // Bauteil-Datenblaetter: jeder Engine-Typ hat ein vollstaendiges Datenblatt, Werte kommen aus der Engine
