@@ -25,3 +25,7 @@ Auftrag Steven (29.09.2026): Umgang und Handhabung von Konten, Dozentenbereich, 
 7. **Anleitungen und Feedback**: Seiten fuer Lernende/Dozenten/Admin, Knopf 💬, Meldungen.
 8. **Zertifikat mit Pruefung**: Pruefungspools, Bewertung im Worker mit der Engine, Pruefungsmodus im Spiel, Portal-Seiten, Pruefseite `/z/:code`.
 9. **QA und Doku**: Tests, STAND, ENTSCHEIDUNGEN, CLAUDE.md, Testplan.
+
+## Stand (29.09.2026): alle neun Pakete umgesetzt, Branch `wip/portal`
+Tests gruen (Engine 98, Validator, Pruefungspool 172 Varianten, API 115, Pruefungen 89, `tests/smoke.js`, `tests/portal.js`, `tests/tasks.js` 322 Durchlaeufe). Beschreibung in `docs/STAND.md` → "Portal wie SPS Quest", Entscheide beim Bau in `docs/ENTSCHEIDUNGEN.md`.
+Offen vor dem Livegang: Freigabe von Steven fuer den Merge nach `main` (deployt automatisch; die Datenbank stellt sich beim ersten API-Aufruf selbst um und uebernimmt die bestehenden Konten), `npm install qrcode-generator` in `dev/` fuer den QR-Code auf dem Zertifikat, Impressum/Datenschutz mit den echten Angaben fuellen, Testplan von Hand (STAND.md).

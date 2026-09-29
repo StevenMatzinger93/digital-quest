@@ -9,21 +9,22 @@ Idee: „zwischen Fritzing und LTspice“ – Lernende **bauen Schaltungen** im 
 Methode, Qualitaetsregeln und Design folgen dem Bauplan aus SCL Quest (`docs/BAUPLAN_LERNSPIEL.md`).
 
 ## Stand (29.09.2026)
-**Alle 15 Kapitel sind fertig** (150 Aufgaben, 30 Theorien, alle in Schaltplan UND Werkbank per `tests/tasks.js` loesbar), Werkbank/Labor fertig, Karte nach Teilen I–IV, Zertifikat Grundstufe (Boss 10.10) und Abzeichen Profi-Stufe (Boss 15.10). Moegliche Weiterentwicklung (nicht blockierend) steht in `docs/STAND.md` → "Naechste Schritte" (Labor-Feinheiten wie A~-Bereich und 2-Kanal-Oszilloskop, Editor Stufe 2, Komfort nach Bauplan, Figuren/Kapitel-Intros).
+**Alle 15 Kapitel sind fertig** (150 Aufgaben, 30 Theorien, alle in Schaltplan UND Werkbank per `tests/tasks.js` loesbar), Werkbank/Labor fertig, Karte nach Teilen I–IV mit Symbol-Kacheln und Sternen, Abzeichen Grundstufe (Boss 10.10) und Profi-Stufe (Boss 15.10).
+**Portal wie SPS Quest** (Plan `docs/PLAN_PORTAL.md`, umgesetzt 29.09.2026 auf Branch `wip/portal`): Halle mit Toren, Login-Terminal, Leitstand, Administration, Vorgaben mit Frist, Live-Challenge (Sprint, Stoerungsjagd), Pruefung mit Zertifikat, Anleitungen, Feedback-Knopf. Vorbild ist das Repository `StevenMatzinger93/scl-quest` – bei Fragen zur Bedienung dort nachsehen. Moegliche Weiterentwicklung steht in `docs/STAND.md` → "Naechste Schritte".
 
 ## Einrichtung (neue Maschine / Cloud-Session)
 ```
 cd dev
-npm install                         # Playwright (nur fuer die Browser-Tests)
-npx playwright install chromium     # Browser fuer tests/smoke.js und tests/tasks.js
+npm install                         # Playwright (Browser-Tests); qrcode-generator (QR-Code auf dem Zertifikat, freiwillig)
+npx playwright install chromium     # Browser fuer tests/smoke.js, tests/portal.js und tests/tasks.js
 ```
 Das Quellmaterial `99_inputs/` (Stevens Unterrichtsunterlagen) ist **bewusst nicht im Repository** (`.gitignore`) – es liegt lokal in Stevens OneDrive. Wer das Original braucht, fragt Steven.
 Jeder Push auf `main` deployt automatisch (Cloudflare Worker). Halbfertiges daher auf einem Branch (`wip/…`) ablegen und erst mit gruenem Validator nach `main`.
 
 ## Aufbau
 - `index.html` – ausgelieferte Einzeldatei, offline. **Generiert – nicht von Hand aendern.**
-- `web/` – PWA-Version (Manifest, Service Worker mit Content-Hash, Icons). Ordner auf beliebigen HTTPS-Webspace laden.
-- `worker/index.js` – Cloudflare Worker (nur `/api/…`): Konten (Admin per Secrets, Dozent, Schueler), PBKDF2, Bearer-Token, Rate-Limiting, Klassen/Klassencode, Zuweisungen mit Frist, Fortschritt-Spiegel. `migrations/` – D1-Schema. Plan: `docs/PLAN_KLASSEN_ZUWEISUNG.md`.
+- `web/` – gehostete Version (**generiert**): `index.html` = Portal, `labor/` = das Spiel mit Konto-Abgleich (`window.DQ_PORTAL`), `data/dq.json` + `data/dq_live.json` (Aufgabenliste, Musterschaltungen, Stoerungsszenarien), `sw.js` (Portal und Labor offline; `/api/` und `/z/` nie aus dem Cache).
+- `worker/` – Cloudflare Worker (`/api/…` und die Pruefseite `/z/Code`), Aufbau wie SPS Quest: `index.js` (Anmeldung, Cookie-Sitzung `dq_sess`, Header `x-dquest: 1` fuer Schreibzugriffe, Rollen admin/teacher/student, Klassen, Konten, Fortschritt `PUT /api/progress/dq`), `assign.js` (Vorgaben mit Frist), `challenge.js` (Live-Challenge), `reports.js` (Meldungen), `exam.js` + `cert.js` (Pruefung, Zertifikat), `db.js` (Migrationen im Code – neue Tabellen als neue Migration anhaengen, nie eine alte aendern), `lib.js`, `gen/exam_bundle.js` (**generiert** vom Build: Engine + Pruefungspool).
 - `theorie/` – Stevens Theoriedokumente (Quellmaterial). Claude leitet daraus Lektionen, Fragen und Aufgaben ab.
 - `docs/` – KONZEPT, ENTSCHEIDUNGEN, STAND, THEMEN, BAUPLAN_LERNSPIEL.
 - `dev/`
@@ -31,21 +32,26 @@ Jeder Push auf `main` deployt automatisch (Cloudflare Worker). Halbfertiges dahe
   - `src/circuit-ui.js` – `window.DQCircuit`, ansichtsneutraler Interaktionskern (Phase 1 erledigt): Bauteil hinzufuegen/bewegen/drehen/loeschen, Leitung ziehen, ID-Vergabe. Kein eigenes Rendering – wird von `editor.js` UND `bench.js` genutzt, damit Editier-Logik nicht zweimal existiert. Renderer melden nur Ereignisse in Modellkoordinaten (`clickPin`, `pressPart`, `dragTo`, `release` …) und haengen sich per `attach(view)` an. Zwei Koordinatenraeume: 'schema' (`p.x/p.y/p.rot`) und 'bench' (`p.bench = {x, y, rot}`, gespeichert im Entwurf).
   - `src/editor.js` – `window.DQEditor`: SVG-Schaltplan-Renderer (Raster 20 px, IEC-Symbole, Live-Anzeige) ueber dem Interaktionskern.
   - `src/bench.js` – `window.DQBench` (Grundgeruest steht seit Phase 2, **Herzstueck/Prioritaet**): 2.5D Werkbank-Renderer ueber demselben Interaktionskern wie `editor.js` (Bauteile, Kabel mit Messspitzen, Multimeter/Oszilloskop mit echten Geraetefronten). **Voll interaktiv** (bauen/verdrahten/drehen/loeschen genau wie im Schema, nicht nur Ansehen/Messen). Liest/schreibt denselben Schaltungszustand wie die Schema-Ansicht; Umschalt-Button Schema <-> Werkbank aendert nur die Darstellung. Positionen kommen aus dem `bench`-Layout der jeweiligen Aufgabe (siehe "Aufgaben schreiben"), nicht automatisch aus dem Schema-Layout abgeleitet. Stilvorbild: echtes Elektroniklabor/Physik-Praktikum, kein frei drehbares 3D. Siehe `docs/KONZEPT.md`, `docs/ENTSCHEIDUNGEN.md`.
-  - `src/account.js` – `window.DQAccount`: Menuepunkt Konto (Anmelden, Klassencode-Registrierung, Admin-/Dozentenansicht, Vorgaben), Sync und Vorgaben fuer die Karte. Konto ist freiwillig.
+  - `src/account.js` – `window.DQAccount`: Konto-Abgleich mit dem Portal (nur Portal-Version): Sitzung lesen, Spielstand abgleichen (base/409, der weitere Stand gilt, Konten nie mischen), Konto-Chip, Vorgaben fuer die Karte, `staff()` = Dozentenmodus (Dozenten-/Admin-Konto). `src/live.js` – `window.DQLive`: Live-Challenge im Spiel (`labor/?live=ID`). `src/exam.js` – `window.DQExamUI`: Pruefung im Spiel (`labor/?exam=ID`). `src/tiles.js` – `window.DQTiles`: Symbol je Kachel der Laborkarte (berechnet aus Musterloesung und Tags).
+  - `src/exam_core.js` – `DQExam`: Pruefungskern (Vorlagen mit Parametern, Ziehung, oeffentliche Fassung, Bewertung). `src/content_exam/pool.js` – Pruefungsvorlagen G01–G11, P01–P10. **Beides gehoert nur in den Worker und in die Tests, nie ins Spiel** (der Build bricht sonst ab).
   - `src/app.js` – Spielsteuerung (Karte, Aufgabe, Theorie, Handbuch, Einstellungen, Speicherstand). Plus **Sandbox-Modus (Quick Win)**: freie Werkbank ohne Auftrag/Pruefung, alle bereits freigeschalteten Bauteile, ueber Karte erreichbar.
   - `src/style.css`, `src/index.template.html`
-  - `src/content/` – `_helpers.js` (`defChapter`, `defTask`, `defTheory`, `W`), `_parts.js` (`DQ.parts` Teile I–IV der Karte, `DQ.awards` Zertifikat/Abzeichen), `werkstatt.js` (Uebungswerkstatt `DQ.workshop`, id `W`, Mess-Aufgaben W1–W10 mit `defMessaufgabe` = defTask mit `palette: []`, `ref = start`; ausserhalb der 15 Kapitel, immer offen), `datasheets.js` (Bauteil-Datenblaetter: nur Texte, Zahlen live aus der Engine; neuer Bauteiltyp braucht einen Eintrag, sonst meldet der Validator einen Fehler), `_logic.js` (`LG`: Board-Layouts, Wahrheitstabellen-Tests, Tabellen-HTML, Minterme – fuer Logik-Kapitel), `chNN.js` (je Kapitel Aufgaben + 2 Theorien), `manual.js`
-  - `build.js`, `validate.js`, `test_engine.js`, `tests/smoke.js` (Playwright)
+  - `src/content/` – `_helpers.js` (`defChapter`, `defTask`, `defTheory`, `W`), `_parts.js` (`DQ.parts` Teile I–IV der Karte, `DQ.awards` Abzeichen Grund-/Profi-Stufe), `werkstatt.js` (Uebungswerkstatt `DQ.workshop`, id `W`, Mess-Aufgaben W1–W10 mit `defMessaufgabe` = defTask mit `palette: []`, `ref = start`; ausserhalb der 15 Kapitel, immer offen), `datasheets.js` (Bauteil-Datenblaetter: nur Texte, Zahlen live aus der Engine; neuer Bauteiltyp braucht einen Eintrag, sonst meldet der Validator einen Fehler), `_logic.js` (`LG`: Board-Layouts, Wahrheitstabellen-Tests, Tabellen-HTML, Minterme – fuer Logik-Kapitel), `chNN.js` (je Kapitel Aufgaben + 2 Theorien), `manual.js`
+  - `portal/` – Quellen des Portals: `body.html`, `portal.css`, `portal.js` (Halle, Terminal, Konto, Administration; stellt `window.DQP` bereit), `portal_leitstand.js`, `portal_live.js`, `portal_pruefung.js`, `portal_zertifikate.js`, `portal_anleitung.js`, `portal_meldungen.js` (haengen sich ueber `DQP.routes`, `DQP.nav` … ein), `report.js` (Feedback-Knopf in Portal und Labor), `impressum.html`, `datenschutz.html`.
+  - `build.js`, `validate.js`, `validate_exam.js`, `exam_pool.js`, `test_engine.js`, `test_api.js`, `test_exam_api.js`, `tests/smoke.js`, `tests/portal.js`, `tests/tasks.js` (Playwright), `tests/apiroute.js` (haengt Website + Worker-Code + D1-Nachbau unter `https://dq.test` in den Testbrowser), `tests/d1mock.js`
 
 ## Arbeitsablauf
 ```
 cd dev
 node test_engine.js      # Engine-Tests
 node validate.js         # muss "OK — keine Fehler" ausgeben
-node build.js            # erzeugt ../index.html und ../web/
+node validate_exam.js    # Pruefungspool: jede Vorlage × Parameter (Musterloesung besteht, Fehler scheitern, nichts verraten)
+node build.js            # erzeugt ../index.html, ../web/ und ../worker/gen/exam_bundle.js
 node tests/smoke.js      # Browser-Durchlauf (Playwright/Chromium), Screenshots in tests/shots
 node tests/tasks.js      # jede Aufgabe + jedes Bauteil in Schaltplan UND Werkbank nur ueber die Bedienung loesbar (Filter: 2.5 | 2. | W*)
 node test_api.js         # Worker-API gegen D1-Nachbau (node:sqlite), ohne Cloudflare
+node test_exam_api.js    # Pruefungen und Zertifikate (braucht das Bundle aus build.js)
+node tests/portal.js     # Portal-Rundgang und Pruefung bis zum Zertifikat im Browser
 ```
 Fertig heisst: Tests gruen, Validator 0 Fehler, Browser-Durchlauf fehlerfrei, `tests/tasks.js` gruen (Regel: **jede Aufgabe muss im Schaltplan und auf der Werkbank loesbar sein**), Handy ok, offline spielbar. Nach jedem Abschnitt `docs/STAND.md` aktualisieren.
 
@@ -90,9 +96,9 @@ Fertig heisst: Tests gruen, Validator 0 Fehler, Browser-Durchlauf fehlerfrei, `t
   - Validator: jede Theorie hat `visual` oder `visualNone: 'Grund'`; Typ bekannt, Pflichtfelder je Typ (circuit: Layout baubar, bench-/Regler-/Anzeige-IDs vorhanden; bode: Kurve = Engine), nicht mehr Platzhalter als Bilder. `tests/smoke.js` oeffnet alle 30 Lektionen: jeder Baustein rendert und reagiert (Mini-Schaltung: echter Klick auf einen Schalter aendert die Schaltung, Zeit laeuft mit; Instanzen unter `DigitalQuest.visuals`).
 
 ## Speicherstand
-`localStorage` Schluessel `digitalquest_state_v1`: `profile {id (UUID), vorname, nachname, pseudonym}`, `done`, `drafts {taskId:{layout, answers}}`, `theory`, `events [{t, type, id, …}]`, `settings`.
-Mit Konto zusaetzlich `account {token, konto, vorgaben, syncT, lastSync}` und `syncOwner` (wem der lokale Stand zuletzt gespiegelt wurde). localStorage bleibt die Basis, das Spiel laeuft ohne Konto und offline. Nur Pseudonym und Benutzername gehen an den Server, nie Vor-/Nachname.
+`localStorage` Schluessel `digitalquest_state_v1`: `profile {id (UUID), vorname, nachname, pseudonym}`, `done`, `doneInfo {id:{at, tries, hints, stars}}`, `drafts {taskId:{layout, answers}}`, `theory`, `events [{t, type, id, …}]`, `settings`. Beim Laden bringt `normalize()` (app.js) alte Spielstaende auf diesen Aufbau.
+Portal-Version zusaetzlich: `dquest_sync_dq` (`{user, role, base, dirty}` – zu welchem Konto der lokale Stand gehoert), `dquest_vorgaben_dq` (zuletzt geladene Vorgaben), `dq_exam_<ID>` (Entwuerfe einer laufenden Pruefung). Das Spiel laeuft ohne Konto und offline. An den Server geht der Spielstand ohne Vor-/Nachname; Live-Challenge und Pruefung veraendern den Spielstand nicht.
 Vorbereitung Buehler Quest: UUID als Personen-ID, Namen getrennt, Ereignisliste mit Zeitstempel und Tags. **Keine** Verknuepfung zu SPS Quest bauen, solange nicht ausdruecklich verlangt. Eigene D1-Datenbank (nicht die von SCL Quest).
 
 ## Entwickeln
-`index.html?alle` schaltet alle Stationen frei (und gibt der Freien Werkbank alle Bauteile). Dasselbe fuer Lehrpersonen ohne URL: **Dozentenmodus** in den Einstellungen (`settings.teacher`, Code `DQ.teacherCode` in `src/content/_parts.js`, Kennzeichen DOZENT, Sprungliste auf der Karte, Fortschritt bleibt unveraendert), `?werkbank` startet in der Werkbank-Ansicht (sonst gilt `settings.view`, Umschalt-Button in der Toolbar). `window.DigitalQuest` (state, openItem, editor, bench, core, setView, engine) fuer Tests.
+`index.html?alle` schaltet alle Stationen frei (und gibt der Freien Werkbank alle Bauteile). Fuer Lehrpersonen: **Dozentenmodus** = im Portal mit einem Dozenten- oder Admin-Konto angemeldet (Kennzeichen DOZENT, Sprungliste auf der Karte). Portal-Version: `labor/?frei=1` (Freie Werkbank), `?werkstatt=1` (Uebungswerkstatt), `?live=ID` (Live-Challenge), `?exam=ID` (Pruefung). `?werkbank` startet in der Werkbank-Ansicht (sonst gilt `settings.view`, Umschalt-Button in der Toolbar). `window.DigitalQuest` (state, openItem, editor, bench, core, setView, engine, account, liveChallenge, examUI, summary) fuer Tests.

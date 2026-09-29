@@ -63,6 +63,24 @@ Der Punkt "Klassen und Personen" (oben) und die bewusste Zurueckstellung der Pla
 - **Uebungswerkstatt** als eigener Bereich (`DQ.workshop`), nicht als 16. Kapitel: zaehlt nicht in Fortschritt, Freischaltung oder Auszeichnungen.
 - **D1-Block in `wrangler.jsonc` erst nach dem gemeinsamen `wrangler d1 create`** – eine Platzhalter-ID wuerde den automatischen Build scheitern lassen; bis dahin antwortet die API mit 503.
 
+## Portal wie SPS Quest (Entscheid Steven 29.09.2026, ersetzt "Dozentenmodus" und "Konten und Zuweisungen" oben)
+- **Bedienung exakt wie SPS Quest**: Portal mit Halle und Toren, Login-Terminal, Leitstand, Administration, Live-Challenge, Zertifikat mit Pruefung, Anleitungen, Feedback-Knopf. Kein Pikettdienst. Leitfarbe Bernstein.
+- **Dozentenmodus haengt am Konto** (Rolle teacher/admin). Die Code-Eingabe entfaellt; `?alle` bleibt fuer Tests. Ohne Verbindung gilt die zuletzt bekannte Rolle des Kontos, dem der Spielstand gehoert.
+- **Cookie statt Token**: Sitzung `dq_sess` (HttpOnly, SameSite=Lax, Secure), Schreibzugriffe nur mit Header `x-dquest: 1`. Konten gibt es nur in der gehosteten Version; die Einzeldatei spielt lokal.
+- **Ganzer Spielstand je Konto** statt Vereinigung einzelner Eintraege: einfacher, und die Lehrperson sieht Schaltungen und Messwerte. Echte Namen (Vor-/Nachname) werden vor dem Hochladen entfernt, der Server loescht sie zusaetzlich.
+
+## Portal – Entscheide beim Bau (29.09.2026)
+- **Stoerungsszenarien aus den `wrong`-Loesungen**: Jede benannte Falschloesung einer Aufgabe ist eine Stoerung; das Symptom ist die erste Pruefung, die daran scheitert. Die Ursache (Name der Falschloesung) sieht nur die Lehrperson. So entstehen die Szenarien ohne Zusatzaufwand und bleiben mit den Aufgaben aktuell.
+- **Live-Challenge und Pruefung veraendern den Spielstand nicht** (keine Entwuerfe, kein "erledigt") – sonst gaebe die Stoerungsjagd Fortschritt fuer Aufgaben, die noch gesperrt sind.
+- **Kachel-Symbole werden berechnet, nicht gepflegt** (`tiles.js`): praegendes Bauteil = das zuletzt eingefuehrte Bauteil der Musterloesung; bei Mess-, Fehlersuch- und Entwurfsthemen ein Piktogramm aus den Kompetenz-Tags. Neue Aufgaben bekommen ihr Symbol von selbst.
+- **Sterne**: 3 = ohne Fehlversuch und ohne Tipp, 2 = hoechstens zwei Fehlversuche und ein Tipp, sonst 1. Nochmals loesen kann die Sterne verbessern, nie verschlechtern.
+- **Pruefungsaufgaben sind eigene Vorlagen mit Parametern**, nicht die Aufgaben des Spiels (deren Musterloesungen liegen fuer den Beamer offen in `dq_live.json`). Der Pool steht nur im Worker. Die Theoriefragen stammen aus den Lektionen (vom Validator gegen die Engine geprueft), die Antworten werden je Pruefung gemischt.
+- **Bewertung einer Abgabe**: sichtbare Tests + Messprotokoll + verdeckte Tests; alles richtig = 1 Punkt, sonst 60 % des Anteils bestandener Pruefpunkte. Die Rueckmeldung nennt die sichtbaren Pruefpunkte ohne Sollwerte und bei den verdeckten nur die Anzahl.
+- **Schutz vor Manipulation**: Der Server stellt die Werte der vorgegebenen Bauteile wieder her (am Generator darf zum Messen gedreht werden), verlangt alle vorgegebenen Bauteile und Leitungen und weist Bauteile ab, die nicht in der Palette sind. Sollwerte des Messprotokolls rechnet der Server aus der abgegebenen Schaltung.
+- **Im Spiel heissen beide Auszeichnungen "Abzeichen"** – "Zertifikat" ist dem geprueften Zertifikat aus dem Portal vorbehalten.
+- **QR-Bibliothek ist freiwillig**: Fehlt `qrcode-generator` in `dev/node_modules`, baut der Build ohne QR-Code (Pruefcode und Adresse stehen trotzdem auf dem Zertifikat).
+- **Der Pruefungspool liegt im Repository.** Solange das Repository oeffentlich ist, sind Vorlagen und Musterloesungen dort lesbar (wie bei SPS Quest). Wer das nicht will, macht das Repository privat.
+
 ## Technik
 - Offline-Einzeldatei + PWA, keine externen Bibliotheken noetig (Google Fonts optional).
 - Leitfarbe Bernstein `#ffb000`, Token-Namen wie SCL Quest.

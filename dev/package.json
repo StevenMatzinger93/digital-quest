@@ -4,9 +4,11 @@
   "private": true,
   "description": "Digital Quest – Schaltungen bauen, messen, verstehen",
   "scripts": {
-    "test": "node test_engine.js && node test_api.js && node validate.js",
+    "test": "node test_engine.js && node validate.js && node validate_exam.js && node build.js && node test_api.js && node test_exam_api.js",
     "build": "node build.js",
-    "e2e": "node tests/smoke.js"
+    "e2e": "node tests/smoke.js && node tests/portal.js && node tests/tasks.js"
   },
-  "devDependencies": { "playwright": "^1.56.0" }
+  "devDependencies": {
+    "playwright": "^1.56.0"
+  }
 }
