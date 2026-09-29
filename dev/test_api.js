@@ -61,6 +61,53 @@ const ok = (c, name, info) => { if (c) pass++; else { failN++; console.log('FEHL
   const doz2 = await login('frau.keller', 'neues-pw', '10.0.4.1'); ok(doz2 && doz2.token, 'Anmeldung mit neuem Passwort');
   await call('POST', '/api/logout', null, doz2.token); r = await call('GET', '/api/me', null, doz2.token); ok(r.status === 401, 'Abmelden beendet die Sitzung');
 
+  /* ===== Phase 2: Klassen, Schueler, Klassencode ===== */
+  const D = await login('frau.keller', 'neues-pw', '10.0.5.1');
+  r = await call('POST', '/api/admin/dozenten', { benutzer: 'herr.meier', passwort: 'lehrer2' }, adm.token);
+  const D2 = await login('herr.meier', 'lehrer2', '10.0.5.2');
+  r = await call('POST', '/api/klassen', { name: 'EL 1a' }, D.token);
+  ok(r.status === 200 && /^[A-HJ-NP-Z2-9]{6}$/.test(r.body.klasse.code), 'Klasse mit lesbarem 6-Zeichen-Code', r.body);
+  const K1 = r.body.klasse;
+  r = await call('POST', '/api/klassen', { name: '' }, D.token); ok(r.status === 400, 'Klasse ohne Namen abgewiesen');
+  r = await call('POST', '/api/klassen', { name: 'EL 1b' }, adm.token); ok(r.status === 403, 'Admin legt keine Klassen an (nur Dozenten)');
+  r = await call('POST', '/api/klassen/' + K1.id + '/schueler', { benutzer: 'blitz', passwort: 'geheim1', pseudonym: 'Blitz' }, D.token);
+  ok(r.status === 200 && r.body.schueler.pseudonym === 'Blitz', 'Dozent legt Schueler an');
+  const S1 = r.body.schueler;
+  r = await call('POST', '/api/klassen/' + K1.id + '/schueler', { benutzer: 'frau.keller', passwort: 'geheim1' }, D.token); ok(r.status === 409, 'Schuelername darf keinen Dozentennamen belegen');
+  r = await call('GET', '/api/klassen/' + K1.id, null, D2.token); ok(r.status === 404, 'Fremder Dozent sieht die Klasse nicht');
+  r = await call('POST', '/api/klassen/' + K1.id + '/schueler', { benutzer: 'fremd', passwort: 'geheim1' }, D2.token); ok(r.status === 404, 'Fremder Dozent kann keine Schueler anlegen');
+  r = await call('GET', '/api/klassen', null, D.token); ok(r.body.klassen.length === 1 && r.body.klassen[0].schueler === 1, 'Klassenliste mit Anzahl Schueler');
+  r = await call('GET', '/api/klassen', null, D2.token); ok(r.body.klassen.length === 0, 'Jeder Dozent sieht nur eigene Klassen');
+
+  // Selbstregistrierung
+  r = await call('POST', '/api/registrieren', { code: K1.code.toLowerCase(), benutzer: 'Funke', passwort: 'geheim2', pseudonym: 'Funke' }, null, '10.0.6.1');
+  ok(r.status === 200 && r.body.token && r.body.konto.klasse === 'EL 1a', 'Selbstregistrierung mit Klassencode (Gross/Klein egal)', r.body);
+  const S2tok = r.body.token;
+  r = await call('GET', '/api/me', null, S2tok); ok(r.body.konto.rolle === 'schueler' && r.body.konto.benutzer === 'funke', 'Registrierter Schueler ist angemeldet');
+  r = await call('POST', '/api/klassen', { name: 'X' }, S2tok); ok(r.status === 403, 'Schueler darf keine Klassen anlegen');
+  for (let i = 0; i < 5; i++) await call('POST', '/api/registrieren', { code: 'ZZZZZ' + i, benutzer: 'rater' + i, passwort: 'geheim2' }, null, '10.0.7.1');
+  r = await call('POST', '/api/registrieren', { code: K1.code, benutzer: 'rater9', passwort: 'geheim2' }, null, '10.0.7.1');
+  ok(r.status === 429, 'Codes raten: nach 5 Fehlversuchen gesperrt');
+  const S1l = await login('blitz', 'geheim1', '10.0.8.1'); ok(S1l && S1l.konto.klasse === 'EL 1a', 'Vom Dozenten angelegter Schueler meldet sich an');
+
+  // Code erneuern, Passwort-Reset, Entfernen
+  r = await call('POST', '/api/klassen/' + K1.id + '/code', null, D.token); ok(r.body.code && r.body.code !== K1.code, 'Neuer Klassencode');
+  r = await call('POST', '/api/registrieren', { code: K1.code, benutzer: 'spaet', passwort: 'geheim2' }, null, '10.0.9.1'); ok(r.status === 404, 'Alter Code gilt nicht mehr');
+  r = await call('POST', '/api/schueler/' + S1.id + '/passwort', { passwort: 'neu-123' }, D.token); ok(r.status === 200, 'Dozent setzt Schueler-Passwort zurueck');
+  r = await call('GET', '/api/me', null, S1l.token); ok(r.status === 401, 'Alte Schueler-Sitzung nach Reset ungueltig');
+  r = await call('POST', '/api/schueler/' + S1.id + '/passwort', { passwort: 'neu-123' }, D2.token); ok(r.status === 404, 'Fremder Dozent kann kein Passwort setzen');
+  r = await call('GET', '/api/klassen/' + K1.id, null, D.token);
+  ok(r.body.schueler.length === 2 && r.body.schueler.every(x => x.erledigt && !x.pw), 'Klassenansicht: Schueler mit Fortschritt, ohne Passwort');
+  const funkeId = r.body.schueler.find(x => x.benutzer === 'funke').id;
+  r = await call('DELETE', '/api/schueler/' + funkeId, null, D.token); ok(r.status === 200, 'Dozent entfernt Schueler');
+  r = await call('GET', '/api/me', null, S2tok); ok(r.status === 401, 'Entfernter Schueler ist abgemeldet');
+  r = await call('POST', '/api/klassen', { name: 'Wegwerf' }, D.token); const KW = r.body.klasse;
+  await call('POST', '/api/klassen/' + KW.id + '/schueler', { benutzer: 'weg1', passwort: 'geheim1' }, D.token);
+  r = await call('DELETE', '/api/klassen/' + KW.id, null, D.token); ok(r.status === 200, 'Klasse loeschen');
+  ok(!(await env.DB.prepare("SELECT 1 AS x FROM schueler WHERE benutzer = 'weg1'").first()), 'Schueler einer geloeschten Klasse sind mit geloescht');
+
+  globalThis.__t = { D, D2, K1, S1, adm };
+  if (globalThis.__more) await globalThis.__more({ call, login, ok, env, W });
   console.log(`API-Tests: ${pass} ok, ${failN} Fehler`);
   process.exit(failN ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

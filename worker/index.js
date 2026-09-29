@@ -171,6 +171,99 @@ on('DELETE', '/api/admin/dozenten/:id', async ({ s, db, p }) => {
   return { ok: true };
 });
 
+/* ---------- Dozent: Klassen und Schueler ---------- */
+const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // ohne 0/O, 1/I – gut abzuschreiben
+function newCode() { return Array.from(rnd(6), b => CODE_ABC[b % CODE_ABC.length]).join(''); }
+async function uniqueCode(db) {
+  for (let i = 0; i < 20; i++) { const c = newCode(); if (!(await db.prepare('SELECT 1 AS x FROM klassen WHERE code = ?').bind(c).first())) return c; }
+  fail(500, 'Kein freier Klassencode gefunden.');
+}
+async function ownClass(db, s, id) {
+  const k = await db.prepare('SELECT id, name, code, erstellt FROM klassen WHERE id = ? AND dozent_id = ?').bind(id, s.id).first();
+  if (!k) fail(404, 'Klasse nicht gefunden.');
+  return k;
+}
+async function ownStudent(db, s, id) {
+  const x = await db.prepare('SELECT x.id, x.klasse_id FROM schueler x JOIN klassen k ON k.id = x.klasse_id WHERE x.id = ? AND k.dozent_id = ?').bind(id, s.id).first();
+  if (!x) fail(404, 'Schueler nicht gefunden.');
+  return x;
+}
+async function addStudent(db, klasseId, b, now) {
+  const u = userName(b.benutzer), pw = password(b.passwort), ps = pseudonym(b.pseudonym, u);
+  if (await userTaken(db, u)) fail(409, 'Benutzername ist schon vergeben.');
+  const id = uuid();
+  await db.prepare('INSERT INTO schueler (id, benutzer, pw, pseudonym, klasse_id, erstellt) VALUES (?, ?, ?, ?, ?, ?)').bind(id, u, await hashPassword(pw), ps, klasseId, now).run();
+  return { id, benutzer: u, pseudonym: ps, erstellt: now };
+}
+
+on('GET', '/api/klassen', async ({ s, db }) => {
+  need(s, 'dozent');
+  const r = await db.prepare('SELECT k.id, k.name, k.code, k.erstellt, (SELECT COUNT(*) FROM schueler x WHERE x.klasse_id = k.id) AS schueler FROM klassen k WHERE k.dozent_id = ? ORDER BY k.name').bind(s.id).all();
+  return { klassen: r.results };
+});
+on('POST', '/api/klassen', async ({ s, req, db, now }) => {
+  need(s, 'dozent');
+  const name = String((await body(req)).name || '').trim().replace(/\s+/g, ' ');
+  if (!name || name.length > 40) fail(400, 'Klassenname: 1–40 Zeichen.');
+  const id = uuid(), code = await uniqueCode(db);
+  await db.prepare('INSERT INTO klassen (id, dozent_id, name, code, erstellt) VALUES (?, ?, ?, ?, ?)').bind(id, s.id, name, code, now).run();
+  return { klasse: { id, name, code, erstellt: now, schueler: 0 } };
+});
+/* Klasse mit Schuelern und deren Fortschritt (erledigte Stationen mit Zeitpunkt) */
+on('GET', '/api/klassen/:id', async ({ s, db, p }) => {
+  need(s, 'dozent');
+  const k = await ownClass(db, s, p.id);
+  const xs = (await db.prepare('SELECT id, benutzer, pseudonym, erstellt, zuletzt FROM schueler WHERE klasse_id = ? ORDER BY pseudonym').bind(k.id).all()).results;
+  const f = (await db.prepare('SELECT f.schueler_id, f.item_id, f.erledigt FROM fortschritt f JOIN schueler x ON x.id = f.schueler_id WHERE x.klasse_id = ?').bind(k.id).all()).results;
+  xs.forEach(x => { x.erledigt = {}; });
+  const by = {}; xs.forEach(x => { by[x.id] = x; });
+  f.forEach(r => { if (by[r.schueler_id]) by[r.schueler_id].erledigt[r.item_id] = r.erledigt; });
+  return { klasse: k, schueler: xs };
+});
+on('POST', '/api/klassen/:id/code', async ({ s, db, p }) => {
+  need(s, 'dozent');
+  const k = await ownClass(db, s, p.id), code = await uniqueCode(db);
+  await db.prepare('UPDATE klassen SET code = ? WHERE id = ?').bind(code, k.id).run();
+  return { code };
+});
+on('DELETE', '/api/klassen/:id', async ({ s, db, p }) => {
+  need(s, 'dozent');
+  const k = await ownClass(db, s, p.id);
+  await db.prepare('DELETE FROM klassen WHERE id = ?').bind(k.id).run(); // Schueler, Fortschritt, Zuweisungen fallen mit
+  return { ok: true };
+});
+on('POST', '/api/klassen/:id/schueler', async ({ s, req, db, p, now }) => {
+  need(s, 'dozent');
+  const k = await ownClass(db, s, p.id);
+  return { schueler: await addStudent(db, k.id, await body(req), now) };
+});
+on('POST', '/api/schueler/:id/passwort', async ({ s, req, db, p }) => {
+  need(s, 'dozent');
+  const x = await ownStudent(db, s, p.id), pw = password((await body(req)).passwort);
+  await db.prepare('UPDATE schueler SET pw = ? WHERE id = ?').bind(await hashPassword(pw), x.id).run();
+  await db.prepare('DELETE FROM sitzungen WHERE konto_id = ?').bind(x.id).run();
+  return { ok: true };
+});
+on('DELETE', '/api/schueler/:id', async ({ s, db, p }) => {
+  need(s, 'dozent');
+  const x = await ownStudent(db, s, p.id);
+  await db.prepare('DELETE FROM sitzungen WHERE konto_id = ?').bind(x.id).run();
+  await db.prepare('DELETE FROM schueler WHERE id = ?').bind(x.id).run();
+  return { ok: true };
+});
+
+/* Selbstregistrierung mit Klassencode (Rate-Limiting gegen Raten von Codes) */
+on('POST', '/api/registrieren', async ({ req, db, now }) => {
+  const b = await body(req), keys = ['code:' + ip(req)];
+  await checkLock(db, keys, now);
+  const code = String(b.code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const k = code && await db.prepare('SELECT id, name FROM klassen WHERE code = ?').bind(code).first();
+  if (!k) { await noteFailure(db, keys, now); fail(404, 'Diesen Klassencode gibt es nicht.'); }
+  const x = await addStudent(db, k.id, b, now);
+  const token = await newSession(db, 'schueler', x.id, now);
+  return { token, konto: await konto(db, { rolle: 'schueler', id: x.id }) };
+});
+
 /* ---------- Einstieg ---------- */
 export async function handle(req, env) {
   const url = new URL(req.url);

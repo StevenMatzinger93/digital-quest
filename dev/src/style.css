@@ -300,3 +300,28 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .ds-lim tr:not(.ds-note) th, .ds-lim tr:not(.ds-note) td { border-bottom: 0; padding-bottom: 0; }
 .ds-note td { color: var(--text-dim); font-size: 12px; padding-top: 1px; }
 .ds-t td.mono { text-align: right; }
+
+/* Konto: Anmeldung, Admin, Dozent */
+#scr-account { max-width: 1000px; margin: 0 auto; padding: 24px 18px 60px; }
+.account h2 { margin-top: 0; }
+.acc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.acc-card { background: var(--bg-secondary); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
+.acc-card h3 { margin: 0 0 10px; } .acc-card h4 { margin: 14px 0 6px; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); }
+.acc-fld { grid-template-columns: 1fr; gap: 2px; margin-bottom: 8px; } .acc-fld input { font-family: var(--font-ui); }
+.acc-inline { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 12px; margin-top: 12px; }
+.acc-inline h4 { flex-basis: 100%; margin: 0; } .acc-inline .acc-fld { flex: 1; min-width: 150px; margin: 0; }
+.acc-who { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--bg-secondary); border: 1px solid var(--accent-lead-dim); border-radius: 12px; padding: 12px 18px; margin-bottom: 16px; }
+.acc-who h3 { margin: 0; }
+.acc-t { width: 100%; border-collapse: collapse; font-size: 14px; }
+.acc-t th, .acc-t td { text-align: left; padding: 6px 8px 6px 0; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.acc-t th { color: var(--text-dim); font-weight: 400; font-size: 12px; }
+.acc-act { white-space: nowrap; text-align: right !important; } .acc-act .btn + .btn { margin-left: 6px; }
+.acc-tabs { display: flex; flex-wrap: wrap; gap: 6px; } .acc-tabs .btn.on { border-color: var(--accent-lead); color: var(--accent-lead); }
+.acc-kh { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.acc-kh h3 { margin: 0; }
+.acc-code { display: flex; align-items: center; gap: 10px; background: var(--bg-tertiary); border-radius: 8px; padding: 6px 10px; }
+.acc-code b { font-size: 22px; letter-spacing: 4px; color: var(--accent-lead); }
+.acc-bar { display: inline-block; width: 90px; height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden; vertical-align: middle; margin-right: 6px; }
+.acc-bar i { display: block; height: 100%; background: var(--accent-green); }
+.acc-danger { text-align: right; margin: 12px 0 0; }
+@media (max-width: 760px) { .acc-t { font-size: 13px; } .acc-t .mono { word-break: break-all; } .acc-act .btn { display: block; margin: 0 0 4px auto !important; } }

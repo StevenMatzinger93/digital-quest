@@ -1,6 +1,7 @@
 /* Digital Quest – Spielsteuerung (window.DigitalQuest) */
 (function () {
   'use strict';
+  var root = window;
   var E = window.DQEngine, DQ = window.DQ, Editor = window.DQEditor, Circuit = window.DQCircuit, Bench = window.DQBench;
   var KEY = 'digitalquest_state_v1';
   var UNLOCK_ALL = /[?&]alle\b/.test(location.search);
@@ -738,10 +739,12 @@
   /* ================= Start ================= */
   function init() {
     applyTheme(); applyMode();
+    if (root.DQAccount) root.DQAccount.init({ state: function () { return S; }, save: save, modal: modal, esc: esc, log: log, renderMap: renderMap, order: function () { return ORDER; },
+      setTeacher: function (on) { S.settings.teacher = !!on; applyMode(); save(); } });
     $$('[data-go]').forEach(function (b) {
       b.onclick = function () {
         var g = b.dataset.go;
-        if (g === 'map') renderMap(); if (g === 'manual') renderManual(); if (g === 'settings') renderSettings();
+        if (g === 'map') renderMap(); if (g === 'manual') renderManual(); if (g === 'settings') renderSettings(); if (g === 'account' && root.DQAccount) root.DQAccount.render('');
         show(g);
       };
     });
