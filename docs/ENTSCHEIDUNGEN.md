@@ -50,6 +50,9 @@ Alle vier Quick Wins aus der Marktanalyse werden umgesetzt - kein neues Bedienko
 ## Hosting-Umgebung (Entscheid 28.09.2026, wie SPS/SCL Quest)
 Gleiches Muster wie bei SCL Quest: eigenes GitHub-Repo + Cloudflare Worker (`wrangler.jsonc`, liefert `web/` als Website aus), per GitHub verbunden fuer Auto-Deploy bei Push. **Bewusst ohne D1-Datenbank/Klassen-Anbindung** – das gehoert zum zurueckgestellten Punkt "Klassen und Personen" oben und wird erst ergaenzt, wenn diese Funktion tatsaechlich gebaut wird. `wrangler.jsonc` liegt bereit (Worker-Name `digital-quest`). ~~Offen/braucht Stevens Aktion~~ – erledigt (28.09.2026): GitHub-Repo `digital-quest` angelegt und verbunden, Cloudflare-Login gemacht, Worker `digital-quest` mit dem GitHub-Repo verknuepft (Settings -> Builds). Push nach `main` deployt jetzt automatisch, siehe `docs/STAND.md`.
 
+## Klassen, Zuweisungen und Uebungswerkstatt (Entscheid 29.09.2026, hebt Zurueckstellung auf)
+Der Punkt "Klassen und Personen" (oben) und die bewusste Zurueckstellung der Plattform (siehe Hosting-Umgebung und "Offen" unten) sind hiermit aufgehoben – Steven moechte dies jetzt doch bauen: Admin/Dozent/Schueler/Klassen genau wie bei SCL Quest dokumentiert (Benutzername+Passwort, PBKDF2, Klassencode, Pseudonyme, Rate-Limiting), dazu neu: Dozent weist Kapitel oder einzelne Aufgaben einer Klasse oder Einzelperson zu, mit optionalem Abgabedatum; Schueler sehen das als "Vorgabe vom Dozent" auf der Karte. Zusaetzlich ein neuer Bereich "Uebungswerkstatt" mit fertigen, gesperrten Schaltungen nur zum Messen (Oszilloskop-Schwerpunkt). Die Zuweisungs-/Abgabedatum-Funktion existiert bei SCL Quest nicht zum Kopieren (in dessen Docs/Code nicht gefunden) – sie wird hier neu entworfen. Damit braucht `wrangler.jsonc` jetzt doch eine D1-Datenbank (bisher bewusst keine, siehe Hosting-Umgebung oben). Voller Plan: `docs/PLAN_KLASSEN_ZUWEISUNG.md`.
+
 ## Technik
 - Offline-Einzeldatei + PWA, keine externen Bibliotheken noetig (Google Fonts optional).
 - Leitfarbe Bernstein `#ffb000`, Token-Namen wie SCL Quest.
@@ -57,4 +60,4 @@ Gleiches Muster wie bei SCL Quest: eigenes GitHub-Repo + Cloudflare Worker (`wra
 ## Offen
 - ~~Themenliste und Kapitelplan~~ – erledigt, siehe `docs/THEMEN.md`.
 - ~~Welt, Figuren, Name der Lernumgebung~~ – erledigt (Entscheid 28.09.2026): Name **Labor**, Begleitfiguren Laborassistenz (erklaert) / Laborchef/Werkmeisterin (fordert), siehe `docs/KONZEPT.md`. Konkrete Namen/Aussehen der Figuren noch offen, aber nicht blockierend.
-- Plattform (Login/Klassen) – analog SPS Quest, eigene Datenbank. **Bewusst zurueckgestellt**, nicht jetzt bauen (siehe "Klassen und Personen" oben).
+- Plattform (Login/Klassen) – **Entscheid aufgehoben (29.09.2026)**: wird jetzt doch gebaut, siehe neuen Abschnitt "Klassen, Zuweisungen und Uebungswerkstatt" unten und `docs/PLAN_KLASSEN_ZUWEISUNG.md`.
