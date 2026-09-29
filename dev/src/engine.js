@@ -465,8 +465,14 @@
       return { ok: true, static: true, dc: v0, rms: 0, avg: 0, peak: Math.abs(v0), pp: 0 };
     }
     var T = 1 / Math.min.apply(null, freqs), per = opts.periods || 5;
-    var n = opts.samples || Math.min(4000, Math.max(200, Math.ceil(40 * Math.max.apply(null, freqs) / Math.min.apply(null, freqs)))); // auch schnelle Anteile fein abtasten
-    var sim = simulate(layout, { dt: T / n, tEnd: T * per, probes: [{ a: probe.a, b: probe.b }] }).samples;
+    // Zeitkonstanten grob abschaetzen (groesstes/kleinstes R mal C): lange Einschwingzeit vorab grob rechnen, kurze Nadeln fein abtasten
+    var rs = [], cs = [];
+    net.parts.forEach(function (p) { if (p.type === 'resistor' && p.props.value > 0) rs.push(p.props.value); if (p.type === 'capacitor' && p.props.value > 0) cs.push(p.props.value); });
+    var tauMax = rs.length && cs.length ? Math.max.apply(null, rs) * Math.max.apply(null, cs) : 0;
+    var tauMin = rs.length && cs.length ? Math.min.apply(null, rs) * Math.min.apply(null, cs) : Infinity;
+    var n = opts.samples || Math.min(4000, Math.max(200, Math.ceil(40 * Math.max.apply(null, freqs) / Math.min.apply(null, freqs)), Math.ceil(20 * T / tauMin))); // auch schnelle Anteile und Nadeln fein abtasten
+    var settle = opts.settle === false || 5 * tauMax <= T * (per - 1) ? null : { t: Math.ceil(Math.min(5 * tauMax, 3) / T) * T, dt: T / 40 };
+    var sim = simulate(layout, { dt: T / n, tEnd: T * per, settle: settle, probes: [{ a: probe.a, b: probe.b }] }).samples;
     var last = sim.slice(-n).map(function (x) { return x.ch0; });
     var dc = last.reduce(function (s, v) { return s + v; }, 0) / n;
     var rms = Math.sqrt(last.reduce(function (s, v) { return s + (v - dc) * (v - dc); }, 0) / n);
@@ -511,13 +517,18 @@
   }
 
   /* ---------- Zeitsimulation (Oszilloskop) ----------
-   * opts: { dt, tEnd, probes:[{a,b,label}] (Pins), events:[[t, {partId:{prop:value}}]] } */
+   * opts: { dt, tEnd, probes:[{a,b,label}] (Pins), events:[[t, {partId:{prop:value}}]], settle:{t, dt} } */
   function simulate(layout, opts) {
     var lay = clone(layout), state = newState(), dt = opts.dt || 1e-3, tEnd = opts.tEnd || 1;
     var ev = (opts.events || []).slice().sort(function (x, y) { return x[0] - y[0]; }), ei = 0;
     var net = buildNetlist(lay), samples = [];
     // Anfangszustand: Kondensatoren entladen, Gatter aus Gleichstrom-Arbeitspunkt
     step(net, state, {});
+    // opts.settle = {t, dt}: vorher grob einschwingen, ohne Aufzeichnung
+    if (opts.settle && opts.settle.t > 0) {
+      for (var s0 = 0; state.t < opts.settle.t - 1e-12 && s0 < 200000; s0++) step(net, state, { dt: Math.min(opts.settle.dt, opts.settle.t - state.t) });
+      tEnd += state.t;
+    }
     for (var k = 0; state.t <= tEnd + 1e-12; k++) {
       var changed = false;
       while (ei < ev.length && ev[ei][0] <= state.t + 1e-12) { applySet(net, ev[ei][1]); ei++; changed = true; }
