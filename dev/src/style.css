@@ -372,3 +372,28 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 /* Bilder/Animationen in Lektionen (visuals.js) */
 .lesson-visual { margin: 14px 0 18px; } .lesson-visual .mini { margin: 0; }
 .visual-cap { margin: 6px 2px 0; font-size: 13px; color: var(--text-dim); }
+/* numberSteps: Zahlen-Schritt-Widget */
+.ns { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-secondary); padding: 12px 14px; }
+.ns-grid { display: grid; gap: 8px; }
+.ns-row { display: grid; grid-template-columns: 110px auto 1fr; align-items: center; gap: 12px; }
+.ns-lbl { color: var(--text-dim); font-size: 13px; }
+.ns-cells { display: flex; gap: 4px; }
+.ns-cell { min-width: 38px; height: 38px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; font: 700 20px var(--font-code); background: var(--bg-editor); border: 1px solid var(--line); border-radius: 6px; }
+.ns-cell.hl { border-color: var(--accent-lead); color: var(--accent-lead); box-shadow: 0 0 12px rgba(255,176,0,.35); animation: nsBlink .9s ease-in-out 2; }
+@keyframes nsBlink { 50% { background: rgba(255,176,0,.25); } }
+.ns-note { font-size: 13px; color: var(--text-dim); }
+.ns-text { margin: 10px 0 6px; min-height: 2.8em; }
+.ns-bar { display: flex; align-items: center; gap: 8px; } .ns-pos { color: var(--text-dim); min-width: 52px; text-align: center; }
+@media (max-width: 600px) { .ns-row { grid-template-columns: 1fr; gap: 4px; } .ns-cell { min-width: 32px; height: 32px; font-size: 17px; } }
+@media (prefers-reduced-motion: reduce) { .ns-cell.hl { animation: none; } }
+/* kmap: KV-Diagramm */
+.kvw { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: flex-start; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-secondary); padding: 12px 14px; }
+.kv-svg { flex: 0 1 380px; } .kv { width: 100%; max-width: 380px; display: block; }
+.kv-side { flex: 1; min-width: 200px; } .kv-side p { margin: 0 0 8px; }
+.kv-h { font: 600 13px var(--font-code); fill: var(--text-dim); text-anchor: middle; }
+.kv-cell rect { fill: var(--bg-editor); stroke: var(--line); } .kv-cell.edit { cursor: pointer; } .kv-cell.edit:hover rect { fill: #1a1d14; }
+.kv-v { font: 700 18px var(--font-code); fill: var(--text-faint); text-anchor: middle; pointer-events: none; } .kv-v.one { fill: var(--text-primary); } .kv-v.dc { fill: var(--accent-cyan); }
+.kv-m { font: 9px var(--font-code); fill: var(--text-faint); pointer-events: none; }
+.kv-loop { fill: none; stroke-width: 3; pointer-events: none; }
+.kv-term { margin-top: 12px; font: 18px var(--font-code); } .kv-term p { font-family: var(--font-ui); margin-top: 6px; }
+.ov { text-decoration: overline; }

@@ -383,6 +383,31 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 /* Bilder/Animationen in Lektionen (visuals.js) */
 .lesson-visual { margin: 14px 0 18px; } .lesson-visual .mini { margin: 0; }
 .visual-cap { margin: 6px 2px 0; font-size: 13px; color: var(--text-dim); }
+/* numberSteps: Zahlen-Schritt-Widget */
+.ns { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-secondary); padding: 12px 14px; }
+.ns-grid { display: grid; gap: 8px; }
+.ns-row { display: grid; grid-template-columns: 110px auto 1fr; align-items: center; gap: 12px; }
+.ns-lbl { color: var(--text-dim); font-size: 13px; }
+.ns-cells { display: flex; gap: 4px; }
+.ns-cell { min-width: 38px; height: 38px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; font: 700 20px var(--font-code); background: var(--bg-editor); border: 1px solid var(--line); border-radius: 6px; }
+.ns-cell.hl { border-color: var(--accent-lead); color: var(--accent-lead); box-shadow: 0 0 12px rgba(255,176,0,.35); animation: nsBlink .9s ease-in-out 2; }
+@keyframes nsBlink { 50% { background: rgba(255,176,0,.25); } }
+.ns-note { font-size: 13px; color: var(--text-dim); }
+.ns-text { margin: 10px 0 6px; min-height: 2.8em; }
+.ns-bar { display: flex; align-items: center; gap: 8px; } .ns-pos { color: var(--text-dim); min-width: 52px; text-align: center; }
+@media (max-width: 600px) { .ns-row { grid-template-columns: 1fr; gap: 4px; } .ns-cell { min-width: 32px; height: 32px; font-size: 17px; } }
+@media (prefers-reduced-motion: reduce) { .ns-cell.hl { animation: none; } }
+/* kmap: KV-Diagramm */
+.kvw { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: flex-start; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-secondary); padding: 12px 14px; }
+.kv-svg { flex: 0 1 380px; } .kv { width: 100%; max-width: 380px; display: block; }
+.kv-side { flex: 1; min-width: 200px; } .kv-side p { margin: 0 0 8px; }
+.kv-h { font: 600 13px var(--font-code); fill: var(--text-dim); text-anchor: middle; }
+.kv-cell rect { fill: var(--bg-editor); stroke: var(--line); } .kv-cell.edit { cursor: pointer; } .kv-cell.edit:hover rect { fill: #1a1d14; }
+.kv-v { font: 700 18px var(--font-code); fill: var(--text-faint); text-anchor: middle; pointer-events: none; } .kv-v.one { fill: var(--text-primary); } .kv-v.dc { fill: var(--accent-cyan); }
+.kv-m { font: 9px var(--font-code); fill: var(--text-faint); pointer-events: none; }
+.kv-loop { fill: none; stroke-width: 3; pointer-events: none; }
+.kv-term { margin-top: 12px; font: 18px var(--font-code); } .kv-term p { font-family: var(--font-ui); margin-top: 6px; }
+.ov { text-decoration: overline; }
 </style>
 </head>
 <body>
@@ -6352,7 +6377,166 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     check: function (v) { return /^\s*<svg[\s>]/.test(v.svg || '') ? [] : ['block: svg (Inline-SVG) fehlt']; }
   });
 
-  root.DQVisuals = { register: register, mount: mount, mountAll: mountAll, lessonHtml: lessonHtml, check: check, listOf: listOf, types: function () { return Object.keys(TYPES); } };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function bitsOf(n, w) { var b = []; for (var i = w - 1; i >= 0; i--) b.push(n >> i & 1); return b; } // MSB zuerst
+
+  /* ---------- numberSteps: Zahlen-Schritt-Widget ----------
+   * Allgemein: steps:[{text (HTML), rows:[{label, cells:[…], hl:[Index], note}]}] – Kaestchen, hervorgehobene Stellen, ◀ ▶ Abspielen.
+   * Erzeuger (mode) bauen die Schritte aus wenigen Angaben:
+   *   mode:'gray', bits (Standard 3), parity (Standard ja) – Zaehler in Binaer und Gray, geaenderte Bits blinken,
+   *        Paritaetsbit des Gray-Worts als XOR-Kette. */
+  var GEN = {
+    gray: function (v) {
+      var w = v.bits || 3, N = 1 << w, out = [], names = [];
+      for (var i = w - 1; i >= 0; i--) names.push(i);
+      for (var k = 0; k <= N; k++) {
+        var n = k % N, p = (k + N - 1) % N, b = bitsOf(n, w), g = bitsOf(n ^ (n >> 1), w), bp = bitsOf(p, w), gp = bitsOf(p ^ (p >> 1), w);
+        var hb = [], hg = []; b.forEach(function (x, i) { if (k && x !== bp[i]) hb.push(i); }); g.forEach(function (x, i) { if (k && x !== gp[i]) hg.push(i); });
+        var rows = [{ label: 'Dezimal', cells: [n] }, { label: 'Binaer B', cells: b, hl: hb, note: k ? hb.length + ' Bit' + (hb.length > 1 ? 's' : '') + ' geaendert' : '' },
+          { label: 'Gray G', cells: g, hl: hg, note: k ? '1 Bit geaendert' : '' }];
+        if (v.parity !== false) {
+          var chain = [], acc = 0; g.forEach(function (x, i) { acc ^= x; chain.push(acc); });
+          rows.push({ label: 'XOR-Kette', cells: chain, hl: [chain.length - 1], note: 'P = ' + names.map(function (i) { return 'G' + i; }).join(' ⊕ ') + ' = ' + acc });
+        }
+        out.push({ rows: rows, text: k === 0 ? 'Start bei 0. Mit ▶ zaehlst du weiter.' : k === N ? 'Von ' + p + ' zurueck auf 0: auch dieser Uebergang aendert im Gray-Code nur ein Bit – der Code ist zyklisch.'
+          : 'Von ' + p + ' auf ' + n + ': binaer kippen <b>' + hb.length + '</b> Bit' + (hb.length > 1 ? 's' : '') + ', im Gray-Code nur <b>eines</b> (G' + names[hg[0]] + ').' + (v.parity !== false ? ' Das Paritaetsbit wechselt deshalb bei jedem Schritt.' : '') });
+      }
+      return out;
+    }
+  };
+  function stepsOf(v) { return v.mode ? GEN[v.mode](v) : v.steps; }
+  register('numberSteps', {
+    mount: function (el, v) {
+      var steps = stepsOf(v), i = 0, timer = 0;
+      el.innerHTML = '<div class="ns"><div class="ns-grid"></div><p class="ns-text"></p><div class="ns-bar"><button class="btn small" data-ns="-1" aria-label="Zurueck">◀</button><span class="ns-pos mono"></span><button class="btn small" data-ns="1" aria-label="Weiter">▶</button><button class="btn small" data-ns="play">▶ Abspielen</button></div></div>';
+      var grid = el.querySelector('.ns-grid'), text = el.querySelector('.ns-text'), pos = el.querySelector('.ns-pos'), play = el.querySelector('[data-ns="play"]');
+      function draw() {
+        var s = steps[i];
+        grid.innerHTML = s.rows.map(function (r) {
+          return '<div class="ns-row"><span class="ns-lbl">' + esc(r.label) + '</span><span class="ns-cells">' + r.cells.map(function (c, k) {
+            return '<span class="ns-cell' + ((r.hl || []).indexOf(k) >= 0 ? ' hl' : '') + '">' + esc(c) + '</span>'; }).join('') + '</span><span class="ns-note">' + esc(r.note || '') + '</span></div>';
+        }).join('');
+        text.innerHTML = s.text || ''; pos.textContent = (i + 1) + ' / ' + steps.length;
+      }
+      function go(d) { i = Math.max(0, Math.min(steps.length - 1, i + d)); draw(); }
+      function stop() { clearInterval(timer); timer = 0; play.textContent = '▶ Abspielen'; }
+      el.querySelector('[data-ns="-1"]').onclick = function () { stop(); go(-1); };
+      el.querySelector('[data-ns="1"]').onclick = function () { stop(); go(1); };
+      play.onclick = function () {
+        if (timer) { stop(); return; }
+        if (i >= steps.length - 1) i = -1;
+        play.textContent = '⏸ Anhalten';
+        timer = setInterval(function () { if (!el.isConnected || i >= steps.length - 1) { stop(); return; } go(1); }, v.interval || 1400);
+        go(1);
+      };
+      draw();
+      return { destroy: stop, go: go };
+    },
+    check: function (v) {
+      if (v.mode && !GEN[v.mode]) return ['numberSteps: unbekannter mode „' + v.mode + '“ (erlaubt: ' + Object.keys(GEN).join(', ') + ')'];
+      var s = stepsOf(v);
+      if (!Array.isArray(s) || !s.length) return ['numberSteps: steps oder mode noetig'];
+      var err = [];
+      s.forEach(function (st, k) { if (!st.rows || !st.rows.length) err.push('numberSteps: Schritt ' + (k + 1) + ' ohne rows'); });
+      return err;
+    }
+  });
+
+  /* ---------- kmap: KV-Diagramm ----------
+   * {type:'kmap', vars: 2..4, minterms:[…], dc?:[…], names? (Standard e1…en, e1 = niederwertigstes Bit), out? ('A'), edit? (Standard ja)}
+   * Anordnung wie in Kapitel 8: Spalten e2 e1, Zeilen e3 bzw. e4 e3, jeweils Gray-Reihenfolge 00, 01, 11, 10.
+   * „Paeckchen bilden“ sucht die minimale Ueberdeckung (Primimplikanten, kleinste Anzahl, dann wenigste Literale). */
+  var GRAY = [0, 1, 3, 2];
+  function kLayout(n) { // [Zeilenbits, Spaltenbits]
+    return { 2: [1, 1], 3: [1, 2], 4: [2, 2] }[n];
+  }
+  function kCell(n, r, c) { var L = kLayout(n), cv = L[1] === 1 ? c : GRAY[c], rv = L[0] === 1 ? r : GRAY[r]; return (rv << L[1]) | cv; }
+  /* Minimale Summe von Produkten: Implikant = {mask (1 = Variable faellt weg), val} */
+  function minimize(n, ones, dc) {
+    var N = 1 << n, on = {}, ok = {}, imps = [];
+    ones.forEach(function (m) { on[m] = ok[m] = true; }); (dc || []).forEach(function (m) { ok[m] = true; });
+    if (!ones.length) return [];
+    for (var mask = 0; mask < N; mask++) for (var val = 0; val < N; val++) {
+      if (val & mask) continue;
+      var cells = [], allOk = true, anyOn = false;
+      for (var m = 0; m < N; m++) if ((m & ~mask & (N - 1)) === val) { cells.push(m); if (!ok[m]) allOk = false; if (on[m]) anyOn = true; }
+      if (allOk && anyOn) imps.push({ mask: mask, val: val, cells: cells });
+    }
+    var primes = imps.filter(function (a) { return !imps.some(function (b) { return b !== a && b.cells.length > a.cells.length && a.cells.every(function (c) { return b.cells.indexOf(c) >= 0; }); }); });
+    var lits = function (p) { var k = 0; for (var i = 0; i < n; i++) if (!(p.mask >> i & 1)) k++; return k; };
+    var best = null;
+    (function search(start, chosen) { // exakt: kleinste Anzahl, dann wenigste Literale (bei hoechstens 4 Variablen schnell genug)
+      if (best && chosen.length > best.length) return;
+      var covered = ones.every(function (m) { return chosen.some(function (p) { return p.cells.indexOf(m) >= 0; }); });
+      if (covered) {
+        var cost = chosen.reduce(function (s, p) { return s + lits(p); }, 0);
+        if (!best || chosen.length < best.length || (chosen.length === best.length && cost < best.cost)) { best = chosen.slice(); best.cost = cost; }
+        return;
+      }
+      for (var i = start; i < primes.length; i++) { chosen.push(primes[i]); search(i + 1, chosen); chosen.pop(); }
+    })(0, []);
+    return best || [];
+  }
+  function termHtml(n, p, names) {
+    var t = []; for (var i = n - 1; i >= 0; i--) { if (p.mask >> i & 1) continue; var nm = names[i]; t.push(p.val >> i & 1 ? esc(nm) : /^e\d$/.test(nm) ? 'ē' + nm.slice(1) : '<span class="ov">' + esc(nm) + '</span>'); }
+    return t.length ? t.join('·') : '1';
+  }
+  var LOOP = ['#ffb000', '#1ec8e0', '#39ff14', '#ff5ea8', '#b48cff', '#ff8c00'];
+  register('kmap', {
+    mount: function (el, v) {
+      var n = v.vars, L = kLayout(n), R = 1 << L[0], C = 1 << L[1], names = v.names || ['e1', 'e2', 'e3', 'e4'].slice(0, n), st = {};
+      (v.minterms || []).forEach(function (m) { st[m] = 1; }); (v.dc || []).forEach(function (m) { st[m] = 'X'; });
+      var cw = 58, ch = 44, ox = L[0] === 2 ? 104 : 74, oy = 40, groups = null; // ox: Platz fuer die Zeilenbeschriftung (bei 4 Variablen zwei Namen)
+      function lbl(bitsN, k, first) { var g = bitsN === 1 ? k : GRAY[k], s = []; for (var i = bitsN - 1; i >= 0; i--) { var nm = names[first + i]; s.push(g >> i & 1 ? nm : 'ē' + nm.slice(1)); } return s.join(' '); }
+      function svg() {
+        var s = '<svg class="kv" viewBox="0 0 ' + (ox + C * cw + 20) + ' ' + (oy + R * ch + 20) + '">';
+        for (var c = 0; c < C; c++) s += '<text class="kv-h" x="' + (ox + c * cw + cw / 2) + '" y="' + (oy - 10) + '">' + lbl(L[1], c, 0) + '</text>';
+        for (var r = 0; r < R; r++) s += '<text class="kv-h" x="' + (ox - 10) + '" y="' + (oy + r * ch + ch / 2 + 5) + '" text-anchor="end">' + lbl(L[0], r, L[1]) + '</text>';
+        for (r = 0; r < R; r++) for (c = 0; c < C; c++) {
+          var m = kCell(n, r, c), val = st[m] || 0;
+          s += '<g class="kv-cell' + (v.edit !== false ? ' edit' : '') + '" data-m="' + m + '"><rect x="' + (ox + c * cw) + '" y="' + (oy + r * ch) + '" width="' + cw + '" height="' + ch + '"/>' +
+            '<text class="kv-v' + (val === 1 ? ' one' : val === 'X' ? ' dc' : '') + '" x="' + (ox + c * cw + cw / 2) + '" y="' + (oy + r * ch + ch / 2 + 7) + '">' + val + '</text><text class="kv-m" x="' + (ox + c * cw + 5) + '" y="' + (oy + r * ch + 12) + '">' + m + '</text></g>';
+        }
+        (groups || []).forEach(function (p, gi) { s += loop(p, gi); });
+        return s + '</svg>';
+      }
+      function loop(p, gi) { // Rechteck(e) um die Felder eines Paeckchens; ueber den Rand in Teilstuecken
+        var rows = {}, cols = {}, col = LOOP[gi % LOOP.length], ins = 4 + (gi % 3) * 3, out = '';
+        for (var r = 0; r < R; r++) for (var c = 0; c < C; c++) if (p.cells.indexOf(kCell(n, r, c)) >= 0) { rows[r] = 1; cols[c] = 1; }
+        function segs(set, len) { var ks = Object.keys(set).map(Number).sort(function (a, b) { return a - b; }), res = [], cur = null; ks.forEach(function (k) { if (cur && k === cur[1] + 1) cur[1] = k; else { cur = [k, k]; res.push(cur); } }); return res; }
+        segs(rows, R).forEach(function (rs) { segs(cols, C).forEach(function (cs) {
+          out += '<rect class="kv-loop" x="' + (ox + cs[0] * cw + ins) + '" y="' + (oy + rs[0] * ch + ins) + '" width="' + ((cs[1] - cs[0] + 1) * cw - 2 * ins) + '" height="' + ((rs[1] - rs[0] + 1) * ch - 2 * ins) + '" rx="14" style="stroke:' + col + '"/>';
+        }); });
+        return out;
+      }
+      el.innerHTML = '<div class="kvw"><div class="kv-svg"></div><div class="kv-side"><p class="dim small">' + (v.edit !== false ? 'Feld anklicken: 0 → 1 → X → 0' : '') + '</p>' +
+        '<button class="btn small primary" data-kv="g">Paeckchen bilden</button> <button class="btn small" data-kv="c">Leeren</button><div class="kv-term"></div></div></div>';
+      var box = el.querySelector('.kv-svg'), term = el.querySelector('.kv-term');
+      function draw() {
+        box.innerHTML = svg();
+        if (v.edit !== false) Array.prototype.forEach.call(box.querySelectorAll('[data-m]'), function (g) {
+          g.onclick = function () { var m = +g.dataset.m, cur = st[m] || 0; st[m] = cur === 0 ? 1 : cur === 1 ? 'X' : 0; if (!st[m]) delete st[m]; groups = null; term.innerHTML = ''; draw(); };
+        });
+      }
+      el.querySelector('[data-kv="g"]').onclick = function () {
+        var ones = [], dc = []; Object.keys(st).forEach(function (m) { if (st[m] === 1) ones.push(+m); else dc.push(+m); });
+        groups = minimize(n, ones, dc); draw();
+        term.innerHTML = '<b>' + esc(v.out || 'A') + ' = </b>' + (groups.length ? groups.map(function (p, gi) { return '<span style="color:' + LOOP[gi % LOOP.length] + '">' + termHtml(n, p, names) + '</span>'; }).join(' ∨ ') : '0') +
+          '<p class="dim small">' + (groups.length ? groups.length + ' Paeckchen – je Paeckchen fallen die Variablen weg, die sich darin aendern.' : 'Keine Einsen – der Ausgang ist immer 0.') + '</p>';
+      };
+      el.querySelector('[data-kv="c"]').onclick = function () { st = {}; groups = null; term.innerHTML = ''; draw(); };
+      draw();
+      return null;
+    },
+    check: function (v) {
+      var err = [];
+      if (!(v.vars >= 2 && v.vars <= 4)) return ['kmap: vars muss 2, 3 oder 4 sein'];
+      [].concat(v.minterms || [], v.dc || []).forEach(function (m) { if (!(m >= 0 && m < (1 << v.vars))) err.push('kmap: Minterm ' + m + ' ausserhalb 0…' + ((1 << v.vars) - 1)); });
+      return err;
+    }
+  });
+
+  root.DQVisuals = { minimize: minimize, gray: GEN.gray, register: register, mount: mount, mountAll: mountAll, lessonHtml: lessonHtml, check: check, listOf: listOf, types: function () { return Object.keys(TYPES); } };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* ==== account.js ==== */
