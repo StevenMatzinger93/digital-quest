@@ -1,5 +1,7 @@
 # Plan: Theorie-Lektionen mit Bild/Animation (Stand 29.09.2026)
 
+> **Umgesetzt am 29.09.2026** (Phasen A–F, alle 30 Theorien) – Stand und bewusste Abweichungen siehe `docs/STAND.md` → "Theorie-Animationen", Datenformat in `CLAUDE.md` → "Theorie (defTheory)".
+
 Auslöser: Theorie-Lektionen (`defTheory`, Feld `lesson`) sind heute reiner HTML-Text (Absätze, Formeln als Unicode-Hoch-/Tiefstellung). 30 Lektionen (T1A–T15B) über alle 15 Kapitel. Ziel: dort gezielt Bild/Animation einsetzen, wo es das Verständnis wirklich verbessert (Beispiel Gray-Code: dass sich immer nur ein Bit ändert, sieht man an einer laufenden Zählung sofort, an Fliesstext nur mit Kopfrechnen).
 
 ## Leitidee: wiederverwenden statt neu malen
