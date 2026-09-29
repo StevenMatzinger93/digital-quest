@@ -432,15 +432,15 @@
     if (this._hidden()) { this.dirty = true; return; }
     var self = this, core = this.core, x0 = 400, y0 = 240, x1 = 800, y1 = 520;
     var q = core.layout.parts.map(function (p) { return core.pos(p, 'bench'); });
-    q.push({ x: DEV.meter.x + 20, y: DEV.meter.y - 100 }, { x: DEV.scope.x + 60, y: DEV.scope.y + 60 }); // Messgeraete immer im Bild
-    Object.keys(core.benchHints).forEach(function (id) { q.push(core.benchHints[id]); });
+    if (!this.opts.tight) q.push({ x: DEV.meter.x + 20, y: DEV.meter.y - 100 }, { x: DEV.scope.x + 60, y: DEV.scope.y + 60 }); // Messgeraete immer im Bild (nicht in der Mini-Schaltung)
+    if (!this.opts.tight) Object.keys(core.benchHints).forEach(function (id) { q.push(core.benchHints[id]); });
     if (q.length) {
       x0 = Math.min.apply(null, q.map(function (p) { return p.x; })); x1 = Math.max.apply(null, q.map(function (p) { return p.x; }));
       y0 = Math.min.apply(null, q.map(function (p) { return p.y; })); y1 = Math.max.apply(null, q.map(function (p) { return p.y; }));
     }
     var box = this.svg.getBoundingClientRect(), small = box.width && box.width < 600;
     var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2 * K + 10;
-    var w = Math.max(small ? 440 : 760, x1 - x0 + (small ? 220 : 340)), h = Math.max(small ? 260 : 420, (y1 - y0) * K + (small ? 200 : 300));
+    var tight = this.opts.tight, w = Math.max(tight ? 300 : small ? 440 : 760, x1 - x0 + (tight ? 220 : small ? 220 : 340)), h = Math.max(tight ? 200 : small ? 260 : 420, (y1 - y0) * K + (tight ? 190 : small ? 200 : 300));
     var ar = box.width && box.height ? box.width / box.height : W / (H * K);
     if (w / h < ar) w = h * ar; else h = w / ar;
     this.view = [cx - w / 2, cy - h / 2, w, h];
@@ -486,7 +486,8 @@
       if (t && t.dataset.pin) { ev.preventDefault(); core.clickPin(t.dataset.pin); return; }
       if (t && t.dataset.wire !== undefined) { core.clickWire(+t.dataset.wire); return; }
       if (t && t.dataset.part) { if (core.pressPart(t.dataset.part, xy, 'bench')) svg.setPointerCapture(ev.pointerId); return; }
-      // leere Tischflaeche: Ziehen verschiebt den Ausschnitt, ein Klick hebt die Auswahl auf
+      // leere Tischflaeche: Ziehen verschiebt den Ausschnitt, ein Klick hebt die Auswahl auf (Mini-Schaltung: fester Ausschnitt)
+      if (self.opts.tight) return;
       pan = { x: ev.clientX, y: ev.clientY, view: self.view.slice(), moved: false };
       try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ }
     });
@@ -515,7 +516,8 @@
     }
     var pan = null, pinch = null, touches = {};
     svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
-    svg.addEventListener('wheel', function (ev) { // Mausrad: zur Mausposition hin zoomen
+    svg.addEventListener('wheel', function (ev) { // Mausrad: zur Mausposition hin zoomen (nicht in der Mini-Schaltung – dort scrollt die Lektion)
+      if (self.opts.tight) return;
       ev.preventDefault();
       self.zoomAt(Math.exp(ev.deltaY * 0.0015), ev.clientX, ev.clientY);
     }, { passive: false });

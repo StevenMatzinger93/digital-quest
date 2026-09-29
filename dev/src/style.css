@@ -354,3 +354,18 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .stage-tag.werkstatt { color: var(--accent-cyan); border-color: var(--accent-cyan); }
 .chapter.workshop { border-color: rgba(30,200,224,.35); }
 .chapter.workshop .node svg { stroke: var(--accent-cyan); } .chapter.workshop .node.done svg { stroke: var(--accent-green); }
+
+/* Mini-Schaltung in Theorie-Lektionen (mini.js) */
+.mini { margin: 14px 0 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-secondary); overflow: hidden; }
+.mini-stage { position: relative; background: var(--bg-editor); }
+.mini-svg { width: 100%; height: 100%; display: block; touch-action: pan-y; user-select: none; }
+.mini-bench { background: #1b1612; }
+.mini-svg [data-part] { cursor: default; } .mini-svg .pinhit, .mini-svg .bpinhit, .mini-svg .wirehit, .mini-svg .bwirehit { pointer-events: none; }
+.mini-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 10px; border-top: 1px solid var(--line); }
+.mini-hint { margin-left: auto; } .mini-err { color: var(--accent-red); } .mini-slow { font-size: 13px; }
+.mini-ctl { padding: 4px 12px 10px; display: grid; gap: 6px; } .mini-ctl:empty { display: none; }
+.mini-sl { display: grid; grid-template-columns: minmax(110px, auto) 1fr 90px; align-items: center; gap: 10px; font-size: 14px; }
+.mini-sl b { text-align: right; color: var(--accent-lead); }
+.mini-ro { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; } .mini-ro b { color: var(--text-dim); font-weight: 400; } .mini-ro .mono { color: var(--accent-green); }
+.mini-scope { display: block; width: 100%; height: 130px; border-top: 1px solid var(--line); }
+@media (max-width: 600px) { .mini-sl { grid-template-columns: 1fr 70px; } .mini-sl span { grid-column: 1 / -1; } }

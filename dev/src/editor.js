@@ -198,8 +198,8 @@
     var ps = this.layout.parts, x0 = 300, y0 = 200, x1 = 700, y1 = 420;
     if (ps.length) { x0 = Math.min.apply(null, ps.map(function (p) { return p.x; })); x1 = Math.max.apply(null, ps.map(function (p) { return p.x; }));
       y0 = Math.min.apply(null, ps.map(function (p) { return p.y; })); y1 = Math.max.apply(null, ps.map(function (p) { return p.y; })); }
-    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, box = this.svg.getBoundingClientRect(), small = box.width && box.width < 600;
-    var w = Math.max(small ? 380 : 640, x1 - x0 + (small ? 160 : 280)), h = Math.max(small ? 240 : 400, y1 - y0 + (small ? 160 : 280)),  ar = box.width && box.height ? box.width / box.height : W / H;
+    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, box = this.svg.getBoundingClientRect(), small = box.width && box.width < 600, tight = this.opts.tight; // tight: Mini-Schaltung, knapp um die Bauteile
+    var w = Math.max(tight ? 240 : small ? 380 : 640, x1 - x0 + (tight ? 150 : small ? 160 : 280)), h = Math.max(tight ? 160 : small ? 240 : 400, y1 - y0 + (tight ? 150 : small ? 160 : 280)),  ar = box.width && box.height ? box.width / box.height : W / H;
     if (w / h < ar) w = h * ar; else h = w / ar;
     this.view = [Math.max(0, Math.min(W - w, cx - w / 2)), Math.max(0, Math.min(H - h, cy - h / 2)), Math.min(w, W), Math.min(h, H)];
     this.svg.setAttribute('viewBox', this.view.join(' '));

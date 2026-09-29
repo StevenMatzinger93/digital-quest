@@ -6,7 +6,9 @@
  * Zwei Koordinatenraeume: 'schema' (p.x, p.y, p.rot; Raster 20, 1000 × 620) und 'bench' (p.bench = {x, y, rot};
  * Raster 10, 1200 × 760). Topologie (Leitungen) ist fuer beide gleich. Fehlt p.bench, gilt eine
  * Auto-Anordnung aus der Schema-Lage (Uebergangsloesung); gespeichert wird p.bench erst beim Verschieben/Drehen.
- * App-Rueckmeldungen: opts.onChange(kind), onSelect(part|null), onProbe(pin), onMessage(text). */
+ * App-Rueckmeldungen: opts.onChange(kind), onSelect(part|null), onProbe(pin), onMessage(text).
+ * opts.readonly: nur Ansehen und Bedienen (Mini-Schaltung in Theorie-Lektionen) – Schalter, Taster und Pegelschalter
+ * reagieren, alles andere (Verschieben, Verdrahten, Loeschen, Drehen, Hinzufuegen) ist aus. */
 (function (root) {
   'use strict';
   var E = root.DQEngine;
@@ -86,7 +88,9 @@
   };
   /* Neues Bauteil moeglichst nahe (cx, cy) im Raum der aufrufenden Ansicht. Auf der Werkbank bekommt es
    * zusaetzlich einen freien Platz im Schema (Mitte der vorhandenen Bauteile). */
+  var TOGGLE = { switch: 1, button: 1, logicin: 1 };
   Circuit.prototype.addPart = function (type, cx, cy, space) {
+    if (this.opts.readonly) return null;
     space = space || 'schema';
     var id = this.nextId(type), p = { id: id, type: type, x: 0, y: 0, rot: 0, props: {} }, xy;
     if (space === 'bench') {
@@ -103,7 +107,7 @@
     return p;
   };
   Circuit.prototype.removeSelected = function () {
-    var s = this.sel; if (!s) return false;
+    var s = this.sel; if (!s || this.opts.readonly) return false;
     if (s.indexOf('w:') === 0) { this.layout.wires.splice(+s.slice(2), 1); }
     else {
       if (this.locked[s]) { if (this.opts.onMessage) this.opts.onMessage('Dieses Bauteil gehoert zur Aufgabe und bleibt.'); return false; }
@@ -115,7 +119,7 @@
   };
   /* Drehen im Raum (Standard: aktive Ansicht) – Schema- und Werkbank-Lage sind unabhaengig */
   Circuit.prototype.rotateSelected = function (space) {
-    var p = this.sel && this.part(this.sel); if (!p) return;
+    var p = this.sel && this.part(this.sel); if (!p || this.opts.readonly) return;
     var q = this._own(p, space || this.space);
     q.rot = ((q.rot || 0) + 90) % 360; this.changed('rotate');
   };
@@ -123,6 +127,7 @@
   /* Ereignisse der Ansichten (Hit-Testing macht der Renderer) */
   Circuit.prototype.clickPin = function (pin) { // Werkzeug 'wire': Anschluss → Anschluss verbinden, 'probe': Messspitze setzen
     if (this.tool === 'probe') { if (this.opts.onProbe) this.opts.onProbe(pin); return; }
+    if (this.opts.readonly) return;
     if (!this.wireStart) { this.wireStart = pin; this.redraw(); return; }
     if (this.wireStart !== pin) {
       var a = this.wireStart, dup = this.layout.wires.some(function (w) { return (w.from === a && w.to === pin) || (w.from === pin && w.to === a); });
@@ -131,14 +136,15 @@
     }
     this.wireStart = null; this.redraw();
   };
-  Circuit.prototype.clickWire = function (i) { this.sel = 'w:' + i; this.wireStart = null; this.redraw(); this._select(null); };
+  Circuit.prototype.clickWire = function (i) { if (this.opts.readonly) return; this.sel = 'w:' + i; this.wireStart = null; this.redraw(); this._select(null); };
   Circuit.prototype.clickEmpty = function () { this.sel = null; this.wireStart = null; this.redraw(); this._select(null); };
   /* Bauteil angefasst bei xy (Modellkoordinaten des Raums): auswaehlen, Ziehen vorbereiten, Taster druecken */
   Circuit.prototype.pressPart = function (id, xy, space) {
     var p = this.part(id); if (!p) return null;
+    if (this.opts.readonly && !TOGGLE[p.type]) return null; // nur Bedienelemente reagieren
     space = space || 'schema';
     var q = this.pos(p, space);
-    this.sel = p.id; this.wireStart = null;
+    this.sel = this.opts.readonly ? null : p.id; this.wireStart = null;
     this.drag = { id: p.id, space: space, ox: xy[0] - q.x, oy: xy[1] - q.y, sx: xy[0], sy: xy[1], moved: false };
     if (p.type === 'button') { p.props = p.props || {}; p.props.closed = true; this.changed('toggle'); }
     this.redraw(); this._select(p);
@@ -148,6 +154,7 @@
   Circuit.prototype.dragTo = function (xy) {
     var d = this.drag; if (!d) return false;
     var p = this.part(d.id); if (!p) return false;
+    if (this.opts.readonly) return false;
     if (Math.abs(xy[0] - d.sx) + Math.abs(xy[1] - d.sy) > 6) d.moved = true;
     if (!d.moved) return false;
     var S = SPACES[d.space], g = S.grid;
@@ -167,6 +174,7 @@
   };
   Circuit.prototype.cancel = function () { this.wireStart = null; this.sel = null; this.redraw(); };
   Circuit.prototype.key = function (ev) {
+    if (this.opts.readonly) return;
     if (ev.key === 'Delete' || ev.key === 'Backspace') { if (this.removeSelected()) ev.preventDefault(); }
     else if (ev.key === 'r' || ev.key === 'R') this.rotateSelected();
     else if (ev.key === 'Escape') this.cancel();
