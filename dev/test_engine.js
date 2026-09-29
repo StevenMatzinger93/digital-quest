@@ -257,5 +257,13 @@ ok(kcl(divider) && kcl(npn(10000)) && kcl(zd) && kcl(led(470, true)), 'Anschluss
 const clash = (a, b) => ({ parts: [G0, { id: 'E1', type: 'logicin', props: { closed: a } }, { id: 'E2', type: 'logicin', props: { closed: b } }, { id: 'L1', type: 'logicled' }], wires: [W('E1.out', 'L1.in'), W('E2.out', 'L1.in')] });
 ok(E.analyze(clash(true, false)).faults.some(f => f.code === 'OUTPUT_CLASH') && !E.analyze(clash(true, true)).faults.length, 'Zwei Ausgaenge mit unterschiedlichem Pegel: OUTPUT_CLASH');
 ok(!E.runTask({ limit: { gates: 0 }, tests: [{ expect: [{ noFault: true }] }] }, xn(true, true), {}).pass, 'Gatter-Limit wird geprueft');
+
+// 25 Wechselgroessen mit Einschwingen (τ ≫ T) und kurzen Nadeln (τ ≪ T)
+const rcClock = { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 1000 } }, { id: 'GND1', type: 'ground' }, { id: 'R1', type: 'resistor', value: 10000 }, { id: 'C1', type: 'capacitor', value: 10e-6 }], wires: [W('CLK1.out', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'GND1.g')] };
+am = E.acMeasure(rcClock, { a: 'C1.a', b: 'GND1.g' });
+ok(am.dc > 2.2 && am.dc < 2.6 && am.pp < 0.1, 'Tiefpass am Takt schwingt vor der Auswertung ein (Gleichanteil ≈ 2,5 V)');
+const rcDiff = { parts: [{ id: 'G1', type: 'acsource', value: 10, props: { freq: 50, shape: 'square' } }, { id: 'C1', type: 'capacitor', value: 100e-9 }, { id: 'R1', type: 'resistor', value: 1000 }], wires: [W('G1.p', 'C1.a'), W('C1.b', 'R1.a'), W('R1.b', 'G1.n')] };
+am = E.acMeasure(rcDiff, { a: 'R1.a', b: 'G1.n' });
+ok(am.pp > 34 && am.pp < 41, 'Differenzierglied: Nadeln fein genug abgetastet (≈ 40 V Spitze-Spitze)');
 console.log(`Engine-Tests: ${pass} ok, ${fail} Fehler`);
 process.exit(fail ? 1 : 0);

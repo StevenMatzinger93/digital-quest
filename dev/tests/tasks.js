@@ -50,19 +50,35 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
       await page.evaluate(([id, v]) => { delete DigitalQuest.state.drafts[id]; DigitalQuest.state.settings.view = v; DigitalQuest.openItem(id); DigitalQuest.setView(v); }, [t.id, view]);
       // 1. fehlende Bauteile aus der Palette, Eigenschaften im Panel setzen
       const startIds = new Set(t.start.parts.map(p => p.id)), map = {};
+      const setProps = async (pid, props) => { // Werte so eintippen, wie eine Person es tut (100n, 4.7k)
+        for (const [k, v] of Object.entries(props)) {
+          if (k === 'closed') { if (v) await page.click('#tgl', { timeout: 3000 }); continue; }
+          const sel = `#inspector [data-prop="${k}"]`;
+          if (!await page.$(sel)) { fail(pid + ': Eigenschaft „' + k + '“ ist im Panel nicht einstellbar'); continue; }
+          const tagName = await page.$eval(sel, el => el.tagName + (el.type ? ':' + el.type : ''));
+          if (tagName.startsWith('SELECT')) await page.selectOption(sel, String(v));
+          else if (tagName === 'INPUT:range') await page.$eval(sel, (el, x) => { el.value = x; el.dispatchEvent(new Event('input')); }, String(v));
+          else {
+            const txt = typeof v === 'number' && k !== 'offset' ? await page.evaluate(x => DQEditor.fmtVal(x), v) : String(v);
+            await page.fill(sel, txt); await page.dispatchEvent(sel, 'change');
+            if (await page.$eval(sel, el => el.classList.contains('bad'))) fail(pid + ': Eingabe „' + txt + '“ fuer ' + k + ' wird nicht angenommen');
+          }
+        }
+      };
       for (const rp of t.ref.parts.filter(p => !startIds.has(p.id))) {
         await page.click(`[data-add="${rp.type}"]`, { timeout: 3000 });
         map[rp.id] = await page.evaluate(() => DigitalQuest.core.sel);
         const props = Object.assign({}, rp.props || {}); if (rp.value !== undefined) props.value = rp.value;
-        for (const [k, v] of Object.entries(props)) {
-          if (k === 'closed') { if (v) await page.click('#tgl', { timeout: 3000 }); continue; }
-          const sel = `#inspector [data-prop="${k}"]`;
-          if (!await page.$(sel)) { fail(map[rp.id] + ': Eigenschaft „' + k + '“ ist im Panel nicht einstellbar'); continue; }
-          const tagName = await page.$eval(sel, el => el.tagName + (el.type ? ':' + el.type : ''));
-          if (tagName.startsWith('SELECT')) await page.selectOption(sel, String(v));
-          else if (tagName === 'INPUT:range') await page.$eval(sel, (el, x) => { el.value = x; el.dispatchEvent(new Event('input')); }, String(v));
-          else { await page.fill(sel, String(v)); await page.dispatchEvent(sel, 'change'); }
-        }
+        await setProps(map[rp.id], props);
+      }
+      // Generatoren/Taktgeber aus dem Start, die in der Loesung anders eingestellt sind: anklicken und im Panel einstellen
+      for (const rp of t.ref.parts.filter(p => startIds.has(p.id) && (p.type === 'acsource' || p.type === 'clock'))) {
+        const sp = t.start.parts.find(p => p.id === rp.id), diff = {};
+        Object.entries(rp.props || {}).forEach(([k, v]) => { if ((sp.props || {})[k] !== v) diff[k] = v; });
+        if (rp.value !== undefined && rp.value !== sp.value) diff.value = rp.value;
+        if (!Object.keys(diff).length) continue;
+        await atomicClick(page, `${svg} [data-part="${rp.id}"] ${view === 'bench' ? '.bblock' : '.hit'}`, 'data-part');
+        await setProps(rp.id, diff);
       }
       // Startbauteile, deren Schalterstellung in der Loesung anders ist: anklicken (Schalter/Taster schalten per Klick)
       for (const rp of t.ref.parts.filter(p => startIds.has(p.id))) {
@@ -155,11 +171,11 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
           for (const pn of c.pins) {
             const pid = id + '.' + pn;
             const top = await page.evaluate(([sv, h, p]) => { // atomar im Browser: was liegt genau unter der Anschluss-Mitte?
-              const el = document.querySelector(sv + ' [data-pin="' + p + '"] ' + h); if (!el) return 'fehlt';
+              const el = document.querySelector(sv + ' [data-pin="' + p + '"] ' + h); if (!el) return 'fehlt'; el.scrollIntoView({ block: 'center', inline: 'center' }); // wie eine Person: erst hinscrollen
               const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, box = document.querySelector(sv).getBoundingClientRect();
               if (x < box.left || x > box.right || y < box.top || y > box.bottom) return 'ausserhalb';
               const t = document.elementFromPoint(x, y), g = t && t.closest('[data-pin]');
-              if (!g) return 'verdeckt'; if (g.dataset.pin !== p) return 'verdeckt von ' + g.dataset.pin;
+              if (!g) return 'verdeckt von ' + (t ? t.tagName + (t.id ? '#' + t.id : '') + '.' + (t.getAttribute('class') || '') + ' in ' + ((t.closest('[id]') || {}).id || '-') : 'nichts'); if (g.dataset.pin !== p) return 'verdeckt von ' + g.dataset.pin;
               t.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: x, clientY: y }));
               return DigitalQuest.core.wireStart === p ? 'ok' : 'Klick ohne Wirkung';
             }, [svg, hit, pid]);
