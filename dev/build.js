@@ -8,8 +8,9 @@
 //     sw.js                ein Service Worker fuer Portal und Spiel, /api/ nie aus dem Cache
 //   ../worker/gen/exam_bundle.js   Engine + Pruefungspool fuer den Worker (Bewertung der Pruefungen auf dem Server)
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
-const src = p => fs.readFileSync(path.join(__dirname, 'src', p), 'utf8');
-const P = f => fs.readFileSync(path.join(__dirname, 'portal', f), 'utf8');
+// Zeilenenden vereinheitlichen: Git unter Windows checkt mit CRLF aus
+const src = p => fs.readFileSync(path.join(__dirname, 'src', p), 'utf8').split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
+const P = f => fs.readFileSync(path.join(__dirname, 'portal', f), 'utf8').split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
 const script = (title, code) => { if (/<\/script/i.test(code)) throw new Error(title + ' enthaelt </script>'); return '<script>\n/* ==== ' + title + ' ==== */\n' + code + '\n</script>\n'; };
 const content = fs.readdirSync(path.join(__dirname, 'src/content')).filter(f => f.endsWith('.js') && f !== '_helpers.js' && f !== 'manual.js').sort();
 const files = ['engine.js', 'content/_helpers.js', ...content.map(f => 'content/' + f), 'content/manual.js', 'circuit-ui.js', 'editor.js', 'bench.js', 'mini.js', 'visuals.js', 'tiles.js', 'account.js', 'live.js', 'exam.js', 'app.js'].filter(f => fs.existsSync(path.join(__dirname, 'src', f)));

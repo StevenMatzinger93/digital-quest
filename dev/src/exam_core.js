@@ -15,7 +15,7 @@
  * unveraendert vorhanden sein, neue Bauteile nur aus der Palette – sonst 0 Punkte. */
 (function (root) {
   'use strict';
-  var E = root.DQEngine || (typeof require === 'function' ? require('./engine.js') : null);
+  var E = root.DQEngine; // wird vor diesem Modul geladen (Worker-Bundle, exam_pool.js); kein require – der Bundler von Cloudflare wuerde es aufloesen wollen
   var X = root.DQ_EXAM = root.DQ_EXAM || { tasks: [], questions: [] };
   var QUEST = 'dq', LEVELS = ['grund', 'profi'];
   var RULES = {
