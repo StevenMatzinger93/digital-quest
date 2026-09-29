@@ -74,6 +74,7 @@ GitHub-Repo: github.com/StevenMatzinger93/digital-quest (Branch `main`). Cloudfl
 1b. ~~Engine-Erweiterung fuer Kapitel 3 (Wechselspannungsquelle, AVG/RMS/TRMS)~~ – erledigt 28.09.2026 (`acsource`, `acMeasure`, V~ mit AVG/TRMS).
 2. Theoriedokumente in `theorie/` sichten → Lektionen und Fragen ableiten.
 2b. **Theorie-Lektionen mit Bild/Animation (29.09.2026, viel Zeit vorgesehen)**: vollstaendiger Plan in `docs/PLAN_THEORIE_ANIMATIONEN.md` (Uebersicht aller 30 Lektionen, Baustein-Vorschlag je Lektion, `visual`-Datenmodell, Phasenplan). Start: Phase A (Mini-Schaltung als Theorie-Baustein), danach T9A Gray-Code als erste konkrete Umsetzung.
+2c. **Bauteil-Datenblatt beim Drueberfahren (29.09.2026)**: vollstaendiger Plan in `docs/PLAN_BAUTEILDATENBLATT.md` (Funktion/Anschluesse/Grenzen + Schema- und Werkbank-Bild je Bauteiltyp, Grenzen live aus E.PARTS statt dupliziert). Teilt sich Phase A (Icons freistellen) mit dem Mini-Schaltung-Baustein der Theorie-Animationen - zusammen einplanen.
 3. Editor Stufe 2: Knickpunkte, Zoom/Pan, Rueckgaengig, Touch-Feinschliff.
 4. Komfort nach Bauplan: Touren, Glossar, Diagnose-Ausbau, Loesungsvergleich, Spaced Review.
 5. Bauteile/Messgeraete je nach Themen (Transistor, Relais, Flipflops, Zaehler, 7-Segment, Funktionsgenerator, 2-Kanal-Oszi).
