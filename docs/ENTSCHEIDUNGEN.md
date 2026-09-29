@@ -43,6 +43,10 @@ Alle vier Quick Wins aus der Marktanalyse werden umgesetzt - kein neues Bedienko
 - **Limit-Hinweis**: `task.limit` wird automatisch als "Erlaubt: …" im Auftrag angezeigt, sofern der Auftragstext ihn nicht schon selbst enthaelt.
 - **`tests/tasks.js` bedient wie ein Mensch**: Werte werden mit Vorsatz eingetippt (`100n`, `2.2m`), Generatoren im Startaufbau werden angeklickt und im Panel eingestellt, Anschluesse werden vor dem Anklicken ins Bild gescrollt.
 
+## Dozentenmodus (Entscheid 29.09.2026)
+- Lokal im Spielstand (`settings.teacher`), eingeschaltet in den Einstellungen mit einem festen Code. Der Code ist **kein Sicherheitsmerkmal** (die Offline-Datei ist lesbar), er verhindert nur das zufaellige Einschalten durch Lernende. Echte Rollen gehoeren zu "Klassen und Personen".
+- Der Modus schaltet nur frei, er markiert nichts als erledigt – eine Lehrperson kann auf einem Schuelergeraet vorfuehren, ohne den Fortschritt zu verfaelschen.
+
 ## Hosting-Umgebung (Entscheid 28.09.2026, wie SPS/SCL Quest)
 Gleiches Muster wie bei SCL Quest: eigenes GitHub-Repo + Cloudflare Worker (`wrangler.jsonc`, liefert `web/` als Website aus), per GitHub verbunden fuer Auto-Deploy bei Push. **Bewusst ohne D1-Datenbank/Klassen-Anbindung** – das gehoert zum zurueckgestellten Punkt "Klassen und Personen" oben und wird erst ergaenzt, wenn diese Funktion tatsaechlich gebaut wird. `wrangler.jsonc` liegt bereit (Worker-Name `digital-quest`). ~~Offen/braucht Stevens Aktion~~ – erledigt (28.09.2026): GitHub-Repo `digital-quest` angelegt und verbunden, Cloudflare-Login gemacht, Worker `digital-quest` mit dem GitHub-Repo verknuepft (Settings -> Builds). Push nach `main` deployt jetzt automatisch, siehe `docs/STAND.md`.
 

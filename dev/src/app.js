@@ -37,7 +37,9 @@
 
   /* ================= Reihenfolge / Freischaltung ================= */
   var ORDER = []; DQ.chapters.forEach(function (c) { c.sequence.forEach(function (id) { ORDER.push(id); }); });
-  function unlocked(id) { var i = ORDER.indexOf(id); return UNLOCK_ALL || i <= 0 || !!S.done[ORDER[i - 1]]; }
+  /* Dozentenmodus (settings.teacher, per Code in den Einstellungen) oder ?alle: alles offen, Werkbank mit allen Bauteilen */
+  function allOpen() { return UNLOCK_ALL || !!S.settings.teacher; }
+  function unlocked(id) { var i = ORDER.indexOf(id); return allOpen() || i <= 0 || !!S.done[ORDER[i - 1]]; }
   function nextOf(id) { var i = ORDER.indexOf(id); return ORDER[i + 1]; }
 
   /* ================= Navigation ================= */
@@ -72,6 +74,9 @@
   function renderMap() {
     var total = ORDER.length, done = ORDER.filter(function (id) { return S.done[id]; }).length;
     var h = '<div class="map-head"><div><h1>Laborkarte</h1><p class="dim">Baue, miss, verstehe. Jede Station schaltet die naechste frei.</p></div>' +
+      (S.settings.teacher ? '<div class="teacher-bar"><b>Dozentenmodus</b> <span class="dim small">Alle Stationen offen, Freie Werkbank mit allen Bauteilen.</span><label class="fld"><span>Springe zu</span><select id="jump"><option value="">Station waehlen …</option>' +
+        DQ.chapters.map(function (c) { return '<optgroup label="Kapitel ' + c.id + ' – ' + esc(c.title) + '">' + c.sequence.map(function (id) { var it = DQ.byId[id]; return '<option value="' + id + '">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : id) + ' ' + esc(it.title) + '</option>'; }).join('') + '</optgroup>'; }).join('') +
+        '</select></label></div>' : '') +
       '<div class="map-actions"><button class="btn" data-open="sandbox" title="Frei bauen und messen – ohne Auftrag">Freie Werkbank</button><div class="progress"><div class="bar"><i style="width:' + (100 * done / Math.max(1, total)).toFixed(1) + '%"></i></div><span>' + done + ' / ' + total + '</span></div></div></div>';
     var parts = DQ.parts || [{ no: '', title: '', chapters: DQ.chapters.map(function (c) { return c.id; }) }];
     parts.forEach(function (pt) {
@@ -94,6 +99,7 @@
     $('#scr-map').innerHTML = h;
     $$('[data-open]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openItem(b.dataset.open); }; });
     $$('[data-award]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openAward(b.dataset.award); }; });
+    if ($('#jump')) $('#jump').onchange = function () { if (this.value) openItem(this.value); };
   }
 
   /* ================= Auszeichnungen (Zertifikat Grundstufe, Abzeichen Profi-Stufe) ================= */
@@ -117,10 +123,10 @@
     var got = awardEarned(a);
     return '<div class="award-card' + (got ? ' earned' : '') + '">' + medal(a, 72) + '<div><span class="part-no">' + esc(a.kind) + '</span><h3>' + esc(a.title) + '</h3>' +
       '<p class="dim small">' + (got ? 'Erhalten am ' + fmtDate(awardDate(a)) + '.' : 'Wird mit der Boss-Aufgabe ' + a.boss + ' freigeschaltet.') + '</p></div>' +
-      (got ? '<button class="btn primary" data-award="' + a.id + '">' + esc(a.kind) + ' anzeigen</button>' : '<span class="award-lock">' + ICON.lock + '</span>') + '</div>';
+      (got ? '<button class="btn primary" data-award="' + a.id + '">' + esc(a.kind) + ' anzeigen</button>' : allOpen() ? '<button class="btn" data-award="' + a.id + '">Vorschau</button>' : '<span class="award-lock">' + ICON.lock + '</span>') + '</div>';
   }
   function openAward(id) {
-    var a = DQ.awards[id]; if (!a || !(awardEarned(a) || UNLOCK_ALL)) return;
+    var a = DQ.awards[id]; if (!a || !(awardEarned(a) || allOpen())) return;
     show('award');
     var nm = personName(), chs = DQ.chapters.filter(function (c) { return c.id >= a.chapters[0] && c.id <= a.chapters[1]; }), n = 0;
     chs.forEach(function (c) { n += c.sequence.filter(function (x) { return S.done[x]; }).length; });
@@ -150,7 +156,7 @@
    * (Palette + Startaufbau), mit ?alle der ganze Bauteilkatalog. Entwurf unter drafts.sandbox. */
   function sandboxTask() {
     var types = {};
-    if (UNLOCK_ALL) Object.keys(E.PARTS).forEach(function (k) { types[k] = true; });
+    if (allOpen()) Object.keys(E.PARTS).forEach(function (k) { types[k] = true; });
     DQ.tasks.forEach(function (t) {
       if (!unlocked(t.id)) return;
       t.palette.forEach(function (k) { types[k] = true; }); t.start.parts.forEach(function (p) { types[p.type] = true; });
@@ -616,8 +622,17 @@
       '<section><h3>Profil (lokal)</h3><p class="dim small">Wird spaeter fuer Klassen und die questuebergreifende Auswertung (Buehler Quest) verwendet. Personen-ID: <code>' + esc(pr.id) + '</code></p>' +
       '<label class="fld"><span>Vorname</span><input id="pfV" value="' + esc(pr.vorname) + '"></label><label class="fld"><span>Nachname</span><input id="pfN" value="' + esc(pr.nachname) + '"></label>' +
       '<label class="fld"><span>Pseudonym</span><input id="pfP" value="' + esc(pr.pseudonym) + '"></label></section>' +
+      '<section><h3>Dozentenmodus</h3>' + (S.settings.teacher
+        ? '<p class="small">Aktiv: Alle Stationen sind offen, auf der Karte gibt es eine Sprungliste, die Freie Werkbank hat alle Bauteile.</p><button class="btn" id="tOff">Dozentenmodus beenden</button>'
+        : '<p class="dim small">Fuer Lehrpersonen: schaltet alle Stationen und alle Bauteile frei. Der Fortschritt der Lernenden bleibt unveraendert.</p><label class="fld"><span>Code</span><input id="tCode" type="password" autocomplete="off"></label><button class="btn" id="tOn">Einschalten</button> <span id="tMsg" class="small"></span>') + '</section>' +
       '<section><h3>Spielstand</h3><button class="btn" id="exp">Exportieren</button> <label class="btn">Importieren<input type="file" id="imp" accept=".json" hidden></label> <button class="btn danger" id="rst">Zuruecksetzen</button></section></div>';
     $('#setTheme').value = S.settings.theme;
+    if ($('#tOn')) $('#tOn').onclick = $('#tCode').onkeydown = function (ev) {
+      if (ev && ev.type === 'keydown' && ev.key !== 'Enter') return;
+      if ($('#tCode').value.trim().toLowerCase() !== String(DQ.teacherCode).toLowerCase()) { $('#tMsg').textContent = 'Code falsch.'; $('#tMsg').className = 'small err'; return; }
+      S.settings.teacher = true; log('teacher_on', {}); save(); applyMode(); renderSettings();
+    };
+    if ($('#tOff')) $('#tOff').onclick = function () { S.settings.teacher = false; log('teacher_off', {}); save(); applyMode(); renderSettings(); };
     $('#setTheme').onchange = function () { S.settings.theme = this.value; applyTheme(); save(); };
     [['#pfV', 'vorname'], ['#pfN', 'nachname'], ['#pfP', 'pseudonym']].forEach(function (x) { $(x[0]).oninput = function () { S.profile[x[1]] = this.value; save(); }; });
     $('#exp').onclick = function () {
@@ -626,18 +641,19 @@
     };
     $('#imp').onchange = function () {
       var f = this.files[0]; if (!f) return; var rd = new FileReader();
-      rd.onload = function () { try { var d = JSON.parse(rd.result); if (!d.profile || !d.done) throw 0; S = d; save(); renderSettings(); modal('<p>Spielstand geladen.</p>'); } catch (e) { modal('<p>Die Datei ist kein gueltiger Spielstand.</p>'); } };
+      rd.onload = function () { try { var d = JSON.parse(rd.result); if (!d.profile || !d.done) throw 0; S = d; save(); applyMode(); renderSettings(); modal('<p>Spielstand geladen.</p>'); } catch (e) { modal('<p>Die Datei ist kein gueltiger Spielstand.</p>'); } };
       rd.readAsText(f);
     };
     $('#rst').onclick = function () {
-      modal('<h2>Alles zuruecksetzen?</h2><p>Fortschritt und Entwuerfe werden geloescht. Die Personen-ID bleibt.</p>', [{ label: 'Abbrechen' }, { label: 'Zuruecksetzen', primary: true, action: function () { var id = S.profile; S = fresh(); S.profile = id; save(); renderSettings(); } }]);
+      modal('<h2>Alles zuruecksetzen?</h2><p>Fortschritt und Entwuerfe werden geloescht. Die Personen-ID bleibt.</p>', [{ label: 'Abbrechen' }, { label: 'Zuruecksetzen', primary: true, action: function () { var id = S.profile; S = fresh(); S.profile = id; save(); applyMode(); renderSettings(); } }]);
     };
   }
   function applyTheme() { document.documentElement.dataset.theme = S.settings.theme; }
+  function applyMode() { var t = $('#modeTag'); if (t) t.hidden = !S.settings.teacher; }
 
   /* ================= Start ================= */
   function init() {
-    applyTheme();
+    applyTheme(); applyMode();
     $$('[data-go]').forEach(function (b) {
       b.onclick = function () {
         var g = b.dataset.go;

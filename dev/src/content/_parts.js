@@ -10,6 +10,8 @@
     { no: 'IV', title: 'Zeitverhalten und Praxis', stage: 'profi', chapters: [11, 12, 13, 14, 15], award: 'profi' }
   ];
   DQ.stages = { grund: 'Grundstufe', profi: 'Profi-Stufe' };
+  /* Code fuer den Dozentenmodus (Einstellungen). Kein echter Schutz – die Datei ist offline lesbar –, haelt aber Lernende vom zufaelligen Einschalten ab. */
+  DQ.teacherCode = 'labor2026';
   DQ.awards = {
     grund: { id: 'grund', kind: 'Zertifikat', title: 'Zertifikat Grundstufe', boss: '10.10', chapters: [1, 10],
       text: 'hat die Grundstufe von Digital Quest erfolgreich abgeschlossen: Stromkreis und Messtechnik, Zahlensysteme, Logikgatter, Boolesche Algebra, Schaltungsentwurf und Kombinatorik – mit der Boss-Aufgabe „Das Codeschloss“.' },

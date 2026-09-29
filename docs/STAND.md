@@ -61,6 +61,9 @@ Dazu: Engine-Bauteile fuer Digital/Halbleiter, Stromfluss-Animation (Schaltplan 
 - **Tests**: `tests/tasks.js` tippt Werte wie ein Mensch (`100n`), stellt Generatoren im Startaufbau ueber das Panel ein und scrollt Anschluesse ins Bild. `tests/smoke.js` prueft zusaetzlich Teile der Karte, alle Handbuchseiten, Limit-Hinweis, Boss 15.10 mit Abzeichen-Dialog, Abzeichen-Seite und Namensuebernahme (Screenshot `12_abzeichen.png`).
 - **QA**: 90 Engine-Tests, Validator 0 Fehler/0 Warnungen, Smoke OK, `tests/tasks.js` 150 Aufgaben × 2 Ansichten + Bauteilkatalog × 2 gruen, Handy ohne horizontalen Scroll.
 
+## Dozentenmodus (29.09.2026)
+- Einstellungen → Dozentenmodus, mit Code einschalten (`DQ.teacherCode` in `dev/src/content/_parts.js`, derzeit `labor2026`). Dann: alle Stationen offen, Sprungliste "Springe zu" auf der Karte (jede Theorie/Aufgabe nach Kapitel), Freie Werkbank mit dem ganzen Bauteilkatalog, Zertifikat/Abzeichen als Vorschau, Kennzeichen DOZENT in der Kopfzeile. Fortschritt wird nicht veraendert; Ereignisse `teacher_on`/`teacher_off`. Smoke-Test prueft Code, Sprung, Werkbank und Ausschalten (Screenshot `13_dozent_karte.png`).
+
 ## Hosting (Stand 28.09.2026)
 GitHub-Repo: github.com/StevenMatzinger93/digital-quest (Branch `main`). Cloudflare Worker `digital-quest` (`wrangler.jsonc`, Assets aus `web/`) per GitHub verbunden – jeder Push nach `main` deployt automatisch. Bewusst ohne D1-Datenbank/Klassen-Anbindung, siehe `docs/ENTSCHEIDUNGEN.md`.
 

@@ -83,4 +83,4 @@ Fertig heisst: Tests gruen, Validator 0 Fehler, Browser-Durchlauf fehlerfrei, `t
 Vorbereitung Buehler Quest: UUID als Personen-ID, Namen getrennt, Ereignisliste mit Zeitstempel und Tags. **Keine** Verknuepfung zu SPS Quest bauen, solange nicht ausdruecklich verlangt.
 
 ## Entwickeln
-`index.html?alle` schaltet alle Stationen frei (und gibt der Freien Werkbank alle Bauteile), `?werkbank` startet in der Werkbank-Ansicht (sonst gilt `settings.view`, Umschalt-Button in der Toolbar). `window.DigitalQuest` (state, openItem, editor, bench, core, setView, engine) fuer Tests.
+`index.html?alle` schaltet alle Stationen frei (und gibt der Freien Werkbank alle Bauteile). Dasselbe fuer Lehrpersonen ohne URL: **Dozentenmodus** in den Einstellungen (`settings.teacher`, Code `DQ.teacherCode` in `src/content/_parts.js`, Kennzeichen DOZENT, Sprungliste auf der Karte, Fortschritt bleibt unveraendert), `?werkbank` startet in der Werkbank-Ansicht (sonst gilt `settings.view`, Umschalt-Button in der Toolbar). `window.DigitalQuest` (state, openItem, editor, bench, core, setView, engine) fuer Tests.

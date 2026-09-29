@@ -271,11 +271,20 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   #scr-award { padding: 0; max-width: none; }
   .certificate { box-shadow: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Dozentenmodus */
+.mode-tag { font: 700 11px var(--font-code); letter-spacing: 2px; color: #111; background: var(--accent-cyan); padding: 3px 8px; border-radius: 4px; }
+.teacher-bar { flex-basis: 100%; order: 3; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; padding: 10px 14px; border: 1px solid var(--accent-cyan); border-radius: 10px; background: var(--bg-secondary); }
+.teacher-bar b { color: var(--accent-cyan); }
+.teacher-bar .fld { margin: 0 0 0 auto; grid-template-columns: auto minmax(220px, 360px); }
+.small.err { color: var(--accent-red); }
+@media (max-width: 760px) { .teacher-bar .fld { margin-left: 0; grid-template-columns: 1fr; width: 100%; } }
 </style>
 </head>
 <body>
 <header class="top">
   <div class="brand"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 4 12 2-6h8"/></svg><span>DIGITAL<b>QUEST</b></span></div>
+  <span id="modeTag" class="mode-tag" hidden title="Dozentenmodus aktiv – beenden in den Einstellungen">DOZENT</span>
   <nav><button data-go="map">Karte</button><button data-go="manual">Handbuch</button><button data-go="settings">Einstellungen</button></nav>
   <span id="saveInd"></span>
 </header>
@@ -1146,6 +1155,8 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     { no: 'IV', title: 'Zeitverhalten und Praxis', stage: 'profi', chapters: [11, 12, 13, 14, 15], award: 'profi' }
   ];
   DQ.stages = { grund: 'Grundstufe', profi: 'Profi-Stufe' };
+  /* Code fuer den Dozentenmodus (Einstellungen). Kein echter Schutz – die Datei ist offline lesbar –, haelt aber Lernende vom zufaelligen Einschalten ab. */
+  DQ.teacherCode = 'labor2026';
   DQ.awards = {
     grund: { id: 'grund', kind: 'Zertifikat', title: 'Zertifikat Grundstufe', boss: '10.10', chapters: [1, 10],
       text: 'hat die Grundstufe von Digital Quest erfolgreich abgeschlossen: Stromkreis und Messtechnik, Zahlensysteme, Logikgatter, Boolesche Algebra, Schaltungsentwurf und Kombinatorik – mit der Boss-Aufgabe „Das Codeschloss“.' },
@@ -5614,7 +5625,9 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
   /* ================= Reihenfolge / Freischaltung ================= */
   var ORDER = []; DQ.chapters.forEach(function (c) { c.sequence.forEach(function (id) { ORDER.push(id); }); });
-  function unlocked(id) { var i = ORDER.indexOf(id); return UNLOCK_ALL || i <= 0 || !!S.done[ORDER[i - 1]]; }
+  /* Dozentenmodus (settings.teacher, per Code in den Einstellungen) oder ?alle: alles offen, Werkbank mit allen Bauteilen */
+  function allOpen() { return UNLOCK_ALL || !!S.settings.teacher; }
+  function unlocked(id) { var i = ORDER.indexOf(id); return allOpen() || i <= 0 || !!S.done[ORDER[i - 1]]; }
   function nextOf(id) { var i = ORDER.indexOf(id); return ORDER[i + 1]; }
 
   /* ================= Navigation ================= */
@@ -5649,6 +5662,9 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   function renderMap() {
     var total = ORDER.length, done = ORDER.filter(function (id) { return S.done[id]; }).length;
     var h = '<div class="map-head"><div><h1>Laborkarte</h1><p class="dim">Baue, miss, verstehe. Jede Station schaltet die naechste frei.</p></div>' +
+      (S.settings.teacher ? '<div class="teacher-bar"><b>Dozentenmodus</b> <span class="dim small">Alle Stationen offen, Freie Werkbank mit allen Bauteilen.</span><label class="fld"><span>Springe zu</span><select id="jump"><option value="">Station waehlen …</option>' +
+        DQ.chapters.map(function (c) { return '<optgroup label="Kapitel ' + c.id + ' – ' + esc(c.title) + '">' + c.sequence.map(function (id) { var it = DQ.byId[id]; return '<option value="' + id + '">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : id) + ' ' + esc(it.title) + '</option>'; }).join('') + '</optgroup>'; }).join('') +
+        '</select></label></div>' : '') +
       '<div class="map-actions"><button class="btn" data-open="sandbox" title="Frei bauen und messen – ohne Auftrag">Freie Werkbank</button><div class="progress"><div class="bar"><i style="width:' + (100 * done / Math.max(1, total)).toFixed(1) + '%"></i></div><span>' + done + ' / ' + total + '</span></div></div></div>';
     var parts = DQ.parts || [{ no: '', title: '', chapters: DQ.chapters.map(function (c) { return c.id; }) }];
     parts.forEach(function (pt) {
@@ -5671,6 +5687,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     $('#scr-map').innerHTML = h;
     $$('[data-open]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openItem(b.dataset.open); }; });
     $$('[data-award]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openAward(b.dataset.award); }; });
+    if ($('#jump')) $('#jump').onchange = function () { if (this.value) openItem(this.value); };
   }
 
   /* ================= Auszeichnungen (Zertifikat Grundstufe, Abzeichen Profi-Stufe) ================= */
@@ -5694,10 +5711,10 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     var got = awardEarned(a);
     return '<div class="award-card' + (got ? ' earned' : '') + '">' + medal(a, 72) + '<div><span class="part-no">' + esc(a.kind) + '</span><h3>' + esc(a.title) + '</h3>' +
       '<p class="dim small">' + (got ? 'Erhalten am ' + fmtDate(awardDate(a)) + '.' : 'Wird mit der Boss-Aufgabe ' + a.boss + ' freigeschaltet.') + '</p></div>' +
-      (got ? '<button class="btn primary" data-award="' + a.id + '">' + esc(a.kind) + ' anzeigen</button>' : '<span class="award-lock">' + ICON.lock + '</span>') + '</div>';
+      (got ? '<button class="btn primary" data-award="' + a.id + '">' + esc(a.kind) + ' anzeigen</button>' : allOpen() ? '<button class="btn" data-award="' + a.id + '">Vorschau</button>' : '<span class="award-lock">' + ICON.lock + '</span>') + '</div>';
   }
   function openAward(id) {
-    var a = DQ.awards[id]; if (!a || !(awardEarned(a) || UNLOCK_ALL)) return;
+    var a = DQ.awards[id]; if (!a || !(awardEarned(a) || allOpen())) return;
     show('award');
     var nm = personName(), chs = DQ.chapters.filter(function (c) { return c.id >= a.chapters[0] && c.id <= a.chapters[1]; }), n = 0;
     chs.forEach(function (c) { n += c.sequence.filter(function (x) { return S.done[x]; }).length; });
@@ -5727,7 +5744,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
    * (Palette + Startaufbau), mit ?alle der ganze Bauteilkatalog. Entwurf unter drafts.sandbox. */
   function sandboxTask() {
     var types = {};
-    if (UNLOCK_ALL) Object.keys(E.PARTS).forEach(function (k) { types[k] = true; });
+    if (allOpen()) Object.keys(E.PARTS).forEach(function (k) { types[k] = true; });
     DQ.tasks.forEach(function (t) {
       if (!unlocked(t.id)) return;
       t.palette.forEach(function (k) { types[k] = true; }); t.start.parts.forEach(function (p) { types[p.type] = true; });
@@ -6193,8 +6210,17 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
       '<section><h3>Profil (lokal)</h3><p class="dim small">Wird spaeter fuer Klassen und die questuebergreifende Auswertung (Buehler Quest) verwendet. Personen-ID: <code>' + esc(pr.id) + '</code></p>' +
       '<label class="fld"><span>Vorname</span><input id="pfV" value="' + esc(pr.vorname) + '"></label><label class="fld"><span>Nachname</span><input id="pfN" value="' + esc(pr.nachname) + '"></label>' +
       '<label class="fld"><span>Pseudonym</span><input id="pfP" value="' + esc(pr.pseudonym) + '"></label></section>' +
+      '<section><h3>Dozentenmodus</h3>' + (S.settings.teacher
+        ? '<p class="small">Aktiv: Alle Stationen sind offen, auf der Karte gibt es eine Sprungliste, die Freie Werkbank hat alle Bauteile.</p><button class="btn" id="tOff">Dozentenmodus beenden</button>'
+        : '<p class="dim small">Fuer Lehrpersonen: schaltet alle Stationen und alle Bauteile frei. Der Fortschritt der Lernenden bleibt unveraendert.</p><label class="fld"><span>Code</span><input id="tCode" type="password" autocomplete="off"></label><button class="btn" id="tOn">Einschalten</button> <span id="tMsg" class="small"></span>') + '</section>' +
       '<section><h3>Spielstand</h3><button class="btn" id="exp">Exportieren</button> <label class="btn">Importieren<input type="file" id="imp" accept=".json" hidden></label> <button class="btn danger" id="rst">Zuruecksetzen</button></section></div>';
     $('#setTheme').value = S.settings.theme;
+    if ($('#tOn')) $('#tOn').onclick = $('#tCode').onkeydown = function (ev) {
+      if (ev && ev.type === 'keydown' && ev.key !== 'Enter') return;
+      if ($('#tCode').value.trim().toLowerCase() !== String(DQ.teacherCode).toLowerCase()) { $('#tMsg').textContent = 'Code falsch.'; $('#tMsg').className = 'small err'; return; }
+      S.settings.teacher = true; log('teacher_on', {}); save(); applyMode(); renderSettings();
+    };
+    if ($('#tOff')) $('#tOff').onclick = function () { S.settings.teacher = false; log('teacher_off', {}); save(); applyMode(); renderSettings(); };
     $('#setTheme').onchange = function () { S.settings.theme = this.value; applyTheme(); save(); };
     [['#pfV', 'vorname'], ['#pfN', 'nachname'], ['#pfP', 'pseudonym']].forEach(function (x) { $(x[0]).oninput = function () { S.profile[x[1]] = this.value; save(); }; });
     $('#exp').onclick = function () {
@@ -6203,18 +6229,19 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
     };
     $('#imp').onchange = function () {
       var f = this.files[0]; if (!f) return; var rd = new FileReader();
-      rd.onload = function () { try { var d = JSON.parse(rd.result); if (!d.profile || !d.done) throw 0; S = d; save(); renderSettings(); modal('<p>Spielstand geladen.</p>'); } catch (e) { modal('<p>Die Datei ist kein gueltiger Spielstand.</p>'); } };
+      rd.onload = function () { try { var d = JSON.parse(rd.result); if (!d.profile || !d.done) throw 0; S = d; save(); applyMode(); renderSettings(); modal('<p>Spielstand geladen.</p>'); } catch (e) { modal('<p>Die Datei ist kein gueltiger Spielstand.</p>'); } };
       rd.readAsText(f);
     };
     $('#rst').onclick = function () {
-      modal('<h2>Alles zuruecksetzen?</h2><p>Fortschritt und Entwuerfe werden geloescht. Die Personen-ID bleibt.</p>', [{ label: 'Abbrechen' }, { label: 'Zuruecksetzen', primary: true, action: function () { var id = S.profile; S = fresh(); S.profile = id; save(); renderSettings(); } }]);
+      modal('<h2>Alles zuruecksetzen?</h2><p>Fortschritt und Entwuerfe werden geloescht. Die Personen-ID bleibt.</p>', [{ label: 'Abbrechen' }, { label: 'Zuruecksetzen', primary: true, action: function () { var id = S.profile; S = fresh(); S.profile = id; save(); applyMode(); renderSettings(); } }]);
     };
   }
   function applyTheme() { document.documentElement.dataset.theme = S.settings.theme; }
+  function applyMode() { var t = $('#modeTag'); if (t) t.hidden = !S.settings.teacher; }
 
   /* ================= Start ================= */
   function init() {
-    applyTheme();
+    applyTheme(); applyMode();
     $$('[data-go]').forEach(function (b) {
       b.onclick = function () {
         var g = b.dataset.go;

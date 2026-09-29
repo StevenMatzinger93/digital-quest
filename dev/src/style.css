@@ -260,3 +260,11 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
   #scr-award { padding: 0; max-width: none; }
   .certificate { box-shadow: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Dozentenmodus */
+.mode-tag { font: 700 11px var(--font-code); letter-spacing: 2px; color: #111; background: var(--accent-cyan); padding: 3px 8px; border-radius: 4px; }
+.teacher-bar { flex-basis: 100%; order: 3; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; padding: 10px 14px; border: 1px solid var(--accent-cyan); border-radius: 10px; background: var(--bg-secondary); }
+.teacher-bar b { color: var(--accent-cyan); }
+.teacher-bar .fld { margin: 0 0 0 auto; grid-template-columns: auto minmax(220px, 360px); }
+.small.err { color: var(--accent-red); }
+@media (max-width: 760px) { .teacher-bar .fld { margin-left: 0; grid-template-columns: 1fr; width: 100%; } }

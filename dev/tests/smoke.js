@@ -163,6 +163,28 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     if (!await page.isVisible('[data-award="profi"]')) errors.push('Karte: Abzeichen nicht als erhalten markiert');
   }
 
+  // Dozentenmodus: frischer Spielstand ohne ?alle
+  const tctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }), tp = await tctx.newPage();
+  tp.on('pageerror', e => errors.push('Dozent: ' + e.message));
+  await tp.goto(url.replace('?alle', ''), { waitUntil: 'domcontentloaded' });
+  if (!await tp.isDisabled('[data-open="12.5"]')) errors.push('Dozent: ohne Modus sollte 12.5 gesperrt sein');
+  await tp.click('[data-go="settings"]'); await tp.fill('#tCode', 'falsch'); await tp.click('#tOn');
+  if (!/falsch/.test(await tp.textContent('#tMsg'))) errors.push('Dozent: falscher Code nicht abgewiesen');
+  await tp.fill('#tCode', await tp.evaluate(() => DQ.teacherCode)); await tp.click('#tOn');
+  if (!await tp.isVisible('#modeTag')) errors.push('Dozent: Kennzeichen DOZENT fehlt');
+  await tp.click('[data-go="map"]');
+  if (await tp.isDisabled('[data-open="15.10"]')) errors.push('Dozent: 15.10 nicht offen');
+  await tp.selectOption('#jump', '12.5');
+  if (!/Aufgabe 12\.5/.test(await tp.textContent('#taskInfo .crumb'))) errors.push('Dozent: Sprung zu 12.5 fehlgeschlagen');
+  await tp.click('[data-go="map"]'); await tp.screenshot({ path: shots + '/13_dozent_karte.png' });
+  await tp.click('.map-actions [data-open="sandbox"]');
+  const pal = await tp.$$eval('[data-add]', els => els.map(e => e.dataset.add));
+  if (!['motor', 'npn', 'dec7', 'acsource', 'jkff'].every(k => pal.includes(k))) errors.push('Dozent: Werkbank ohne alle Bauteile: ' + pal.join(','));
+  if (await tp.evaluate(() => Object.keys(DigitalQuest.state.done).length)) errors.push('Dozent: Fortschritt wurde veraendert');
+  await tp.click('[data-go="settings"]'); await tp.click('#tOff'); await tp.click('[data-go="map"]');
+  if (!await tp.isDisabled('[data-open="12.5"]') || await tp.isVisible('#modeTag')) errors.push('Dozent: Ausschalten wirkt nicht');
+  await tctx.close();
+
   // Handy
   const m =await browser.newPage({ viewport: { width: 390, height: 844 } });
   m.on('pageerror', e => errors.push('mobil: ' + e.message));
