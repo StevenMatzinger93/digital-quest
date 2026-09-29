@@ -52,21 +52,66 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 
 /* Karte */
 #scr-map { max-width: 1100px; margin: 0 auto; padding: 24px 18px 60px; }
-.map-head { display: flex; justify-content: space-between; align-items: end; gap: 20px; flex-wrap: wrap; margin-bottom: 18px; }
-.map-head h1 { margin: 0; font-size: 30px; letter-spacing: .5px; }
+/* ---- Laborkarte ---- */
+.map-head { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px 24px; margin-bottom: 22px; padding: 20px 22px; border: 1px solid var(--line); border-radius: 16px;
+  background: radial-gradient(120% 140% at 0% 0%, rgba(255,176,0,.10), transparent 55%), linear-gradient(180deg, var(--bg-secondary), var(--bg-primary)); }
+.map-head h1 { margin: 0; font-size: 32px; letter-spacing: .5px; } .map-title p { margin: 4px 0 0; }
+.map-stats { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.stat { display: grid; gap: 2px; min-width: 92px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-tertiary); }
+.stat b { font-size: 20px; color: var(--text-primary); } .stat b small { font-size: 12px; color: var(--text-dim); font-weight: 400; }
+.stat span { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); } .stat b span { font-size: 18px; letter-spacing: 0; }
+.stat.wide { min-width: 200px; gap: 8px; } .stat .bar { height: 8px; background: var(--bg-primary); border-radius: 4px; overflow: hidden; }
+.stat .bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent-lead-dim), var(--accent-lead)); box-shadow: 0 0 10px var(--accent-lead); }
+.map-head .map-actions, .map-head .teacher-bar, .map-head .vg-box { grid-column: 1 / -1; }
+.map-actions a.btn { text-decoration: none; color: var(--text-primary); }
 .progress { display: flex; align-items: center; gap: 10px; font-family: var(--font-code); }
-.progress .bar { width: 220px; height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden; }
-.progress .bar i { display: block; height: 100%; background: var(--accent-lead); box-shadow: 0 0 10px var(--accent-lead); }
-.chapter { background: var(--bg-secondary); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 18px; }
-.chapter header h2 { margin: 2px 0 4px; } .chapter header p { margin: 0 0 12px; color: var(--text-dim); }
+.chapter { background: var(--bg-secondary); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px 20px; margin-bottom: 18px; }
+.chapter.complete { border-color: rgba(57,255,20,.28); } .chapter.closed { opacity: .72; }
+.ch-head { display: grid; grid-template-columns: 64px 1fr auto; gap: 4px 16px; align-items: center; margin-bottom: 14px; }
+.ch-sym { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 14px; border: 1px solid var(--accent-lead-dim); color: var(--accent-lead); --sym: var(--accent-lead);
+  background: radial-gradient(circle at 30% 25%, rgba(255,176,0,.18), rgba(255,176,0,.03) 70%); }
+.ch-sym svg { width: 50px; height: 44px; }
+.ch-txt h2 { margin: 2px 0 2px; font-size: 21px; } .ch-txt p { margin: 0; color: var(--text-dim); font-size: 14px; }
 .chno { font-family: var(--font-code); color: var(--accent-lead); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
-.nodes { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
-.node { text-align: left; background: var(--bg-tertiary); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; display: grid; grid-template-columns: 28px 1fr; gap: 0 8px; }
-.node .ic { grid-row: span 2; } .node svg { width: 24px; height: 24px; fill: none; stroke: var(--accent-lead); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.node .nid { font-size: 11px; color: var(--text-dim); font-family: var(--font-code); } .node .nt { font-weight: 600; font-size: 14px; }
-.node:hover:not(:disabled) { border-color: var(--accent-lead); box-shadow: 0 0 0 1px var(--accent-lead-dim); }
-.node.done svg { stroke: var(--accent-green); } .node.locked { opacity: .45; cursor: not-allowed; } .node.locked svg { stroke: var(--text-faint); }
-.node.theory { border-style: dashed; } .node.boss { border-color: var(--accent-red); }
+.ch-prog { position: relative; width: 58px; height: 58px; display: grid; place-items: center; }
+.ch-prog .ring { position: absolute; inset: 0; width: 100%; height: 100%; } .ch-prog .mono { font-size: 13px; font-weight: 700; } .ch-prog small { color: var(--text-dim); font-weight: 400; }
+.ring circle { fill: none; stroke-width: 4; } .ring-bg { stroke: var(--bg-tertiary); } .ring-fg { stroke: var(--accent-lead); stroke-linecap: round; } .ring.full .ring-fg { stroke: var(--accent-green); }
+.nodes { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 12px; }
+.node { position: relative; text-align: left; color: var(--text-primary); font: inherit; background: var(--bg-tertiary); border: 1px solid var(--line); border-radius: 12px; padding: 0 0 10px; cursor: pointer; overflow: hidden;
+  display: grid; grid-template-rows: 78px auto 1fr auto; min-height: 176px; transition: transform .12s, border-color .12s, box-shadow .12s; }
+.node > span { padding: 0 12px; }
+.node .nsym { position: relative; padding: 0; display: grid; place-items: center; color: var(--accent-lead); --sym: var(--accent-lead); border-bottom: 1px solid var(--line);
+  background: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px) 0 0 / 100% 13px, linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px) 0 0 / 13px 100%, radial-gradient(circle at 50% 40%, rgba(255,176,0,.10), transparent 70%), var(--bg-editor); }
+.node .nsym > svg { width: 84px; height: 58px; } .node .nsym > svg.symicon { width: 120px; height: 84px; } .ch-sym svg.symicon { width: 70px; height: 62px; }
+.ch-sym, .node .nsym { overflow: hidden; }
+.pic { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pic .pic-a { stroke: var(--accent-cyan); } .pic .pic-d { stroke-width: 1.2; opacity: .55; } .pic .pic-f { fill: currentColor; fill-opacity: .25; }
+.pic .pic-t { fill: currentColor; stroke: none; font-family: var(--font-code); font-weight: 700; }
+.node .nid { margin-top: 9px; font: 700 12px var(--font-code); letter-spacing: 1px; color: var(--accent-lead); }
+.node .nt { margin-top: 2px; font-weight: 600; font-size: 14px; line-height: 1.25; }
+.node .nfoot { margin-top: 8px; font-size: 12px; color: var(--text-dim); display: flex; align-items: center; min-height: 18px; }
+.nstate { display: inline-flex; align-items: center; gap: 5px; } .nstate svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.nstate.ok { color: var(--accent-green); } .nstate.go { color: var(--accent-lead); font-weight: 700; } .nstate.draft { color: var(--accent-cyan); }
+.nstars { font-size: 15px; letter-spacing: 3px; }
+.node i { position: absolute; font-style: normal; }
+.node .nok { top: 7px; right: 7px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-green); color: #0b1a06; box-shadow: 0 0 10px rgba(57,255,20,.5); }
+.node .nok svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+.node .nboss, .node .nkind { top: 7px; left: 7px; font: 700 9px var(--font-code); letter-spacing: 1.5px; padding: 2px 6px; border-radius: 4px; }
+.node .nboss { background: var(--accent-red); color: #fff; } .node .nkind { background: rgba(30,200,224,.16); color: var(--accent-cyan); border: 1px solid rgba(30,200,224,.4); text-transform: uppercase; }
+.node:hover:not(:disabled), .node:focus-visible { transform: translateY(-3px); border-color: var(--accent-lead); box-shadow: 0 10px 24px rgba(0,0,0,.35), 0 0 0 1px var(--accent-lead-dim); outline: none; }
+.node.k-theory .nsym { color: var(--accent-cyan); --sym: var(--accent-cyan); background: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px) 0 0 / 100% 13px, linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px) 0 0 / 13px 100%, radial-gradient(circle at 50% 40%, rgba(30,200,224,.12), transparent 70%), var(--bg-editor); }
+.node.k-theory .pic .pic-a { stroke: var(--accent-lead); } .node.k-theory .nid { color: var(--accent-cyan); }
+.node.done { border-color: rgba(57,255,20,.35); } .node.done .nsym { color: var(--accent-green); --sym: var(--accent-green); }
+.node.next { border-color: var(--accent-lead); box-shadow: 0 0 0 1px var(--accent-lead), 0 0 22px rgba(255,176,0,.22); }
+.node.boss { border-color: rgba(255,51,51,.6); } .node.boss .nsym { background: radial-gradient(circle at 50% 40%, rgba(255,51,51,.18), transparent 70%), var(--bg-editor); }
+.node.locked { cursor: not-allowed; } .node.locked .nsym, .node.locked .nid, .node.locked .nt { filter: grayscale(1); opacity: .38; }
+:root[data-theme="light"] .node .nsym, :root[data-theme="light"] .node.k-theory .nsym { background-color: #fbfbf7; }
+@media (max-width: 760px) {
+  .map-head { grid-template-columns: 1fr; padding: 16px; } .map-stats { justify-content: flex-start; } .stat.wide { flex: 1; }
+  .ch-head { grid-template-columns: 48px 1fr auto; gap: 4px 12px; } .ch-sym { width: 48px; height: 48px; border-radius: 10px; } .ch-sym svg { width: 38px; height: 34px; } .ch-txt p { display: none; }
+  .nodes { grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); gap: 10px; } .node { grid-template-rows: 66px auto 1fr auto; } .node .nsym > svg { width: 70px; height: 48px; } .node .nsym > svg.symicon { width: 100px; height: 70px; }
+}
+@media (prefers-reduced-motion: reduce) { .node { transition: none; } .node:hover:not(:disabled) { transform: none; } }
 
 /* Aufgabe */
 #scr-task.active { display: grid; grid-template-columns: 320px 1fr 280px; gap: 12px; padding: 12px; min-height: calc(100vh - 56px); }
@@ -368,7 +413,7 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .part-werkstatt { border-bottom-color: var(--accent-cyan); } .part-werkstatt .part-no { color: var(--accent-cyan); }
 .stage-tag.werkstatt { color: var(--accent-cyan); border-color: var(--accent-cyan); }
 .chapter.workshop { border-color: rgba(30,200,224,.35); }
-.chapter.workshop .node svg { stroke: var(--accent-cyan); } .chapter.workshop .node.done svg { stroke: var(--accent-green); }
+.chapter.workshop .ch-sym { color: var(--accent-cyan); --sym: var(--accent-cyan); border-color: rgba(30,200,224,.4); background: radial-gradient(circle at 30% 25%, rgba(30,200,224,.18), rgba(30,200,224,.03) 70%); }
 
 /*CIRCUIT-START*/
 /* Mini-Schaltung in Theorie-Lektionen (mini.js) */
@@ -470,6 +515,7 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
 .live-list { text-align: left; max-width: 340px; margin: 10px auto 0; padding-left: 28px; }
 .live-list li { padding: 3px 0; } .live-list li span { float: right; color: var(--text-dim); font-family: var(--font-code); }
 @media (max-width: 640px) { .pod { width: 96px; } .live-card { padding: 20px 16px; } .live-bar { top: auto; bottom: 8px; gap: 8px; font-size: 12px; padding: 5px 12px; flex-wrap: nowrap; white-space: nowrap; } .lb-mode, .lb-count { display: none; } .acct-chip span { display: none; } }
+.node .nt { overflow-wrap: anywhere; hyphens: auto; } .node.k-theory .nsym > svg { margin-top: 14px; }
 </style>
 </head>
 <body>
@@ -6847,6 +6893,121 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
   root.DQVisuals = { transfer: transfer, bodeLayout: bodeLayout, minimize: minimize, gen: GEN, register: register, mount: mount, mountAll: mountAll, lessonHtml: lessonHtml, check: check, listOf: listOf, types: function () { return Object.keys(TYPES); } };
 })(typeof window !== 'undefined' ? window : globalThis);
 
+/* ==== tiles.js ==== */
+/* Digital Quest – Symbole fuer die Kacheln der Laborkarte (window.DQTiles).
+ * Jede Station bekommt ein Bild, das auf den Inhalt schliessen laesst:
+ *  - Aufgaben: das praegende Bauteil als Schaltzeichen (das „neueste“ Bauteil der Musterloesung), bei Mess- und
+ *    Fehlersuch-Aufgaben das Messgeraet bzw. die Lupe, bei Entwurfsaufgaben ohne eigenes Bauteil ein Piktogramm zum Thema.
+ *  - Theorie: Piktogramm zum Thema (aus den Kompetenz-Tags), sonst das Bauteil, um das es danach geht.
+ * Kein DOM: choose() liefert {kind:'part'|'pic', key}, html() das fertige <svg>. */
+(function (root) {
+  'use strict';
+  var P = function (d, extra) { return '<svg class="pic" viewBox="0 0 64 48" aria-hidden="true">' + d + (extra || '') + '</svg>'; };
+  var TXT = function (t, size, y) { return '<text x="32" y="' + (y || 31) + '" text-anchor="middle" class="pic-t" font-size="' + (size || 17) + '">' + t + '</text>'; };
+  var BLK = function (label) { return P('<rect x="16" y="7" width="32" height="34" rx="3"/><path d="M6 16h10M6 32h10M48 24h10"/>' + TXT(label, label.length > 2 ? 11 : 15, 29)); };
+  var PIC = {
+    meter: P('<rect x="18" y="4" width="28" height="40" rx="4"/><rect x="22" y="8" width="20" height="10" rx="1.5" class="pic-f"/><circle cx="32" cy="29" r="6.5"/><path d="M32 29l3.5-5M24 40v4M40 40v4"/>'),
+    scope: P('<rect x="6" y="6" width="52" height="36" rx="4"/><path d="M11 24c4-14 8-14 12 0s8 14 12 0 8-14 12 0" class="pic-a"/><path d="M10 24h44" class="pic-d"/>'),
+    sine: P('<path d="M6 24h52M10 6v36" class="pic-d"/><path d="M10 24c5-18 11-18 16 0s11 18 16 0 8-14 12-6" class="pic-a"/>'),
+    charge: P('<path d="M10 6v36h48" class="pic-d"/><path d="M10 42c6-22 16-30 46-32" class="pic-a"/><path d="M10 12h46" class="pic-d" stroke-dasharray="3 3"/>'),
+    bode: P('<path d="M10 6v36h48" class="pic-d"/><path d="M10 14h22c8 0 12 8 24 26" class="pic-a"/><path d="M34 8v34" class="pic-d" stroke-dasharray="3 3"/>'),
+    band: P('<path d="M10 6v36h48" class="pic-d"/><path d="M10 40c10 0 14-28 22-28s12 28 24 28" class="pic-a"/>'),
+    bits: P(TXT('1011', 19, 31)),
+    hex: P(TXT('0x2F', 17, 31)),
+    table: P('<rect x="12" y="6" width="40" height="36" rx="2"/><path d="M12 16h40M12 24.7h40M12 33.4h40M25 6v36M38 6v36"/><circle cx="45" cy="29" r="2" class="pic-f"/><circle cx="45" cy="37.7" r="2" class="pic-f"/>'),
+    kmap: P('<rect x="8" y="10" width="48" height="28" rx="2"/><path d="M20 10v28M32 10v28M44 10v28M8 24h48"/><rect x="21.5" y="12.5" width="21" height="9" rx="4.5" class="pic-a"/>'),
+    formula: P(TXT('A∧B̅', 19, 31)),
+    demorgan: P('<path d="M14 9h36" class="pic-a"/>' + TXT('A∨B', 19, 33)),
+    search: P('<circle cx="27" cy="21" r="13"/><path d="M37 31l14 12"/><path d="M19 21h4l2-5 4 10 2-5h4" class="pic-a"/>'),
+    book: P('<path d="M32 12c-6-4-14-5-22-4v30c8-1 16 0 22 4 6-4 14-5 22-4V8c-8-1-16 0-22 4zM32 12v30"/>'),
+    safety: P('<path d="M32 5l20 7v12c0 10-8 17-20 20-12-3-20-10-20-20V12z"/><path d="M23 24l6 6 12-13" class="pic-a"/>'),
+    ohm: P(TXT('U = R·I', 15, 30)),
+    node: P('<path d="M6 24h22M28 24l24-14M28 24l24 14"/><circle cx="28" cy="24" r="3.5" class="pic-f"/><path d="M12 20l5 4-5 4M42 12l5 0-2 5M42 36l5 0-2-5" class="pic-a"/>'),
+    divider: P('<path d="M32 3v6M32 21v6M32 39v6M32 24h22"/><rect x="26" y="9" width="12" height="12" rx="1"/><rect x="26" y="27" width="12" height="12" rx="1"/><circle cx="32" cy="24" r="2" class="pic-f"/>'),
+    power: P('<path d="M36 4L18 27h12l-3 17 19-24H33z" class="pic-a"/>'),
+    rectify: P('<path d="M6 30h52" class="pic-d"/><path d="M8 30c3-20 9-20 12 0 3-20 9-20 12 0 3-20 9-20 12 0 3-20 9-20 12 0" class="pic-a"/>'),
+    rms: P(TXT('TRMS', 15, 30)),
+    range: P('<path d="M10 38a22 22 0 0 1 44 0"/><path d="M32 38L44 20" class="pic-a"/><path d="M14 27l3 2M24 18l2 3M40 18l-2 3M50 27l-3 2"/>'),
+    tol: P(TXT('± 1 %', 17, 31)),
+    edge: P('<path d="M8 36h18V12h30"/><path d="M21 27l5-7 5 7" class="pic-a"/>'),
+    store: P('<rect x="16" y="7" width="32" height="34" rx="3"/>' + TXT('1 Bit', 12, 28) + '<path d="M6 16h10M6 32h10M48 16h10M48 32h10"/>'),
+    ramp: P('<path d="M10 6v36h48" class="pic-d"/><path d="M10 40h8l18-26h20" class="pic-a"/>'),
+    estop: P('<circle cx="32" cy="24" r="18"/><circle cx="32" cy="24" r="10" class="pic-a"/><path d="M32 17v8" class="pic-a"/>'),
+    latch: P('<path d="M8 12h14M42 12h14M8 36h48"/><path d="M22 12l18-7" class="pic-a"/><path d="M30 20v16M26 28h8" />'),
+    station: P('<rect x="6" y="30" width="52" height="8" rx="2"/><circle cx="14" cy="34" r="2" class="pic-f"/><circle cx="50" cy="34" r="2" class="pic-f"/><rect x="24" y="14" width="16" height="16" rx="2" class="pic-a"/><path d="M8 42v3M56 42v3"/>'),
+    wave: P('<path d="M4 24h12l5-14 9 28 6-14h24" class="pic-a"/>')
+  };
+  ['MUX', 'DMX', 'A=B', 'Σ', 'DEC', 'CTR', 'SRG', 'PAR', 'Gray'].forEach(function (k) { PIC['blk:' + k] = BLK(k); });
+
+  /* Kompetenz-Tag → Piktogramm (erste passende Zeile gewinnt) */
+  var TAGPIC = [
+    [/^messen\.oszilloskop/, 'scope'], [/^messen\.(trms|wechselspannung)/, 'rms'], [/^messen\.(messbereich|geraete|grundbegriffe)/, 'range'], [/^messen\.(genauigkeit|systemfehler)/, 'tol'],
+    [/^messen\.sicherheit/, 'safety'], [/^messen\./, 'meter'], [/fehlersuche/, 'search'],
+    [/^digital\.(hex)/, 'hex'], [/^digital\.gray/, 'blk:Gray'], [/^digital\.paritaet/, 'blk:PAR'], [/^digital\.(zahlensysteme|binaer|bcd|codes)/, 'bits'],
+    [/^digital\.(kv|dontcare)/, 'kmap'], [/^digital\.(wahrheitstabelle|dnf|knf|entwurf)/, 'table'], [/^digital\.demorgan/, 'demorgan'], [/^digital\.(boolesche_algebra|vereinfachen|normiert)/, 'formula'],
+    [/^digital\.demultiplexer/, 'blk:DMX'], [/^digital\.multiplexer/, 'blk:MUX'], [/^digital\.(komparator|vergleicher)/, 'blk:A=B'], [/^digital\.addierer/, 'blk:Σ'], [/^digital\.decoder/, 'blk:DEC'],
+    [/^digital\.schieberegister/, 'blk:SRG'], [/^digital\.(zaehler|synchron)/, 'blk:CTR'], [/^digital\.(flanke|steuerungsart)/, 'edge'], [/^digital\.speicher/, 'store'],
+    [/^elektro\.(bandpass)/, 'band'], [/^elektro\.(filter|frequenzgang|grenzfrequenz|db|ordnung)/, 'bode'], [/^elektro\.(zeitkonstante|rc|rcglied|integrierglied|differenzierglied)/, 'charge'],
+    [/^elektro\.(gleichrichter|gleichrichtwert)/, 'rectify'], [/^elektro\.(effektivwert)/, 'rms'], [/^elektro\.(wechselgroessen|frequenz|mittelwert)/, 'sine'],
+    [/^elektro\.(ohm|grundgroessen|dimensionieren)/, 'ohm'], [/^elektro\.(kirchhoff|parallelschaltung)/, 'node'], [/^elektro\.(spannungsteiler|reihenschaltung)/, 'divider'], [/^elektro\.leistung/, 'power'],
+    [/^antrieb\.rampe/, 'ramp'], [/^sicherheit\.nothalt/, 'estop'], [/^steuerung\.selbsthaltung/, 'latch'], [/^antrieb\.(station|boss)/, 'station']
+  ];
+  /* Kompetenz-Tag → Bauteil */
+  var TAGPART = { 'digital.und': 'and', 'digital.oder': 'or', 'digital.nicht': 'not', 'digital.nand': 'nand', 'digital.nor': 'nor', 'digital.xor': 'xor', 'digital.xnor': 'xnor', 'digital.gatter': 'and',
+    'bauteil.led': 'led', 'bauteil.diode': 'diode', 'bauteil.zdiode': 'zener', 'bauteil.transistor': 'npn', 'bauteil.lampe': 'lamp', 'elektro.kondensator': 'capacitor', 'digital.flipflop': 'dff',
+    'digital.7segment': 'seg7', 'antrieb.motor': 'motor', 'antrieb.treiber': 'npn', 'antrieb.drehzahl': 'motor', 'digital.takt': 'clock', 'elektro.schalter': 'switch', 'elektro.stromkreis': 'lamp', 'elektro.quelle': 'battery',
+    'digital.pegel': 'logicin', 'elektro.stabilisierung': 'zener', 'elektro.schalten': 'npn', 'elektro.verstaerker': 'npn' };
+  /* Alltagsbauteile praegen eine Aufgabe nur, wenn sonst nichts Besonderes darin vorkommt */
+  var PLAIN = { battery: 1, ground: 1, switch: 1, resistor: 1, lamp: 1, logicin: 1, logicled: 1, ammeter: 1, acsource: 1 };
+  var FIRST_TAG_WINS = /^messen\.|fehlersuche|^sicherheit\.|^steuerung\.|^antrieb\.(rampe|station|boss)|^digital\.(kv|dontcare|demorgan|multiplexer|demultiplexer|komparator|addierer|paritaet|gray|schieberegister|zaehler)|^elektro\.(filter|frequenzgang|bandpass|grenzfrequenz|zeitkonstante|gleichrichter|effektivwert|kirchhoff|spannungsteiler|leistung)/;
+
+  function picOf(tag) { for (var i = 0; i < TAGPIC.length; i++) if (TAGPIC[i][0].test(tag)) return TAGPIC[i][1]; return null; }
+  function create(DQ, E) {
+    var order = {}, n = 0;
+    DQ.tasks.forEach(function (t) { ((t.ref && t.ref.parts) || []).forEach(function (p) { if (!(p.type in order)) order[p.type] = n++; }); });
+    function keyPart(t) { // das zuletzt eingefuehrte Bauteil der Musterloesung; Alltagsbauteile nur als Rueckfall
+      var best = null, plain = null;
+      ((t.ref && t.ref.parts) || []).forEach(function (p) {
+        if (p.type === 'ground' || !E.PARTS[p.type]) return;
+        if (PLAIN[p.type]) { if (!plain || order[p.type] > order[plain]) plain = p.type; }
+        else if (!best || order[p.type] > order[best]) best = p.type;
+      });
+      return { best: best, plain: plain };
+    }
+    function byTags(tags, partsToo) {
+      for (var i = 0; i < tags.length; i++) {
+        var pic = picOf(tags[i]); if (pic) return { kind: 'pic', key: pic };
+        if (partsToo && TAGPART[tags[i]] && E.PARTS[TAGPART[tags[i]]]) return { kind: 'part', key: TAGPART[tags[i]] };
+      }
+      return null;
+    }
+    function choose(it) {
+      var tags = it.tags || [], r;
+      if (it.kind === 'theory') return byTags(tags, true) || { kind: 'pic', key: 'book' };
+      if (tags[0] && FIRST_TAG_WINS.test(tags[0]) && (r = byTags([tags[0]]))) return r;
+      if (tags[0] && tags[0] !== 'digital.flipflop' && TAGPART[tags[0]] && E.PARTS[TAGPART[tags[0]]]) return { kind: 'part', key: TAGPART[tags[0]] };
+      var k = keyPart(it);
+      if (k.best) return { kind: 'part', key: k.best };
+      return byTags(tags, true) || (k.plain ? { kind: 'part', key: k.plain } : { kind: 'pic', key: 'wave' });
+    }
+    function html(it, Editor) {
+      var c = choose(it);
+      if (c.kind === 'part' && Editor) return Editor.icon(c.key, c.key === 'led' ? { color: 'rot' } : {});
+      return PIC[c.key] || PIC.wave;
+    }
+    /* Kapitelbild: das haeufigste Kachel-Symbol des Kapitels */
+    function chapter(c, Editor) {
+      var cnt = {}, best = null;
+      c.sequence.forEach(function (id) { var it = DQ.byId[id], x = choose(it), k = x.kind + ':' + x.key; cnt[k] = (cnt[k] || 0) + (it.kind === 'theory' ? 1.5 : 1); if (!best || cnt[k] > cnt[best]) best = k; });
+      var kind = best.slice(0, best.indexOf(':')), key = best.slice(best.indexOf(':') + 1);
+      return kind === 'part' && Editor ? Editor.icon(key, {}) : PIC[key] || PIC.wave;
+    }
+    return { choose: choose, html: html, chapter: chapter };
+  }
+  root.DQTiles = { create: create, PIC: PIC };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.DQTiles;
+})(typeof window !== 'undefined' ? window : globalThis);
+
 /* ==== account.js ==== */
 /* Digital Quest – Konto-Abgleich mit dem Portal (window.DQAccount), nach dem Vorbild von SPS Quest.
  * Nur in der Portal-Version (window.DQ_PORTAL, Spiel unter /labor/). Angemeldet wird im Portal; das Spiel liest die Sitzung
@@ -7227,14 +7388,40 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
     ok: '<svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg>',
     scope: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M5 13c2-6 4-6 6 0s4 6 6 0"/></svg>'
   };
+  /* Kachel einer Station: Symbol zum Inhalt (DQTiles), Nummer, Titel, unten Sterne bzw. Zustand */
+  var TILES = root.DQTiles ? root.DQTiles.create(DQ, E) : null;
+  function nextOpen() { return ORDER.filter(function (id) { return !S.done[id] && unlocked(id); })[0]; }
+  function tile(id, opt) {
+    opt = opt || {};
+    var it = DQ.byId[id], open = opt.open !== undefined ? opt.open : unlocked(id), ok = !!S.done[id], di = S.doneInfo[id] || {}, th = it.kind === 'theory';
+    var label = th ? 'Theorie ' + id.slice(1) : (it.messOnly ? 'Messaufgabe ' : 'Aufgabe ') + id;
+    var foot = ok ? (th ? '<span class="nstate ok">' + ICON.ok + ' bestanden' + (S.theory[id] ? ' · ' + Math.round(100 * (S.theory[id].best || 0)) + ' %' : '') + '</span>' : '<span class="nstars" title="' + (di.stars || 1) + ' von 3 Sternen">' + starRow(di.stars || 1) + '</span>')
+      : !open ? '<span class="nstate">' + ICON.lock + ' gesperrt</span>'
+      : opt.next ? '<span class="nstate go">▶ hier weiter</span>' : S.drafts[id] ? '<span class="nstate draft">begonnen</span>' : '<span class="nstate">' + (th ? 'lesen + Check' : 'offen') + '</span>';
+    return '<button class="node k-' + it.kind + (ok ? ' done' : '') + (open ? '' : ' locked') + (it.boss ? ' boss' : '') + (opt.next ? ' next' : '') + '" data-open="' + id + '"' + (open ? '' : ' disabled') + ' aria-label="' + esc(label + ': ' + it.title + (ok ? ' (geloest)' : open ? '' : ' (gesperrt)')) + '">' +
+      '<span class="nsym">' + (TILES ? TILES.html(it, Editor) : ICON[it.kind]) + (ok ? '<i class="nok">' + ICON.ok + '</i>' : '') + (it.boss ? '<i class="nboss">BOSS</i>' : '') + (th ? '<i class="nkind">Theorie</i>' : '') + '</span>' +
+      '<span class="nid">' + (th ? 'T' + id.slice(1) : id) + vgTag('aufgabe', id, true) + '</span><span class="nt">' + esc(it.title) + '</span><span class="nfoot">' + foot + '</span></button>';
+  }
+  function ring(done, total) { // Fortschrittsring eines Kapitels
+    var r = 17, c = 2 * Math.PI * r, p = total ? done / total : 0;
+    return '<svg class="ring' + (done >= total && total ? ' full' : '') + '" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="' + r + '" class="ring-bg"/><circle cx="22" cy="22" r="' + r + '" class="ring-fg" stroke-dasharray="' + (c * p).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 22 22)"/></svg>';
+  }
+  function chapterHead(c, d, n, extra) {
+    return '<header class="ch-head"><span class="ch-sym">' + (TILES ? TILES.chapter(c, Editor) : '') + '</span><div class="ch-txt"><span class="chno">' + (c.kind === 'workshop' ? 'Frei ueben' : 'Kapitel ' + c.id) + '</span>' + (extra || '') +
+      '<h2>' + esc(c.title) + '</h2><p>' + esc(c.intro || '') + '</p></div><div class="ch-prog" title="' + d + ' von ' + n + ' Stationen geloest">' + ring(d, n) + '<span class="mono">' + d + '<small>/' + n + '</small></span></div></header>';
+  }
   function renderMap() {
-    var total = ORDER.length, done = ORDER.filter(function (id) { return S.done[id]; }).length;
-    var h = '<div class="map-head"><div><h1>Laborkarte</h1><p class="dim">Baue, miss, verstehe. Jede Station schaltet die naechste frei.</p></div>' +
+    var total = ORDER.length, done = ORDER.filter(function (id) { return S.done[id]; }).length, nx = nextOpen(), nxIt = nx && DQ.byId[nx], stars = 0;
+    Object.keys(S.done).forEach(function (id) { if (S.done[id] && DQ.byId[id] && DQ.byId[id].kind !== 'theory') stars += (S.doneInfo[id] || {}).stars || 1; });
+    var h = '<div class="map-head"><div class="map-title"><h1>Laborkarte</h1><p class="dim">Baue, miss, verstehe. Jede Station schaltet die naechste frei.</p></div>' +
+      '<div class="map-stats"><div class="stat"><b class="mono">' + done + '<small>/' + total + '</small></b><span>Stationen</span></div><div class="stat"><b class="mono"><span class="star on">★</span> ' + stars + '</b><span>Sterne</span></div>' +
+      '<div class="stat wide"><div class="bar"><i style="width:' + (100 * done / Math.max(1, total)).toFixed(1) + '%"></i></div><span>' + Math.round(100 * done / Math.max(1, total)) + ' % geschafft</span></div></div>' +
+      '<div class="map-actions">' + (nxIt ? '<button class="btn primary" data-open="' + nx + '" title="' + esc(nxIt.title) + '">▶ Weiter: ' + (nxIt.kind === 'theory' ? 'Theorie ' + nx.slice(1) : 'Aufgabe ' + nx) + '</button>' : '') +
+      '<button class="btn" data-open="sandbox" title="Frei bauen und messen – ohne Auftrag">Freie Werkbank</button>' + (DQ.workshop ? '<a class="btn" href="#werkstatt" id="toWs">Uebungswerkstatt</a>' : '') + '</div>' +
       (staff() ? '<div class="teacher-bar"><b>Dozentenmodus</b> <span class="dim small">Alle Stationen offen, Freie Werkbank mit allen Bauteilen. <a href="../#/leitstand">Zum Leitstand</a></span><label class="fld"><span>Springe zu</span><select id="jump"><option value="">Station waehlen …</option>' +
         DQ.chapters.concat(DQ.workshop ? [DQ.workshop] : []).map(function (c) { return '<optgroup label="' + (c.kind === 'workshop' ? '' : 'Kapitel ' + c.id + ' – ') + esc(c.title) + '">' + c.sequence.map(function (id) { var it = DQ.byId[id]; return '<option value="' + id + '">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : id) + ' ' + esc(it.title) + '</option>'; }).join('') + '</optgroup>'; }).join('') +
         '</select></label></div>' : '') +
-      vorgabenBox() +
-      '<div class="map-actions"><button class="btn" data-open="sandbox" title="Frei bauen und messen – ohne Auftrag">Freie Werkbank</button><div class="progress"><div class="bar"><i style="width:' + (100 * done / Math.max(1, total)).toFixed(1) + '%"></i></div><span>' + done + ' / ' + total + '</span></div></div></div>';
+      vorgabenBox() + '</div>';
     var parts = DQ.parts || [{ no: '', title: '', chapters: DQ.chapters.map(function (c) { return c.id; }) }];
     parts.forEach(function (pt) {
       var chs = DQ.chapters.filter(function (c) { return pt.chapters.indexOf(c.id) >= 0; }), ids = [];
@@ -7243,13 +7430,9 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
       if (pt.no) h += '<div class="part-head part-' + (pt.stage || 'grund') + '"><span class="part-no">Teil ' + pt.no + '</span><h2>' + esc(pt.title) + '</h2>' +
         (pt.stage ? '<span class="stage-tag ' + pt.stage + '">' + esc(DQ.stages[pt.stage]) + '</span>' : '') + '<span class="part-prog mono">' + pd + ' / ' + ids.length + '</span></div>';
       chs.forEach(function (c) {
-        h += '<section class="chapter"><header><span class="chno">Kapitel ' + c.id + '</span>' + vgTag('kapitel', String(c.id)) + '<h2>' + esc(c.title) + '</h2><p>' + esc(c.intro || '') + '</p></header><div class="nodes">';
-        c.sequence.forEach(function (id) {
-          var it = DQ.byId[id], open = unlocked(id), ok = S.done[id];
-          h += '<button class="node ' + it.kind + (ok ? ' done' : '') + (open ? '' : ' locked') + (it.boss ? ' boss' : '') + '" data-open="' + id + '"' + (open ? '' : ' disabled') + '>' +
-            '<span class="ic">' + (ok ? ICON.ok : open ? ICON[it.kind] : ICON.lock) + '</span><span class="nid">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : 'Aufgabe ' + id) + vgTag('aufgabe', id, true) + '</span><span class="nt">' + esc(it.title) + '</span></button>';
-        });
-        h += '</div></section>';
+        var d = c.sequence.filter(function (id) { return S.done[id]; }).length, any = c.sequence.some(function (id) { return unlocked(id); });
+        h += '<section class="chapter' + (d >= c.sequence.length ? ' complete' : '') + (any ? '' : ' closed') + '">' + chapterHead(c, d, c.sequence.length, vgTag('kapitel', String(c.id))) +
+          '<div class="nodes">' + c.sequence.map(function (id) { return tile(id, { next: id === nx }); }).join('') + '</div></section>';
       });
       if (pt.award) h += awardCard(DQ.awards[pt.award]);
     });
@@ -7257,6 +7440,7 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
     $('#scr-map').innerHTML = h;
     $$('[data-open]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openItem(b.dataset.open); }; });
     $$('[data-award]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openAward(b.dataset.award); }; });
+    if ($('#toWs')) $('#toWs').onclick = function (ev) { ev.preventDefault(); $('#werkstatt').scrollIntoView({ behavior: 'smooth' }); };
     if ($('#jump')) $('#jump').onchange = function () { if (this.value) openItem(this.value); };
   }
 
@@ -7265,10 +7449,7 @@ body.live-mode .top nav, body.live-mode #btnReset { display: none; }
     var w = DQ.workshop; if (!w) return '';
     var d = w.sequence.filter(function (id) { return S.done[id]; }).length;
     return '<div class="part-head part-werkstatt" id="werkstatt"><span class="part-no">Frei ueben</span><h2>' + esc(w.title) + '</h2><span class="stage-tag werkstatt">nur messen</span><span class="part-prog mono">' + d + ' / ' + w.sequence.length + '</span></div>' +
-      '<section class="chapter workshop"><header>' + vgTag('kapitel', w.id) + '<p>' + esc(w.intro) + '</p></header><div class="nodes">' + w.sequence.map(function (id) {
-        var it = DQ.byId[id], ok = S.done[id];
-        return '<button class="node task' + (ok ? ' done' : '') + '" data-open="' + id + '"><span class="ic">' + (ok ? ICON.ok : ICON.scope) + '</span><span class="nid">Messaufgabe ' + id + vgTag('aufgabe', id, true) + '</span><span class="nt">' + esc(it.title) + '</span></button>';
-      }).join('') + '</div></section>';
+      '<section class="chapter workshop">' + chapterHead(w, d, w.sequence.length, vgTag('kapitel', w.id)) + '<div class="nodes">' + w.sequence.map(function (id) { return tile(id, { open: true }); }).join('') + '</div></section>';
   }
   /* Vorgaben vom Dozent auf der Karte: Kasten oben mit Frist und Stand, Hinweis an Kapitel und Station. Nichts wird gesperrt. */
   function vorgabenBox() {

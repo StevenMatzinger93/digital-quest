@@ -101,14 +101,40 @@
     ok: '<svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg>',
     scope: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M5 13c2-6 4-6 6 0s4 6 6 0"/></svg>'
   };
+  /* Kachel einer Station: Symbol zum Inhalt (DQTiles), Nummer, Titel, unten Sterne bzw. Zustand */
+  var TILES = root.DQTiles ? root.DQTiles.create(DQ, E) : null;
+  function nextOpen() { return ORDER.filter(function (id) { return !S.done[id] && unlocked(id); })[0]; }
+  function tile(id, opt) {
+    opt = opt || {};
+    var it = DQ.byId[id], open = opt.open !== undefined ? opt.open : unlocked(id), ok = !!S.done[id], di = S.doneInfo[id] || {}, th = it.kind === 'theory';
+    var label = th ? 'Theorie ' + id.slice(1) : (it.messOnly ? 'Messaufgabe ' : 'Aufgabe ') + id;
+    var foot = ok ? (th ? '<span class="nstate ok">' + ICON.ok + ' bestanden' + (S.theory[id] ? ' · ' + Math.round(100 * (S.theory[id].best || 0)) + ' %' : '') + '</span>' : '<span class="nstars" title="' + (di.stars || 1) + ' von 3 Sternen">' + starRow(di.stars || 1) + '</span>')
+      : !open ? '<span class="nstate">' + ICON.lock + ' gesperrt</span>'
+      : opt.next ? '<span class="nstate go">▶ hier weiter</span>' : S.drafts[id] ? '<span class="nstate draft">begonnen</span>' : '<span class="nstate">' + (th ? 'lesen + Check' : 'offen') + '</span>';
+    return '<button class="node k-' + it.kind + (ok ? ' done' : '') + (open ? '' : ' locked') + (it.boss ? ' boss' : '') + (opt.next ? ' next' : '') + '" data-open="' + id + '"' + (open ? '' : ' disabled') + ' aria-label="' + esc(label + ': ' + it.title + (ok ? ' (geloest)' : open ? '' : ' (gesperrt)')) + '">' +
+      '<span class="nsym">' + (TILES ? TILES.html(it, Editor) : ICON[it.kind]) + (ok ? '<i class="nok">' + ICON.ok + '</i>' : '') + (it.boss ? '<i class="nboss">BOSS</i>' : '') + (th ? '<i class="nkind">Theorie</i>' : '') + '</span>' +
+      '<span class="nid">' + (th ? 'T' + id.slice(1) : id) + vgTag('aufgabe', id, true) + '</span><span class="nt">' + esc(it.title) + '</span><span class="nfoot">' + foot + '</span></button>';
+  }
+  function ring(done, total) { // Fortschrittsring eines Kapitels
+    var r = 17, c = 2 * Math.PI * r, p = total ? done / total : 0;
+    return '<svg class="ring' + (done >= total && total ? ' full' : '') + '" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="' + r + '" class="ring-bg"/><circle cx="22" cy="22" r="' + r + '" class="ring-fg" stroke-dasharray="' + (c * p).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 22 22)"/></svg>';
+  }
+  function chapterHead(c, d, n, extra) {
+    return '<header class="ch-head"><span class="ch-sym">' + (TILES ? TILES.chapter(c, Editor) : '') + '</span><div class="ch-txt"><span class="chno">' + (c.kind === 'workshop' ? 'Frei ueben' : 'Kapitel ' + c.id) + '</span>' + (extra || '') +
+      '<h2>' + esc(c.title) + '</h2><p>' + esc(c.intro || '') + '</p></div><div class="ch-prog" title="' + d + ' von ' + n + ' Stationen geloest">' + ring(d, n) + '<span class="mono">' + d + '<small>/' + n + '</small></span></div></header>';
+  }
   function renderMap() {
-    var total = ORDER.length, done = ORDER.filter(function (id) { return S.done[id]; }).length;
-    var h = '<div class="map-head"><div><h1>Laborkarte</h1><p class="dim">Baue, miss, verstehe. Jede Station schaltet die naechste frei.</p></div>' +
+    var total = ORDER.length, done = ORDER.filter(function (id) { return S.done[id]; }).length, nx = nextOpen(), nxIt = nx && DQ.byId[nx], stars = 0;
+    Object.keys(S.done).forEach(function (id) { if (S.done[id] && DQ.byId[id] && DQ.byId[id].kind !== 'theory') stars += (S.doneInfo[id] || {}).stars || 1; });
+    var h = '<div class="map-head"><div class="map-title"><h1>Laborkarte</h1><p class="dim">Baue, miss, verstehe. Jede Station schaltet die naechste frei.</p></div>' +
+      '<div class="map-stats"><div class="stat"><b class="mono">' + done + '<small>/' + total + '</small></b><span>Stationen</span></div><div class="stat"><b class="mono"><span class="star on">★</span> ' + stars + '</b><span>Sterne</span></div>' +
+      '<div class="stat wide"><div class="bar"><i style="width:' + (100 * done / Math.max(1, total)).toFixed(1) + '%"></i></div><span>' + Math.round(100 * done / Math.max(1, total)) + ' % geschafft</span></div></div>' +
+      '<div class="map-actions">' + (nxIt ? '<button class="btn primary" data-open="' + nx + '" title="' + esc(nxIt.title) + '">▶ Weiter: ' + (nxIt.kind === 'theory' ? 'Theorie ' + nx.slice(1) : 'Aufgabe ' + nx) + '</button>' : '') +
+      '<button class="btn" data-open="sandbox" title="Frei bauen und messen – ohne Auftrag">Freie Werkbank</button>' + (DQ.workshop ? '<a class="btn" href="#werkstatt" id="toWs">Uebungswerkstatt</a>' : '') + '</div>' +
       (staff() ? '<div class="teacher-bar"><b>Dozentenmodus</b> <span class="dim small">Alle Stationen offen, Freie Werkbank mit allen Bauteilen. <a href="../#/leitstand">Zum Leitstand</a></span><label class="fld"><span>Springe zu</span><select id="jump"><option value="">Station waehlen …</option>' +
         DQ.chapters.concat(DQ.workshop ? [DQ.workshop] : []).map(function (c) { return '<optgroup label="' + (c.kind === 'workshop' ? '' : 'Kapitel ' + c.id + ' – ') + esc(c.title) + '">' + c.sequence.map(function (id) { var it = DQ.byId[id]; return '<option value="' + id + '">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : id) + ' ' + esc(it.title) + '</option>'; }).join('') + '</optgroup>'; }).join('') +
         '</select></label></div>' : '') +
-      vorgabenBox() +
-      '<div class="map-actions"><button class="btn" data-open="sandbox" title="Frei bauen und messen – ohne Auftrag">Freie Werkbank</button><div class="progress"><div class="bar"><i style="width:' + (100 * done / Math.max(1, total)).toFixed(1) + '%"></i></div><span>' + done + ' / ' + total + '</span></div></div></div>';
+      vorgabenBox() + '</div>';
     var parts = DQ.parts || [{ no: '', title: '', chapters: DQ.chapters.map(function (c) { return c.id; }) }];
     parts.forEach(function (pt) {
       var chs = DQ.chapters.filter(function (c) { return pt.chapters.indexOf(c.id) >= 0; }), ids = [];
@@ -117,13 +143,9 @@
       if (pt.no) h += '<div class="part-head part-' + (pt.stage || 'grund') + '"><span class="part-no">Teil ' + pt.no + '</span><h2>' + esc(pt.title) + '</h2>' +
         (pt.stage ? '<span class="stage-tag ' + pt.stage + '">' + esc(DQ.stages[pt.stage]) + '</span>' : '') + '<span class="part-prog mono">' + pd + ' / ' + ids.length + '</span></div>';
       chs.forEach(function (c) {
-        h += '<section class="chapter"><header><span class="chno">Kapitel ' + c.id + '</span>' + vgTag('kapitel', String(c.id)) + '<h2>' + esc(c.title) + '</h2><p>' + esc(c.intro || '') + '</p></header><div class="nodes">';
-        c.sequence.forEach(function (id) {
-          var it = DQ.byId[id], open = unlocked(id), ok = S.done[id];
-          h += '<button class="node ' + it.kind + (ok ? ' done' : '') + (open ? '' : ' locked') + (it.boss ? ' boss' : '') + '" data-open="' + id + '"' + (open ? '' : ' disabled') + '>' +
-            '<span class="ic">' + (ok ? ICON.ok : open ? ICON[it.kind] : ICON.lock) + '</span><span class="nid">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : 'Aufgabe ' + id) + vgTag('aufgabe', id, true) + '</span><span class="nt">' + esc(it.title) + '</span></button>';
-        });
-        h += '</div></section>';
+        var d = c.sequence.filter(function (id) { return S.done[id]; }).length, any = c.sequence.some(function (id) { return unlocked(id); });
+        h += '<section class="chapter' + (d >= c.sequence.length ? ' complete' : '') + (any ? '' : ' closed') + '">' + chapterHead(c, d, c.sequence.length, vgTag('kapitel', String(c.id))) +
+          '<div class="nodes">' + c.sequence.map(function (id) { return tile(id, { next: id === nx }); }).join('') + '</div></section>';
       });
       if (pt.award) h += awardCard(DQ.awards[pt.award]);
     });
@@ -131,6 +153,7 @@
     $('#scr-map').innerHTML = h;
     $$('[data-open]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openItem(b.dataset.open); }; });
     $$('[data-award]', $('#scr-map')).forEach(function (b) { b.onclick = function () { openAward(b.dataset.award); }; });
+    if ($('#toWs')) $('#toWs').onclick = function (ev) { ev.preventDefault(); $('#werkstatt').scrollIntoView({ behavior: 'smooth' }); };
     if ($('#jump')) $('#jump').onchange = function () { if (this.value) openItem(this.value); };
   }
 
@@ -139,10 +162,7 @@
     var w = DQ.workshop; if (!w) return '';
     var d = w.sequence.filter(function (id) { return S.done[id]; }).length;
     return '<div class="part-head part-werkstatt" id="werkstatt"><span class="part-no">Frei ueben</span><h2>' + esc(w.title) + '</h2><span class="stage-tag werkstatt">nur messen</span><span class="part-prog mono">' + d + ' / ' + w.sequence.length + '</span></div>' +
-      '<section class="chapter workshop"><header>' + vgTag('kapitel', w.id) + '<p>' + esc(w.intro) + '</p></header><div class="nodes">' + w.sequence.map(function (id) {
-        var it = DQ.byId[id], ok = S.done[id];
-        return '<button class="node task' + (ok ? ' done' : '') + '" data-open="' + id + '"><span class="ic">' + (ok ? ICON.ok : ICON.scope) + '</span><span class="nid">Messaufgabe ' + id + vgTag('aufgabe', id, true) + '</span><span class="nt">' + esc(it.title) + '</span></button>';
-      }).join('') + '</div></section>';
+      '<section class="chapter workshop">' + chapterHead(w, d, w.sequence.length, vgTag('kapitel', w.id)) + '<div class="nodes">' + w.sequence.map(function (id) { return tile(id, { open: true }); }).join('') + '</div></section>';
   }
   /* Vorgaben vom Dozent auf der Karte: Kasten oben mit Frist und Stand, Hinweis an Kapitel und Station. Nichts wird gesperrt. */
   function vorgabenBox() {

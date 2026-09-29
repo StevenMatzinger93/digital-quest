@@ -11,7 +11,7 @@ const src = p => fs.readFileSync(path.join(__dirname, 'src', p), 'utf8');
 const P = f => fs.readFileSync(path.join(__dirname, 'portal', f), 'utf8');
 const script = (title, code) => { if (/<\/script/i.test(code)) throw new Error(title + ' enthaelt </script>'); return '<script>\n/* ==== ' + title + ' ==== */\n' + code + '\n</script>\n'; };
 const content = fs.readdirSync(path.join(__dirname, 'src/content')).filter(f => f.endsWith('.js') && f !== '_helpers.js' && f !== 'manual.js').sort();
-const files = ['engine.js', 'content/_helpers.js', ...content.map(f => 'content/' + f), 'content/manual.js', 'circuit-ui.js', 'editor.js', 'bench.js', 'mini.js', 'visuals.js', 'account.js', 'live.js', 'app.js'].filter(f => fs.existsSync(path.join(__dirname, 'src', f)));
+const files = ['engine.js', 'content/_helpers.js', ...content.map(f => 'content/' + f), 'content/manual.js', 'circuit-ui.js', 'editor.js', 'bench.js', 'mini.js', 'visuals.js', 'tiles.js', 'account.js', 'live.js', 'app.js'].filter(f => fs.existsSync(path.join(__dirname, 'src', f)));
 const js = files.map(f => `/* ==== ${f} ==== */\n` + src(f)).join('\n');
 if (/<\/script/i.test(js)) throw new Error('JS enthaelt </script>');
 const tpl = src('index.template.html');
