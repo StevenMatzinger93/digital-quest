@@ -13,6 +13,7 @@
   var G_CLOSED = 1e3;         // geschlossener Schalter (1 mOhm)
   var LOGIC = { vcc: 5, vth: 2.5, rout: 25 };
   var METER = { rV: 1e7, rA: 0.1, fuseA: 10, iOhm: 1e-3, olOhm: 40e6, cal: 0.002 }; // cal: Verstaerkungsfehler des Geraets (+0,2 %)
+  var LIMITS = { lampBurn: 2, ledReverse: 5 }; // Lampe brennt ab lampBurn · Nennleistung durch; LED meldet Sperrspannung ab ledReverse Volt
   var TRACE_MAX = 200;        // Zeitlupe: hoechstens so viele Rechenschritte pro Arbeitspunkt speichern
 
   var LED_COLORS = {
@@ -363,10 +364,10 @@
         var bi = state.burnInfo || (state.burnInfo = {});
         if (state.burnt[p.id]) { if (p.type === 'led' || p.type === 'lamp') faults.push(Object.assign({ code: p.type === 'led' ? 'LED_BURNT' : 'LAMP_BURNT', part: p.id }, bi[p.id] || {})); return; }
         if (p.type === 'led' && r.i > q.imax) { state.burnt[p.id] = true; newDamage = true; bi[p.id] = { i: r.i, v: r.v, imax: q.imax, vf: r.vf }; faults.push(Object.assign({ code: 'LED_BURNT', part: p.id }, bi[p.id])); }
-        if (p.type === 'led' && r.v < -5) faults.push({ code: 'LED_REVERSE', part: p.id, v: r.v, vmax: 5 });
+        if (p.type === 'led' && r.v < -LIMITS.ledReverse) faults.push({ code: 'LED_REVERSE', part: p.id, v: r.v, vmax: LIMITS.ledReverse });
         if ((p.type === 'battery' || p.type === 'acsource') && Math.abs(r.i) > q.imax) faults.push({ code: 'SHORT', part: p.id, i: r.i, imax: q.imax, u: q.value, ri: q.ri });
         if ((p.type === 'resistor' || p.type === 'pot') && Math.abs(r.p) > q.pmax) faults.push({ code: 'OVERLOAD', part: p.id, p: r.p, pmax: q.pmax, v: r.v, i: r.i, r: q.value });
-        if (p.type === 'lamp' && Math.abs(r.p) > q.pnom * 2) { state.burnt[p.id] = true; newDamage = true; bi[p.id] = { p: r.p, v: r.v, pnom: q.pnom }; faults.push(Object.assign({ code: 'LAMP_BURNT', part: p.id }, bi[p.id])); }
+        if (p.type === 'lamp' && Math.abs(r.p) > q.pnom * LIMITS.lampBurn) { state.burnt[p.id] = true; newDamage = true; bi[p.id] = { p: r.p, v: r.v, pnom: q.pnom }; faults.push(Object.assign({ code: 'LAMP_BURNT', part: p.id }, bi[p.id])); }
         if (p.type === 'ammeter' && Math.abs(r.i) > METER.fuseA) faults.push({ code: 'AMMETER_OVERLOAD', part: p.id, i: r.i, imax: METER.fuseA });
       });
       if (opts.meter && opts.meter.mode === 'A' && !state.fuse) {
@@ -673,7 +674,7 @@
 
   var api = {
     expectedAnswers: expectedAnswers, UNIT_SCALE: UNIT_SCALE,
-    version: '0.2.0', PARTS: PARTS, LED_COLORS: LED_COLORS, LOGIC: LOGIC, METER: METER, SOURCES: SOURCES, TRACE_MAX: TRACE_MAX,
+    version: '0.2.0', PARTS: PARTS, LED_COLORS: LED_COLORS, LOGIC: LOGIC, METER: METER, LIMITS: LIMITS, SOURCES: SOURCES, TRACE_MAX: TRACE_MAX,
     wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, acMeasure: acMeasure,
     buildNetlist: buildNetlist, solve: solve, step: step, newState: newState,
     measure: measure, simulate: simulate, runTask: runTask, fmt: fmt, clone: clone,
