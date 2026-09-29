@@ -62,11 +62,20 @@
     while (used[pre + n]) n++; return pre + n;
   };
   /* Freien Rasterplatz nahe (cx, cy) im Raum suchen, spiralfoermig */
-  Circuit.prototype._place = function (cx, cy, space) {
+  /* Halbe Abmessungen je Bauteiltyp [x, y] fuer die Platzsuche (unrotiert), je Ansicht */
+  var HALF = {
+    schema: { _: [45, 35], battery: [30, 45], acsource: [30, 45], dec7: [45, 80], seg7: [45, 80], dff: [45, 45], jkff: [45, 45], tff: [45, 45], npn: [40, 45], pot: [45, 45] },
+    bench: { _: [65, 32], battery: [75, 56], acsource: [75, 56], dec7: [88, 90], seg7: [75, 88], dff: [75, 55], jkff: [75, 55], tff: [75, 55], npn: [65, 55], motor: [75, 55],
+      lamp: [65, 35], pot: [65, 47], clock: [62, 40], logicin: [56, 39], logicled: [46, 35], ground: [30, 35], and: [65, 46], or: [65, 46], nand: [65, 46], nor: [65, 46], xor: [65, 46], xnor: [65, 46], not: [65, 46] }
+  };
+  function half(type, space, rot) { var t = HALF[space], h = t[type] || t._; return (rot || 0) % 180 ? [h[1], h[0]] : h; }
+  Circuit.half = half;
+  Circuit.prototype._place = function (cx, cy, space, type) {
     var S = SPACES[space], self = this, g = S.grid, cx0 = Math.round(cx / g) * g, cy0 = Math.round(cy / g) * g, x = cx0, y = cy0, ring = 0, k = 0;
-    function free(x, y) {
-      var off = (S.reserved || []).some(function (r) { return x > r[0] - S.free[0] / 2 && x < r[2] + S.free[0] / 2 && y > r[1] - S.free[1] / 2 && y < r[3] + S.free[1] / 2; });
-      return !off && self.layout.parts.every(function (p) { var q = self.pos(p, space); return Math.abs(q.x - x) > S.free[0] || Math.abs(q.y - y) > S.free[1]; });
+    var me = half(type, space, 0);
+    function free(x, y) { // kein Ueberlappen mit reservierten Flaechen oder anderen Bauteilen (echte Abmessungen + Abstand)
+      var off = (S.reserved || []).some(function (r) { return x > r[0] - me[0] && x < r[2] + me[0] && y > r[1] - me[1] && y < r[3] + me[1]; });
+      return !off && self.layout.parts.every(function (p) { var q = self.pos(p, space), o = half(p.type, space, q.rot); return Math.abs(q.x - x) > me[0] + o[0] + 12 || Math.abs(q.y - y) > me[1] + o[1] + 12; });
     }
     while (!free(x, y) && ring < 12) {
       k++; var ang = k * 0.9; ring = Math.floor(k / 7) + 1;
@@ -83,11 +92,11 @@
     if (space === 'bench') {
       var ps = this.layout.parts, sx = 500, sy = 310;
       if (ps.length) { sx = ps.reduce(function (s, q) { return s + q.x; }, 0) / ps.length; sy = ps.reduce(function (s, q) { return s + q.y; }, 0) / ps.length; }
-      xy = this._place(sx, sy, 'schema'); p.x = xy[0]; p.y = xy[1];
-      xy = this.benchHints[id] ? [this.benchHints[id].x, this.benchHints[id].y] : this._place(cx, cy, 'bench');
+      xy = this._place(sx, sy, 'schema', type); p.x = xy[0]; p.y = xy[1];
+      xy = this.benchHints[id] ? [this.benchHints[id].x, this.benchHints[id].y] : this._place(cx, cy, 'bench', type);
       p.bench = { x: xy[0], y: xy[1], rot: this.benchHints[id] ? this.benchHints[id].rot : 0 };
     } else {
-      xy = this._place(cx, cy, 'schema'); p.x = xy[0]; p.y = xy[1];
+      xy = this._place(cx, cy, 'schema', type); p.x = xy[0]; p.y = xy[1];
       if (this.benchHints[id]) p.bench = E.clone(this.benchHints[id]);
     }
     this.layout.parts.push(p); this.sel = id; this.changed('add');
