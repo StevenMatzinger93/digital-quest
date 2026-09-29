@@ -81,6 +81,10 @@ Fertig heisst: Tests gruen, Validator 0 Fehler, Browser-Durchlauf fehlerfrei, `t
 
 ## Theorie (`defTheory`)
 `id ('T1A'), ch, title, lesson (HTML), questions:[{q, options, correct, explain, verify?:{layout,mode,a,b}, verifyTruth?:{layout,sel,q}}], tags` – 5 Fragen, 80 % zum Bestehen.
+- **`visual` (Bild/Animation, optional, Objekt oder Liste)**, analog zu `bench` bei Aufgaben – Plan `docs/PLAN_THEORIE_ANIMATIONEN.md`, Code `src/visuals.js` (`window.DQVisuals`). Eingesetzt an `{{visual}}` (bzw. `{{visual:2}}` …) im `lesson`-Text, sonst das erste Bild nach dem ersten Absatz, weitere am Ende. Gemeinsam: `caption` (HTML).
+  - `{type:'circuit', layout:{parts,wires}, bench?, view?:'schema'|'bench', toggleView?, flow?, volt?, sliders?:[{part, prop ('value'|Eigenschaft), label, min, max, step?, unit?, log?, round?}], readouts?:[{label, sel, q:'v'|'i'|'p'|'brightness'|'on'|'out'|'speed', unit?} | {label, a, b}], scope?:{a, b, span, label}, slow?, height?}` – Mini-Schaltung (`src/mini.js`): derselbe Kern (`DQCircuit` mit `readonly`), derselbe Renderer (`DQEditor`/`DQBench` mit `tight`) und dieselbe Engine wie im Labor; bedienbar sind nur Schalter, Taster, Pegelschalter und die Regler. Kein neues Zeichensystem.
+  - `{type:'block', svg:'<svg …>'}` – Blockbild als fertiges Inline-SVG.
+  - Validator: Typ bekannt, Pflichtfelder je Typ (circuit: Layout baubar, bench-/Regler-/Anzeige-IDs vorhanden), nicht mehr Platzhalter als Bilder.
 
 ## Speicherstand
 `localStorage` Schluessel `digitalquest_state_v1`: `profile {id (UUID), vorname, nachname, pseudonym}`, `done`, `drafts {taskId:{layout, answers}}`, `theory`, `events [{t, type, id, …}]`, `settings`.

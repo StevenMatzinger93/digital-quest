@@ -2,7 +2,7 @@
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const src = p => fs.readFileSync(path.join(__dirname, 'src', p), 'utf8');
 const content = fs.readdirSync(path.join(__dirname, 'src/content')).filter(f => f.endsWith('.js') && f !== '_helpers.js' && f !== 'manual.js').sort();
-const files = ['engine.js', 'content/_helpers.js', ...content.map(f => 'content/' + f), 'content/manual.js', 'circuit-ui.js', 'editor.js', 'bench.js', 'mini.js', 'account.js', 'app.js'];
+const files = ['engine.js', 'content/_helpers.js', ...content.map(f => 'content/' + f), 'content/manual.js', 'circuit-ui.js', 'editor.js', 'bench.js', 'mini.js', 'visuals.js', 'account.js', 'app.js'];
 const js = files.map(f => `/* ==== ${f} ==== */\n` + src(f)).join('\n');
 if (/<\/script/i.test(js)) throw new Error('JS enthaelt </script>');
 const tpl = src('index.template.html');

@@ -689,9 +689,11 @@
   /* ================= Theorie ================= */
   function openTheory(th) {
     show('theory'); current.theory = th; current.started = Date.now();
-    var h = '<div class="theory"><div class="crumb">Kapitel ' + th.ch + ' · Theorie ' + th.id.slice(1) + '</div><h2>' + esc(th.title) + '</h2><article class="lesson">' + th.lesson + '</article>' +
+    var V = root.DQVisuals, vis = V ? V.listOf(th.visual) : []; // Bild/Animation (visual) an {{visual}} bzw. nach dem ersten Absatz
+    var h = '<div class="theory"><div class="crumb">Kapitel ' + th.ch + ' · Theorie ' + th.id.slice(1) + '</div><h2>' + esc(th.title) + '</h2><article class="lesson">' + (V ? V.lessonHtml(th.lesson, vis) : th.lesson) + '</article>' +
       '<button class="btn primary" id="toQuiz">Verstanden – zum Check</button><div id="quiz"></div></div>';
     $('#scr-theory').innerHTML = h;
+    if (V && vis.length) V.mountAll($('#scr-theory .lesson'), vis);
     $('#toQuiz').onclick = function () { this.hidden = true; renderQuiz(th); };
     log('theory_open', { id: th.id });
   }

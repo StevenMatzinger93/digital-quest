@@ -1,6 +1,7 @@
 // Inhalts-Validator: node validate.js  → muss "OK — keine Fehler" ausgeben
 const path = require('path'), fs = require('fs');
 const E = require('./src/engine.js');
+globalThis.DQEngine = E; require('./src/visuals.js'); const V = globalThis.DQVisuals;
 require('./src/content/_helpers.js');
 const dir = path.join(__dirname, 'src/content');
 fs.readdirSync(dir).filter(f => f !== '_helpers.js' && f.endsWith('.js')).sort().forEach(f => require(path.join(dir, f)));
@@ -33,6 +34,14 @@ DQ.tasks.filter(t => t.messOnly).forEach(t => {
   try { const ex = E.expectedAnswers(t, t.ref); t.measure.forEach(m => { if (!isFinite(ex[m.id])) err(t.id, 'Messung ' + m.id + ' ohne Sollwert'); }); } catch (e) { err(t.id, 'Sollwerte: ' + e.message); }
 });
 [...DQ.tasks, ...DQ.theories].forEach(x => { if (!seen.has(x.id)) warn(x.id, 'in keiner Kapitel-Sequenz'); });
+
+// Theorie-Bilder (visual): Typ bekannt, Pflichtfelder je Typ, Platzhalter passen zur Anzahl
+DQ.theories.forEach(th => {
+  const list = V.listOf(th.visual);
+  list.forEach((v, i) => V.check(v, E).forEach(m => err(th.id, 'visual' + (list.length > 1 ? ' ' + (i + 1) : '') + ': ' + m)));
+  const ph = (th.lesson.match(/{{visual(?::(d+))?}}/g) || []).length;
+  if (ph > list.length) err(th.id, 'mehr {{visual}}-Platzhalter als Bilder');
+});
 
 // Bauteil-Datenblaetter: jeder Engine-Typ hat ein vollstaendiges Datenblatt, Werte kommen aus der Engine
 const DS = DQ.datasheets || {};
