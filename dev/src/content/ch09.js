@@ -27,6 +27,7 @@
 
   defTheory({
     id: 'T9A', ch: 9, title: 'Codes und Paritaet', tags: ['digital.codes', 'digital.paritaet'],
+    visual: { type: 'numberSteps', mode: 'gray', bits: 3, parity: true, caption: 'Zaehle mit ▶ oder „Abspielen“ von 0 bis 7 und zurueck auf 0: Binaer kippen oft mehrere Bits gleichzeitig (3 → 4: alle drei), im Gray-Code immer genau eines. Die XOR-Kette ueber die Gray-Bits ergibt das Paritaetsbit – es wechselt bei jedem Schritt.' },
     lesson:
       '<p>Ein <b>Code</b> ordnet Zeichen oder Zahlen Bitmuster zu. <b>BCD</b> codiert jede Dezimalziffer mit 4 Bit. Der <b>3-Exzess-Code</b> ist BCD + 3 (0 → 0011) – praktisch fuer Rechenwerke, weil das Neunerkomplement einfach durch Invertieren entsteht. Beim <b>Gray-Code</b> aendert sich von einer Zahl zur naechsten <b>genau ein Bit</b> – wichtig fuer Drehgeber, damit beim Uebergang keine falschen Zwischenwerte entstehen.</p>' +
       '<p><b>Binaer → Gray:</b> G<sub>n</sub> = B<sub>n</sub> (hoechstes Bit bleibt), jedes weitere G<sub>i</sub> = B<sub>i+1</sub> ⊕ B<sub>i</sub>. <b>Gray → binaer:</b> B<sub>n</sub> = G<sub>n</sub>, dann B<sub>i</sub> = B<sub>i+1</sub> ⊕ G<sub>i</sub>.</p>' +
