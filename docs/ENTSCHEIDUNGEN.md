@@ -81,6 +81,18 @@ Der Punkt "Klassen und Personen" (oben) und die bewusste Zurueckstellung der Pla
 - **QR-Bibliothek ist freiwillig**: Fehlt `qrcode-generator` in `dev/node_modules`, baut der Build ohne QR-Code (Pruefcode und Adresse stehen trotzdem auf dem Zertifikat).
 - **Der Pruefungspool liegt im Repository.** Solange das Repository oeffentlich ist, sind Vorlagen und Musterloesungen dort lesbar (wie bei SPS Quest). Wer das nicht will, macht das Repository privat.
 
+## Messgeraete-Bedienung und Kapitel 16 – Entscheide beim Bau (30.09.2026, Plan `docs/PLAN_MESSTECHNIK_ERWEITERUNG.md`)
+- **`measureUX` je Aufgabe statt globaler Umstellung**: Standard `legacy`, nur neue Aufgaben `drag`. So bleiben ~160 Aufgaben und alle Tests unveraendert; die Schema-Ansicht bleibt immer beim Klick (dort gibt es keine Geraete zum Ziehen).
+- **Klick auf eine Buchse verbindet bei drag immer** (auch mit eingeschaltetem Multimeter): Die Spitzen werden gezogen, das Werkzeug „probe“ braucht es auf der Werkbank nicht mehr. Ausgeschaltet bleiben die Spitzen stecken – wie am echten Geraet.
+- **Fehlwurf faellt zurueck** (0,25 s Animation zum Parkplatz) statt „haengt in der Luft“: eindeutiger Zustand, keine halb gesetzten Spitzen.
+- **Oszilloskop-Tastkopf nur bei drag**: Im Altbestand und im Schema liest das Oszilloskop weiter die Multimeter-Spitzen – sonst waeren 3.1, 11.2, 14.x im Schema nicht mehr loesbar. Erdungsclip offen = Bezug Masse.
+- **Bereichstasten als zweite Reihe unter dem Drehschalter** (nicht als weitere Rastpositionen): Der Drehschalter bleibt fuer die Messart, die Reihe zeigt nur die Bereiche der aktuellen Messart; Moduswechsel setzt auf AUTO. Aufloesung fester Bereiche wie 2000-Count-Handmultimeter, OL ab Endwert, gleiche Kalibrier-/Digit-Streuung wie AUTO.
+- **Kapitel 16 als eigener Teil V mit `after: '4.10'`**: kein 16. Kapitel am Ende der Profi-Stufe (dort wuerde es erst nach 15.10 aufgehen) und kein Einschub in Teil I (Nummern 1–15 bleiben stabil, Pruefungsstufen 1–10 / 11–15 unveraendert). Zaehlt nicht zu Abzeichen/Zertifikat.
+- **Keine Boss-Aufgabe in Kapitel 16**: Vertiefung, kein Stufenabschluss.
+- **Bilder neu gezeichnet** (SVG im Spielstil), keine Uebernahme aus dem Word (Lehrmittelverlag-Branding). Analoge Zeigerinstrumente werden nicht als Engine-Bauteil nachgebaut – die Zuordnung Drehspul = Mittelwert/AVG, Dreheisen = Effektivwert wird ueber die vorhandenen Anzeigen `dc`/`avg`/`rms` der Mini-Schaltung erfahrbar gemacht.
+- **Gleichrichter-Aufgaben 16.6–16.8 sind Messaufgaben mit fertigem Aufbau** (nur messen): Der Bau ist in 3.4/3.5 geuebt; hier zaehlt der Instrumentenvergleich. Strom wird ueber einen 10-Ω-Shunt gemessen, weil `acMeasure` nur Spannungen liefert – fachlich passend (so misst auch ein Amperemeter) und zugleich das Systemfehler-Beispiel.
+- **16.2 mit 10-MΩ-Teiler statt 10 MΩ allein**: An einer nahezu idealen Quelle wuerde das Voltmeter nichts verfaelschen; erst der hochohmige Teiler zeigt den Effekt (4,5 V → 3 V).
+
 ## Technik
 - Offline-Einzeldatei + PWA, keine externen Bibliotheken noetig (Google Fonts optional).
 - Leitfarbe Bernstein `#ffb000`, Token-Namen wie SCL Quest.

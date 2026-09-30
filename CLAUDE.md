@@ -10,6 +10,7 @@ Methode, Qualitaetsregeln und Design folgen dem Bauplan aus SCL Quest (`docs/BAU
 
 ## Stand (29.09.2026)
 **Alle 15 Kapitel sind fertig** (150 Aufgaben, 30 Theorien, alle in Schaltplan UND Werkbank per `tests/tasks.js` loesbar), Werkbank/Labor fertig, Karte nach Teilen I–IV mit Symbol-Kacheln und Sternen, Abzeichen Grundstufe (Boss 10.10) und Profi-Stufe (Boss 15.10).
+**Kapitel 16 Messtechnik-Erweiterung** (30.09.2026, `ch16.js`, Teil V der Karte, offen nach 4.10 via `defChapter({ after })`, zaehlt nicht zu Abzeichen/Zertifikat): 3 Theorien, 8 Aufgaben mit `measureUX: 'drag'` – Messspitzen ziehen, eigener Oszilloskop-Tastkopf, Messbereich von Hand (siehe "Aufgaben schreiben"). Plan `docs/PLAN_MESSTECHNIK_ERWEITERUNG.md`.
 **Portal wie SPS Quest** (Plan `docs/PLAN_PORTAL.md`, umgesetzt 29.09.2026 auf Branch `wip/portal`): Halle mit Toren, Login-Terminal, Leitstand, Administration, Vorgaben mit Frist, Live-Challenge (Sprint, Stoerungsjagd), Pruefung mit Zertifikat, Anleitungen, Feedback-Knopf. Vorbild ist das Repository `StevenMatzinger93/scl-quest` – bei Fragen zur Bedienung dort nachsehen. Moegliche Weiterentwicklung steht in `docs/STAND.md` → "Naechste Schritte".
 
 ## Einrichtung (neue Maschine / Cloud-Session)

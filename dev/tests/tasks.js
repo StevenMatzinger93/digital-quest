@@ -210,9 +210,11 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
       await atomicClick(page, '#bench [data-range="0.2"] rect', 'data-range');
       if (!/OL/.test(await page.textContent('#lcd')) || !/OL/.test(await page.evaluate(() => document.querySelector('#bench .bmlcd').textContent))) fail('200 mV bei einer Quellenspannung zeigt kein OL');
       if (!/Bereich/.test(await page.textContent('#mmWarn'))) fail('OL ohne Hinweis auf den Bereich');
-      await page.click('#mmRange [data-rg="20"]');
-      const man = await page.textContent('#lcd'); if (!isFinite(lcdValue(man)) || Math.abs(lcdValue(man) - lcdValue(auto)) > 0.05 * lcdValue(auto) + 0.02) fail('20-V-Bereich liest anders als AUTO: ' + man + ' / ' + auto);
-      if (!/MAN 20V/.test(await page.evaluate(() => [...document.querySelectorAll('#bench .bmsub')].map(t => t.textContent).join('/')))) fail('LCD zeigt den Handbereich nicht');
+      // kleinster passender Bereich (die Aufgabe kann 9 V oder 230 V liefern) liest wie AUTO
+      const rg = await page.evaluate(v => [...document.querySelectorAll('#mmRange [data-rg]')].map(x => +x.dataset.rg).filter(x => x > v).sort((x, y) => x - y)[0], lcdValue(auto));
+      await page.click(`#mmRange [data-rg="${rg}"]`);
+      const man = await page.textContent('#lcd'); if (!isFinite(lcdValue(man)) || Math.abs(lcdValue(man) - lcdValue(auto)) > 0.05 * lcdValue(auto) + 0.02) fail(rg + '-V-Bereich liest anders als AUTO: ' + man + ' / ' + auto);
+      if (!/MAN /.test(await page.evaluate(() => [...document.querySelectorAll('#bench .bmsub')].map(t => t.textContent).join('/')))) fail('LCD zeigt den Handbereich nicht');
       // Oszilloskop: ohne Tastkopf Hinweis, mit Tastkopf Kurve; Multimeter bleibt unabhaengig
       await atomicClick(page, '#bench [data-scope="run"] rect', 'data-scope');
       if (!/Tastkopf/.test(await page.textContent('#scopeInfo')) || !/Tastkopf/.test(await page.evaluate(() => document.querySelector('#bench .bscinfo').textContent))) fail('Oszilloskop ohne Tastkopf zeigt keinen Hinweis');
