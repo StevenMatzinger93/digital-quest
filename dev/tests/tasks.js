@@ -6,6 +6,9 @@
 // Auftrennen einer Leitung am Bauteil und Amperemeter in der Luecke, Spannung parallel zum Bauteil.
 // Zusaetzlich: Bauteilkatalog – jedes Bauteil in beiden Ansichten hinzufuegen, alle Anschluesse anklicken, drehen,
 // jede Eigenschaft im Panel einstellen.
+// Aufgaben mit measureUX 'drag' werden auf der Werkbank mit gezogenen Messspitzen gemessen (Pointer-Drag von der
+// Parkposition zur Buchse). Abschnitt „Bedienung“ (node tests/tasks.js bedienung): Ziehen, Fehlwurf, Klick ohne Wirkung,
+// Oszilloskop-Tastkopf (Hinweis ohne Anschluss, Kurve mit Anschluss), OL bei zu kleinem Messbereich.
 const path = require('path');
 let chromium; try { ({ chromium } = require('playwright')); } catch (e) { ({ chromium } = require(require('child_process').execSync('npm root -g').toString().trim() + '/playwright')); }
 const url = 'file://' + path.join(__dirname, '../../index.html') + '?alle';
@@ -29,6 +32,23 @@ async function atomicClick(page, sel, key) {
   }, [sel, key]);
   if (r !== 'ok') throw new Error(r);
 }
+/* Messspitze ziehen wie mit der Maus, atomar im Browser: pointerdown auf der geparkten Spitze (data-probe), pointermove
+ * ueber der Buchse, pointerup dort – Ziel ist die Buchse unter dem Zeiger (Hit-Test der Werkbank). */
+async function atomicDrag(page, which, pid) {
+  const r = await page.evaluate(([which, pid]) => {
+    const pr = document.querySelector('#bench [data-probe="' + which + '"] .bprobehit'), pin = document.querySelector('#bench [data-pin="' + pid + '"] .bpinhit'), svg = document.getElementById('bench');
+    if (!pr) return 'Spitze fehlt: ' + which; if (!pin) return 'Buchse fehlt: ' + pid;
+    const a = pr.getBoundingClientRect(), b = pin.getBoundingClientRect();
+    const ev = (t, x, y) => new PointerEvent(t, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 7, pointerType: 'mouse', isPrimary: true, buttons: t === 'pointerup' ? 0 : 1 });
+    pr.dispatchEvent(ev('pointerdown', a.left + a.width / 2, a.top + a.height / 2));
+    svg.dispatchEvent(ev('pointermove', (a.left + b.left) / 2, (a.top + b.top) / 2));
+    svg.dispatchEvent(ev('pointermove', b.left + b.width / 2, b.top + b.height / 2));
+    svg.dispatchEvent(ev('pointerup', b.left + b.width / 2, b.top + b.height / 2));
+    const set = which === 'tip' || which === 'gnd' ? DigitalQuest.core.scopeProbes[which] : DigitalQuest.core.probes[which];
+    return set === pid ? 'ok' : 'Spitze ' + which + ' liegt nicht an ' + pid + ' (' + set + ')';
+  }, [which, pid]);
+  if (r !== 'ok') throw new Error(r);
+}
 function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
   const m = String(txt).trim().match(/^(-?[\d.]+)\s*([pnµumkM]?)/); return m ? +m[1] * PRE[m[2]] : NaN;
 }
@@ -38,10 +58,10 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.on('pageerror', e => errors.push('JS: ' + e.message));
   await page.goto(url, { waitUntil: 'domcontentloaded' });
-  const tasks = await page.evaluate(() => window.DQ.tasks.map(t => ({ id: t.id, start: t.start, ref: t.ref, measure: t.measure, unitScale: DigitalQuest.engine.UNIT_SCALE,
+  const tasks = await page.evaluate(() => window.DQ.tasks.map(t => ({ id: t.id, start: t.start, ref: t.ref, measure: t.measure, measureUX: t.measureUX, unitScale: DigitalQuest.engine.UNIT_SCALE,
     expected: DigitalQuest.engine.expectedAnswers(t, t.ref) })));
 
-  for (const t of tasks.filter(x => only !== 'katalog' && (!only || x.id === only || ((only.endsWith('.') && x.id.startsWith(only)) || (only.endsWith('*') && x.id.startsWith(only.slice(0, -1))))))) for (const view of ['schema', 'bench']) {
+  for (const t of tasks.filter(x => only !== 'katalog' && only !== 'bedienung' && (!only || x.id === only || ((only.endsWith('.') && x.id.startsWith(only)) || (only.endsWith('*') && x.id.startsWith(only.slice(0, -1))))))) for (const view of ['schema', 'bench']) {
     const tag = t.id + ' [' + (view === 'bench' ? 'Werkbank' : 'Schaltplan') + ']', fail = m => errors.push(tag + ': ' + m);
     const svg = view === 'bench' ? '#bench' : '#board', hit = view === 'bench' ? '.bpinhit' : '.pinhit', whit = view === 'bench' ? '.bwirehit' : '.wirehit';
     const pin = id => atomicClick(page, `${svg} [data-pin="${id}"] ${hit}`, 'data-pin');
@@ -106,8 +126,10 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
       if (got.size !== want.size || [...want].some(k => !got.has(k))) fail('Leitungen nach dem Bauen weichen ab');
       // 4. Messprotokoll: mit dem Multimeter der Ansicht messen
       const dial = async mode => { if (view === 'bench') await atomicClick(page, `#bench [data-dial="${mode}"] .bdialhit`, 'data-dial'); else await page.click(`[data-mm="${mode}"]`); };
+      const drag = view === 'bench' && t.measureUX === 'drag'; // neue Messtechnik-Aufgaben: Spitzen ziehen statt klicken
       const readMeter = async (m, mode, a, b) => {
-        await dial(mode); await pin(a); await pin(b);
+        await dial(mode);
+        if (drag) { await atomicDrag(page, 'a', a); await atomicDrag(page, 'b', b); } else { await pin(a); await pin(b); }
         const both = await page.evaluate(() => [document.getElementById('lcd').textContent, (document.querySelector('#bench .bmlcd') || {}).textContent]); // gleiches Bild
         const lcd = both[0], base = lcdValue(lcd);
         if (view === 'bench' && both[1] !== lcd) fail(m.id + ': Werkbank-Multimeter zeigt anderen Wert als das Panel (' + both[1] + ' / ' + lcd + ')');
@@ -158,6 +180,55 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
   // ===== Bauteilkatalog in beiden Ansichten (Freie Werkbank mit ?alle) =====
   const catalog = await page.evaluate(() => Object.keys(DigitalQuest.engine.PARTS).map(k => ({ type: k, pins: DigitalQuest.engine.PARTS[k].pins })));
   const FIELDS = { battery: ['value'], resistor: ['value'], lamp: ['value'], pot: ['value', 'pos'], capacitor: ['value'], clock: ['freq'], led: ['color'], acsource: ['value', 'freq', 'shape', 'offset'], switch: [], zener: ['vz'], npn: ['beta'], motor: ['value'] };
+  // ===== Bedienung der Messgeraete (measureUX 'drag'): Ziehen, Tastkopf, Messbereich =====
+  if (!only || only === 'bedienung') {
+    const tag = 'Bedienung [Werkbank]', fail = m => errors.push(tag + ': ' + m);
+    try {
+      const id = await page.evaluate(() => { const t = window.DQ.tasks.find(x => x.measureUX === 'drag' && x.start.parts.some(p => p.type === 'battery' || p.type === 'acsource') && x.ref.wires.length) || window.DQ.byId['1.4'];
+        t.measureUX = 'drag'; delete DigitalQuest.state.drafts[t.id]; DigitalQuest.openItem(t.id); DigitalQuest.setView('bench'); return t.id; });
+      const ref = await page.evaluate(i => window.DQ.byId[i].ref, id), src = ref.parts.find(p => p.type === 'battery' || p.type === 'acsource');
+      for (const w of ref.wires) { await atomicClick(page, `#bench [data-pin="${w.from}"] .bpinhit`, 'data-pin'); await atomicClick(page, `#bench [data-pin="${w.to}"] .bpinhit`, 'data-pin'); }
+      const box = sel => page.evaluate(s => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; }, sel);
+      // Klick auf eine Buchse setzt keine Spitze mehr (er beginnt eine Leitung)
+      await atomicClick(page, '#bench [data-dial="V"] .bdialhit', 'data-dial');
+      await atomicClick(page, `#bench [data-pin="${src.id}.p"] .bpinhit`, 'data-pin');
+      if (await page.evaluate(() => DigitalQuest.core.probes.a || DigitalQuest.core.probes.b)) fail('Klick auf die Buchse setzt die Spitze – bei drag darf nur Ziehen wirken');
+      await page.keyboard.press('Escape');
+      // echtes Ziehen mit der Maus (kein dispatchEvent): rot auf +, dann Fehlwurf mit schwarz
+      const a = await box('#bench [data-probe="a"] .bprobehit'), q = await box(`#bench [data-pin="${src.id}.p"] .bpinhit`);
+      await page.mouse.move(a[0], a[1]); await page.mouse.down(); await page.mouse.move((a[0] + q[0]) / 2, (a[1] + q[1]) / 2, { steps: 4 });
+      if (!await page.evaluate(() => DigitalQuest.core.dragProbe && DigitalQuest.core.dragProbe.which === 'a')) fail('waehrend des Ziehens haengt die Spitze nicht am Zeiger');
+      await page.mouse.move(q[0], q[1], { steps: 4 }); await page.mouse.up();
+      if (await page.evaluate(() => DigitalQuest.core.probes.a) !== src.id + '.p') fail('rote Spitze liegt nach dem Ziehen nicht an ' + src.id + '.p');
+      const bb = await box('#bench [data-probe="b"] .bprobehit');
+      await page.mouse.move(bb[0], bb[1]); await page.mouse.down(); await page.mouse.move(bb[0] - 250, bb[1] - 150, { steps: 4 }); await page.mouse.up(); await page.waitForTimeout(350);
+      if (await page.evaluate(() => DigitalQuest.core.probes.b)) fail('Fehlwurf setzt die schwarze Spitze');
+      if (!await page.evaluate(() => document.querySelector('#bench [data-probe="b"]').classList.contains('parked'))) fail('nach dem Fehlwurf liegt die Spitze nicht geparkt');
+      await atomicDrag(page, 'b', src.id + '.n');
+      // Messbereich: AUTO liest, 200 mV zeigt OL (Quelle ≥ 5 V), passender Bereich liest wieder
+      const auto = await page.textContent('#lcd'); if (!isFinite(lcdValue(auto))) fail('AUTO zeigt keinen Wert: ' + auto);
+      await atomicClick(page, '#bench [data-range="0.2"] rect', 'data-range');
+      if (!/OL/.test(await page.textContent('#lcd')) || !/OL/.test(await page.evaluate(() => document.querySelector('#bench .bmlcd').textContent))) fail('200 mV bei einer Quellenspannung zeigt kein OL');
+      if (!/Bereich/.test(await page.textContent('#mmWarn'))) fail('OL ohne Hinweis auf den Bereich');
+      await page.click('#mmRange [data-rg="20"]');
+      const man = await page.textContent('#lcd'); if (!isFinite(lcdValue(man)) || Math.abs(lcdValue(man) - lcdValue(auto)) > 0.05 * lcdValue(auto) + 0.02) fail('20-V-Bereich liest anders als AUTO: ' + man + ' / ' + auto);
+      if (!/MAN 20V/.test(await page.evaluate(() => [...document.querySelectorAll('#bench .bmsub')].map(t => t.textContent).join('/')))) fail('LCD zeigt den Handbereich nicht');
+      // Oszilloskop: ohne Tastkopf Hinweis, mit Tastkopf Kurve; Multimeter bleibt unabhaengig
+      await atomicClick(page, '#bench [data-scope="run"] rect', 'data-scope');
+      if (!/Tastkopf/.test(await page.textContent('#scopeInfo')) || !/Tastkopf/.test(await page.evaluate(() => document.querySelector('#bench .bscinfo').textContent))) fail('Oszilloskop ohne Tastkopf zeigt keinen Hinweis');
+      if (await page.$('#bench .bsctrace')) fail('Oszilloskop zeichnet ohne Tastkopf eine Kurve');
+      await atomicDrag(page, 'tip', src.id + '.p'); await atomicDrag(page, 'gnd', src.id + '.n');
+      await atomicClick(page, '#bench [data-scope="run"] rect', 'data-scope'); await page.waitForTimeout(150);
+      if (!await page.$('#bench .bsctrace') || !/Kanal: / .test(await page.textContent('#scopeInfo'))) fail('Oszilloskop mit Tastkopf zeigt keine Kurve');
+      if (await page.evaluate(() => DigitalQuest.core.probes.a) !== src.id + '.p') fail('Tastkopf hat die Multimeter-Spitze verstellt');
+      // Altbestand unveraendert: Klick setzt die Spitze, keine Bereichstasten, kein Tastkopf
+      await page.evaluate(() => { DigitalQuest.openItem('1.5'); DigitalQuest.setView('bench'); }); // 1.5 ist Altbestand (legacy)
+      await atomicClick(page, '#bench [data-dial="V"] .bdialhit', 'data-dial'); await atomicClick(page, '#bench [data-pin="B1.p"] .bpinhit', 'data-pin');
+      if (await page.evaluate(() => DigitalQuest.core.probes.a) !== 'B1.p') fail('Altbestand: Klick setzt die Spitze nicht mehr');
+      if (await page.$('#bench [data-range]') || await page.$('#bench [data-probe]')) fail('Altbestand: Bereichstasten oder greifbare Spitzen sichtbar');
+    } catch (e) { fail('gescheitert: ' + e.message.split('\n')[0]); await page.screenshot({ path: path.join(__dirname, 'shots', 'fehler_bedienung.png') }); }
+    runs++;
+  }
   if (!only || only === 'katalog') for (const view of ['schema', 'bench']) {
     const svg = view === 'bench' ? '#bench' : '#board', hit = view === 'bench' ? '.bpinhit' : '.pinhit';
     await page.evaluate(v => { delete DigitalQuest.state.drafts.sandbox; DigitalQuest.openItem('sandbox'); DigitalQuest.setView(v); }, view);
