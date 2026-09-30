@@ -368,6 +368,30 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await octx.close();
   }
 
+  // Werkbank-Tutorial: ueber die Kopfzeile, Uebungsaufbau mit echter Werkbank bedienen (Spitzen ziehen, Messart, Bereich/OL, Tastkopf, RUN), zurueck zur Karte
+  {
+    const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('Tutorial: ' + e.message));
+    await tp.goto(url.replace('?alle', ''), { waitUntil: 'domcontentloaded' });
+    await tp.click('[data-go="tutorial"]'); await tp.waitForSelector('#tbench [data-probe="a"]');
+    if (!await tp.isVisible('#scr-tutorial.active') || await tp.$$eval('.tut-steps li', l => l.length) !== 7) errors.push('Tutorial: Screen oder Schrittliste fehlt');
+    const box = sel => tp.evaluate(s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }, sel);
+    const drag = async (w, pin) => { const a = await box(`#tbench [data-probe="${w}"] .bprobehit`), q = await box(`#tbench [data-pin="${pin}"] .bpinhit`); await tp.mouse.move(a[0], a[1]); await tp.mouse.down(); await tp.mouse.move(q[0], q[1], { steps: 6 }); await tp.mouse.up(); };
+    const tap = async sel => { const q = await box(sel); if (!q) throw new Error('Tutorial: fehlt ' + sel); await tp.mouse.click(q[0], q[1]); await tp.waitForTimeout(80); };
+    await drag('a', 'R1.a'); await drag('b', 'R1.b'); await tap('#tbench [data-dial="V"] .bdialhit');
+    await tap('#tbench [data-range="2"] rect'); if (!/OL/.test(await tp.textContent('#tutLcd'))) errors.push('Tutorial: 2-V-Bereich zeigt kein OL');
+    await tap('#tbench [data-range="20"] rect'); if (!/^9\.\d+ V$/.test((await tp.textContent('#tutLcd')).trim())) errors.push('Tutorial: 20-V-Bereich liest nicht 9 V: ' + await tp.textContent('#tutLcd'));
+    await drag('tip', 'R2.a'); await drag('gnd', 'R2.b'); await tap('#tbench [data-scope="run"] rect'); await tp.waitForTimeout(250);
+    if (!await tp.$('#tbench .bsctrace') || !/R2\.a/.test(await tp.textContent('#tutScope'))) errors.push('Tutorial: Oszilloskop zeigt keine Kurve');
+    const done = await tp.$$eval('.tut-steps li.done', l => l.map(x => x.dataset.step));
+    if (done.length !== 7) errors.push('Tutorial: nicht alle Schritte abgehakt: ' + done.join(','));
+    await tp.screenshot({ path: shots + '/22_tutorial.png' });
+    await tp.click('#tutMap'); if (!await tp.isVisible('#scr-map.active')) errors.push('Tutorial: Zurueck zur Karte wirkt nicht');
+    // Hinweis-Link in der ersten drag-Aufgabe
+    await tp.evaluate(() => DigitalQuest.openItem('16.1')); if (!await tp.$('#taskInfo .tut-link [data-go="tutorial"]')) errors.push('16.1: Link zum Tutorial fehlt');
+    await tp.click('#taskInfo .tut-link a'); if (!await tp.isVisible('#scr-tutorial.active')) errors.push('16.1: Link oeffnet das Tutorial nicht');
+    await tp.close();
+  }
+
   // Handy
   const m =await browser.newPage({ viewport: { width: 390, height: 844 } });
   m.on('pageerror', e => errors.push('mobil: ' + e.message));

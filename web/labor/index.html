@@ -483,6 +483,23 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .bb-mp { fill: var(--bg-secondary); stroke: var(--accent-green); stroke-width: 1.5; } .bb-mpt { font: 700 8px var(--font-code); fill: var(--accent-green); text-anchor: middle; }
 .bb-dash { stroke: var(--accent-green); stroke-dasharray: 3 3; }
 
+/* ---- Werkbank-Tutorial ---- */
+.tutorial { display: grid; grid-template-columns: minmax(300px, 420px) 1fr; gap: 18px; max-width: 1300px; margin: 0 auto; padding: 24px 18px 60px; }
+.tut-text h2 { margin: 4px 0 10px; } .tut-text h3 { margin: 18px 0 6px; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); }
+.tut-steps { list-style: none; margin: 12px 0; padding: 0; counter-reset: s; display: grid; gap: 8px; }
+.tut-steps li { counter-increment: s; display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-secondary); font-size: 14px; }
+.tut-steps li .tut-chk { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--accent-lead-dim); display: grid; place-items: center; font: 700 12px var(--font-code); color: var(--accent-lead); }
+.tut-steps li .tut-chk::before { content: counter(s); }
+.tut-steps li.done { border-color: rgba(57,255,20,.45); } .tut-steps li.done .tut-chk { background: var(--accent-green); border-color: var(--accent-green); color: #0b1a06; } .tut-steps li.done .tut-chk::before { content: '✔'; }
+.tut-notes { font-size: 14px; padding-left: 18px; } .tut-notes li { margin: 4px 0; }
+.tut-actions { display: flex; gap: 8px; margin-top: 16px; }
+.tut-bench { display: grid; grid-template-rows: auto auto; gap: 10px; align-content: start; }
+#tbench { width: 100%; aspect-ratio: 1000 / 620; background: #0c0d0a; border: 1px solid var(--line); border-radius: 12px; display: block; touch-action: none; }
+.tut-panel { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-secondary); }
+.tut-panel .lcd.small { font-size: 20px; padding: 4px 12px; min-width: 150px; text-align: right; } .tut-panel .fld { margin: 0; } .tut-panel #tutWarn, .tut-panel #tutScope { flex-basis: 100%; margin: 0; } .tut-panel #tutWarn { color: var(--accent-orange); } .tut-panel #tutWarn:empty, .tut-panel #tutScope:empty { display: none; }
+.tut-probes .pr { margin-right: 10px; }
+.tut-link { margin: 10px 0 0; font-size: 13px; color: var(--text-dim); } .tut-link a { color: var(--accent-cyan); }
+@media (max-width: 900px) { .tutorial { grid-template-columns: 1fr; } }
 /* ---- Konto-Chip, Sterne, Meldung (Portal-Version) ---- */
 .acct-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 190px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 20px; color: var(--text-dim); text-decoration: none; font-size: 13px; white-space: nowrap; overflow: hidden; }
 .acct-chip[hidden] { display: none; }
@@ -554,7 +571,7 @@ body.has-exam-bar .top { padding-top: 50px; }
 <header class="top">
   <div class="brand"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 4 12 2-6h8"/></svg><span>DIGITAL<b>QUEST</b></span></div>
   <span id="modeTag" class="mode-tag" hidden title="Dozentenmodus: mit einem Dozenten-Konto angemeldet – alle Stationen offen">DOZENT</span>
-  <nav><button data-go="map">Karte</button><button data-go="manual">Handbuch</button><button data-go="settings">Einstellungen</button></nav>
+  <nav><button data-go="map">Karte</button><button data-go="manual">Handbuch</button><button data-go="tutorial" title="Bedienung der Messgeraete auf der Werkbank ueben">Werkbank-Tutorial</button><button data-go="settings">Einstellungen</button></nav>
   <a id="acctChip" class="acct-chip" href="../" hidden></a>
   <span id="saveInd"></span>
 </header>
@@ -601,6 +618,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   </section>
   <section id="scr-theory" class="screen"></section>
   <section id="scr-manual" class="screen"></section>
+  <section id="scr-tutorial" class="screen"></section>
   <section id="scr-settings" class="screen"></section>
   <section id="scr-award" class="screen"></section>
 </main>
@@ -8332,7 +8350,9 @@ body.has-exam-bar .top { padding-top: 50px; }
       h += '</div>';
     }
     h += '<button class="btn primary big" id="btnCheck">Pruefen</button><div id="results"></div>';
+    if (t.measureUX === 'drag') h += '<p class="tut-link"><b>Neu:</b> Messspitzen ziehen, Messbereich waehlen, Tastkopf anschliessen – <a href="#" data-go="tutorial">Anleitung ansehen</a></p>';
     $('#taskInfo').innerHTML = h;
+    var tl = $('#taskInfo [data-go="tutorial"]'); if (tl) tl.onclick = function (ev) { ev.preventDefault(); renderTutorial(); show('tutorial'); };
     $('#hint1').onclick = function () { if (current.hints < 1 && LIVE) LIVE.hint(); current.hints = Math.max(current.hints, 1); $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div>'; };
     $('#hint2').onclick = function () { if (current.hints < 2 && LIVE) LIVE.hint(); current.hints = 2; $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div><div class="hint">' + t.hint2 + '</div>'; };
     $$('[data-ans]').forEach(function (inp) { inp.oninput = persistDraft; });
@@ -8640,43 +8660,55 @@ body.has-exam-bar .top { padding-top: 50px; }
     log('probe', { id: current.task && current.task.id, mode: meter.mode, pin: pin });
     tick(0);
   }
-  /* Wechselgroessen (V~, und V⎓ bei schnellen Wechselquellen = Mittelwert) – nur neu rechnen, wenn sich Aufbau oder Spitzen aendern */
-  function acReading() {
-    var key = JSON.stringify(ed.layout) + '|' + meter.a + '|' + meter.b;
-    if (meter.acKey !== key) { meter.acKey = key; meter.ac = E.acMeasure(ed.layout, { a: meter.a, b: meter.b }); }
-    return meter.ac;
-  }
-  function slowestFreq() {
-    var f = Infinity; (live.net ? live.net.parts : []).forEach(function (p) { if ((p.type === 'acsource' || p.type === 'clock') && p.props.freq > 0) f = Math.min(f, p.props.freq); }); return f;
-  }
-  /* Anzeige wie ein 6000-Digit-DMM (Bereichswahl, +0,2 % Kalibrierfehler, letzte Stelle flackert) */
-  function updateMeter(r, mn) {
-    var lcd = $('#lcd'), txt = '— — —', warn = '', sub = meter.mode === 'VAC' ? 'AC ' + (meterType() === 'avg' ? 'AVG' : 'TRMS') : meter.mode === 'V' || meter.mode === 'A' ? 'DC' : '';
-    var rg = dragUX() && meter.range !== 'AUTO' ? meter.range : undefined, olHint = ''; // fester Bereich: OL, wenn der Endwert ueberschritten ist
-    if (meter.mode === 'OFF') txt = 'OFF';
-    else if (!mn) txt = meter.mode === 'R' ? '0L Ω' : '- - -';
-    else if (meter.mode === 'V') {
+  /* Anzeige eines Multimeters wie ein 6000-Digit-DMM (Bereichswahl, +0,2 % Kalibrierfehler, letzte Stelle flackert) – ohne DOM,
+   * fuer die Aufgabe und das Werkbank-Tutorial. m = {mode, a, b, acKey, ac} (ac-Zwischenspeicher liegt im Objekt),
+   * rg = fester Bereich (Endwert) oder undefined, mt = 'avg'|'trms'. Liefert {text, sub, warn, ol}. */
+  function meterReading(m, layout, net, r, state, mn, rg, mt) {
+    var txt = '— — —', warn = '', sub = m.mode === 'VAC' ? 'AC ' + (mt === 'avg' ? 'AVG' : 'TRMS') : m.mode === 'V' || m.mode === 'A' ? 'DC' : '';
+    var unit = m.mode === 'A' ? 'A' : m.mode === 'R' ? 'Ω' : 'V';
+    function ac() { // Wechselgroessen nur neu rechnen, wenn sich Aufbau oder Spitzen aendern
+      var key = JSON.stringify(layout) + '|' + m.a + '|' + m.b;
+      if (m.acKey !== key) { m.acKey = key; m.ac = E.acMeasure(layout, { a: m.a, b: m.b }); }
+      return m.ac;
+    }
+    var fs = Infinity; (net ? net.parts : []).forEach(function (p) { if ((p.type === 'acsource' || p.type === 'clock') && p.props.freq > 0) fs = Math.min(fs, p.props.freq); });
+    if (m.mode === 'OFF') txt = 'OFF';
+    else if (!mn || !r) txt = m.mode === 'R' ? '0L Ω' : '- - -';
+    else if (m.mode === 'V') {
       var vdc = r.nodeV[mn.a] - r.nodeV[mn.b];
-      var fs = slowestFreq(); if (isFinite(fs) && fs >= 5) { var ac1 = acReading(); if (ac1.ok) vdc = ac1.dc; } // DMM zeigt bei schnellem Wechsel den Mittelwert (ohne Wechselquelle: Momentanwert mit Eigenverbrauch)
+      if (isFinite(fs) && fs >= 5) { var ac1 = ac(); if (ac1.ok) vdc = ac1.dc; } // DMM zeigt bei schnellem Wechsel den Mittelwert (ohne Wechselquelle: Momentanwert mit Eigenverbrauch)
       txt = E.dmm(vdc, 'V', undefined, rg).text;
-    } else if (meter.mode === 'VAC') {
-      var ac = acReading();
-      if (!ac.ok) { txt = 'Err'; warn = ac.error; }
-      else { txt = E.dmm(meterType() === 'avg' ? ac.avg : ac.rms, 'V', undefined, rg).text; if (ac.static) warn = 'Keine Wechselquelle im Aufbau – V~ zeigt nur den Wechselanteil (hier 0).'; }
-    } else if (meter.mode === 'A') {
-      if (live.state.fuse) {
+    } else if (m.mode === 'VAC') {
+      var a2 = ac();
+      if (!a2.ok) { txt = 'Err'; warn = a2.error; }
+      else { txt = E.dmm(mt === 'avg' ? a2.avg : a2.rms, 'V', undefined, rg).text; if (a2.static) warn = 'Keine Wechselquelle im Aufbau – V~ zeigt nur den Wechselanteil (hier 0).'; }
+    } else if (m.mode === 'A') {
+      if (state.fuse) {
         txt = 'FUSE';
-        var fi = live.state.fuseInfo;
+        var fi = state.fuseInfo;
         warn = 'Sicherung durchgebrannt' + (fi ? ': Durch das Messgeraet waeren ' + E.fmt(Math.abs(fi.i), 'A') + ' geflossen (Sicherung ' + E.fmt(fi.imax, 'A') + ')' : '') + '. Das Amperemeter hat fast 0 Ω – es gehoert in Reihe, nie parallel zu einer Quelle.';
       } else txt = E.dmm((r.nodeV[mn.a] - r.nodeV[mn.b]) / E.METER.rA, 'A', undefined, rg).text;
-    } else if (meter.mode === 'R') {
-      var m = E.measure(ed.layout, { mode: 'R', a: meter.a, b: meter.b }, live.state);
-      txt = m.ok ? E.dmm(m.value, 'Ω', undefined, rg).text.replace('OL', '0L') : 'Err'; warn = m.ok ? '' : m.error;
+    } else if (m.mode === 'R') {
+      var mr = E.measure(layout, { mode: 'R', a: m.a, b: m.b }, state);
+      txt = mr.ok ? E.dmm(mr.value, 'Ω', undefined, rg).text.replace('OL', '0L') : 'Err'; warn = mr.ok ? '' : mr.error;
     }
-    if (rg && /^0?L$|OL|0L/.test(txt) && mn) olHint = 'OL: Der Messwert liegt ueber dem gewaehlten Bereich ' + E.rangeLabel(rg, rangeUnit()) + ' – groesseren Bereich waehlen.';
-    if (olHint && !warn) warn = olHint;
+    var ol = !!(rg && mn && /^0?L$|OL|0L/.test(txt));
+    if (ol && !warn) warn = 'OL: Der Messwert liegt ueber dem gewaehlten Bereich ' + E.rangeLabel(rg, unit) + ' – groesseren Bereich waehlen.';
+    return { text: txt, sub: sub, warn: warn, ol: ol, range: rg ? E.rangeLabel(rg, unit) : null };
+  }
+  /* Kurve fuers Oszilloskop (Aufgabe und Tutorial): Abtastung ueber T Sekunden, Skala, Punkte fuer den Werkbank-Schirm */
+  function scopeCurve(layout, sp, T, label) {
+    var s = E.simulate(layout, { dt: T / 400, tEnd: T, probes: [{ a: sp.a, b: sp.b || undefined }] }).samples;
+    var vs = s.map(function (x) { return x.ch0; }), mx = Math.max.apply(null, vs), mn = Math.min.apply(null, vs);
+    var top = Math.max(1, Math.ceil(Math.max(mx, 0) * 1.1)), bot = Math.min(0, Math.floor(mn * 1.1)), stepN = Math.max(1, Math.floor(s.length / 150));
+    return { samples: s, top: top, bot: bot, mx: mx, mn: mn, pts: s.filter(function (x, k) { return k % stepN === 0; }).map(function (x) { return [x.t / T, (x.ch0 - bot) / (top - bot)]; }),
+      info: 'CH1 ' + sp.a + (sp.b ? '–' + sp.b : '') + ' · ' + bot + '…' + top + ' V · ' + label, text: 'Kanal: ' + sp.a + ' gegen ' + (sp.b || 'Masse') + ' · ' + bot + '…' + top + ' V · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') };
+  }
+  function updateMeter(r, mn) {
+    var lcd = $('#lcd'), rg = dragUX() && meter.range !== 'AUTO' ? meter.range : undefined;
+    var rd = meterReading(meter, ed.layout, live.net, r, live.state, mn, rg, meterType()), txt = rd.text, warn = rd.warn;
     lcd.textContent = txt;
-    if (bench) bench.meter = { mode: meter.mode, text: txt, fuse: live.state.fuse, sub: sub, ranges: rangeList(), range: rg ? E.rangeLabel(rg, rangeUnit()) : null };
+    if (bench) bench.meter = { mode: meter.mode, text: txt, fuse: live.state.fuse, sub: rd.sub, ranges: rangeList(), range: rd.range };
     $('#mmWarn').textContent = warn; $('#btnFuse').hidden = !live.state.fuse;
     $('#mmProbes').innerHTML = '<span class="pr red">+ ' + esc(meter.a || '–') + '</span><span class="pr black">COM ' + esc(meter.b || '–') + '</span>';
   }
@@ -8746,18 +8778,14 @@ body.has-exam-bar .top { padding-top: 50px; }
       $('#scopeInfo').textContent = sp.own ? 'Tastkopf anschliessen: den gelben Tastkopf (CH1) auf der Werkbank an einen Anschluss ziehen, den schwarzen Erdungsclip an den Bezugspunkt.' : 'Setze zuerst die rote Messspitze (Multimeter V).';
       bench.scope = { pts: [], info: sp.own ? 'Tastkopf anschliessen' : 'Zuerst rote Messspitze setzen (V)' }; bench.render(); return;
     }
-    var s;
-    try { s = E.simulate(ed.layout, { dt: T / 400, tEnd: T, probes: [{ a: sp.a, b: sp.b || undefined }] }).samples; }
+    var c;
+    try { c = scopeCurve(ed.layout, sp, T, $('#tb').selectedOptions[0].textContent); }
     catch (e) { $('#scopeInfo').textContent = e.message; return; }
-    var vs = s.map(function (x) { return x.ch0; }), mx = Math.max.apply(null, vs), mn = Math.min.apply(null, vs);
-    var top = Math.max(1, Math.ceil(Math.max(mx, 0) * 1.1)), bot = Math.min(0, Math.floor(mn * 1.1));
     ctx.strokeStyle = '#ffb000'; ctx.lineWidth = 2 * (window.devicePixelRatio || 1); ctx.shadowColor = '#ffb000'; ctx.shadowBlur = 6; ctx.beginPath();
-    s.forEach(function (x, k) { var px = x.t / T * w, py = h - (x.ch0 - bot) / (top - bot) * h; if (k) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
+    c.samples.forEach(function (x, k) { var px = x.t / T * w, py = h - (x.ch0 - c.bot) / (c.top - c.bot) * h; if (k) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
     ctx.stroke(); ctx.shadowBlur = 0;
-    $('#scopeInfo').textContent = 'Kanal: ' + sp.a + ' gegen ' + (sp.b || 'Masse') + ' · ' + bot + '…' + top + ' V · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V');
-    var stepN = Math.max(1, Math.floor(s.length / 150));
-    bench.scope = { pts: s.filter(function (x, k) { return k % stepN === 0; }).map(function (x) { return [x.t / T, (x.ch0 - bot) / (top - bot)]; }),
-      info: 'CH1 ' + sp.a + (sp.b ? '–' + sp.b : '') + ' · ' + bot + '…' + top + ' V · ' + $('#tb').selectedOptions[0].textContent };
+    $('#scopeInfo').textContent = c.text;
+    bench.scope = { pts: c.pts, info: c.info };
     bench.render();
     log('scope', { id: current.task && current.task.id, T: T });
   }
@@ -8839,6 +8867,93 @@ body.has-exam-bar .top { padding-top: 50px; }
     };
   }
 
+  /* ================= Werkbank-Tutorial =================
+   * Eigener Screen mit einer echten Mini-Werkbank (gleicher Kern, Renderer und Engine wie in den Aufgaben, measureUX 'drag'):
+   * fester Uebungsaufbau (Batterie–Widerstand, Generator–Widerstand), Schritte haken sich ab, sobald sie ausgefuehrt sind. */
+  var tut = null;
+  var TUT_LAYOUT = { parts: [{ id: 'B1', type: 'battery', value: 9, x: 160, y: 200, rot: 0, bench: { x: 230, y: 250, rot: 0 } }, { id: 'R1', type: 'resistor', value: 1000, x: 420, y: 200, rot: 90, bench: { x: 560, y: 250, rot: 90 } },
+      { id: 'G1', type: 'acsource', value: 5, props: { freq: 50, shape: 'sine', offset: 0 }, x: 160, y: 440, rot: 0, bench: { x: 230, y: 580, rot: 0 } }, { id: 'R2', type: 'resistor', value: 1000, x: 420, y: 440, rot: 90, bench: { x: 560, y: 580, rot: 90 } }],
+    wires: [W('B1.p', 'R1.a'), W('R1.b', 'B1.n'), W('G1.p', 'R2.a'), W('R2.b', 'G1.n')] };
+  var TUT_STEPS = [
+    ['probeA', 'Rote Messspitze (+) greifen und auf <b>R1.a</b> (oberer Anschluss des Widerstands an der Batterie) ziehen. Loslassen daneben legt sie zurueck vor das Geraet.'],
+    ['probeB', 'Schwarze Messspitze (COM) auf <b>R1.b</b> ziehen. Klick auf eine Buchse setzt keine Spitze – er zieht eine Leitung.'],
+    ['mode', 'Am Drehschalter <b>V⎓</b> waehlen. Der Schalter stellt die <b>Messart</b> ein (V⎓, V~, A⎓, Ω); die Tastenreihe darunter den <b>Messbereich</b>.'],
+    ['ol', 'Bereich <b>2V</b> antippen: Das Geraet zeigt <b>OL</b> (overload) – 9 V passen nicht in einen Bereich bis 2 V. Kein Fehler im Aufbau, nur der Bereich ist zu klein.'],
+    ['read', 'Bereich <b>20V</b> waehlen und ablesen: 9,0x V. Der kleinste Bereich, in den der Wert passt, zeigt die meisten Stellen; AUTO waehlt selbst.'],
+    ['tip', 'Jetzt das Oszilloskop – ein <b>eigenes Kabelsystem</b>: gelben <b>Tastkopf</b> (CH1) auf <b>R2.a</b> ziehen, schwarzen <b>Erdungsclip</b> auf <b>R2.b</b>. Die Multimeter-Spitzen bleiben, wo sie sind.'],
+    ['run', '<b>RUN</b> am Oszilloskop druecken: der Sinus des Generators erscheint (Bildbreite 40 ms). Aendere die Bildbreite unten und druecke RUN erneut.']
+  ];
+  function renderTutorial() {
+    show('tutorial');
+    var el = $('#scr-tutorial');
+    el.innerHTML = '<div class="tutorial"><div class="tut-text"><div class="crumb">Werkbank · Bedienung der Messgeraete</div><h2>Werkbank-Tutorial</h2>' +
+      '<p>In den Messtechnik-Aufgaben (Kapitel 16) bedienst du die Geraete wie im Labor: Messspitzen <b>ziehen</b>, Messart <b>und</b> Messbereich waehlen, den Tastkopf des Oszilloskops selbst anschliessen. Rechts steht ein Uebungsaufbau – probiere jeden Schritt direkt aus, die Liste hakt mit.</p>' +
+      '<ol class="tut-steps">' + TUT_STEPS.map(function (s) { return '<li data-step="' + s[0] + '"><span class="tut-chk"></span><span>' + s[1] + '</span></li>'; }).join('') + '</ol>' +
+      '<h3>Gut zu wissen</h3><ul class="tut-notes"><li><b>OL</b> heisst nur: Bereich zu klein. Groesseren Bereich waehlen, nicht am Aufbau suchen.</li>' +
+      '<li><b>Zwei Kabelsysteme:</b> rot/schwarz gehoeren zum Multimeter, gelb/schwarz (Clip) zum Oszilloskop. Beide koennen gleichzeitig an verschiedenen Stellen haengen.</li>' +
+      '<li><b>A⎓</b> misst in Reihe: Leitung loesen, Spitzen in die Luecke. Parallel zu einer Quelle brennt die Sicherung durch (Knopf „Sicherung ersetzen“).</li>' +
+      '<li><b>Ω</b> nur an der spannungsfreien Schaltung. <b>OFF</b> laesst die Spitzen stecken.</li>' +
+      '<li>Klick auf eine Buchse verbindet Leitungen; Bauteile ziehen, <kbd>R</kbd> dreht.</li></ul>' +
+      '<div class="tut-actions"><button class="btn" id="tutReset">Uebungsaufbau zuruecksetzen</button><button class="btn primary" id="tutMap">Zur Karte</button></div></div>' +
+      '<div class="tut-bench"><svg id="tbench" tabindex="0" aria-label="Uebungs-Werkbank"></svg>' +
+      '<div class="tut-panel"><span class="lcd small" id="tutLcd">OFF</span><span id="tutSub" class="dim small"></span><span class="tut-probes" id="tutProbes"></span>' +
+      '<label class="fld"><span>Bildbreite Oszilloskop</span><select id="tutTb"><option value="0.01">10 ms</option><option value="0.04" selected>40 ms</option><option value="0.2">200 ms</option></select></label>' +
+      '<button class="btn small" id="tutFuse" hidden>Sicherung ersetzen</button><p id="tutWarn" class="small"></p><p id="tutScope" class="small dim"></p></div></div></div>';
+    tutStart();
+    $('#tutReset').onclick = function () { tutStop(); tutStart(); };
+    $('#tutMap').onclick = function () { renderMap(); show('map'); };
+    $('#tutTb').onchange = function () { if (tut && tut.bench.scope) tutScope(); };
+    $('#tutFuse').onclick = function () { if (tut) { tut.state.fuse = false; tutTick(0); } };
+    log('tutorial_open', {});
+  }
+  function tutStart() {
+    var svg = $('#tbench'), core = new Circuit({
+      onChange: function () { if (tut) { tut.net = null; try { tut.net = E.buildNetlist(core.layout); } catch (e) { /* offen */ } tut.m.acKey = null; tutTick(0); } },
+      onProbe: function (pin, which) { if (!tut) return; tut.m[which] = pin || null; if (tut.m.a === 'R1.a') tutDone('probeA'); if (tut.m.b === 'R1.b') tutDone('probeB'); tutTick(0); },
+      onScopeProbe: function () { if (!tut) return; tut.bench.scope = null; if (core.scopeProbes.tip === 'R2.a' && core.scopeProbes.gnd === 'R2.b') tutDone('tip'); tutTick(0); },
+      onMessage: function () {}
+    });
+    var bench = new Bench(svg, { core: core, onDial: function (mode) { if (!tut) return; if (mode !== tut.m.mode) tut.m.range = 'AUTO'; tut.m.mode = mode; if (mode === 'V') tutDone('mode'); tutTick(0); },
+      onRange: function (r) { if (!tut) return; tut.m.range = r === 'AUTO' ? 'AUTO' : +r; tutTick(0); }, onScope: tutScope });
+    core.space = 'bench'; bench.dragUX = true;
+    core.load(TUT_LAYOUT, TUT_LAYOUT.parts.map(function (p) { return p.id; }));
+    tut = { core: core, bench: bench, m: { mode: 'OFF', a: null, b: null, range: 'AUTO' }, state: E.newState(), net: null, done: {}, raf: 0, last: 0 };
+    try { tut.net = E.buildNetlist(core.layout); } catch (e) { /* offen */ }
+    bench.fit(); tutTick(0);
+    tut.last = performance.now();
+    var loop = function (now) { if (!tut || current.screen !== 'tutorial') { if (tut) tut.raf = 0; return; } var dt = Math.min(0.05, (now - tut.last) / 1000); tut.last = now; tutTick(dt); tut.raf = requestAnimationFrame(loop); };
+    tut.raf = requestAnimationFrame(loop);
+  }
+  function tutStop() { if (tut && tut.raf) cancelAnimationFrame(tut.raf); tut = null; }
+  function tutDone(step) { if (!tut || tut.done[step]) return; tut.done[step] = true; var li = $('#scr-tutorial [data-step="' + step + '"]'); if (li) li.classList.add('done'); }
+  function tutTick(dt) {
+    if (!tut) return;
+    var t = tut, m = t.m, mn = null, r = null;
+    if (t.net) {
+      var a = t.net.pinNode[m.a], b = t.net.pinNode[m.b]; if (a !== undefined && b !== undefined) mn = { a: a, b: b };
+      var mm = m.mode === 'VAC' ? 'V' : m.mode, mopt = mn && (mm === 'V' || mm === 'A') ? { mode: mm, a: mn.a, b: mn.b } : null;
+      r = E.step(t.net, t.state, { dt: dt > 0 ? dt : null, meter: mopt });
+      t.bench.setSim({ res: r, pinNode: t.net.pinNode });
+    }
+    var rg = m.range !== 'AUTO' ? m.range : undefined, rd = meterReading(m, t.core.layout, t.net, r, t.state, mn, rg, meterType());
+    var u = m.mode === 'A' ? 'A' : m.mode === 'R' ? 'Ω' : 'V';
+    var ranges = m.mode === 'OFF' ? null : [{ label: 'AUTO', value: 'AUTO', on: m.range === 'AUTO' }].concat(E.DMM_MANUAL[u].map(function (v) { return { label: E.rangeLabel(v, u), value: v, on: m.range === v }; }));
+    t.bench.meter = { mode: m.mode, text: rd.text, fuse: t.state.fuse, sub: rd.sub, ranges: ranges, range: rd.range };
+    if (m.mode === 'V' && m.a === 'R1.a' && m.b === 'R1.b') { if (rd.ol && m.range === 2) tutDone('ol'); if (m.range === 20 && /^9\./.test(rd.text)) tutDone('read'); }
+    $('#tutLcd').textContent = rd.text; $('#tutSub').textContent = rd.sub + (rd.range ? ' · MAN ' + rd.range : m.mode === 'OFF' ? '' : ' · AUTO');
+    $('#tutProbes').innerHTML = '<span class="pr red">+ ' + esc(m.a || '–') + '</span><span class="pr black">COM ' + esc(m.b || '–') + '</span>';
+    $('#tutWarn').textContent = rd.warn; $('#tutFuse').hidden = !t.state.fuse;
+    if (!t.bench._hidden()) t.bench.render();
+  }
+  function tutScope() {
+    if (!tut) return;
+    var sp = { a: tut.core.scopeProbes.tip, b: tut.core.scopeProbes.gnd }, T = +$('#tutTb').value;
+    if (!sp.a) { tut.bench.scope = { pts: [], info: 'Tastkopf anschliessen' }; $('#tutScope').textContent = 'Oszilloskop: zuerst den gelben Tastkopf an einen Anschluss ziehen.'; tut.bench.render(); return; }
+    try { var c = scopeCurve(tut.core.layout, sp, T, $('#tutTb').selectedOptions[0].textContent); tut.bench.scope = { pts: c.pts, info: c.info }; $('#tutScope').textContent = 'Oszilloskop – ' + c.text; if (sp.a === 'R2.a') tutDone('run'); }
+    catch (e) { $('#tutScope').textContent = e.message; }
+    tut.bench.render();
+  }
+
   /* ================= Handbuch ================= */
   function renderManual(pageId) {
     var pages = (DQ.manual || []).concat([{ id: 'datenblaetter', title: 'Datenblaetter', html: '' }]), p = pages.filter(function (x) { return x.id === pageId; })[0] || pages[0];
@@ -8910,20 +9025,20 @@ body.has-exam-bar .top { padding-top: 50px; }
       setState: function (n) { S = normalize(n); clearTimeout(saveTimer); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { indicator('Nicht gespeichert!', 'err'); } } });
     root.DQ_REPORT_CONTEXT = function () {
       var c = current.screen === 'task' && current.task ? (current.task.sandbox ? 'Freie Werkbank' : 'Aufgabe ' + current.task.id) + ' (' + (viewMode === 'bench' ? 'Werkbank' : 'Schaltplan') + ')' :
-        current.screen === 'theory' && current.theory ? 'Theorie ' + current.theory.id : ({ map: 'Laborkarte', manual: 'Handbuch', settings: 'Einstellungen', award: 'Auszeichnung' })[current.screen] || current.screen;
+        current.screen === 'theory' && current.theory ? 'Theorie ' + current.theory.id : ({ map: 'Laborkarte', manual: 'Handbuch', settings: 'Einstellungen', award: 'Auszeichnung', tutorial: 'Werkbank-Tutorial' })[current.screen] || current.screen;
       return { quest: 'dq', context: c };
     };
     $$('[data-go]').forEach(function (b) {
       b.onclick = function () {
         var g = b.dataset.go;
         if (EXAM && g !== 'manual') { EXAM.back(); return; }
-        if (g === 'map') renderMap(); if (g === 'manual') renderManual(); if (g === 'settings') renderSettings();
+        if (g === 'map') renderMap(); if (g === 'manual') renderManual(); if (g === 'settings') renderSettings(); if (g === 'tutorial') { renderTutorial(); return; }
         show(g);
       };
     });
     $('#btnRot').onclick = function () { view().rotateSelected(); };
     $('#btnFit').onclick = function () { view().fit(); };
-    window.addEventListener('resize', function () { if (ed && current.screen === 'task') view().fit(); });
+    window.addEventListener('resize', function () { if (ed && current.screen === 'task') view().fit(); if (tut && current.screen === 'tutorial') tut.bench.fit(); });
     $('#btnDel').onclick = function () { ed.removeSelected(); renderInspector(); };
     $('#btnView').onclick = function () { setView(viewMode === 'bench' ? 'schema' : 'bench'); log('view', { id: current.task && current.task.id, view: viewMode }); };
     setView(viewMode, true);
@@ -8970,7 +9085,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     if (ACCT) { var rd = ACCT.start(); if (LIVE) rd.then(function () { LIVE.start(); }); if (EXAM) rd.then(function () { EXAM.start(); }); }
   }
 
-  window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, get examUI() { return EXAM; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; } };
+  window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, get examUI() { return EXAM; }, get tutorial() { return tut; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>

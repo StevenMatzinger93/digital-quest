@@ -474,6 +474,23 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .bb-mp { fill: var(--bg-secondary); stroke: var(--accent-green); stroke-width: 1.5; } .bb-mpt { font: 700 8px var(--font-code); fill: var(--accent-green); text-anchor: middle; }
 .bb-dash { stroke: var(--accent-green); stroke-dasharray: 3 3; }
 
+/* ---- Werkbank-Tutorial ---- */
+.tutorial { display: grid; grid-template-columns: minmax(300px, 420px) 1fr; gap: 18px; max-width: 1300px; margin: 0 auto; padding: 24px 18px 60px; }
+.tut-text h2 { margin: 4px 0 10px; } .tut-text h3 { margin: 18px 0 6px; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); }
+.tut-steps { list-style: none; margin: 12px 0; padding: 0; counter-reset: s; display: grid; gap: 8px; }
+.tut-steps li { counter-increment: s; display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-secondary); font-size: 14px; }
+.tut-steps li .tut-chk { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--accent-lead-dim); display: grid; place-items: center; font: 700 12px var(--font-code); color: var(--accent-lead); }
+.tut-steps li .tut-chk::before { content: counter(s); }
+.tut-steps li.done { border-color: rgba(57,255,20,.45); } .tut-steps li.done .tut-chk { background: var(--accent-green); border-color: var(--accent-green); color: #0b1a06; } .tut-steps li.done .tut-chk::before { content: '✔'; }
+.tut-notes { font-size: 14px; padding-left: 18px; } .tut-notes li { margin: 4px 0; }
+.tut-actions { display: flex; gap: 8px; margin-top: 16px; }
+.tut-bench { display: grid; grid-template-rows: auto auto; gap: 10px; align-content: start; }
+#tbench { width: 100%; aspect-ratio: 1000 / 620; background: #0c0d0a; border: 1px solid var(--line); border-radius: 12px; display: block; touch-action: none; }
+.tut-panel { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-secondary); }
+.tut-panel .lcd.small { font-size: 20px; padding: 4px 12px; min-width: 150px; text-align: right; } .tut-panel .fld { margin: 0; } .tut-panel #tutWarn, .tut-panel #tutScope { flex-basis: 100%; margin: 0; } .tut-panel #tutWarn { color: var(--accent-orange); } .tut-panel #tutWarn:empty, .tut-panel #tutScope:empty { display: none; }
+.tut-probes .pr { margin-right: 10px; }
+.tut-link { margin: 10px 0 0; font-size: 13px; color: var(--text-dim); } .tut-link a { color: var(--accent-cyan); }
+@media (max-width: 900px) { .tutorial { grid-template-columns: 1fr; } }
 /* ---- Konto-Chip, Sterne, Meldung (Portal-Version) ---- */
 .acct-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 190px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 20px; color: var(--text-dim); text-decoration: none; font-size: 13px; white-space: nowrap; overflow: hidden; }
 .acct-chip[hidden] { display: none; }
