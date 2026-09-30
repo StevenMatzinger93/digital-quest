@@ -93,6 +93,14 @@ Der Punkt "Klassen und Personen" (oben) und die bewusste Zurueckstellung der Pla
 - **Gleichrichter-Aufgaben 16.6–16.8 sind Messaufgaben mit fertigem Aufbau** (nur messen): Der Bau ist in 3.4/3.5 geuebt; hier zaehlt der Instrumentenvergleich. Strom wird ueber einen 10-Ω-Shunt gemessen, weil `acMeasure` nur Spannungen liefert – fachlich passend (so misst auch ein Amperemeter) und zugleich das Systemfehler-Beispiel.
 - **16.2 mit 10-MΩ-Teiler statt 10 MΩ allein**: An einer nahezu idealen Quelle wuerde das Voltmeter nichts verfaelschen; erst der hochohmige Teiler zeigt den Effekt (4,5 V → 3 V).
 
+## Theorie didaktisch vertieft – Entscheide beim Bau (30.09.2026)
+- **Merksatz-Box und Vorlesen gelten fuer alle Lektionen** (allgemeine Bausteine): Der Merksatz fasst nur den Lektionstext zusammen (keine neuen Fakten), fehlt er, warnt der Validator nur. Vorlesen nutzt die Browser-Stimme (kein Audio im Bundle, offline, keine Kosten); ohne Web Speech API verschwindet der Knopf statt zu erklaeren.
+- **Vorhersage-Frage (POE), Messwerk-Animation und Musterbeispiele mit Fading zunaechst nur in Kapitel 16**: Die Bausteine `meterwork` und `worked` sind allgemein registriert, aber bewusst nur in T16A/T16C eingesetzt. Ob sie in Kapitel 1–15 uebernommen werden, entscheidet die Erprobung im Unterricht.
+- **Messwerk-Animation als eigener Baustein, nicht ueber den Schaltungsrenderer**: Zeigerinstrumente sind keine Engine-Bauteile (siehe Kapitel-16-Entscheid oben); das Widget rechnet die Drehmoment-Balance als gedaempften Schwinger selbst, die Anzeigewerte (Formfaktoren) sind dieselben wie in `E.acMeasure`.
+- **Vorhersage-Frage sperrt das Widget, wertet aber nicht**: Antwort wird sofort erklaert, richtig oder falsch, kein Eintrag im Spielstand – es ist ein Denkanstoss, keine Pruefung.
+- **Fading-Beispiele mit 2 % Toleranz und Loesung nach zwei Fehlversuchen**: genug Spielraum fuer Rundung (0,12 V gegen 0,1225 V), aber ein falscher Rechenweg faellt durch. Der Validator erzwingt die Fading-Reihenfolge (Eingaben je Beispiel steigen).
+- **T16C hat sechs Fragen** (Grenzfall unteres Skalenende ergaenzt statt eine Frage zu streichen): 80 % bleibt, also 5 von 6 – der Validator warnt nur.
+
 ## Technik
 - Offline-Einzeldatei + PWA, keine externen Bibliotheken noetig (Google Fonts optional).
 - Leitfarbe Bernstein `#ffb000`, Token-Namen wie SCL Quest.
