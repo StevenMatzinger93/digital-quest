@@ -133,6 +133,11 @@ Zwei Bausteine gelten fuer **alle** Lektionen, drei nur fuer Kapitel 16 (Erprobu
 - **T16B** unveraendert (nur Merksatz/Vorlesen).
 - **QA**: `tests/smoke.js` prueft Merksatz-Box und Vorlesen-Knopf (T1A), Vorhersage-Sperre und Zeigerausschlag halb/viertel (T16A), Schrittfolge und Eingabepruefung (T16C). Screenshots 24_messwerk, 25_worked.
 
+## Drei Korrekturen nach Rueckmeldung (30.09.2026)
+- **Taschenrechner unlesbar im Hell-Theme**: Die Tasten nutzten `--text-primary` auf fest dunklem Tastenfeld – im Hell-Theme fast schwarz auf schwarz. Der Rechner ist jetzt ein festes Geraete-Bedienfeld wie Multimeter/Oszilloskop (feste Farben in allen `.calc-*`-Regeln, dreht sich nicht mit dem Theme). `tests/smoke.js` misst den Kontrast aller Bedienelemente in beiden Themes (≥ 3:1) und legt Screenshots 23_rechner_light/dark ab.
+- **Tutorial-Werkbank flach ohne Materialien**: Spiel-Werkbank (ausgeblendet) und Tutorial-Werkbank hatten dieselben Verlaufs-/Filter-IDs (`bBrass`, `bMetal` …), der Browser loeste `url(#…)` auf die ausgeblendete Definition auf. Jede `Bench`-Instanz traegt jetzt ein Praefix (`w1bBrass`, `w2bBrass` …, `nsIds()` in `bench.js`), die Fuellungen `.bblock`/`.bside` stehen inline statt in der CSS. Smoke prueft im Tutorial: jede Referenz zeigt auf eine Definition im selben SVG, keine ID kommt im Dokument doppelt vor.
+- **Messwerk-Animation poliert** (reine Optik, Funktion unveraendert): Bezel, Skalenblatt und Glas mit Verlaeufen, Schrauben, feine Neben-Teilstriche, roter Endbereich, Spiegelstreifen; Dauermagnet mit Metallic-Verlauf und Glanzkante, Drehspule mit Kupferwicklungen auf Eisenkern, feste Spule des Dreheisenwerks mit Wicklungen und Eisenplaettchen mit Metalltextur; Zeiger mit Schlagschatten und Messinglager; Anzeige als LCD-Feld unter der Mechanik. IDs je Instrument eindeutig (`mw1…`). Smoke prueft Verlaeufe, Wicklungen, Zeigerschatten und Referenzen.
+
 ## Hosting (Stand 29.09.2026)
 GitHub-Repo: github.com/StevenMatzinger93/digital-quest (Branch `main`). Cloudflare Worker `digital-quest` (`wrangler.jsonc`: `main` = `worker/index.js`, Assets aus `web/`, D1 `digitalquest` als Binding `DB`, Worker zuerst fuer `/api/*` und `/z/*`) per GitHub verbunden – jeder Push nach `main` deployt automatisch. Secrets `ADMIN_USER`/`ADMIN_PASSWORD`.
 
