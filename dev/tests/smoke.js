@@ -450,6 +450,25 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await page.evaluate(() => DigitalQuest.openItem('16.1')); await page.click('#taskInfo [data-calc]'); if (!await page.isVisible('#calc .calc-box')) errors.push('Rechner: Knopf im Messprotokoll oeffnet nicht');
     await page.screenshot({ path: shots + '/23_rechner.png' });
     await page.click('#calc .calc-back'); if (await page.isVisible('#calc .calc-box')) errors.push('Rechner: Klick daneben schliesst nicht');
+    // Lesbarkeit in BEIDEN Themes: Tasten, Eingabefeld und Funktionsknoepfe muessen sich vom (festen dunklen) Bedienfeld abheben
+    const contrast = async () => page.evaluate(() => {
+      const lum = c => { const m = c.match(/[\d.]+/g).map(Number); const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(m[0]) + 0.7152 * f(m[1]) + 0.0722 * f(m[2]); };
+      const ratio = (a, b) => { const l1 = lum(a), l2 = lum(b); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); };
+      const bad = [];
+      for (const sel of ['#calc .calc-keys button[data-k="7"]', '#calc .calc-keys button.op', '#calc .calc-keys button.fn', '#calc .calc-keys button.eq', '#calc .calc-in', '#calc .calc-fn button', '#calc .calc-head b', '#calc .calc-head .small', '#calc .calc-x']) {
+        const el = document.querySelector(sel); if (!el) { bad.push(sel + ' fehlt'); continue; }
+        let bg = getComputedStyle(el).backgroundColor, p = el; while (p && /rgba\(0, 0, 0, 0\)|transparent/.test(bg)) { p = p.parentElement; bg = getComputedStyle(p).backgroundColor; }
+        const r = ratio(getComputedStyle(el).color, bg); if (r < 3) bad.push(sel + ' Kontrast ' + r.toFixed(1));
+      }
+      return bad;
+    });
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(t => { DigitalQuest.state.settings.theme = t; document.documentElement.dataset.theme = t; }, theme);
+      await page.click('#btnCalc'); await page.waitForTimeout(50);
+      const bad = await contrast(); if (bad.length) errors.push('Rechner (' + theme + '): schlecht lesbar – ' + bad.join(', '));
+      await page.screenshot({ path: shots + '/23_rechner_' + theme + '.png' });
+      await page.keyboard.press('Escape');
+    }
   }
 
   // Handy
