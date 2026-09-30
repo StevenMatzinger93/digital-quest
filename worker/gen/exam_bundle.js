@@ -440,8 +440,23 @@
     A: [[600e-6, 1e-6, 'µA', 1], [6e-3, 1e-3, 'mA', 3], [60e-3, 1e-3, 'mA', 2], [0.6, 1e-3, 'mA', 1], [6, 1, 'A', 3], [10, 1, 'A', 2]],
     'Ω': [[600, 1, 'Ω', 1], [6e3, 1e3, 'kΩ', 3], [60e3, 1e3, 'kΩ', 2], [600e3, 1e3, 'kΩ', 1], [6e6, 1e6, 'MΩ', 3], [40e6, 1e6, 'MΩ', 2]]
   };
-  function dmm(value, unit, rng) {
+  /* Von Hand waehlbare Messbereiche (Endwert) wie an einem 2000-Count-Handmultimeter; Anzeige: E.dmm(value, unit, rng, range) */
+  var DMM_MANUAL = { V: [0.2, 2, 20, 200, 600], A: [200e-6, 2e-3, 20e-3, 200e-3, 10], 'Ω': [200, 2e3, 20e3, 200e3, 2e6, 20e6] };
+  var PREFIX = { V: [[1, 'mV', 1e-3], [Infinity, 'V', 1]], A: [[1e-3, 'µA', 1e-6], [1, 'mA', 1e-3], [Infinity, 'A', 1]], 'Ω': [[1e3, 'Ω', 1], [1e6, 'kΩ', 1e3], [Infinity, 'MΩ', 1e6]] };
+  function rangeLabel(range, unit) { var p = PREFIX[unit].filter(function (x) { return range < x[0]; })[0]; var n = range / p[2]; return (n >= 1 ? String(+n.toPrecision(3)) : String(n).replace('0.', '.')) + p[1].replace('Ω', 'Ω'); }
+  /* Anzeige bei festem Bereich: Endwert ueberschritten → OL; sonst 2000 Schritte Aufloesung (Rauschen der letzten Stelle, Kalibrierfehler wie AUTO) */
+  function dmmManual(value, unit, rng, range) {
+    if (!isFinite(value) || Math.abs(value) >= range) return { text: 'OL', value: Infinity, range: range, manual: true, ol: true };
+    var p = PREFIX[unit].filter(function (x) { return range < x[0]; })[0], f = p[2], lsd = Math.pow(10, Math.floor(Math.log10(range / 2000)));
+    var rnd = rng === 0 ? function () { return 0.5; } : (rng || Math.random), u = rnd();
+    var d = value * (1 + METER.cal) + (u < 0.25 ? -1 : u > 0.75 ? 1 : 0) * lsd;
+    d = Math.round(d / lsd) * lsd; if (Math.abs(d) < lsd / 2) d = 0;
+    var dec = Math.max(0, Math.round(-Math.log10(lsd / f)));
+    return { text: (d / f).toFixed(dec) + ' ' + p[1], value: d, range: range, manual: true, ol: false };
+  }
+  function dmm(value, unit, rng, range) {
     var rs = DMM_RANGES[unit]; if (!rs) return { text: fmt(value, unit), value: value };
+    if (range && isFinite(range)) return dmmManual(value, unit, rng, range);
     if (!isFinite(value)) return { text: 'OL', value: Infinity };
     var a = Math.abs(value), r = rs.filter(function (x) { return a < x[0]; })[0];
     if (!r) return { text: 'OL', value: Infinity, range: rs[rs.length - 1] };
@@ -677,7 +692,7 @@
   var api = {
     expectedAnswers: expectedAnswers, UNIT_SCALE: UNIT_SCALE,
     version: '0.2.0', PARTS: PARTS, LED_COLORS: LED_COLORS, LOGIC: LOGIC, METER: METER, LIMITS: LIMITS, SOURCES: SOURCES, TRACE_MAX: TRACE_MAX,
-    wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, acMeasure: acMeasure,
+    wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, DMM_MANUAL: DMM_MANUAL, rangeLabel: rangeLabel, acMeasure: acMeasure,
     buildNetlist: buildNetlist, solve: solve, step: step, newState: newState,
     measure: measure, simulate: simulate, runTask: runTask, fmt: fmt, clone: clone,
     analyze: function (layout, state) { var net = buildNetlist(layout); return step(net, state || newState(), {}); }

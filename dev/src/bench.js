@@ -321,7 +321,7 @@
       '<rect x="-56" y="-90" width="112" height="46" rx="5" fill="#15171a"/>' +
       '<rect x="-54" y="-88" width="108" height="42" rx="4" fill="' + (m.mode === 'OFF' ? '#8d977e' : '#b9c6a2') + '"/><path d="M-52-86L20-86L-10-48H-52Z" fill="rgba(255,255,255,.12)"/>' +
       '<text class="bmlcd" x="48" y="-58">' + esc(m.mode === 'OFF' ? '' : m.text) + '</text><text class="bmsub" x="-50" y="-78">' + esc(m.sub || '') + '</text>' +
-      (m.mode !== 'OFF' ? '<text class="bmsub" x="-50" y="-50">AUTO</text><path d="M34-84h12v6h-12zM46-82h1.5v2H46z" fill="none" stroke="#2f3a24" stroke-width=".9"/>' : '') +
+      (m.mode !== 'OFF' ? '<text class="bmsub" x="-50" y="-50">' + esc(m.range ? 'MAN ' + m.range : 'AUTO') + '</text><path d="M34-84h12v6h-12zM46-82h1.5v2H46z" fill="none" stroke="#2f3a24" stroke-width=".9"/>' : '') +
       '<circle cy="10" r="46" fill="none" stroke="#3a3c40" stroke-width="1"/><circle cy="10" r="38" fill="#101010" stroke="#555" stroke-width="2"/><circle cy="10" r="38" fill="url(#bRingShine)"/>';
     DIAL.forEach(function (d) {
       var a = d[1] * Math.PI / 180, lx = Math.sin(a) * 52, ly = 10 - Math.cos(a) * 52;
@@ -333,7 +333,13 @@
     [['A', -40, '#c62828'], ['COM', 0, '#1a1a1a'], ['VΩ', 40, '#c62828']].forEach(function (j) {
       s += socket([j[1], 88], j[2]) + '<text class="bdevtxt" x="' + j[1] + '" y="112">' + j[0] + '</text>';
     });
-    s += '<text class="bdevtxt small" x="-40" y="72">10A MAX</text><text class="bdevtxt small" x="40" y="72">600V CAT III</text>';
+    if (m.ranges) { // Bereichswahl (measureUX 'drag'): Tastenreihe unter dem Drehschalter, wie die zweite Bank eines Handmultimeters
+      var n = m.ranges.length, bw = Math.min(22, 118 / n), x0 = -(n * bw) / 2;
+      m.ranges.forEach(function (r, i) {
+        s += '<g data-range="' + r.value + '" class="brange' + (r.on ? ' on' : '') + '"><rect x="' + (x0 + i * bw + 1).toFixed(1) + '" y="60" width="' + (bw - 2).toFixed(1) + '" height="13" rx="2.5"/>' +
+          '<text x="' + (x0 + i * bw + bw / 2).toFixed(1) + '" y="69.5">' + esc(r.label) + '</text></g>';
+      });
+    } else s += '<text class="bdevtxt small" x="-40" y="72">10A MAX</text><text class="bdevtxt small" x="40" y="72">600V CAT III</text>';
     if (m.fuse) s += '<text class="bdevwarn" y="-34">Sicherung!</text>';
     return s + '</g>';
   }
@@ -487,10 +493,11 @@
         try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ }
         return;
       }
-      var dv = ev.target.closest('[data-dial],[data-scope],[data-dev]');
-      if (dv) { // Messgeraete: Drehschalter, RUN-Taste; Gehaeuse selbst ohne Wirkung
+      var dv = ev.target.closest('[data-dial],[data-range],[data-scope],[data-dev]');
+      if (dv) { // Messgeraete: Drehschalter, Bereichstasten, RUN-Taste; Gehaeuse selbst ohne Wirkung
         ev.preventDefault();
         if (dv.dataset.dial && self.opts.onDial) self.opts.onDial(dv.dataset.dial);
+        if (dv.dataset.range && self.opts.onRange) self.opts.onRange(dv.dataset.range);
         if (dv.dataset.scope && self.opts.onScope) self.opts.onScope();
         return;
       }

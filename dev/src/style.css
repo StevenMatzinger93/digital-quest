@@ -160,6 +160,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bdevwarn { font: 800 11px var(--font-ui); fill: #ff5a3c; text-anchor: middle; pointer-events: none; }
 .bdial { cursor: pointer; } .bdial text { font: 700 10px var(--font-code); fill: #e0e0e0; text-anchor: middle; pointer-events: none; }
 .bdial.on text { fill: #ffb000; } .bdialhit { fill: transparent; } .bdial:hover .bdialhit { fill: rgba(255,176,0,.18); }
+.brange { cursor: pointer; } .brange rect { fill: #1c1d20; stroke: #4a4c52; stroke-width: .8; } .brange:hover rect { fill: #33352c; }
+.brange text { font: 700 6.5px var(--font-code); fill: #cfcfcf; text-anchor: middle; pointer-events: none; } .brange.on rect { fill: #ffb000; stroke: #ffb000; } .brange.on text { fill: #111; }
 .bscgrid { stroke: rgba(57,255,20,.13); stroke-width: 1; } .bsctrace { fill: none; stroke: #ffb000; stroke-width: 2; filter: drop-shadow(0 0 3px #ffb000); }
 .bscinfo { font: 8px var(--font-code); fill: #7fd98a; pointer-events: none; }
 .bscrun { cursor: pointer; } .bscrun rect { fill: #2e7d32; stroke: #0f3a12; } .bscrun:hover rect { fill: #43a047; } .bscrun text { font: 700 11px var(--font-code); fill: #fff; text-anchor: middle; pointer-events: none; }
@@ -237,6 +239,9 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 
 /* Multimeter-Verfahren, Zeitlupe, Ansichtswechsel */
 .mm-type { display: flex; gap: 4px; align-items: center; margin: 0 0 8px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; }
+.mm-range { display: flex; gap: 3px; align-items: center; margin: 0 0 8px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; }
+.mm-range button { background: #111; border: 1px solid #444; color: #ddd; border-radius: 5px; padding: 2px 6px; cursor: pointer; font: 11px var(--font-code); }
+.mm-range button.on { background: var(--accent-lead); color: #111; border-color: var(--accent-lead); }
 .mm-type button { background: #111; border: 1px solid #444; color: #ccc; border-radius: 6px; padding: 3px 6px; cursor: pointer; font: 11px var(--font-code); }
 .mm-type button.on { border-color: var(--accent-cyan); color: var(--accent-cyan); }
 #replay { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: var(--bg-secondary); border: 1px solid var(--accent-lead-dim); border-radius: 12px; padding: 6px 8px; }

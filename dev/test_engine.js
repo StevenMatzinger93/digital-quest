@@ -278,5 +278,10 @@ ok(/101011/.test(VIS.gen.divide({ value: 43, base: 2 }).slice(-1)[0].text), 'Div
 ok(VIS.gen.bases({ value: 173 }).slice(-1)[0].rows[1].cells[0] === 173, 'Horner: AD (hex) = 173');
 const h = VIS.transfer([{ kind: 'lp', r: 1000, c: 1e-6 }], 1 / (2 * Math.PI * 1e-3));
 ok(Math.abs(Math.hypot(h.re, h.im) - Math.SQRT1_2) < 1e-6, 'Frequenzgang: Tiefpass bei f_g = 1/√2');
+// 27 Messbereich von Hand (E.dmm mit range, Messtechnik-Erweiterung Teil A)
+ok(E.dmm(15, 'V', 0, 20).text === '15.03 V' && E.dmm(15, 'V', 0, 600).text === '15.0 V', 'Fester Bereich: Aufloesung 2000 Schritte, Kalibrierfehler wie AUTO');
+ok(E.dmm(15, 'V', 0, 2).text === 'OL' && E.dmm(15, 'V', 0, 2).ol === true, 'Zu kleiner Bereich zeigt OL');
+ok(E.dmm(0.15, 'V', 0, 0.2).text === '150.3 mV' && E.dmm(0.0123, 'A', 0, 20e-3).text === '12.32 mA' && E.dmm(4700, 'Ω', 0, 20e3).text === '4.71 kΩ', 'Einheit und Vorsatz folgen dem Bereich');
+ok(E.dmm(15, 'V', 0).text === E.dmm(15, 'V', 0, undefined).text && E.rangeLabel(200e-6, 'A') === '200µA' && E.DMM_MANUAL.V.length === 5, 'Ohne Bereich bleibt die automatische Wahl; Bereichsbeschriftungen');
 console.log(`Engine-Tests: ${pass} ok, ${fail} Fehler`);
 process.exit(fail ? 1 : 0);

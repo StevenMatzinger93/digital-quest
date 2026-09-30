@@ -169,6 +169,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bdevwarn { font: 800 11px var(--font-ui); fill: #ff5a3c; text-anchor: middle; pointer-events: none; }
 .bdial { cursor: pointer; } .bdial text { font: 700 10px var(--font-code); fill: #e0e0e0; text-anchor: middle; pointer-events: none; }
 .bdial.on text { fill: #ffb000; } .bdialhit { fill: transparent; } .bdial:hover .bdialhit { fill: rgba(255,176,0,.18); }
+.brange { cursor: pointer; } .brange rect { fill: #1c1d20; stroke: #4a4c52; stroke-width: .8; } .brange:hover rect { fill: #33352c; }
+.brange text { font: 700 6.5px var(--font-code); fill: #cfcfcf; text-anchor: middle; pointer-events: none; } .brange.on rect { fill: #ffb000; stroke: #ffb000; } .brange.on text { fill: #111; }
 .bscgrid { stroke: rgba(57,255,20,.13); stroke-width: 1; } .bsctrace { fill: none; stroke: #ffb000; stroke-width: 2; filter: drop-shadow(0 0 3px #ffb000); }
 .bscinfo { font: 8px var(--font-code); fill: #7fd98a; pointer-events: none; }
 .bscrun { cursor: pointer; } .bscrun rect { fill: #2e7d32; stroke: #0f3a12; } .bscrun:hover rect { fill: #43a047; } .bscrun text { font: 700 11px var(--font-code); fill: #fff; text-anchor: middle; pointer-events: none; }
@@ -246,6 +248,9 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 
 /* Multimeter-Verfahren, Zeitlupe, Ansichtswechsel */
 .mm-type { display: flex; gap: 4px; align-items: center; margin: 0 0 8px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; }
+.mm-range { display: flex; gap: 3px; align-items: center; margin: 0 0 8px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; }
+.mm-range button { background: #111; border: 1px solid #444; color: #ddd; border-radius: 5px; padding: 2px 6px; cursor: pointer; font: 11px var(--font-code); }
+.mm-range button.on { background: var(--accent-lead); color: #111; border-color: var(--accent-lead); }
 .mm-type button { background: #111; border: 1px solid #444; color: #ccc; border-radius: 6px; padding: 3px 6px; cursor: pointer; font: 11px var(--font-code); }
 .mm-type button.on { border-color: var(--accent-cyan); color: var(--accent-cyan); }
 #replay { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: var(--bg-secondary); border: 1px solid var(--accent-lead-dim); border-radius: 12px; padding: 6px 8px; }
@@ -581,7 +586,7 @@ body.has-exam-bar .top { padding-top: 50px; }
         <div class="lcd" id="lcd">OFF</div>
         <div class="mm-modes"><button data-mm="OFF">OFF</button><button data-mm="V">V⎓</button><button data-mm="VAC">V~</button><button data-mm="A">A⎓</button><button data-mm="R">Ω</button></div>
         <div class="mm-type" title="Wie das Geraet Wechselspannung auswertet"><span>V~ misst</span><button data-mt="avg">Mittelwert (AVG)</button><button data-mt="trms">Echt-Effektivwert (TRMS)</button></div>
-        <div id="mmProbes"></div><p id="mmHelp"></p><p id="mmWarn"></p>
+        <div class="mm-range" id="mmRange" hidden title="Messbereich von Hand waehlen – zu kleiner Bereich zeigt OL"></div><div id="mmProbes"></div><p id="mmHelp"></p><p id="mmWarn"></p>
         <button class="btn small" id="btnFuse" hidden>Sicherung ersetzen</button>
       </div>
       <h3>Eigenschaften</h3>
@@ -1041,8 +1046,23 @@ body.has-exam-bar .top { padding-top: 50px; }
     A: [[600e-6, 1e-6, 'µA', 1], [6e-3, 1e-3, 'mA', 3], [60e-3, 1e-3, 'mA', 2], [0.6, 1e-3, 'mA', 1], [6, 1, 'A', 3], [10, 1, 'A', 2]],
     'Ω': [[600, 1, 'Ω', 1], [6e3, 1e3, 'kΩ', 3], [60e3, 1e3, 'kΩ', 2], [600e3, 1e3, 'kΩ', 1], [6e6, 1e6, 'MΩ', 3], [40e6, 1e6, 'MΩ', 2]]
   };
-  function dmm(value, unit, rng) {
+  /* Von Hand waehlbare Messbereiche (Endwert) wie an einem 2000-Count-Handmultimeter; Anzeige: E.dmm(value, unit, rng, range) */
+  var DMM_MANUAL = { V: [0.2, 2, 20, 200, 600], A: [200e-6, 2e-3, 20e-3, 200e-3, 10], 'Ω': [200, 2e3, 20e3, 200e3, 2e6, 20e6] };
+  var PREFIX = { V: [[1, 'mV', 1e-3], [Infinity, 'V', 1]], A: [[1e-3, 'µA', 1e-6], [1, 'mA', 1e-3], [Infinity, 'A', 1]], 'Ω': [[1e3, 'Ω', 1], [1e6, 'kΩ', 1e3], [Infinity, 'MΩ', 1e6]] };
+  function rangeLabel(range, unit) { var p = PREFIX[unit].filter(function (x) { return range < x[0]; })[0]; var n = range / p[2]; return (n >= 1 ? String(+n.toPrecision(3)) : String(n).replace('0.', '.')) + p[1].replace('Ω', 'Ω'); }
+  /* Anzeige bei festem Bereich: Endwert ueberschritten → OL; sonst 2000 Schritte Aufloesung (Rauschen der letzten Stelle, Kalibrierfehler wie AUTO) */
+  function dmmManual(value, unit, rng, range) {
+    if (!isFinite(value) || Math.abs(value) >= range) return { text: 'OL', value: Infinity, range: range, manual: true, ol: true };
+    var p = PREFIX[unit].filter(function (x) { return range < x[0]; })[0], f = p[2], lsd = Math.pow(10, Math.floor(Math.log10(range / 2000)));
+    var rnd = rng === 0 ? function () { return 0.5; } : (rng || Math.random), u = rnd();
+    var d = value * (1 + METER.cal) + (u < 0.25 ? -1 : u > 0.75 ? 1 : 0) * lsd;
+    d = Math.round(d / lsd) * lsd; if (Math.abs(d) < lsd / 2) d = 0;
+    var dec = Math.max(0, Math.round(-Math.log10(lsd / f)));
+    return { text: (d / f).toFixed(dec) + ' ' + p[1], value: d, range: range, manual: true, ol: false };
+  }
+  function dmm(value, unit, rng, range) {
     var rs = DMM_RANGES[unit]; if (!rs) return { text: fmt(value, unit), value: value };
+    if (range && isFinite(range)) return dmmManual(value, unit, rng, range);
     if (!isFinite(value)) return { text: 'OL', value: Infinity };
     var a = Math.abs(value), r = rs.filter(function (x) { return a < x[0]; })[0];
     if (!r) return { text: 'OL', value: Infinity, range: rs[rs.length - 1] };
@@ -1278,7 +1298,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   var api = {
     expectedAnswers: expectedAnswers, UNIT_SCALE: UNIT_SCALE,
     version: '0.2.0', PARTS: PARTS, LED_COLORS: LED_COLORS, LOGIC: LOGIC, METER: METER, LIMITS: LIMITS, SOURCES: SOURCES, TRACE_MAX: TRACE_MAX,
-    wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, acMeasure: acMeasure,
+    wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, DMM_MANUAL: DMM_MANUAL, rangeLabel: rangeLabel, acMeasure: acMeasure,
     buildNetlist: buildNetlist, solve: solve, step: step, newState: newState,
     measure: measure, simulate: simulate, runTask: runTask, fmt: fmt, clone: clone,
     analyze: function (layout, state) { var net = buildNetlist(layout); return step(net, state || newState(), {}); }
@@ -6088,7 +6108,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<rect x="-56" y="-90" width="112" height="46" rx="5" fill="#15171a"/>' +
       '<rect x="-54" y="-88" width="108" height="42" rx="4" fill="' + (m.mode === 'OFF' ? '#8d977e' : '#b9c6a2') + '"/><path d="M-52-86L20-86L-10-48H-52Z" fill="rgba(255,255,255,.12)"/>' +
       '<text class="bmlcd" x="48" y="-58">' + esc(m.mode === 'OFF' ? '' : m.text) + '</text><text class="bmsub" x="-50" y="-78">' + esc(m.sub || '') + '</text>' +
-      (m.mode !== 'OFF' ? '<text class="bmsub" x="-50" y="-50">AUTO</text><path d="M34-84h12v6h-12zM46-82h1.5v2H46z" fill="none" stroke="#2f3a24" stroke-width=".9"/>' : '') +
+      (m.mode !== 'OFF' ? '<text class="bmsub" x="-50" y="-50">' + esc(m.range ? 'MAN ' + m.range : 'AUTO') + '</text><path d="M34-84h12v6h-12zM46-82h1.5v2H46z" fill="none" stroke="#2f3a24" stroke-width=".9"/>' : '') +
       '<circle cy="10" r="46" fill="none" stroke="#3a3c40" stroke-width="1"/><circle cy="10" r="38" fill="#101010" stroke="#555" stroke-width="2"/><circle cy="10" r="38" fill="url(#bRingShine)"/>';
     DIAL.forEach(function (d) {
       var a = d[1] * Math.PI / 180, lx = Math.sin(a) * 52, ly = 10 - Math.cos(a) * 52;
@@ -6100,7 +6120,13 @@ body.has-exam-bar .top { padding-top: 50px; }
     [['A', -40, '#c62828'], ['COM', 0, '#1a1a1a'], ['VΩ', 40, '#c62828']].forEach(function (j) {
       s += socket([j[1], 88], j[2]) + '<text class="bdevtxt" x="' + j[1] + '" y="112">' + j[0] + '</text>';
     });
-    s += '<text class="bdevtxt small" x="-40" y="72">10A MAX</text><text class="bdevtxt small" x="40" y="72">600V CAT III</text>';
+    if (m.ranges) { // Bereichswahl (measureUX 'drag'): Tastenreihe unter dem Drehschalter, wie die zweite Bank eines Handmultimeters
+      var n = m.ranges.length, bw = Math.min(22, 118 / n), x0 = -(n * bw) / 2;
+      m.ranges.forEach(function (r, i) {
+        s += '<g data-range="' + r.value + '" class="brange' + (r.on ? ' on' : '') + '"><rect x="' + (x0 + i * bw + 1).toFixed(1) + '" y="60" width="' + (bw - 2).toFixed(1) + '" height="13" rx="2.5"/>' +
+          '<text x="' + (x0 + i * bw + bw / 2).toFixed(1) + '" y="69.5">' + esc(r.label) + '</text></g>';
+      });
+    } else s += '<text class="bdevtxt small" x="-40" y="72">10A MAX</text><text class="bdevtxt small" x="40" y="72">600V CAT III</text>';
     if (m.fuse) s += '<text class="bdevwarn" y="-34">Sicherung!</text>';
     return s + '</g>';
   }
@@ -6254,10 +6280,11 @@ body.has-exam-bar .top { padding-top: 50px; }
         try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ }
         return;
       }
-      var dv = ev.target.closest('[data-dial],[data-scope],[data-dev]');
-      if (dv) { // Messgeraete: Drehschalter, RUN-Taste; Gehaeuse selbst ohne Wirkung
+      var dv = ev.target.closest('[data-dial],[data-range],[data-scope],[data-dev]');
+      if (dv) { // Messgeraete: Drehschalter, Bereichstasten, RUN-Taste; Gehaeuse selbst ohne Wirkung
         ev.preventDefault();
         if (dv.dataset.dial && self.opts.onDial) self.opts.onDial(dv.dataset.dial);
+        if (dv.dataset.range && self.opts.onRange) self.opts.onRange(dv.dataset.range);
         if (dv.dataset.scope && self.opts.onScope) self.opts.onScope();
         return;
       }
@@ -7836,7 +7863,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   /* live.trace: Rechenschritte des letzten Arbeitspunkts, live.hist: letzte Zeitschritte (Zeitlupe) */
   var live = { net: null, state: E.newState(), dynamic: false, raf: 0, last: 0, res: null, trace: [], hist: [], replay: null };
   var HIST_MAX = 300;
-  var meter = { mode: 'OFF', a: null, b: null, next: 'a' };
+  var meter = { mode: 'OFF', a: null, b: null, next: 'a', range: 'AUTO' }; // range: 'AUTO' oder Endwert (nur measureUX 'drag')
   function dragUX() { return !!(current.task && current.task.measureUX === 'drag'); } // Werkbank: Messspitzen ziehen statt klicken
   function preferredView() { return /[?&]werkbank\b/.test(location.search) || S.settings.view === 'bench' ? 'bench' : 'schema'; }
   function meterType() { return S.settings.meterType === 'avg' ? 'avg' : 'trms'; }
@@ -7867,7 +7894,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     var lockedIds = t.start.parts.map(function (p) { return p.id; });
     closeReplay(true);
     live.state = E.newState();
-    meter = { mode: 'OFF', a: null, b: null, next: 'a' };
+    meter = { mode: 'OFF', a: null, b: null, next: 'a', range: 'AUTO' };
     renderTaskPanels(t, draft);
     if (!ed) {
       core = new Circuit({
@@ -7878,7 +7905,7 @@ body.has-exam-bar .top { padding-top: 50px; }
         onMessage: function (m) { status([{ cls: 'info', text: m }]); }
       });
       ed = new Editor($('#board'), { core: core });
-      bench = new Bench($('#bench'), { core: core, onDial: function (m) { setMeterMode(m); }, onScope: scope });
+      bench = new Bench($('#bench'), { core: core, onDial: function (m) { setMeterMode(m); }, onRange: function (r) { setMeterRange(r); }, onScope: scope });
       bindSheetHover($('#board')); bindSheetHover($('#bench'));
     }
     setView(t.sandbox ? 'bench' : preferredView(), t.sandbox);
@@ -8186,7 +8213,8 @@ body.has-exam-bar .top { padding-top: 50px; }
 
   /* ---------- Multimeter ---------- */
   function setMeterMode(mode) {
-    meter.mode = mode;
+    if (mode !== meter.mode) meter.range = 'AUTO';
+    meter.mode = mode; renderRangeRow();
     $$('[data-mm]').forEach(function (b) { b.classList.toggle('on', b.dataset.mm === mode); });
     // dragUX: die Spitzen bleiben stecken, auch wenn das Geraet aus ist (wie am echten Geraet); sonst raeumt OFF die Spitzen weg
     if (ed) { ed.tool = mode === 'OFF' ? 'wire' : 'probe'; if (mode === 'OFF' && !dragUX()) { ed.probes = { a: null, b: null }; meter.a = meter.b = null; meter.next = 'a'; } core.redraw(); }
@@ -8195,6 +8223,24 @@ body.has-exam-bar .top { padding-top: 50px; }
       mode === 'OFF' ? 'Messgeraet aus. Klick auf Anschluesse verbindet Leitungen.' :
       'Klick auf einen Anschluss setzt die ' + (meter.next === 'a' ? 'rote (+)' : 'schwarze (COM)') + ' Messspitze.';
     if (ed) tick(0);
+  }
+  /* Messbereich von Hand (nur measureUX 'drag'): 'AUTO' oder Endwert aus E.DMM_MANUAL; Wechsel des Modus setzt auf AUTO */
+  function rangeUnit() { return meter.mode === 'A' ? 'A' : meter.mode === 'R' ? 'Ω' : 'V'; }
+  function setMeterRange(r) {
+    meter.range = r === 'AUTO' ? 'AUTO' : +r;
+    log('meter_range', { id: current.task && current.task.id, mode: meter.mode, range: meter.range });
+    renderRangeRow(); if (ed) tick(0);
+  }
+  function rangeList() {
+    if (!dragUX() || meter.mode === 'OFF') return null;
+    var u = rangeUnit();
+    return [{ label: 'AUTO', value: 'AUTO', on: meter.range === 'AUTO' }].concat(E.DMM_MANUAL[u].map(function (v) { return { label: E.rangeLabel(v, u), value: v, on: meter.range === v }; }));
+  }
+  function renderRangeRow() {
+    var el = $('#mmRange'), rs = rangeList(); if (!el) return;
+    el.hidden = !rs;
+    el.innerHTML = rs ? '<span>Bereich</span>' + rs.map(function (r) { return '<button data-rg="' + r.value + '"' + (r.on ? ' class="on"' : '') + '>' + esc(r.label) + '</button>'; }).join('') : '';
+    $$('[data-rg]', el).forEach(function (b) { b.onclick = function () { setMeterRange(b.dataset.rg); }; });
   }
   /* pin gesetzt: per Klick (which fehlt → abwechselnd rot/schwarz) oder per Ziehen (which = 'a'|'b', pin null = wieder geparkt) */
   function setProbe(pin, which) {
@@ -8219,28 +8265,31 @@ body.has-exam-bar .top { padding-top: 50px; }
   /* Anzeige wie ein 6000-Digit-DMM (Bereichswahl, +0,2 % Kalibrierfehler, letzte Stelle flackert) */
   function updateMeter(r, mn) {
     var lcd = $('#lcd'), txt = '— — —', warn = '', sub = meter.mode === 'VAC' ? 'AC ' + (meterType() === 'avg' ? 'AVG' : 'TRMS') : meter.mode === 'V' || meter.mode === 'A' ? 'DC' : '';
+    var rg = dragUX() && meter.range !== 'AUTO' ? meter.range : undefined, olHint = ''; // fester Bereich: OL, wenn der Endwert ueberschritten ist
     if (meter.mode === 'OFF') txt = 'OFF';
     else if (!mn) txt = meter.mode === 'R' ? '0L Ω' : '- - -';
     else if (meter.mode === 'V') {
       var vdc = r.nodeV[mn.a] - r.nodeV[mn.b];
       var fs = slowestFreq(); if (isFinite(fs) && fs >= 5) { var ac1 = acReading(); if (ac1.ok) vdc = ac1.dc; } // DMM zeigt bei schnellem Wechsel den Mittelwert (ohne Wechselquelle: Momentanwert mit Eigenverbrauch)
-      txt = E.dmm(vdc, 'V').text;
+      txt = E.dmm(vdc, 'V', undefined, rg).text;
     } else if (meter.mode === 'VAC') {
       var ac = acReading();
       if (!ac.ok) { txt = 'Err'; warn = ac.error; }
-      else { txt = E.dmm(meterType() === 'avg' ? ac.avg : ac.rms, 'V').text; if (ac.static) warn = 'Keine Wechselquelle im Aufbau – V~ zeigt nur den Wechselanteil (hier 0).'; }
+      else { txt = E.dmm(meterType() === 'avg' ? ac.avg : ac.rms, 'V', undefined, rg).text; if (ac.static) warn = 'Keine Wechselquelle im Aufbau – V~ zeigt nur den Wechselanteil (hier 0).'; }
     } else if (meter.mode === 'A') {
       if (live.state.fuse) {
         txt = 'FUSE';
         var fi = live.state.fuseInfo;
         warn = 'Sicherung durchgebrannt' + (fi ? ': Durch das Messgeraet waeren ' + E.fmt(Math.abs(fi.i), 'A') + ' geflossen (Sicherung ' + E.fmt(fi.imax, 'A') + ')' : '') + '. Das Amperemeter hat fast 0 Ω – es gehoert in Reihe, nie parallel zu einer Quelle.';
-      } else txt = E.dmm((r.nodeV[mn.a] - r.nodeV[mn.b]) / E.METER.rA, 'A').text;
+      } else txt = E.dmm((r.nodeV[mn.a] - r.nodeV[mn.b]) / E.METER.rA, 'A', undefined, rg).text;
     } else if (meter.mode === 'R') {
       var m = E.measure(ed.layout, { mode: 'R', a: meter.a, b: meter.b }, live.state);
-      txt = m.ok ? E.dmm(m.value, 'Ω').text.replace('OL', '0L') : 'Err'; warn = m.ok ? '' : m.error;
+      txt = m.ok ? E.dmm(m.value, 'Ω', undefined, rg).text.replace('OL', '0L') : 'Err'; warn = m.ok ? '' : m.error;
     }
+    if (rg && /^0?L$|OL|0L/.test(txt) && mn) olHint = 'OL: Der Messwert liegt ueber dem gewaehlten Bereich ' + E.rangeLabel(rg, rangeUnit()) + ' – groesseren Bereich waehlen.';
+    if (olHint && !warn) warn = olHint;
     lcd.textContent = txt;
-    if (bench) bench.meter = { mode: meter.mode, text: txt, fuse: live.state.fuse, sub: sub };
+    if (bench) bench.meter = { mode: meter.mode, text: txt, fuse: live.state.fuse, sub: sub, ranges: rangeList(), range: rg ? E.rangeLabel(rg, rangeUnit()) : null };
     $('#mmWarn').textContent = warn; $('#btnFuse').hidden = !live.state.fuse;
     $('#mmProbes').innerHTML = '<span class="pr red">+ ' + esc(meter.a || '–') + '</span><span class="pr black">COM ' + esc(meter.b || '–') + '</span>';
   }
