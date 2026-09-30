@@ -8,7 +8,10 @@
  * Auto-Anordnung aus der Schema-Lage (Uebergangsloesung); gespeichert wird p.bench erst beim Verschieben/Drehen.
  * App-Rueckmeldungen: opts.onChange(kind), onSelect(part|null), onProbe(pin), onMessage(text).
  * opts.readonly: nur Ansehen und Bedienen (Mini-Schaltung in Theorie-Lektionen) – Schalter, Taster und Pegelschalter
- * reagieren, alles andere (Verschieben, Verdrahten, Loeschen, Drehen, Hinzufuegen) ist aus. */
+ * reagieren, alles andere (Verschieben, Verdrahten, Loeschen, Drehen, Hinzufuegen) ist aus.
+ * Messspitzen: probes {a, b} (Multimeter rot/schwarz), scopeProbes {tip, gnd} (Oszilloskop-Tastkopf, nur Werkbank mit
+ * measureUX 'drag'). Zwei Bedienarten: clickPin mit Werkzeug 'probe' setzt die Spitze sofort (Schema, Altbestand);
+ * dragProbe/dropProbe fuehren eine Spitze per Ziehen an einen Anschluss (Werkbank, measureUX 'drag'). */
 (function (root) {
   'use strict';
   var E = root.DQEngine;
@@ -22,7 +25,8 @@
     this.opts = opts || {}; this.views = []; this.space = 'schema';
     this.layout = { parts: [], wires: [] }; this.locked = {}; this.benchHints = {};
     this.sel = null; this.wireStart = null; this.tool = 'wire';
-    this.probes = { a: null, b: null }; this.drag = null;
+    this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null }; this.drag = null;
+    this.dragProbe = null; // {which:'a'|'b'|'tip'|'gnd', x, y} waehrend eine Spitze gezogen wird (Raum 'bench')
   }
   Circuit.SPACES = SPACES; Circuit.GRID = SPACES.schema.grid; Circuit.W = SPACES.schema.w; Circuit.H = SPACES.schema.h;
 
@@ -54,7 +58,7 @@
     (lockedIds || []).forEach(function (id) { this.locked[id] = true; }, this);
     ((bench && bench.parts) || []).forEach(function (b) { this.benchHints[b.id] = { x: b.x, y: b.y, rot: b.rot || 0 }; }, this);
     this.layout.parts.forEach(function (p) { var h = this.benchHints[p.id]; if (!p.bench && h) p.bench = E.clone(h); }, this);
-    this.sel = null; this.wireStart = null; this.probes = { a: null, b: null };
+    this.sel = null; this.wireStart = null; this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null }; this.dragProbe = null;
   };
   Circuit.prototype.part = function (id) { return this.layout.parts.filter(function (p) { return p.id === id; })[0]; };
 
@@ -114,6 +118,7 @@
       this.layout.parts = this.layout.parts.filter(function (p) { return p.id !== s; });
       this.layout.wires = this.layout.wires.filter(function (w) { return w.from.split('.')[0] !== s && w.to.split('.')[0] !== s; });
       ['a', 'b'].forEach(function (k) { if (this.probes[k] && this.probes[k].split('.')[0] === s) this.probes[k] = null; }, this);
+      ['tip', 'gnd'].forEach(function (k) { if (this.scopeProbes[k] && this.scopeProbes[k].split('.')[0] === s) this.scopeProbes[k] = null; }, this);
     }
     this.sel = null; this.changed('delete'); return true;
   };
@@ -127,6 +132,10 @@
   /* Ereignisse der Ansichten (Hit-Testing macht der Renderer) */
   Circuit.prototype.clickPin = function (pin) { // Werkzeug 'wire': Anschluss → Anschluss verbinden, 'probe': Messspitze setzen
     if (this.tool === 'probe') { if (this.opts.onProbe) this.opts.onProbe(pin); return; }
+    this.connectPin(pin);
+  };
+  /* Anschluss → Anschluss verbinden, unabhaengig vom Werkzeug (Werkbank mit gezogenen Messspitzen: Klick verbindet immer) */
+  Circuit.prototype.connectPin = function (pin) {
     if (this.opts.readonly) return;
     if (!this.wireStart) { this.wireStart = pin; this.redraw(); return; }
     if (this.wireStart !== pin) {
@@ -135,6 +144,17 @@
       this.wireStart = null; this.changed('wire'); return;
     }
     this.wireStart = null; this.redraw();
+  };
+  /* Messspitze ziehen: which 'a'|'b' (Multimeter) oder 'tip'|'gnd' (Oszilloskop); xy in Werkbank-Koordinaten */
+  Circuit.prototype.dragProbeTo = function (which, xy) { this.dragProbe = { which: which, x: xy[0], y: xy[1] }; this.redraw(); };
+  /* Spitze losgelassen: an einem Anschluss (pin) haengt sie dort, sonst (null) liegt sie wieder geparkt beim Geraet */
+  Circuit.prototype.dropProbe = function (which, pin) {
+    this.dragProbe = null;
+    var scope = which === 'tip' || which === 'gnd', set = scope ? this.scopeProbes : this.probes;
+    set[which] = pin || null;
+    this.redraw();
+    if (scope) { if (this.opts.onScopeProbe) this.opts.onScopeProbe(which, set[which]); }
+    else if (this.opts.onProbe) this.opts.onProbe(set[which], which);
   };
   Circuit.prototype.clickWire = function (i) { if (this.opts.readonly) return; this.sel = 'w:' + i; this.wireStart = null; this.redraw(); this._select(null); };
   Circuit.prototype.clickEmpty = function () { this.sel = null; this.wireStart = null; this.redraw(); this._select(null); };

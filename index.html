@@ -162,6 +162,9 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bpin { fill: none; stroke: transparent; stroke-width: 3; pointer-events: none; }
 [data-pin]:hover .bpin { stroke: #ffb000; } .bpin.active { stroke: #ffb000; stroke-width: 4; filter: drop-shadow(0 0 4px #ffb000); }
 .bprobe { pointer-events: none; }
+.bprobe.grab { pointer-events: auto; cursor: grab; } .bprobehit { fill: transparent; } .bprobe.grab:hover .bprobehit { fill: rgba(255,176,0,.14); }
+.bprobe.grab.parked path:nth-of-type(3) { filter: drop-shadow(0 0 5px rgba(255,176,0,.7)); }
+#bench.probing { cursor: grabbing; } #bench.probing .bprobe.grab { cursor: grabbing; }
 .bgen { font: 700 10px var(--font-code); fill: #39ff14; text-anchor: middle; pointer-events: none; }
 .bdev { cursor: default; } .bdevtxt { font: 700 9px var(--font-code); fill: #d8d8d8; text-anchor: middle; pointer-events: none; }
 .bmlcd { font: 700 21px var(--font-code); fill: #1b2413; text-anchor: end; pointer-events: none; } .bmsub { font: 700 8px var(--font-code); fill: #2f3a24; pointer-events: none; }
@@ -1303,12 +1306,16 @@ body.has-exam-bar .top { padding-top: 50px; }
    * palette: erlaubte Bauteiltypen; start / ref: Layouts {parts, wires}; wrong: [{name, parts, wires}]
    * need, tests, measure: siehe engine.js runTask
    * bench (optional): Werkbank-Layout {parts:[{id, x, y, rot}]} – eigene Lage je Bauteil-ID aus start/ref (siehe bench.js)
+   * measureUX (optional): 'legacy' (Standard: Klick auf die Buchse setzt die Messspitze) | 'drag' (Werkbank: Spitzen ziehen,
+   *   eigener Oszilloskop-Tastkopf, Messbereich von Hand waehlen – Schema-Ansicht bleibt beim Klick)
    * boss: true fuer Abschlussaufgabe */
   root.defTask = function (t) {
     ['id', 'ch', 'title', 'brief', 'start', 'ref'].forEach(function (k) { if (t[k] === undefined) throw new Error('defTask ' + t.id + ': ' + k + ' fehlt'); });
     t.kind = 'task';
     t.palette = t.palette || [];
     t.tests = t.tests || []; t.measure = t.measure || []; t.wrong = t.wrong || []; t.tags = t.tags || [];
+    t.measureUX = t.measureUX || 'legacy';
+    if (t.measureUX !== 'legacy' && t.measureUX !== 'drag') throw new Error('defTask ' + t.id + ': measureUX muss legacy oder drag sein');
     DQ.tasks.push(t); DQ.byId[t.id] = t; return t;
   };
 
@@ -5239,7 +5246,10 @@ body.has-exam-bar .top { padding-top: 50px; }
  * Auto-Anordnung aus der Schema-Lage (Uebergangsloesung); gespeichert wird p.bench erst beim Verschieben/Drehen.
  * App-Rueckmeldungen: opts.onChange(kind), onSelect(part|null), onProbe(pin), onMessage(text).
  * opts.readonly: nur Ansehen und Bedienen (Mini-Schaltung in Theorie-Lektionen) – Schalter, Taster und Pegelschalter
- * reagieren, alles andere (Verschieben, Verdrahten, Loeschen, Drehen, Hinzufuegen) ist aus. */
+ * reagieren, alles andere (Verschieben, Verdrahten, Loeschen, Drehen, Hinzufuegen) ist aus.
+ * Messspitzen: probes {a, b} (Multimeter rot/schwarz), scopeProbes {tip, gnd} (Oszilloskop-Tastkopf, nur Werkbank mit
+ * measureUX 'drag'). Zwei Bedienarten: clickPin mit Werkzeug 'probe' setzt die Spitze sofort (Schema, Altbestand);
+ * dragProbe/dropProbe fuehren eine Spitze per Ziehen an einen Anschluss (Werkbank, measureUX 'drag'). */
 (function (root) {
   'use strict';
   var E = root.DQEngine;
@@ -5253,7 +5263,8 @@ body.has-exam-bar .top { padding-top: 50px; }
     this.opts = opts || {}; this.views = []; this.space = 'schema';
     this.layout = { parts: [], wires: [] }; this.locked = {}; this.benchHints = {};
     this.sel = null; this.wireStart = null; this.tool = 'wire';
-    this.probes = { a: null, b: null }; this.drag = null;
+    this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null }; this.drag = null;
+    this.dragProbe = null; // {which:'a'|'b'|'tip'|'gnd', x, y} waehrend eine Spitze gezogen wird (Raum 'bench')
   }
   Circuit.SPACES = SPACES; Circuit.GRID = SPACES.schema.grid; Circuit.W = SPACES.schema.w; Circuit.H = SPACES.schema.h;
 
@@ -5285,7 +5296,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     (lockedIds || []).forEach(function (id) { this.locked[id] = true; }, this);
     ((bench && bench.parts) || []).forEach(function (b) { this.benchHints[b.id] = { x: b.x, y: b.y, rot: b.rot || 0 }; }, this);
     this.layout.parts.forEach(function (p) { var h = this.benchHints[p.id]; if (!p.bench && h) p.bench = E.clone(h); }, this);
-    this.sel = null; this.wireStart = null; this.probes = { a: null, b: null };
+    this.sel = null; this.wireStart = null; this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null }; this.dragProbe = null;
   };
   Circuit.prototype.part = function (id) { return this.layout.parts.filter(function (p) { return p.id === id; })[0]; };
 
@@ -5345,6 +5356,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       this.layout.parts = this.layout.parts.filter(function (p) { return p.id !== s; });
       this.layout.wires = this.layout.wires.filter(function (w) { return w.from.split('.')[0] !== s && w.to.split('.')[0] !== s; });
       ['a', 'b'].forEach(function (k) { if (this.probes[k] && this.probes[k].split('.')[0] === s) this.probes[k] = null; }, this);
+      ['tip', 'gnd'].forEach(function (k) { if (this.scopeProbes[k] && this.scopeProbes[k].split('.')[0] === s) this.scopeProbes[k] = null; }, this);
     }
     this.sel = null; this.changed('delete'); return true;
   };
@@ -5358,6 +5370,10 @@ body.has-exam-bar .top { padding-top: 50px; }
   /* Ereignisse der Ansichten (Hit-Testing macht der Renderer) */
   Circuit.prototype.clickPin = function (pin) { // Werkzeug 'wire': Anschluss → Anschluss verbinden, 'probe': Messspitze setzen
     if (this.tool === 'probe') { if (this.opts.onProbe) this.opts.onProbe(pin); return; }
+    this.connectPin(pin);
+  };
+  /* Anschluss → Anschluss verbinden, unabhaengig vom Werkzeug (Werkbank mit gezogenen Messspitzen: Klick verbindet immer) */
+  Circuit.prototype.connectPin = function (pin) {
     if (this.opts.readonly) return;
     if (!this.wireStart) { this.wireStart = pin; this.redraw(); return; }
     if (this.wireStart !== pin) {
@@ -5366,6 +5382,17 @@ body.has-exam-bar .top { padding-top: 50px; }
       this.wireStart = null; this.changed('wire'); return;
     }
     this.wireStart = null; this.redraw();
+  };
+  /* Messspitze ziehen: which 'a'|'b' (Multimeter) oder 'tip'|'gnd' (Oszilloskop); xy in Werkbank-Koordinaten */
+  Circuit.prototype.dragProbeTo = function (which, xy) { this.dragProbe = { which: which, x: xy[0], y: xy[1] }; this.redraw(); };
+  /* Spitze losgelassen: an einem Anschluss (pin) haengt sie dort, sonst (null) liegt sie wieder geparkt beim Geraet */
+  Circuit.prototype.dropProbe = function (which, pin) {
+    this.dragProbe = null;
+    var scope = which === 'tip' || which === 'gnd', set = scope ? this.scopeProbes : this.probes;
+    set[which] = pin || null;
+    this.redraw();
+    if (scope) { if (this.opts.onScopeProbe) this.opts.onScopeProbe(which, set[which]); }
+    else if (this.opts.onProbe) this.opts.onProbe(set[which], which);
   };
   Circuit.prototype.clickWire = function (i) { if (this.opts.readonly) return; this.sel = 'w:' + i; this.wireStart = null; this.redraw(); this._select(null); };
   Circuit.prototype.clickEmpty = function () { this.sel = null; this.wireStart = null; this.redraw(); this._select(null); };
@@ -5747,7 +5774,11 @@ body.has-exam-bar .top { padding-top: 50px; }
  * (data-part, data-pin, data-wire). Unsichtbar wird nicht gezeichnet, erst beim Einblenden (fit).
  * Messgeraete stehen rechts auf der Unterlage (Frontansicht, nicht gestaucht): Multimeter mit Drehschalter (data-dial),
  * LCD, Buchsen und Messkabeln zu den Pruefspitzen; Oszilloskop mit Bildschirm und RUN-Taste (data-scope).
- * Die App setzt bench.meter = {mode, text, fuse, sub} und bench.scope = {pts:[[0..1, 0..1]], info}. */
+ * Die App setzt bench.meter = {mode, text, fuse, sub} und bench.scope = {pts:[[0..1, 0..1]], info}.
+ * bench.dragUX (Aufgaben mit measureUX 'drag'): Messspitzen liegen geparkt vor dem Geraet und werden per Ziehen an einen
+ * Anschluss gefuehrt (pointerdown auf der Spitze, ziehen, loslassen ueber einer Buchse); ohne Treffer faellt die Spitze
+ * zurueck auf den Parkplatz. Das Oszilloskop hat dann einen eigenen Tastkopf (core.scopeProbes). Ohne dragUX gilt das
+ * bisherige Verhalten (Klick auf die Buchse setzt die Spitze, Oszilloskop nutzt die Multimeter-Spitzen). */
 (function (root) {
   'use strict';
   var E = root.DQEngine, Circuit = root.DQCircuit, Ed = root.DQEditor;
@@ -6093,9 +6124,15 @@ body.has-exam-bar .top { padding-top: 50px; }
       socket([85, 50], '#1a1a1a') + '<text class="bdevtxt" x="60" y="54">CH1</text>';
     return s + '</g>';
   }
-  function probeSvg(tip, col, park) { // Pruefspitze: Metallspitze am Anschluss, Fingerschutz, Griff schraeg nach oben rechts
+  /* Parkplaetze der Messspitzen (Werkbank-Koordinaten): Multimeter rot/schwarz vor dem Geraet, Tastkopf und Erdungsclip vor dem Oszilloskop */
+  var PARK = { a: function () { return devXY('meter', -54, 200); }, b: function () { return devXY('meter', -2, 200); },
+    tip: function () { return devXY('scope', -70, 118); }, gnd: function () { return devXY('scope', -14, 118); } };
+  Bench.PARK = PARK;
+  function probeSvg(tip, col, park, which, grab) { // Pruefspitze: Metallspitze am Anschluss, Fingerschutz, Griff schraeg nach oben rechts
     var x = tip[0], y = tip[1];
-    return '<g class="bprobe' + (park ? ' parked' : '') + '"><path d="M' + x + ' ' + y + 'l17 -32" stroke="#d0d4d6" stroke-width="2.6" stroke-linecap="round"/>' +
+    return '<g class="bprobe' + (park ? ' parked' : '') + (grab ? ' grab' : '') + '"' + (which ? ' data-probe="' + which + '"' : '') + '>' +
+      (grab ? '<circle class="bprobehit" cx="' + (x + 22) + '" cy="' + (y - 44) + '" r="30"/>' : '') +
+      '<path d="M' + x + ' ' + y + 'l17 -32" stroke="#d0d4d6" stroke-width="2.6" stroke-linecap="round"/>' +
       '<path d="M' + (x + 12) + ' ' + (y - 27) + 'l10 -5" stroke="' + col + '" stroke-width="5" stroke-linecap="round"/>' +
       '<path d="M' + (x + 16) + ' ' + (y - 30) + 'l22 -40" stroke="' + col + '" stroke-width="11" stroke-linecap="round"/>' +
       '<path d="M' + (x + 15) + ' ' + (y - 33) + 'l20 -36" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round"/></g>';
@@ -6156,6 +6193,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     this.core = this.opts.core || new Circuit(this.opts);
     this.sim = null; this.showVolt = false; this.mouse = [0, 0]; this.dirty = true;
     this.meter = { mode: 'OFF', text: 'OFF' }; this.scope = null; this.showFlow = false; this._anim = 0; this._phase = 0;
+    this.dragUX = false; this._grab = null; this._snap = null; // Ziehen der Messspitzen (measureUX 'drag')
     this.view = [0, 0, W, W * 0.62]; // gleiches Seitenverhaeltnis wie das Schema (1000 × 620), damit die Flaeche gleich gross bleibt
     svg.setAttribute('viewBox', this.view.join(' '));
     this.core.attach(this);
@@ -6208,6 +6246,15 @@ body.has-exam-bar .top { padding-top: 50px; }
   Bench.prototype._bind = function () {
     var self = this, svg = this.svg, core = this.core;
     svg.addEventListener('pointerdown', function (ev) {
+      var pr = self.dragUX && ev.target.closest('[data-probe]');
+      if (pr) { // Messspitze greifen: ab jetzt folgt sie dem Zeiger
+        ev.preventDefault(); ev.stopPropagation();
+        var w = pr.dataset.probe, xy0 = self._pt(ev);
+        self._snap = null; self._grab = { which: w, id: ev.pointerId }; svg.classList.add('probing');
+        core.dragProbeTo(w, xy0);
+        try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ }
+        return;
+      }
       var dv = ev.target.closest('[data-dial],[data-scope],[data-dev]');
       if (dv) { // Messgeraete: Drehschalter, RUN-Taste; Gehaeuse selbst ohne Wirkung
         ev.preventDefault();
@@ -6224,7 +6271,7 @@ body.has-exam-bar .top { padding-top: 50px; }
         return;
       }
       var t = ev.target.closest('[data-pin],[data-part],[data-wire]'), xy = self._pt(ev);
-      if (t && t.dataset.pin) { ev.preventDefault(); core.clickPin(t.dataset.pin); return; }
+      if (t && t.dataset.pin) { ev.preventDefault(); if (self.dragUX) core.connectPin(t.dataset.pin); else core.clickPin(t.dataset.pin); return; } // dragUX: Klick verbindet immer, Spitzen werden gezogen
       if (t && t.dataset.wire !== undefined) { core.clickWire(+t.dataset.wire); return; }
       if (t && t.dataset.part) { if (core.pressPart(t.dataset.part, xy, 'bench')) svg.setPointerCapture(ev.pointerId); return; }
       // leere Tischflaeche: Ziehen verschiebt den Ausschnitt, ein Klick hebt die Auswahl auf (Mini-Schaltung: fester Ausschnitt)
@@ -6233,6 +6280,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ }
     });
     svg.addEventListener('pointermove', function (ev) {
+      if (self._grab) { if (ev.pointerId === self._grab.id) core.dragProbeTo(self._grab.which, self._pt(ev)); return; }
       if (touches[ev.pointerId]) touches[ev.pointerId] = [ev.clientX, ev.clientY];
       if (pinch && Object.keys(touches).length === 2) {
         var tp = Object.keys(touches).map(function (k) { return touches[k]; }), d = Math.hypot(tp[0][0] - tp[1][0], tp[0][1] - tp[1][1]);
@@ -6250,6 +6298,13 @@ body.has-exam-bar .top { padding-top: 50px; }
       else if (core.wireStart) self.render();
     });
     function up(ev) {
+      if (self._grab) { // Spitze losgelassen: Buchse unter dem Zeiger? sonst zurueck auf den Parkplatz
+        var g = self._grab; self._grab = null; svg.classList.remove('probing');
+        var xy = self._pt(ev), hitPin = self.pinAt(xy, 26);
+        if (hitPin) core.dropProbe(g.which, hitPin);
+        else { self._snapBack(g.which, xy); core.dropProbe(g.which, null); }
+        return;
+      }
       delete touches[ev.pointerId];
       if (pinch) { if (Object.keys(touches).length < 2) pinch = null; return; }
       if (pan) { var wasPan = pan.moved; pan = null; if (!wasPan) core.clickEmpty(); return; }
@@ -6262,6 +6317,29 @@ body.has-exam-bar .top { padding-top: 50px; }
       ev.preventDefault();
       self.zoomAt(Math.exp(ev.deltaY * 0.0015), ev.clientX, ev.clientY);
     }, { passive: false });
+  };
+  /* Naechste Buchse zu xy (Werkbank-Koordinaten) innerhalb r, sonst null */
+  Bench.prototype.pinAt = function (xy, r) {
+    var best = null, bd = r * r, self = this;
+    this.core.layout.parts.forEach(function (p) {
+      Object.keys(GEO[p.type]).forEach(function (pin) {
+        var q = self.pinPos(p, pin), d = (q[0] - xy[0]) * (q[0] - xy[0]) + (q[1] - xy[1]) * (q[1] - xy[1]);
+        if (d < bd) { bd = d; best = p.id + '.' + pin; }
+      });
+    });
+    return best;
+  };
+  /* Spitze faellt in ~0,25 s vom Loslasspunkt zurueck auf den Parkplatz */
+  Bench.prototype._snapBack = function (which, from) {
+    var self = this, park = PARK[which](), t0 = performance.now(), D = 250;
+    this._snap = { which: which, from: from, to: park, t0: t0 };
+    function tick(now) {
+      var s = self._snap; if (!s || s.t0 !== t0) return;
+      var k = Math.min(1, (now - t0) / D), e = 1 - (1 - k) * (1 - k);
+      s.pos = [s.from[0] + (s.to[0] - s.from[0]) * e, s.from[1] + (s.to[1] - s.from[1]) * e - Math.sin(k * Math.PI) * 30];
+      if (k < 1) { self.render(); requestAnimationFrame(tick); } else { self._snap = null; self.render(); }
+    }
+    requestAnimationFrame(tick);
   };
   /* Ausschnitt setzen (Bildschirm-Koordinaten der Szene), in sinnvollen Grenzen */
   Bench.prototype.setView = function (v) {
@@ -6353,13 +6431,19 @@ body.has-exam-bar .top { padding-top: 50px; }
       var a = pp(core.wireStart);
       h.push('<path class="bwire pending" d="' + cablePath(a, this.mouse) + '"/>');
     }
-    // Messgeraete mit Messkabeln: rot aus VΩ (bzw. A im Strombereich), schwarz aus COM; nicht gesetzte Spitzen liegen vor dem Geraet
+    // Messgeraete mit Messkabeln: rot aus VΩ (bzw. A im Strombereich), schwarz aus COM; nicht gesetzte Spitzen liegen vor dem Geraet.
+    // dragUX: Spitzen sind greifbar (data-probe), waehrend des Ziehens haengt die Spitze am Zeiger; dazu Tastkopf und Erdungsclip des Oszilloskops (CH1)
     h.push(scopeSvg(this.scope), meterSvg(this.meter));
-    [['a', '#d32f2f', this.meter.mode === 'A' ? -40 : 40, -34], ['b', '#1e1e1e', 0, 18]].forEach(function (k) {
-      var pid = core.probes[k[0]], set = pid && byId[pid.split('.')[0]];
-      var tip = set ? pp(pid) : devXY('meter', k[3] - 20, 200), jack = devXY('meter', k[2], 88), grip = [tip[0] + 38, tip[1] - 70];
-      h.push('<g class="bmcable" filter="url(#bCable)" pointer-events="none"><path d="' + cablePath(jack, grip) + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="6" stroke-linecap="round"/>' +
-        '<path d="' + cablePath(jack, grip) + '" fill="none" stroke="' + k[1] + '" stroke-width="4" stroke-linecap="round"/>' + plug(jack, k[1]) + probeSvg(tip, k[1], !set) + '</g>');
+    var dg = core.dragProbe, sn = this._snap, drag = this.dragUX;
+    var cables = [['a', '#d32f2f', devXY('meter', this.meter.mode === 'A' ? -40 : 40, 88)], ['b', '#1e1e1e', devXY('meter', 0, 88)]];
+    if (drag) cables.push(['tip', '#e6b400', devXY('scope', 85, 50)], ['gnd', '#1e1e1e', devXY('scope', 85, 50)]);
+    cables.forEach(function (k) {
+      var which = k[0], scopeP = which === 'tip' || which === 'gnd', pid = scopeP ? core.scopeProbes[which] : core.probes[which], set = pid && byId[pid.split('.')[0]];
+      var tip = dg && dg.which === which ? [dg.x, dg.y] : sn && sn.which === which && sn.pos ? sn.pos : set ? pp(pid) : drag ? PARK[which]() : devXY('meter', (which === 'a' ? -34 : 18) - 20, 200);
+      var jack = k[2], grip = [tip[0] + 38, tip[1] - 70];
+      h.push('<g class="bmcable' + (scopeP ? ' bscable' : '') + '" filter="url(#bCable)" pointer-events="none"><path d="' + cablePath(jack, grip) + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="6" stroke-linecap="round"/>' +
+        '<path d="' + cablePath(jack, grip) + '" fill="none" stroke="' + k[1] + '" stroke-width="4" stroke-linecap="round"/>' + plug(jack, k[1]) + '</g>');
+      h.push('<g class="bprobelayer"' + (drag ? '' : ' pointer-events="none"') + ' filter="url(#bCable)">' + probeSvg(tip, k[1], !set && !(dg && dg.which === which), drag ? which : null, drag) + '</g>');
     });
     h.push('</g>');
     h.push('<rect x="' + this.view[0] + '" y="' + this.view[1] + '" width="' + this.view[2] + '" height="' + this.view[3] + '" fill="url(#bVignette)" pointer-events="none"/>');
@@ -7754,6 +7838,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   var live = { net: null, state: E.newState(), dynamic: false, raf: 0, last: 0, res: null, trace: [], hist: [], replay: null };
   var HIST_MAX = 300;
   var meter = { mode: 'OFF', a: null, b: null, next: 'a' };
+  function dragUX() { return !!(current.task && current.task.measureUX === 'drag'); } // Werkbank: Messspitzen ziehen statt klicken
   function preferredView() { return /[?&]werkbank\b/.test(location.search) || S.settings.view === 'bench' ? 'bench' : 'schema'; }
   function meterType() { return S.settings.meterType === 'avg' ? 'avg' : 'trms'; }
 
@@ -7790,6 +7875,7 @@ body.has-exam-bar .top { padding-top: 50px; }
         onChange: function () { persistDraft(); rebuild(); renderInspector(); },
         onSelect: function () { renderInspector(); },
         onProbe: setProbe,
+        onScopeProbe: function () { tick(0); },
         onMessage: function (m) { status([{ cls: 'info', text: m }]); }
       });
       ed = new Editor($('#board'), { core: core });
@@ -7797,7 +7883,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       bindSheetHover($('#board')); bindSheetHover($('#bench'));
     }
     setView(t.sandbox ? 'bench' : preferredView(), t.sandbox);
-    bench.scope = null;
+    bench.dragUX = dragUX(); bench.scope = null;
     ed.showVolt = bench.showVolt = false; $('#btnVolt').classList.remove('on');
     ed.showFlow = bench.showFlow = !!S.settings.flow; $('#btnFlow').classList.toggle('on', ed.showFlow);
     ed.load(layout, lockedIds, t.bench); bench.fit();
@@ -8103,16 +8189,22 @@ body.has-exam-bar .top { padding-top: 50px; }
   function setMeterMode(mode) {
     meter.mode = mode;
     $$('[data-mm]').forEach(function (b) { b.classList.toggle('on', b.dataset.mm === mode); });
-    if (ed) { ed.tool = mode === 'OFF' ? 'wire' : 'probe'; if (mode === 'OFF') { ed.probes = { a: null, b: null }; meter.a = meter.b = null; meter.next = 'a'; } core.redraw(); }
+    // dragUX: die Spitzen bleiben stecken, auch wenn das Geraet aus ist (wie am echten Geraet); sonst raeumt OFF die Spitzen weg
+    if (ed) { ed.tool = mode === 'OFF' ? 'wire' : 'probe'; if (mode === 'OFF' && !dragUX()) { ed.probes = { a: null, b: null }; meter.a = meter.b = null; meter.next = 'a'; } core.redraw(); }
     log('meter_mode', { id: current.task && current.task.id, mode: mode });
-    $('#mmHelp').textContent = mode === 'OFF' ? 'Messgeraet aus. Klick auf Anschluesse verbindet Leitungen.' :
+    $('#mmHelp').textContent = dragUX() && viewMode === 'bench' ? 'Werkbank: Messspitzen mit der Maus an die Buchsen ziehen (rot = +, schwarz = COM). Klick auf Buchsen verbindet Leitungen.' :
+      mode === 'OFF' ? 'Messgeraet aus. Klick auf Anschluesse verbindet Leitungen.' :
       'Klick auf einen Anschluss setzt die ' + (meter.next === 'a' ? 'rote (+)' : 'schwarze (COM)') + ' Messspitze.';
     if (ed) tick(0);
   }
-  function setProbe(pin) {
-    meter[meter.next] = pin; ed.probes[meter.next] = pin;
-    meter.next = meter.next === 'a' ? 'b' : 'a';
-    $('#mmHelp').textContent = 'Naechster Klick setzt die ' + (meter.next === 'a' ? 'rote (+)' : 'schwarze (COM)') + ' Spitze.';
+  /* pin gesetzt: per Klick (which fehlt → abwechselnd rot/schwarz) oder per Ziehen (which = 'a'|'b', pin null = wieder geparkt) */
+  function setProbe(pin, which) {
+    if (which) { meter[which] = pin || null; if (meter.a && meter.b) meter.next = 'a'; else meter.next = meter.a ? 'b' : 'a'; }
+    else {
+      meter[meter.next] = pin; ed.probes[meter.next] = pin;
+      meter.next = meter.next === 'a' ? 'b' : 'a';
+      $('#mmHelp').textContent = 'Naechster Klick setzt die ' + (meter.next === 'a' ? 'rote (+)' : 'schwarze (COM)') + ' Spitze.';
+    }
     log('probe', { id: current.task && current.task.id, mode: meter.mode, pin: pin });
     tick(0);
   }

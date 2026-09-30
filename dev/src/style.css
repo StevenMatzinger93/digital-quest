@@ -151,6 +151,9 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bpin { fill: none; stroke: transparent; stroke-width: 3; pointer-events: none; }
 [data-pin]:hover .bpin { stroke: #ffb000; } .bpin.active { stroke: #ffb000; stroke-width: 4; filter: drop-shadow(0 0 4px #ffb000); }
 .bprobe { pointer-events: none; }
+.bprobe.grab { pointer-events: auto; cursor: grab; } .bprobehit { fill: transparent; } .bprobe.grab:hover .bprobehit { fill: rgba(255,176,0,.14); }
+.bprobe.grab.parked path:nth-of-type(3) { filter: drop-shadow(0 0 5px rgba(255,176,0,.7)); }
+#bench.probing { cursor: grabbing; } #bench.probing .bprobe.grab { cursor: grabbing; }
 .bgen { font: 700 10px var(--font-code); fill: #39ff14; text-anchor: middle; pointer-events: none; }
 .bdev { cursor: default; } .bdevtxt { font: 700 9px var(--font-code); fill: #d8d8d8; text-anchor: middle; pointer-events: none; }
 .bmlcd { font: 700 21px var(--font-code); fill: #1b2413; text-anchor: end; pointer-events: none; } .bmsub { font: 700 8px var(--font-code); fill: #2f3a24; pointer-events: none; }

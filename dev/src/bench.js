@@ -6,7 +6,11 @@
  * (data-part, data-pin, data-wire). Unsichtbar wird nicht gezeichnet, erst beim Einblenden (fit).
  * Messgeraete stehen rechts auf der Unterlage (Frontansicht, nicht gestaucht): Multimeter mit Drehschalter (data-dial),
  * LCD, Buchsen und Messkabeln zu den Pruefspitzen; Oszilloskop mit Bildschirm und RUN-Taste (data-scope).
- * Die App setzt bench.meter = {mode, text, fuse, sub} und bench.scope = {pts:[[0..1, 0..1]], info}. */
+ * Die App setzt bench.meter = {mode, text, fuse, sub} und bench.scope = {pts:[[0..1, 0..1]], info}.
+ * bench.dragUX (Aufgaben mit measureUX 'drag'): Messspitzen liegen geparkt vor dem Geraet und werden per Ziehen an einen
+ * Anschluss gefuehrt (pointerdown auf der Spitze, ziehen, loslassen ueber einer Buchse); ohne Treffer faellt die Spitze
+ * zurueck auf den Parkplatz. Das Oszilloskop hat dann einen eigenen Tastkopf (core.scopeProbes). Ohne dragUX gilt das
+ * bisherige Verhalten (Klick auf die Buchse setzt die Spitze, Oszilloskop nutzt die Multimeter-Spitzen). */
 (function (root) {
   'use strict';
   var E = root.DQEngine, Circuit = root.DQCircuit, Ed = root.DQEditor;
@@ -352,9 +356,15 @@
       socket([85, 50], '#1a1a1a') + '<text class="bdevtxt" x="60" y="54">CH1</text>';
     return s + '</g>';
   }
-  function probeSvg(tip, col, park) { // Pruefspitze: Metallspitze am Anschluss, Fingerschutz, Griff schraeg nach oben rechts
+  /* Parkplaetze der Messspitzen (Werkbank-Koordinaten): Multimeter rot/schwarz vor dem Geraet, Tastkopf und Erdungsclip vor dem Oszilloskop */
+  var PARK = { a: function () { return devXY('meter', -54, 200); }, b: function () { return devXY('meter', -2, 200); },
+    tip: function () { return devXY('scope', -70, 118); }, gnd: function () { return devXY('scope', -14, 118); } };
+  Bench.PARK = PARK;
+  function probeSvg(tip, col, park, which, grab) { // Pruefspitze: Metallspitze am Anschluss, Fingerschutz, Griff schraeg nach oben rechts
     var x = tip[0], y = tip[1];
-    return '<g class="bprobe' + (park ? ' parked' : '') + '"><path d="M' + x + ' ' + y + 'l17 -32" stroke="#d0d4d6" stroke-width="2.6" stroke-linecap="round"/>' +
+    return '<g class="bprobe' + (park ? ' parked' : '') + (grab ? ' grab' : '') + '"' + (which ? ' data-probe="' + which + '"' : '') + '>' +
+      (grab ? '<circle class="bprobehit" cx="' + (x + 22) + '" cy="' + (y - 44) + '" r="30"/>' : '') +
+      '<path d="M' + x + ' ' + y + 'l17 -32" stroke="#d0d4d6" stroke-width="2.6" stroke-linecap="round"/>' +
       '<path d="M' + (x + 12) + ' ' + (y - 27) + 'l10 -5" stroke="' + col + '" stroke-width="5" stroke-linecap="round"/>' +
       '<path d="M' + (x + 16) + ' ' + (y - 30) + 'l22 -40" stroke="' + col + '" stroke-width="11" stroke-linecap="round"/>' +
       '<path d="M' + (x + 15) + ' ' + (y - 33) + 'l20 -36" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round"/></g>';
@@ -415,6 +425,7 @@
     this.core = this.opts.core || new Circuit(this.opts);
     this.sim = null; this.showVolt = false; this.mouse = [0, 0]; this.dirty = true;
     this.meter = { mode: 'OFF', text: 'OFF' }; this.scope = null; this.showFlow = false; this._anim = 0; this._phase = 0;
+    this.dragUX = false; this._grab = null; this._snap = null; // Ziehen der Messspitzen (measureUX 'drag')
     this.view = [0, 0, W, W * 0.62]; // gleiches Seitenverhaeltnis wie das Schema (1000 × 620), damit die Flaeche gleich gross bleibt
     svg.setAttribute('viewBox', this.view.join(' '));
     this.core.attach(this);
@@ -467,6 +478,15 @@
   Bench.prototype._bind = function () {
     var self = this, svg = this.svg, core = this.core;
     svg.addEventListener('pointerdown', function (ev) {
+      var pr = self.dragUX && ev.target.closest('[data-probe]');
+      if (pr) { // Messspitze greifen: ab jetzt folgt sie dem Zeiger
+        ev.preventDefault(); ev.stopPropagation();
+        var w = pr.dataset.probe, xy0 = self._pt(ev);
+        self._snap = null; self._grab = { which: w, id: ev.pointerId }; svg.classList.add('probing');
+        core.dragProbeTo(w, xy0);
+        try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ }
+        return;
+      }
       var dv = ev.target.closest('[data-dial],[data-scope],[data-dev]');
       if (dv) { // Messgeraete: Drehschalter, RUN-Taste; Gehaeuse selbst ohne Wirkung
         ev.preventDefault();
@@ -483,7 +503,7 @@
         return;
       }
       var t = ev.target.closest('[data-pin],[data-part],[data-wire]'), xy = self._pt(ev);
-      if (t && t.dataset.pin) { ev.preventDefault(); core.clickPin(t.dataset.pin); return; }
+      if (t && t.dataset.pin) { ev.preventDefault(); if (self.dragUX) core.connectPin(t.dataset.pin); else core.clickPin(t.dataset.pin); return; } // dragUX: Klick verbindet immer, Spitzen werden gezogen
       if (t && t.dataset.wire !== undefined) { core.clickWire(+t.dataset.wire); return; }
       if (t && t.dataset.part) { if (core.pressPart(t.dataset.part, xy, 'bench')) svg.setPointerCapture(ev.pointerId); return; }
       // leere Tischflaeche: Ziehen verschiebt den Ausschnitt, ein Klick hebt die Auswahl auf (Mini-Schaltung: fester Ausschnitt)
@@ -492,6 +512,7 @@
       try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ }
     });
     svg.addEventListener('pointermove', function (ev) {
+      if (self._grab) { if (ev.pointerId === self._grab.id) core.dragProbeTo(self._grab.which, self._pt(ev)); return; }
       if (touches[ev.pointerId]) touches[ev.pointerId] = [ev.clientX, ev.clientY];
       if (pinch && Object.keys(touches).length === 2) {
         var tp = Object.keys(touches).map(function (k) { return touches[k]; }), d = Math.hypot(tp[0][0] - tp[1][0], tp[0][1] - tp[1][1]);
@@ -509,6 +530,13 @@
       else if (core.wireStart) self.render();
     });
     function up(ev) {
+      if (self._grab) { // Spitze losgelassen: Buchse unter dem Zeiger? sonst zurueck auf den Parkplatz
+        var g = self._grab; self._grab = null; svg.classList.remove('probing');
+        var xy = self._pt(ev), hitPin = self.pinAt(xy, 26);
+        if (hitPin) core.dropProbe(g.which, hitPin);
+        else { self._snapBack(g.which, xy); core.dropProbe(g.which, null); }
+        return;
+      }
       delete touches[ev.pointerId];
       if (pinch) { if (Object.keys(touches).length < 2) pinch = null; return; }
       if (pan) { var wasPan = pan.moved; pan = null; if (!wasPan) core.clickEmpty(); return; }
@@ -521,6 +549,29 @@
       ev.preventDefault();
       self.zoomAt(Math.exp(ev.deltaY * 0.0015), ev.clientX, ev.clientY);
     }, { passive: false });
+  };
+  /* Naechste Buchse zu xy (Werkbank-Koordinaten) innerhalb r, sonst null */
+  Bench.prototype.pinAt = function (xy, r) {
+    var best = null, bd = r * r, self = this;
+    this.core.layout.parts.forEach(function (p) {
+      Object.keys(GEO[p.type]).forEach(function (pin) {
+        var q = self.pinPos(p, pin), d = (q[0] - xy[0]) * (q[0] - xy[0]) + (q[1] - xy[1]) * (q[1] - xy[1]);
+        if (d < bd) { bd = d; best = p.id + '.' + pin; }
+      });
+    });
+    return best;
+  };
+  /* Spitze faellt in ~0,25 s vom Loslasspunkt zurueck auf den Parkplatz */
+  Bench.prototype._snapBack = function (which, from) {
+    var self = this, park = PARK[which](), t0 = performance.now(), D = 250;
+    this._snap = { which: which, from: from, to: park, t0: t0 };
+    function tick(now) {
+      var s = self._snap; if (!s || s.t0 !== t0) return;
+      var k = Math.min(1, (now - t0) / D), e = 1 - (1 - k) * (1 - k);
+      s.pos = [s.from[0] + (s.to[0] - s.from[0]) * e, s.from[1] + (s.to[1] - s.from[1]) * e - Math.sin(k * Math.PI) * 30];
+      if (k < 1) { self.render(); requestAnimationFrame(tick); } else { self._snap = null; self.render(); }
+    }
+    requestAnimationFrame(tick);
   };
   /* Ausschnitt setzen (Bildschirm-Koordinaten der Szene), in sinnvollen Grenzen */
   Bench.prototype.setView = function (v) {
@@ -612,13 +663,19 @@
       var a = pp(core.wireStart);
       h.push('<path class="bwire pending" d="' + cablePath(a, this.mouse) + '"/>');
     }
-    // Messgeraete mit Messkabeln: rot aus VΩ (bzw. A im Strombereich), schwarz aus COM; nicht gesetzte Spitzen liegen vor dem Geraet
+    // Messgeraete mit Messkabeln: rot aus VΩ (bzw. A im Strombereich), schwarz aus COM; nicht gesetzte Spitzen liegen vor dem Geraet.
+    // dragUX: Spitzen sind greifbar (data-probe), waehrend des Ziehens haengt die Spitze am Zeiger; dazu Tastkopf und Erdungsclip des Oszilloskops (CH1)
     h.push(scopeSvg(this.scope), meterSvg(this.meter));
-    [['a', '#d32f2f', this.meter.mode === 'A' ? -40 : 40, -34], ['b', '#1e1e1e', 0, 18]].forEach(function (k) {
-      var pid = core.probes[k[0]], set = pid && byId[pid.split('.')[0]];
-      var tip = set ? pp(pid) : devXY('meter', k[3] - 20, 200), jack = devXY('meter', k[2], 88), grip = [tip[0] + 38, tip[1] - 70];
-      h.push('<g class="bmcable" filter="url(#bCable)" pointer-events="none"><path d="' + cablePath(jack, grip) + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="6" stroke-linecap="round"/>' +
-        '<path d="' + cablePath(jack, grip) + '" fill="none" stroke="' + k[1] + '" stroke-width="4" stroke-linecap="round"/>' + plug(jack, k[1]) + probeSvg(tip, k[1], !set) + '</g>');
+    var dg = core.dragProbe, sn = this._snap, drag = this.dragUX;
+    var cables = [['a', '#d32f2f', devXY('meter', this.meter.mode === 'A' ? -40 : 40, 88)], ['b', '#1e1e1e', devXY('meter', 0, 88)]];
+    if (drag) cables.push(['tip', '#e6b400', devXY('scope', 85, 50)], ['gnd', '#1e1e1e', devXY('scope', 85, 50)]);
+    cables.forEach(function (k) {
+      var which = k[0], scopeP = which === 'tip' || which === 'gnd', pid = scopeP ? core.scopeProbes[which] : core.probes[which], set = pid && byId[pid.split('.')[0]];
+      var tip = dg && dg.which === which ? [dg.x, dg.y] : sn && sn.which === which && sn.pos ? sn.pos : set ? pp(pid) : drag ? PARK[which]() : devXY('meter', (which === 'a' ? -34 : 18) - 20, 200);
+      var jack = k[2], grip = [tip[0] + 38, tip[1] - 70];
+      h.push('<g class="bmcable' + (scopeP ? ' bscable' : '') + '" filter="url(#bCable)" pointer-events="none"><path d="' + cablePath(jack, grip) + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="6" stroke-linecap="round"/>' +
+        '<path d="' + cablePath(jack, grip) + '" fill="none" stroke="' + k[1] + '" stroke-width="4" stroke-linecap="round"/>' + plug(jack, k[1]) + '</g>');
+      h.push('<g class="bprobelayer"' + (drag ? '' : ' pointer-events="none"') + ' filter="url(#bCable)">' + probeSvg(tip, k[1], !set && !(dg && dg.which === which), drag ? which : null, drag) + '</g>');
     });
     h.push('</g>');
     h.push('<rect x="' + this.view[0] + '" y="' + this.view[1] + '" width="' + this.view[2] + '" height="' + this.view[3] + '" fill="url(#bVignette)" pointer-events="none"/>');

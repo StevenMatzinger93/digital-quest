@@ -15,12 +15,16 @@
    * palette: erlaubte Bauteiltypen; start / ref: Layouts {parts, wires}; wrong: [{name, parts, wires}]
    * need, tests, measure: siehe engine.js runTask
    * bench (optional): Werkbank-Layout {parts:[{id, x, y, rot}]} – eigene Lage je Bauteil-ID aus start/ref (siehe bench.js)
+   * measureUX (optional): 'legacy' (Standard: Klick auf die Buchse setzt die Messspitze) | 'drag' (Werkbank: Spitzen ziehen,
+   *   eigener Oszilloskop-Tastkopf, Messbereich von Hand waehlen – Schema-Ansicht bleibt beim Klick)
    * boss: true fuer Abschlussaufgabe */
   root.defTask = function (t) {
     ['id', 'ch', 'title', 'brief', 'start', 'ref'].forEach(function (k) { if (t[k] === undefined) throw new Error('defTask ' + t.id + ': ' + k + ' fehlt'); });
     t.kind = 'task';
     t.palette = t.palette || [];
     t.tests = t.tests || []; t.measure = t.measure || []; t.wrong = t.wrong || []; t.tags = t.tags || [];
+    t.measureUX = t.measureUX || 'legacy';
+    if (t.measureUX !== 'legacy' && t.measureUX !== 'drag') throw new Error('defTask ' + t.id + ': measureUX muss legacy oder drag sein');
     DQ.tasks.push(t); DQ.byId[t.id] = t; return t;
   };
 

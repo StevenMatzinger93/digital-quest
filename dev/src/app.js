@@ -252,6 +252,7 @@
   var live = { net: null, state: E.newState(), dynamic: false, raf: 0, last: 0, res: null, trace: [], hist: [], replay: null };
   var HIST_MAX = 300;
   var meter = { mode: 'OFF', a: null, b: null, next: 'a' };
+  function dragUX() { return !!(current.task && current.task.measureUX === 'drag'); } // Werkbank: Messspitzen ziehen statt klicken
   function preferredView() { return /[?&]werkbank\b/.test(location.search) || S.settings.view === 'bench' ? 'bench' : 'schema'; }
   function meterType() { return S.settings.meterType === 'avg' ? 'avg' : 'trms'; }
 
@@ -288,6 +289,7 @@
         onChange: function () { persistDraft(); rebuild(); renderInspector(); },
         onSelect: function () { renderInspector(); },
         onProbe: setProbe,
+        onScopeProbe: function () { tick(0); },
         onMessage: function (m) { status([{ cls: 'info', text: m }]); }
       });
       ed = new Editor($('#board'), { core: core });
@@ -295,7 +297,7 @@
       bindSheetHover($('#board')); bindSheetHover($('#bench'));
     }
     setView(t.sandbox ? 'bench' : preferredView(), t.sandbox);
-    bench.scope = null;
+    bench.dragUX = dragUX(); bench.scope = null;
     ed.showVolt = bench.showVolt = false; $('#btnVolt').classList.remove('on');
     ed.showFlow = bench.showFlow = !!S.settings.flow; $('#btnFlow').classList.toggle('on', ed.showFlow);
     ed.load(layout, lockedIds, t.bench); bench.fit();
@@ -601,16 +603,22 @@
   function setMeterMode(mode) {
     meter.mode = mode;
     $$('[data-mm]').forEach(function (b) { b.classList.toggle('on', b.dataset.mm === mode); });
-    if (ed) { ed.tool = mode === 'OFF' ? 'wire' : 'probe'; if (mode === 'OFF') { ed.probes = { a: null, b: null }; meter.a = meter.b = null; meter.next = 'a'; } core.redraw(); }
+    // dragUX: die Spitzen bleiben stecken, auch wenn das Geraet aus ist (wie am echten Geraet); sonst raeumt OFF die Spitzen weg
+    if (ed) { ed.tool = mode === 'OFF' ? 'wire' : 'probe'; if (mode === 'OFF' && !dragUX()) { ed.probes = { a: null, b: null }; meter.a = meter.b = null; meter.next = 'a'; } core.redraw(); }
     log('meter_mode', { id: current.task && current.task.id, mode: mode });
-    $('#mmHelp').textContent = mode === 'OFF' ? 'Messgeraet aus. Klick auf Anschluesse verbindet Leitungen.' :
+    $('#mmHelp').textContent = dragUX() && viewMode === 'bench' ? 'Werkbank: Messspitzen mit der Maus an die Buchsen ziehen (rot = +, schwarz = COM). Klick auf Buchsen verbindet Leitungen.' :
+      mode === 'OFF' ? 'Messgeraet aus. Klick auf Anschluesse verbindet Leitungen.' :
       'Klick auf einen Anschluss setzt die ' + (meter.next === 'a' ? 'rote (+)' : 'schwarze (COM)') + ' Messspitze.';
     if (ed) tick(0);
   }
-  function setProbe(pin) {
-    meter[meter.next] = pin; ed.probes[meter.next] = pin;
-    meter.next = meter.next === 'a' ? 'b' : 'a';
-    $('#mmHelp').textContent = 'Naechster Klick setzt die ' + (meter.next === 'a' ? 'rote (+)' : 'schwarze (COM)') + ' Spitze.';
+  /* pin gesetzt: per Klick (which fehlt → abwechselnd rot/schwarz) oder per Ziehen (which = 'a'|'b', pin null = wieder geparkt) */
+  function setProbe(pin, which) {
+    if (which) { meter[which] = pin || null; if (meter.a && meter.b) meter.next = 'a'; else meter.next = meter.a ? 'b' : 'a'; }
+    else {
+      meter[meter.next] = pin; ed.probes[meter.next] = pin;
+      meter.next = meter.next === 'a' ? 'b' : 'a';
+      $('#mmHelp').textContent = 'Naechster Klick setzt die ' + (meter.next === 'a' ? 'rote (+)' : 'schwarze (COM)') + ' Spitze.';
+    }
     log('probe', { id: current.task && current.task.id, mode: meter.mode, pin: pin });
     tick(0);
   }
