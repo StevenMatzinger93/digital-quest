@@ -463,8 +463,8 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .mw-predict .btn { margin: 4px 6px 4px 0; } .mw-predict .btn.ok { border-color: var(--accent-green); color: var(--accent-green); } .mw-predict .btn.bad { border-color: var(--accent-red); color: var(--accent-red); } .mw-expl { margin: 8px 0 0; font-size: 14px; } .mw-expl:empty { display: none; }
 .mw[hidden] { display: none; } .mw-wsvg { width: 100%; height: 70px; display: block; background: #0c0d0a; border-radius: 8px; } .mw-wpath { fill: none; stroke: var(--accent-cyan); stroke-width: 2; } .mw-dot { fill: var(--accent-lead); filter: drop-shadow(0 0 4px var(--accent-lead)); }
 .mw-faces { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; } .mw-faces h4 { margin: 0 0 4px; font-size: 14px; } .mw-faces h4 .dim { font-weight: 400; font-size: 12px; margin-left: 6px; }
-.mw-face { width: 100%; display: block; background: #f5f2e8; border-radius: 10px; border: 4px solid #2b2d31; } .mw-arc { fill: none; stroke: #222; stroke-width: 2; } .mw-ticks { stroke: #222; stroke-width: 1.6; } .mw-num { font: 700 11px var(--font-code); fill: #333; text-anchor: middle; }
-.mw-pole { font: 800 16px var(--font-ui); fill: #fff; text-anchor: middle; } .mw-lbl { font: 10px var(--font-ui); fill: #555; text-anchor: middle; } .mw-wsvg .mw-lbl { fill: #8a8a8a; text-anchor: start; } .mw-read { font: 700 12px var(--font-code); fill: #1b2413; text-anchor: middle; }
+.mw-face { width: 100%; display: block; border-radius: 12px; filter: drop-shadow(0 6px 14px rgba(0,0,0,.45)); } .mw-arc { fill: none; stroke: #1d1d1d; stroke-width: 2; } .mw-ticks { stroke: #1d1d1d; stroke-width: 1.5; } .mw-ticks.minor { stroke-width: .8; opacity: .8; } .mw-num { font: 700 11px var(--font-code); fill: #2a2a2a; text-anchor: middle; } .mw-unit { font: 600 10px var(--font-code); fill: #6b6656; text-anchor: middle; letter-spacing: 1px; }
+.mw-pole { font: 800 16px var(--font-ui); fill: #fff; text-anchor: middle; } .mw-lbl { font: 10px var(--font-ui); fill: #555; text-anchor: middle; } .mw-wsvg .mw-lbl { fill: #8a8a8a; text-anchor: start; } .mw-read { font: 700 11.5px var(--font-code); fill: #b9f08a; text-anchor: middle; }
 .mw-ctl { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: 10px; font-size: 13px; } .mw-ctl label { display: flex; align-items: center; gap: 8px; } .mw-ctl label span { color: var(--text-dim); } .mw-ctl input[type=range] { width: 160px; } .mw-ctl select { background: #111; color: #ddd; border: 1px solid #444; border-radius: 6px; padding: 4px 6px; }
 .mw-note { margin: 8px 0 0; }
 @media (max-width: 700px) { .mw-faces { grid-template-columns: 1fr; } }
@@ -7469,26 +7469,82 @@ body.has-exam-bar .top { padding-top: 50px; }
     if (shape === 'triangle') return ph < 0.25 ? 4 * ph : ph < 0.75 ? 2 - 4 * ph : 4 * ph - 4;
     return 1;
   }
+  var mwSeq = 0;
   function mwFace(kind, w) { // Skalenbogen 0…Endwert: linear (Drehspul) bzw. quadratisch gestaucht (Dreheisen); Zeiger dreht um (cx, cy)
-    var cx = w / 2, cy = 150, r = 112, ticks = '', labels = '';
-    for (var i = 0; i <= 10; i++) {
-      var x = i / 10, a = (kind === 'iron' ? x * x : x) * 90 - 45, ar = a * Math.PI / 180, big = i % 5 === 0;
-      ticks += 'M' + (cx + Math.sin(ar) * r).toFixed(1) + ' ' + (cy - Math.cos(ar) * r).toFixed(1) + 'L' + (cx + Math.sin(ar) * (r - (big ? 12 : 7))).toFixed(1) + ' ' + (cy - Math.cos(ar) * (r - (big ? 12 : 7))).toFixed(1);
-      if (big) labels += '<text x="' + (cx + Math.sin(ar) * (r - 22)).toFixed(1) + '" y="' + (cy - Math.cos(ar) * (r - 22) + 4).toFixed(1) + '" class="mw-num">' + (i / 10 * 100) + '</text>';
+    var cx = w / 2, cy = 150, r = 112, n = 'mw' + (++mwSeq), major = '', minor = '', labels = '';
+    function pt(rad, ang) { var ar = ang * Math.PI / 180; return (cx + Math.sin(ar) * rad).toFixed(1) + ' ' + (cy - Math.cos(ar) * rad).toFixed(1); }
+    function arc(rad, a0, a1) { return 'M' + pt(rad, a0) + 'A' + rad + ' ' + rad + ' 0 0 1 ' + pt(rad, a1); }
+    function ang(x) { return (kind === 'iron' ? x * x : x) * 90 - 45; }
+    for (var i = 0; i <= 50; i++) {
+      var x = i / 50, a0 = ang(x), big = i % 25 === 0, mid = i % 5 === 0;
+      if (mid) major += 'M' + pt(r, a0) + 'L' + pt(r - (big ? 13 : 9), a0); else minor += 'M' + pt(r, a0) + 'L' + pt(r - 5, a0);
+      if (big) labels += '<text x="' + pt(r - 24, a0).split(' ')[0] + '" y="' + (+pt(r - 24, a0).split(' ')[1] + 4).toFixed(1) + '" class="mw-num">' + (x * 100) + '</text>';
     }
+    // Materialien wie auf der Werkbank (bench.js: bMetal, bBrass, bRedCap, bLens, bShadow) – IDs je Instrument eindeutig
+    var defs = '<defs>' +
+      '<radialGradient id="' + n + 'Face" cx=".5" cy=".38" r=".85"><stop offset="0" stop-color="#fcfaf1"/><stop offset=".65" stop-color="#efe9d5"/><stop offset="1" stop-color="#d3cab0"/></radialGradient>' +
+      '<linearGradient id="' + n + 'Bezel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5f646b"/><stop offset=".5" stop-color="#2c2f34"/><stop offset="1" stop-color="#121417"/></linearGradient>' +
+      '<radialGradient id="' + n + 'Metal" cx=".35" cy=".35"><stop offset="0" stop-color="#f4f4f4"/><stop offset=".7" stop-color="#9da3a8"/><stop offset="1" stop-color="#5d6266"/></radialGradient>' +
+      '<radialGradient id="' + n + 'Brass" cx=".35" cy=".35"><stop offset="0" stop-color="#fff1b8"/><stop offset=".6" stop-color="#c9a227"/><stop offset="1" stop-color="#7a5e10"/></radialGradient>' +
+      '<linearGradient id="' + n + 'Red" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8f84"/><stop offset=".45" stop-color="#c62828"/><stop offset="1" stop-color="#6f1010"/></linearGradient>' +
+      '<linearGradient id="' + n + 'Blue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ec0ff"/><stop offset=".45" stop-color="#1e63c8"/><stop offset="1" stop-color="#0d3470"/></linearGradient>' +
+      '<linearGradient id="' + n + 'Copper" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7a3f0e"/><stop offset=".45" stop-color="#f0a955"/><stop offset=".6" stop-color="#d98a36"/><stop offset="1" stop-color="#7a3f0e"/></linearGradient>' +
+      '<linearGradient id="' + n + 'Iron" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a6065"/><stop offset=".3" stop-color="#dfe3e6"/><stop offset=".55" stop-color="#a3a9ae"/><stop offset="1" stop-color="#4c5156"/></linearGradient>' +
+      '<linearGradient id="' + n + 'Needle" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff6b62"/><stop offset=".5" stop-color="#d81f1f"/><stop offset="1" stop-color="#8e1111"/></linearGradient>' +
+      '<radialGradient id="' + n + 'Lens" cx=".3" cy=".22" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset=".45" stop-color="#fff" stop-opacity=".04"/><stop offset="1" stop-color="#000" stop-opacity=".1"/></radialGradient>' +
+      '<filter id="' + n + 'Shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="1.5" dy="2.5" stdDeviation="1.6" flood-color="#000" flood-opacity=".45"/></filter>' +
+      '<filter id="' + n + 'Soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.4"/></filter>' +
+      '</defs>';
+    function screw(x, y) { return '<circle cx="' + x + '" cy="' + y + '" r="4.5" fill="url(#' + n + 'Metal)" stroke="#2a2d31" stroke-width=".8"/><path d="M' + (x - 2.6) + ' ' + (y - 1.2) + 'l5.2 2.4" stroke="#3a3d41" stroke-width="1.1"/>'; }
+    function windings(x0, y0, wd, ht, pitch) { var d = ''; for (var k = x0 + pitch / 2; k < x0 + wd; k += pitch) d += 'M' + k.toFixed(1) + ' ' + y0 + 'V' + (y0 + ht); return d; }
     var mech = kind === 'coil'
-      ? '<rect x="' + (cx - 78) + '" y="168" width="34" height="46" rx="4" fill="#c62828" opacity=".85"/><rect x="' + (cx + 44) + '" y="168" width="34" height="46" rx="4" fill="#1e88e5" opacity=".85"/>' +
-        '<text x="' + (cx - 61) + '" y="198" class="mw-pole">N</text><text x="' + (cx + 61) + '" y="198" class="mw-pole">S</text>' +
-        '<circle cx="' + cx + '" cy="191" r="22" fill="#4a5058"/><rect class="mw-coil" x="' + (cx - 16) + '" y="169" width="32" height="44" rx="3" fill="none" stroke="#e0b400" stroke-width="4"/>' +
+      ? '<g filter="url(#' + n + 'Shadow)">' +
+          '<path d="M' + (cx - 82) + ' 214V176a8 8 0 0 1 8-8h32v48h-32a8 8 0 0 1-8-8z" fill="url(#' + n + 'Red)" stroke="#5a0d0d" stroke-width="1"/>' +
+          '<path d="M' + (cx + 82) + ' 214V176a8 8 0 0 0-8-8h-32v48h32a8 8 0 0 0 8-8z" fill="url(#' + n + 'Blue)" stroke="#0a2a5c" stroke-width="1"/>' +
+          '<path d="M' + (cx - 78) + ' 172h26M' + (cx + 52) + ' 172h26" stroke="rgba(255,255,255,.55)" stroke-width="1.6" stroke-linecap="round"/>' +
+          '<path d="M' + (cx - 44) + ' 170v44M' + (cx + 44) + ' 170v44" stroke="rgba(255,255,255,.25)" stroke-width="1"/>' +
+          '<text x="' + (cx - 62) + '" y="197" class="mw-pole">N</text><text x="' + (cx + 62) + '" y="197" class="mw-pole">S</text>' +
+          '<circle cx="' + cx + '" cy="191" r="23" fill="url(#' + n + 'Metal)" stroke="#3a3f44" stroke-width="1"/><circle cx="' + cx + '" cy="191" r="16" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="6"/>' +
+        '</g>' +
+        '<g class="mw-coil">' +
+          '<rect x="' + (cx - 17) + '" y="168" width="34" height="46" rx="4" fill="rgba(60,30,5,.35)"/>' +
+          '<path d="' + windings(cx - 17, 169, 34, 44, 4.2) + '" stroke="url(#' + n + 'Copper)" stroke-width="3" stroke-linecap="round"/>' +
+          '<rect x="' + (cx - 17) + '" y="168" width="34" height="46" rx="4" fill="none" stroke="#5a2d08" stroke-width="1.2"/>' +
+          '<path d="M' + (cx - 15) + ' 170h30" stroke="rgba(255,255,255,.35)" stroke-width="1"/>' +
+        '</g>' +
         '<text x="' + cx + '" y="232" class="mw-lbl">Dauermagnet · drehbare Spule</text>'
-      : '<rect x="' + (cx - 60) + '" y="166" width="120" height="50" rx="6" fill="none" stroke="#e0b400" stroke-width="5" stroke-dasharray="9 4"/>' +
-        '<rect x="' + (cx - 22) + '" y="174" width="9" height="34" fill="#8d9296"/><rect class="mw-plate" x="' + (cx + 8) + '" y="174" width="9" height="34" fill="#cfd2d4"/>' +
-        '<path class="mw-force" d="M' + (cx - 10) + ' 191h14" stroke="#ff8c00" stroke-width="2"/><text x="' + cx + '" y="232" class="mw-lbl">feste Spule · zwei Eisenplaettchen</text>';
-    return '<svg viewBox="0 0 ' + w + ' 240" class="mw-face" aria-label="' + (kind === 'coil' ? 'Drehspulmesswerk' : 'Dreheisenmesswerk') + '">' +
-      '<path d="M' + (cx + Math.sin(-Math.PI / 4) * r).toFixed(1) + ' ' + (cy - Math.cos(-Math.PI / 4) * r).toFixed(1) + 'A' + r + ' ' + r + ' 0 0 1 ' + (cx + Math.sin(Math.PI / 4) * r).toFixed(1) + ' ' + (cy - Math.cos(Math.PI / 4) * r).toFixed(1) + '" class="mw-arc"/>' +
-      '<path d="' + ticks + '" class="mw-ticks"/>' + labels + mech +
-      '<g class="mw-needle" transform="rotate(-45 ' + cx + ' ' + cy + ')"><path d="M' + cx + ' ' + (cy + 14) + 'L' + cx + ' ' + (cy - r + 4) + '" stroke="#ff3333" stroke-width="2.6" stroke-linecap="round"/><circle cx="' + cx + '" cy="' + cy + '" r="5" fill="#222" stroke="#999"/></g>' +
-      '<text x="' + cx + '" y="' + (cy + 34) + '" class="mw-read"></text></svg>';
+      : '<g filter="url(#' + n + 'Shadow)">' +
+          '<rect x="' + (cx - 62) + '" y="164" width="124" height="54" rx="7" fill="#3b2a1a" stroke="#241608" stroke-width="1"/>' +
+          '<path d="' + windings(cx - 60, 166, 120, 50, 5.4) + '" stroke="url(#' + n + 'Copper)" stroke-width="4" stroke-linecap="round"/>' +
+          '<rect x="' + (cx - 62) + '" y="164" width="124" height="54" rx="7" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1"/>' +
+          '<rect x="' + (cx - 44) + '" y="171" width="88" height="40" rx="3" fill="rgba(20,20,22,.78)"/>' +
+        '</g>' +
+        '<g filter="url(#' + n + 'Shadow)">' +
+          '<rect x="' + (cx - 24) + '" y="174" width="10" height="34" rx="1.5" fill="url(#' + n + 'Iron)" stroke="#2f3438" stroke-width=".9"/><path d="M' + (cx - 21.5) + ' 176v30" stroke="rgba(255,255,255,.5)" stroke-width="1"/>' +
+          '<g class="mw-plate"><rect x="' + (cx + 8) + '" y="174" width="10" height="34" rx="1.5" fill="url(#' + n + 'Iron)" stroke="#2f3438" stroke-width=".9"/><path d="M' + (cx + 10.5) + ' 176v30" stroke="rgba(255,255,255,.5)" stroke-width="1"/></g>' +
+        '</g>' +
+        '<path class="mw-force" d="M' + (cx - 11) + ' 191h16m-4-4l4 4-4 4" fill="none" stroke="#ff8c00" stroke-width="2" stroke-linecap="round"/>' +
+        '<text x="' + cx + '" y="232" class="mw-lbl">feste Spule · zwei Eisenplaettchen</text>';
+    var needle = '<g class="mw-needle" transform="rotate(-45 ' + cx + ' ' + cy + ')">' +
+      '<path d="M' + (cx - 2) + ' ' + (cy + 16) + 'L' + (cx + 2) + ' ' + (cy + 16) + 'L' + (cx + 0.6) + ' ' + (cy - r + 4) + 'L' + (cx - 0.6) + ' ' + (cy - r + 4) + 'Z" transform="translate(2.2 3)" fill="rgba(0,0,0,.35)" filter="url(#' + n + 'Soft)"/>' +
+      '<path d="M' + (cx - 2) + ' ' + (cy + 16) + 'L' + (cx + 2) + ' ' + (cy + 16) + 'L' + (cx + 0.6) + ' ' + (cy - r + 4) + 'L' + (cx - 0.6) + ' ' + (cy - r + 4) + 'Z" fill="url(#' + n + 'Needle)" stroke="#7a0f0f" stroke-width=".4"/>' +
+      '<rect x="' + (cx - 4) + '" y="' + (cy + 8) + '" width="8" height="10" rx="2" fill="#2b2b2b"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="7" fill="url(#' + n + 'Brass)" stroke="#5a4510" stroke-width=".8"/><circle cx="' + cx + '" cy="' + cy + '" r="2.2" fill="#222"/></g>';
+    return '<svg viewBox="0 0 ' + w + ' 268" class="mw-face" aria-label="' + (kind === 'coil' ? 'Drehspulmesswerk' : 'Dreheisenmesswerk') + '">' + defs +
+      '<rect x="0" y="0" width="' + w + '" height="268" rx="12" fill="url(#' + n + 'Bezel)"/>' +
+      '<rect x="7" y="7" width="' + (w - 14) + '" height="254" rx="8" fill="url(#' + n + 'Face)" stroke="#8c8572" stroke-width="1"/>' +
+      screw(16, 16) + screw(w - 16, 16) + screw(16, 252) + screw(w - 16, 252) +
+      '<path d="' + arc(r - 9, -45, 45) + '" fill="none" stroke="rgba(0,0,0,.055)" stroke-width="16"/>' +           // Skalenband
+      '<path d="' + arc(r + 3, ang(0.9), 45) + '" fill="none" stroke="#d32f2f" stroke-width="3.5" opacity=".85"/>' + // roter Endbereich
+      '<path d="' + arc(r, -45, 45) + '" class="mw-arc"/>' +
+      '<path d="' + minor + '" class="mw-ticks minor"/><path d="' + major + '" class="mw-ticks"/>' + labels +
+      '<path d="' + arc(r - 30, -45, 45) + '" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="2.5"/>' +      // Spiegelstreifen (Parallaxe)
+      '<text x="' + cx + '" y="' + (cy - 46) + '" class="mw-unit">' + (kind === 'coil' ? '⎓ ~' : '⎓ ~ · ≈') + '</text>' +
+      mech + needle +
+      '<rect x="' + (cx - 76) + '" y="236" width="152" height="20" rx="4" fill="#18201a" stroke="#0a0d0a" stroke-width="1"/><rect x="' + (cx - 74) + '" y="238" width="148" height="7" rx="3" fill="rgba(255,255,255,.06)"/>' +
+      '<text x="' + cx + '" y="250" class="mw-read"></text>' +
+      '<rect x="7" y="7" width="' + (w - 14) + '" height="254" rx="8" fill="url(#' + n + 'Lens)" pointer-events="none"/>' +
+      '<path d="M14 12L' + (w * 0.42) + ' 12L' + (w * 0.18) + ' 96L14 60Z" fill="#fff" opacity=".1" pointer-events="none"/></svg>';
   }
   register('meterwork', {
     mount: function (el, v) {

@@ -388,6 +388,13 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     const a2 = await ang();
     if (!(a1[0] > 35 && a1[1] > 35)) errors.push('Messwerk: Vollausschlag nicht erreicht: ' + a1.join('/'));
     if (!(a2[0] < a1[0] - 30 && a2[1] < a2[0] - 10)) errors.push('Messwerk: halber Strom – Drehspul sollte halb, Dreheisen ein Viertel zeigen: ' + a2.join('/'));
+    const mat = await tp.evaluate(() => [...document.querySelectorAll('.visual-meterwork .mw-face')].map(svg => {
+      const ids = new Set(); svg.querySelectorAll('*').forEach(el => { for (const a of ['fill', 'filter', 'stroke']) { const m = /url\(#([\w-]+)\)/.exec(el.getAttribute(a) || ''); if (m) ids.add(m[1]); } });
+      return { grads: svg.querySelectorAll('defs radialGradient, defs linearGradient').length, refs: ids.size, missing: [...ids].filter(id => !svg.querySelector('#' + id)), dup: [...ids].filter(id => document.querySelectorAll('#' + id).length !== 1),
+        windings: (svg.querySelector('.mw-coil path, .mw-plate') ? 1 : 0), shadow: !!svg.querySelector('.mw-needle [filter]') };
+    }));
+    mat.forEach((m, k) => { if (m.grads < 8 || m.refs < 8) errors.push('Messwerk ' + k + ': zu wenig Materialien (' + m.grads + ' Verlaeufe, ' + m.refs + ' Referenzen)'); if (m.missing.length || m.dup.length) errors.push('Messwerk ' + k + ': Referenzen fehlen/doppelt: ' + m.missing.concat(m.dup).join(',')); if (!m.windings || !m.shadow) errors.push('Messwerk ' + k + ': Wicklung oder Zeigerschatten fehlt'); });
+    await tp.evaluate(() => document.querySelector('.visual-meterwork .mw-faces').scrollIntoView()); await tp.waitForTimeout(300);
     await tp.screenshot({ path: shots + '/24_messwerk.png' });
     await tp.close();
   }
