@@ -289,7 +289,7 @@
         onChange: function () { persistDraft(); rebuild(); renderInspector(); },
         onSelect: function () { renderInspector(); },
         onProbe: setProbe,
-        onScopeProbe: function () { tick(0); },
+        onScopeProbe: function () { bench.scope = null; tick(0); if (bench) bench.render(); },
         onMessage: function (m) { status([{ cls: 'info', text: m }]); }
       });
       ed = new Editor($('#board'), { core: core });
@@ -709,7 +709,10 @@
     var tg = $('#tgl'); if (tg) tg.onclick = function () { q.closed = !q.closed; persistDraft(); rebuild(); renderInspector(); };
   }
 
-  /* ---------- Oszilloskop ---------- */
+  /* ---------- Oszilloskop ----------
+   * Kanal 1: bei measureUX 'drag' der eigene Tastkopf (core.scopeProbes.tip gegen gnd, Erdungsclip offen = Masse),
+   * sonst (Altbestand, Schema-Ansicht) die Messspitzen des Multimeters. */
+  function scopeProbes() { return dragUX() && core ? { a: core.scopeProbes.tip, b: core.scopeProbes.gnd, own: true } : { a: meter.a, b: meter.b, own: false }; }
   function scope() {
     var cv = $('#scope'), ctx = cv.getContext('2d'), T = +$('#tb').value;
     var w = cv.width = cv.clientWidth * (window.devicePixelRatio || 1), h = cv.height = cv.clientHeight * (window.devicePixelRatio || 1);
@@ -717,19 +720,23 @@
     ctx.strokeStyle = 'rgba(255,176,0,0.12)'; ctx.lineWidth = 1;
     for (var i = 1; i < 10; i++) { ctx.beginPath(); ctx.moveTo(w * i / 10, 0); ctx.lineTo(w * i / 10, h); ctx.stroke(); }
     for (i = 1; i < 8; i++) { ctx.beginPath(); ctx.moveTo(0, h * i / 8); ctx.lineTo(w, h * i / 8); ctx.stroke(); }
-    if (!meter.a) { $('#scopeInfo').textContent = 'Setze zuerst die rote Messspitze (Multimeter V).'; bench.scope = { pts: [], info: 'Zuerst rote Messspitze setzen (V)' }; bench.render(); return; }
+    var sp = scopeProbes();
+    if (!sp.a) {
+      $('#scopeInfo').textContent = sp.own ? 'Tastkopf anschliessen: den gelben Tastkopf (CH1) auf der Werkbank an einen Anschluss ziehen, den schwarzen Erdungsclip an den Bezugspunkt.' : 'Setze zuerst die rote Messspitze (Multimeter V).';
+      bench.scope = { pts: [], info: sp.own ? 'Tastkopf anschliessen' : 'Zuerst rote Messspitze setzen (V)' }; bench.render(); return;
+    }
     var s;
-    try { s = E.simulate(ed.layout, { dt: T / 400, tEnd: T, probes: [{ a: meter.a, b: meter.b || undefined }] }).samples; }
+    try { s = E.simulate(ed.layout, { dt: T / 400, tEnd: T, probes: [{ a: sp.a, b: sp.b || undefined }] }).samples; }
     catch (e) { $('#scopeInfo').textContent = e.message; return; }
     var vs = s.map(function (x) { return x.ch0; }), mx = Math.max.apply(null, vs), mn = Math.min.apply(null, vs);
     var top = Math.max(1, Math.ceil(Math.max(mx, 0) * 1.1)), bot = Math.min(0, Math.floor(mn * 1.1));
     ctx.strokeStyle = '#ffb000'; ctx.lineWidth = 2 * (window.devicePixelRatio || 1); ctx.shadowColor = '#ffb000'; ctx.shadowBlur = 6; ctx.beginPath();
     s.forEach(function (x, k) { var px = x.t / T * w, py = h - (x.ch0 - bot) / (top - bot) * h; if (k) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
     ctx.stroke(); ctx.shadowBlur = 0;
-    $('#scopeInfo').textContent = 'Kanal: ' + meter.a + ' gegen ' + (meter.b || 'Masse') + ' · ' + bot + '…' + top + ' V · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V');
+    $('#scopeInfo').textContent = 'Kanal: ' + sp.a + ' gegen ' + (sp.b || 'Masse') + ' · ' + bot + '…' + top + ' V · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V');
     var stepN = Math.max(1, Math.floor(s.length / 150));
     bench.scope = { pts: s.filter(function (x, k) { return k % stepN === 0; }).map(function (x) { return [x.t / T, (x.ch0 - bot) / (top - bot)]; }),
-      info: 'CH1 ' + meter.a + (meter.b ? '–' + meter.b : '') + ' · ' + bot + '…' + top + ' V · ' + $('#tb').selectedOptions[0].textContent };
+      info: 'CH1 ' + sp.a + (sp.b ? '–' + sp.b : '') + ' · ' + bot + '…' + top + ' V · ' + $('#tb').selectedOptions[0].textContent };
     bench.render();
     log('scope', { id: current.task && current.task.id, T: T });
   }

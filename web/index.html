@@ -2279,7 +2279,7 @@ body.beamer-mode main{ min-height:100vh; }
     if (m.fuse) s += '<text class="bdevwarn" y="-34">Sicherung!</text>';
     return s + '</g>';
   }
-  function scopeSvg(sc) {
+  function scopeSvg(sc, own) { // own: eigener Tastkopf (measureUX 'drag')
     var s = '<g class="bdev" data-dev="scope" transform="translate(' + DEV.scope.x + ' ' + DEV.scope.y + ') scale(1 ' + (1 / K) + ')">' +
       '<ellipse cx="6" cy="80" rx="120" ry="9" fill="rgba(0,0,0,.35)" filter="url(#bSoft2)"/>' +
       '<rect x="-122" y="-76" width="244" height="152" rx="10" fill="url(#bScopeBody)" stroke="#1d232b" stroke-width="2"/><rect x="-122" y="-76" width="244" height="14" rx="10" fill="rgba(255,255,255,.08)"/>' +
@@ -2288,7 +2288,7 @@ body.beamer-mode main{ min-height:100vh; }
     for (var i = 1; i < 10; i++) s += '<path d="M' + (-110 + i * 15) + ' -64V48" class="bscgrid"/>';
     for (i = 1; i < 8; i++) s += '<path d="M-110 ' + (-64 + i * 14) + 'H40" class="bscgrid"/>';
     if (sc && sc.pts && sc.pts.length) s += '<polyline class="bsctrace" points="' + sc.pts.map(function (p) { return (-110 + p[0] * 150).toFixed(1) + ',' + (48 - p[1] * 112).toFixed(1); }).join(' ') + '"/>';
-    s += '<text class="bscinfo" x="-105" y="44">' + esc(sc && sc.info ? sc.info : 'CH1 = Messspitzen · RUN') + '</text>' +
+    s += '<text class="bscinfo" x="-105" y="44">' + esc(sc && sc.info ? sc.info : own ? 'CH1: Tastkopf anschliessen · RUN' : 'CH1 = Messspitzen · RUN') + '</text>' +
       '<path d="M-110-64L-30-64L-95 48H-110Z" fill="rgba(255,255,255,.04)"/>' +
       '<circle cx="70" cy="-44" r="13" fill="#1b1b1b"/><circle cx="70" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M70-44l0-9" stroke="#222" stroke-width="2"/>' +
       '<circle cx="102" cy="-44" r="13" fill="#1b1b1b"/><circle cx="102" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M102-44l6-6" stroke="#222" stroke-width="2"/>' +
@@ -2607,7 +2607,7 @@ body.beamer-mode main{ min-height:100vh; }
     }
     // Messgeraete mit Messkabeln: rot aus VΩ (bzw. A im Strombereich), schwarz aus COM; nicht gesetzte Spitzen liegen vor dem Geraet.
     // dragUX: Spitzen sind greifbar (data-probe), waehrend des Ziehens haengt die Spitze am Zeiger; dazu Tastkopf und Erdungsclip des Oszilloskops (CH1)
-    h.push(scopeSvg(this.scope), meterSvg(this.meter));
+    h.push(scopeSvg(this.scope, this.dragUX), meterSvg(this.meter));
     var dg = core.dragProbe, sn = this._snap, drag = this.dragUX;
     var cables = [['a', '#d32f2f', devXY('meter', this.meter.mode === 'A' ? -40 : 40, 88)], ['b', '#1e1e1e', devXY('meter', 0, 88)]];
     if (drag) cables.push(['tip', '#e6b400', devXY('scope', 85, 50)], ['gnd', '#1e1e1e', devXY('scope', 85, 50)]);

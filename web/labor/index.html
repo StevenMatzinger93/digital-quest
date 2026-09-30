@@ -590,7 +590,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       <div class="scopebox">
         <canvas id="scope"></canvas>
         <div class="scope-ctl"><select id="tb" aria-label="Zeitbasis (ganze Bildbreite)"><option value="0.005">5 ms</option><option value="0.01">10 ms</option><option value="0.02">20 ms</option><option value="0.05">50 ms</option><option value="0.1">100 ms</option><option value="1" selected>1 s</option><option value="5">5 s</option></select><button class="btn small" id="btnScope">Aufnahme</button></div>
-        <div id="scopeInfo">Kanal = Messspitzen des Multimeters. Aufnahme startet beim Einschalten.</div>
+        <div id="scopeInfo">Kanal 1 = Messspitzen des Multimeters (neue Messtechnik-Aufgaben: eigener Tastkopf auf der Werkbank). Aufnahme mit „Aufnahme“ bzw. RUN.</div>
       </div>
     </aside>
   </section>
@@ -6104,7 +6104,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     if (m.fuse) s += '<text class="bdevwarn" y="-34">Sicherung!</text>';
     return s + '</g>';
   }
-  function scopeSvg(sc) {
+  function scopeSvg(sc, own) { // own: eigener Tastkopf (measureUX 'drag')
     var s = '<g class="bdev" data-dev="scope" transform="translate(' + DEV.scope.x + ' ' + DEV.scope.y + ') scale(1 ' + (1 / K) + ')">' +
       '<ellipse cx="6" cy="80" rx="120" ry="9" fill="rgba(0,0,0,.35)" filter="url(#bSoft2)"/>' +
       '<rect x="-122" y="-76" width="244" height="152" rx="10" fill="url(#bScopeBody)" stroke="#1d232b" stroke-width="2"/><rect x="-122" y="-76" width="244" height="14" rx="10" fill="rgba(255,255,255,.08)"/>' +
@@ -6113,7 +6113,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     for (var i = 1; i < 10; i++) s += '<path d="M' + (-110 + i * 15) + ' -64V48" class="bscgrid"/>';
     for (i = 1; i < 8; i++) s += '<path d="M-110 ' + (-64 + i * 14) + 'H40" class="bscgrid"/>';
     if (sc && sc.pts && sc.pts.length) s += '<polyline class="bsctrace" points="' + sc.pts.map(function (p) { return (-110 + p[0] * 150).toFixed(1) + ',' + (48 - p[1] * 112).toFixed(1); }).join(' ') + '"/>';
-    s += '<text class="bscinfo" x="-105" y="44">' + esc(sc && sc.info ? sc.info : 'CH1 = Messspitzen · RUN') + '</text>' +
+    s += '<text class="bscinfo" x="-105" y="44">' + esc(sc && sc.info ? sc.info : own ? 'CH1: Tastkopf anschliessen · RUN' : 'CH1 = Messspitzen · RUN') + '</text>' +
       '<path d="M-110-64L-30-64L-95 48H-110Z" fill="rgba(255,255,255,.04)"/>' +
       '<circle cx="70" cy="-44" r="13" fill="#1b1b1b"/><circle cx="70" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M70-44l0-9" stroke="#222" stroke-width="2"/>' +
       '<circle cx="102" cy="-44" r="13" fill="#1b1b1b"/><circle cx="102" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M102-44l6-6" stroke="#222" stroke-width="2"/>' +
@@ -6432,7 +6432,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     }
     // Messgeraete mit Messkabeln: rot aus VΩ (bzw. A im Strombereich), schwarz aus COM; nicht gesetzte Spitzen liegen vor dem Geraet.
     // dragUX: Spitzen sind greifbar (data-probe), waehrend des Ziehens haengt die Spitze am Zeiger; dazu Tastkopf und Erdungsclip des Oszilloskops (CH1)
-    h.push(scopeSvg(this.scope), meterSvg(this.meter));
+    h.push(scopeSvg(this.scope, this.dragUX), meterSvg(this.meter));
     var dg = core.dragProbe, sn = this._snap, drag = this.dragUX;
     var cables = [['a', '#d32f2f', devXY('meter', this.meter.mode === 'A' ? -40 : 40, 88)], ['b', '#1e1e1e', devXY('meter', 0, 88)]];
     if (drag) cables.push(['tip', '#e6b400', devXY('scope', 85, 50)], ['gnd', '#1e1e1e', devXY('scope', 85, 50)]);
@@ -7874,7 +7874,7 @@ body.has-exam-bar .top { padding-top: 50px; }
         onChange: function () { persistDraft(); rebuild(); renderInspector(); },
         onSelect: function () { renderInspector(); },
         onProbe: setProbe,
-        onScopeProbe: function () { tick(0); },
+        onScopeProbe: function () { bench.scope = null; tick(0); if (bench) bench.render(); },
         onMessage: function (m) { status([{ cls: 'info', text: m }]); }
       });
       ed = new Editor($('#board'), { core: core });
@@ -8294,7 +8294,10 @@ body.has-exam-bar .top { padding-top: 50px; }
     var tg = $('#tgl'); if (tg) tg.onclick = function () { q.closed = !q.closed; persistDraft(); rebuild(); renderInspector(); };
   }
 
-  /* ---------- Oszilloskop ---------- */
+  /* ---------- Oszilloskop ----------
+   * Kanal 1: bei measureUX 'drag' der eigene Tastkopf (core.scopeProbes.tip gegen gnd, Erdungsclip offen = Masse),
+   * sonst (Altbestand, Schema-Ansicht) die Messspitzen des Multimeters. */
+  function scopeProbes() { return dragUX() && core ? { a: core.scopeProbes.tip, b: core.scopeProbes.gnd, own: true } : { a: meter.a, b: meter.b, own: false }; }
   function scope() {
     var cv = $('#scope'), ctx = cv.getContext('2d'), T = +$('#tb').value;
     var w = cv.width = cv.clientWidth * (window.devicePixelRatio || 1), h = cv.height = cv.clientHeight * (window.devicePixelRatio || 1);
@@ -8302,19 +8305,23 @@ body.has-exam-bar .top { padding-top: 50px; }
     ctx.strokeStyle = 'rgba(255,176,0,0.12)'; ctx.lineWidth = 1;
     for (var i = 1; i < 10; i++) { ctx.beginPath(); ctx.moveTo(w * i / 10, 0); ctx.lineTo(w * i / 10, h); ctx.stroke(); }
     for (i = 1; i < 8; i++) { ctx.beginPath(); ctx.moveTo(0, h * i / 8); ctx.lineTo(w, h * i / 8); ctx.stroke(); }
-    if (!meter.a) { $('#scopeInfo').textContent = 'Setze zuerst die rote Messspitze (Multimeter V).'; bench.scope = { pts: [], info: 'Zuerst rote Messspitze setzen (V)' }; bench.render(); return; }
+    var sp = scopeProbes();
+    if (!sp.a) {
+      $('#scopeInfo').textContent = sp.own ? 'Tastkopf anschliessen: den gelben Tastkopf (CH1) auf der Werkbank an einen Anschluss ziehen, den schwarzen Erdungsclip an den Bezugspunkt.' : 'Setze zuerst die rote Messspitze (Multimeter V).';
+      bench.scope = { pts: [], info: sp.own ? 'Tastkopf anschliessen' : 'Zuerst rote Messspitze setzen (V)' }; bench.render(); return;
+    }
     var s;
-    try { s = E.simulate(ed.layout, { dt: T / 400, tEnd: T, probes: [{ a: meter.a, b: meter.b || undefined }] }).samples; }
+    try { s = E.simulate(ed.layout, { dt: T / 400, tEnd: T, probes: [{ a: sp.a, b: sp.b || undefined }] }).samples; }
     catch (e) { $('#scopeInfo').textContent = e.message; return; }
     var vs = s.map(function (x) { return x.ch0; }), mx = Math.max.apply(null, vs), mn = Math.min.apply(null, vs);
     var top = Math.max(1, Math.ceil(Math.max(mx, 0) * 1.1)), bot = Math.min(0, Math.floor(mn * 1.1));
     ctx.strokeStyle = '#ffb000'; ctx.lineWidth = 2 * (window.devicePixelRatio || 1); ctx.shadowColor = '#ffb000'; ctx.shadowBlur = 6; ctx.beginPath();
     s.forEach(function (x, k) { var px = x.t / T * w, py = h - (x.ch0 - bot) / (top - bot) * h; if (k) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
     ctx.stroke(); ctx.shadowBlur = 0;
-    $('#scopeInfo').textContent = 'Kanal: ' + meter.a + ' gegen ' + (meter.b || 'Masse') + ' · ' + bot + '…' + top + ' V · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V');
+    $('#scopeInfo').textContent = 'Kanal: ' + sp.a + ' gegen ' + (sp.b || 'Masse') + ' · ' + bot + '…' + top + ' V · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V');
     var stepN = Math.max(1, Math.floor(s.length / 150));
     bench.scope = { pts: s.filter(function (x, k) { return k % stepN === 0; }).map(function (x) { return [x.t / T, (x.ch0 - bot) / (top - bot)]; }),
-      info: 'CH1 ' + meter.a + (meter.b ? '–' + meter.b : '') + ' · ' + bot + '…' + top + ' V · ' + $('#tb').selectedOptions[0].textContent };
+      info: 'CH1 ' + sp.a + (sp.b ? '–' + sp.b : '') + ' · ' + bot + '…' + top + ' V · ' + $('#tb').selectedOptions[0].textContent };
     bench.render();
     log('scope', { id: current.task && current.task.id, T: T });
   }
