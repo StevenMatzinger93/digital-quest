@@ -283,5 +283,14 @@ ok(E.dmm(15, 'V', 0, 20).text === '15.03 V' && E.dmm(15, 'V', 0, 600).text === '
 ok(E.dmm(15, 'V', 0, 2).text === 'OL' && E.dmm(15, 'V', 0, 2).ol === true, 'Zu kleiner Bereich zeigt OL');
 ok(E.dmm(0.15, 'V', 0, 0.2).text === '150.3 mV' && E.dmm(0.0123, 'A', 0, 20e-3).text === '12.32 mA' && E.dmm(4700, 'Ω', 0, 20e3).text === '4.71 kΩ', 'Einheit und Vorsatz folgen dem Bereich');
 ok(E.dmm(15, 'V', 0).text === E.dmm(15, 'V', 0, undefined).text && E.rangeLabel(200e-6, 'A') === '200µA' && E.DMM_MANUAL.V.length === 5, 'Ohne Bereich bleibt die automatische Wahl; Bereichsbeschriftungen');
+// 28 Taschenrechner (calc.js): Rechenkern ohne DOM
+const CALC = require('./src/calc.js');
+const cv = s => CALC.evaluate(s), nearC = (a, b) => Math.abs(a - b) < 1e-9 * Math.max(1, Math.abs(b));
+ok(cv('2+3*4') === 14 && cv('(2+3)*4') === 20 && cv('2^3^2') === 512 && cv('-2^2') === -4, 'Rechner: Vorrang, Klammern, Potenz rechtsassoziativ, Vorzeichen');
+ok(nearC(cv('15 · 0,5 % + 0,1'), 0.175) && nearC(cv('√(3² + 3,54²)'), Math.sqrt(9 + 3.54 * 3.54)) && nearC(cv('10/√2'), 10 / Math.SQRT2), 'Rechner: Prozent, Wurzel, Quadrat, Komma (T16C / TRMS)');
+ok(nearC(cv('4k7'), 4700) && nearC(cv('100n*10k'), 1e-3) && nearC(cv('2.2M'), 2.2e6) && nearC(cv('47µ'), 47e-6) && nearC(cv('2π'), 2 * Math.PI) && nearC(cv('sin(30)'), 0.5) && nearC(cv('log(1000)'), 3), 'Rechner: SI-Vorsaetze, implizite Multiplikation, Winkel in Grad, log');
+const bad = s => { try { cv(s); return null; } catch (e) { return e.calc ? e.message : 'Absturz: ' + e.message; } };
+ok(/Division durch 0/.test(bad('5/0')) && /Klammer/.test(bad('(2+3')) && /Klammer/.test(bad('2+3)')) && /Unbekannt/.test(bad('2 $ 3')) && /unvollstaendig|Operator/.test(bad('2+')) && /Nichts/.test(bad('')), 'Rechner: Fehler werden sauber gemeldet');
+ok(CALC.fmt(0.1 + 0.2) === '0.3' && CALC.fmt(1e-9) === '1.0000e-9' && CALC.fmt(1234567) === '1234567', 'Rechner: Anzeige rundet Gleitkommarauschen weg');
 console.log(`Engine-Tests: ${pass} ok, ${fail} Fehler`);
 process.exit(fail ? 1 : 0);

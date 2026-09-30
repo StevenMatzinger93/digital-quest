@@ -392,6 +392,24 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await tp.close();
   }
 
+  // Taschenrechner: Kopfzeile, Tastatur-Eingabe, Ergebnis, Fehleranzeige, Verlauf, schliessen; Kontext-Knopf im Messprotokoll
+  {
+    await page.evaluate(() => { DigitalQuest.openItem('T1A'); });
+    await page.click('#btnCalc'); if (!await page.isVisible('#calc .calc-box')) errors.push('Rechner: oeffnet nicht ueber die Kopfzeile');
+    await page.keyboard.type('15*0.5%+0.1'); await page.keyboard.press('Enter');
+    if ((await page.textContent('#calcOut')).trim() !== '= 0.175') errors.push('Rechner: 15*0.5%+0.1 → ' + await page.textContent('#calcOut'));
+    await page.click('#calc [data-k="C"]'); await page.click('#calc [data-k="√"]'); await page.keyboard.type('3²+3.54²)'); await page.click('#calc [data-k="="]');
+    if (!/^= 4\.64/.test((await page.textContent('#calcOut')).trim())) errors.push('Rechner: Wurzel per Tasten → ' + await page.textContent('#calcOut'));
+    await page.fill('#calcIn', '5/0'); await page.keyboard.press('Enter'); if (!/Division durch 0/.test(await page.textContent('#calcOut'))) errors.push('Rechner: Division durch 0 ohne Meldung');
+    await page.fill('#calcIn', '(2+3'); await page.keyboard.press('Enter'); if (!/Klammer/.test(await page.textContent('#calcOut'))) errors.push('Rechner: fehlende Klammer ohne Meldung');
+    if (await page.$$eval('#calc .calc-hist li', l => l.length) !== 2) errors.push('Rechner: Verlauf zeigt nicht die zwei gueltigen Rechnungen');
+    await page.keyboard.press('Escape'); if (await page.isVisible('#calc .calc-box')) errors.push('Rechner: Esc schliesst nicht');
+    if (!await page.isVisible('#scr-theory.active')) errors.push('Rechner: Bildschirm dahinter wurde gewechselt');
+    await page.evaluate(() => DigitalQuest.openItem('16.1')); await page.click('#taskInfo [data-calc]'); if (!await page.isVisible('#calc .calc-box')) errors.push('Rechner: Knopf im Messprotokoll oeffnet nicht');
+    await page.screenshot({ path: shots + '/23_rechner.png' });
+    await page.click('#calc .calc-back'); if (await page.isVisible('#calc .calc-box')) errors.push('Rechner: Klick daneben schliesst nicht');
+  }
+
   // Handy
   const m =await browser.newPage({ viewport: { width: 390, height: 844 } });
   m.on('pageerror', e => errors.push('mobil: ' + e.message));

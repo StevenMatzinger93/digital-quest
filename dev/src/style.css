@@ -233,7 +233,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 @media (max-width: 1100px) { #scr-task.active { grid-template-columns: 1fr 280px; } #taskInfo { grid-column: 1 / -1; } }
 @media (max-width: 760px) {
   #scr-task.active { grid-template-columns: 1fr; padding: 8px; } .boardwrap { min-height: 300px; aspect-ratio: 1000 / 620; flex: none; }
-  .top { padding: 8px 10px; gap: 8px; } .brand span { display: none; } .top nav button { padding: 6px 8px; font-size: 13px; } #saveInd { display: none; }
+  .top { padding: 8px 10px; gap: 6px; } .brand span { display: none; } .top nav { gap: 2px; } .top nav button { padding: 6px 6px; font-size: 12px; } .top nav .long { display: none; } #saveInd { display: none; }
   .manual { grid-template-columns: 1fr; } .progress .bar { width: 140px; }
 }
 
@@ -474,6 +474,23 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .bb-mp { fill: var(--bg-secondary); stroke: var(--accent-green); stroke-width: 1.5; } .bb-mpt { font: 700 8px var(--font-code); fill: var(--accent-green); text-anchor: middle; }
 .bb-dash { stroke: var(--accent-green); stroke-dasharray: 3 3; }
 
+/* ---- Taschenrechner (Overlay ueber dem aktuellen Bildschirm) ---- */
+.calc-btn { background: none; border: 1px solid var(--line); border-radius: 8px; width: 34px; height: 30px; display: inline-grid; place-items: center; color: var(--text-dim); cursor: pointer; margin-left: 6px; }
+.calc-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; } .calc-btn:hover, body.calc-open .calc-btn { color: var(--accent-lead); border-color: var(--accent-lead); }
+.calc-ctx { float: right; margin-top: -4px; font-weight: 400; }
+#calc { position: fixed; inset: 0; z-index: 600; } #calc[hidden] { display: none; }
+.calc-back { position: absolute; inset: 0; background: rgba(0,0,0,.25); }
+.calc-box { position: absolute; right: 16px; bottom: 16px; width: 320px; max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow: auto; background: var(--bg-secondary); border: 1px solid var(--accent-lead-dim); border-radius: 14px; padding: 12px; box-shadow: 0 18px 50px rgba(0,0,0,.6); display: grid; gap: 8px; }
+.calc-head { display: flex; align-items: center; gap: 8px; } .calc-head b { color: var(--accent-lead); } .calc-head .small { flex: 1; } .calc-x { background: none; border: 0; color: var(--text-dim); font-size: 22px; line-height: 1; cursor: pointer; padding: 0 4px; } .calc-x:hover { color: var(--text-primary); }
+.calc-hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font: 12px var(--font-code); color: var(--text-dim); max-height: 96px; overflow: auto; } .calc-hist:empty { display: none; }
+.calc-hist li { display: flex; justify-content: space-between; gap: 8px; } .calc-hist button { background: none; border: 0; color: var(--text-dim); font: inherit; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; } .calc-hist button:hover { color: var(--accent-cyan); } .calc-hist b { color: var(--text-primary); white-space: nowrap; }
+.calc-in { width: 100%; box-sizing: border-box; background: #111; color: var(--text-primary); border: 1px solid #444; border-radius: 8px; padding: 10px 12px; font: 18px var(--font-code); text-align: right; } .calc-in:focus { border-color: var(--accent-lead); outline: none; }
+.calc-out { min-height: 22px; text-align: right; font: 700 18px var(--font-code); color: var(--text-dim); } .calc-out.ok { color: var(--accent-green); } .calc-out.err { color: var(--accent-red); font-size: 13px; font-weight: 400; }
+.calc-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; } .calc-keys button { background: #1e1e1e; border: 1px solid #3a3a3a; color: var(--text-primary); border-radius: 8px; padding: 10px 0; font: 600 16px var(--font-code); cursor: pointer; touch-action: manipulation; }
+.calc-keys button:hover { border-color: var(--accent-lead); } .calc-keys button.op { color: var(--accent-lead); } .calc-keys button.fn { color: var(--accent-cyan); } .calc-keys button.eq { grid-column: 1 / -1; background: var(--accent-lead); color: #111; border-color: var(--accent-lead); }
+.calc-fn { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; } .calc-fn button { background: none; border: 1px solid #3a3a3a; color: var(--text-dim); border-radius: 6px; padding: 3px 7px; font: 12px var(--font-code); cursor: pointer; } .calc-fn button:hover { color: var(--accent-cyan); border-color: var(--accent-cyan); } .calc-fn .small { flex-basis: 100%; }
+@media (max-width: 640px) { .calc-box { right: 8px; left: 8px; bottom: 8px; width: auto; } .calc-btn { margin-left: 2px; } }
+@media print { #calc, .calc-btn { display: none !important; } }
 /* ---- Werkbank-Tutorial ---- */
 .tutorial { display: grid; grid-template-columns: minmax(300px, 420px) 1fr; gap: 18px; max-width: 1300px; margin: 0 auto; padding: 24px 18px 60px; }
 .tut-text h2 { margin: 4px 0 10px; } .tut-text h3 { margin: 18px 0 6px; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); }

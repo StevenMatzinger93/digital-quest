@@ -332,7 +332,7 @@
       (t.learn ? '<div class="learn"><b>Lernziel</b> ' + t.learn + '</div>' : '') +
       '<div class="hints"><button class="btn small" id="hint1">Tipp 1</button><button class="btn small" id="hint2">Tipp 2</button></div><div id="hintBox"></div>';
     if (t.measure.length) {
-      h += '<div class="protocol"><h3>Messprotokoll</h3>';
+      h += '<div class="protocol"><h3>Messprotokoll <button class="btn small calc-ctx" data-calc title="Taschenrechner oeffnen">🖩 Rechner</button></h3>';
       t.measure.forEach(function (m) {
         var v = draft && draft.answers && draft.answers[m.id] !== undefined ? draft.answers[m.id] : '';
         h += '<label><span>' + esc(m.ask) + '</span><input inputmode="decimal" data-ans="' + m.id + '" value="' + esc(v) + '" placeholder="Messwert"><em>' + esc(m.unit || '') + '</em></label>';
@@ -355,7 +355,7 @@
     var h = '<div class="crumb">Pruefung · Aufgabe ' + t.no + ' von ' + t.of + ' · Kapitel ' + t.ch + '</div><h2>' + esc(t.title) + '</h2>' +
       (t.story ? '<p class="story">' + t.story + '</p>' : '') + '<div class="brief">' + t.brief + '</div>';
     if (t.protocol.length) {
-      h += '<div class="protocol"><h3>Messprotokoll</h3>';
+      h += '<div class="protocol"><h3>Messprotokoll <button class="btn small calc-ctx" data-calc title="Taschenrechner oeffnen">🖩 Rechner</button></h3>';
       t.protocol.forEach(function (m) {
         var v = draft && draft.answers && draft.answers[m.id] !== undefined ? draft.answers[m.id] : '';
         h += '<label><span>' + esc(m.ask) + '</span><input inputmode="decimal" data-ans="' + m.id + '" value="' + esc(v) + '" placeholder="Wert"><em>' + esc(m.unit || '') + '</em></label>';
@@ -1026,6 +1026,12 @@
         show(g);
       };
     });
+    if (root.DQCalc) {
+      root.DQCalc.onLog = log;
+      $('#btnCalc').onclick = function () { root.DQCalc.toggle(); };
+      document.addEventListener('click', function (ev) { var b = ev.target.closest && ev.target.closest('[data-calc]'); if (b) { ev.preventDefault(); root.DQCalc.open(); } });
+      document.addEventListener('keydown', function (ev) { if (ev.ctrlKey && ev.altKey && (ev.key === 'r' || ev.key === 'R')) { ev.preventDefault(); root.DQCalc.toggle(); } });
+    }
     $('#btnRot').onclick = function () { view().rotateSelected(); };
     $('#btnFit').onclick = function () { view().fit(); };
     window.addEventListener('resize', function () { if (ed && current.screen === 'task') view().fit(); if (tut && current.screen === 'tutorial') tut.bench.fit(); });
@@ -1054,6 +1060,7 @@
     document.addEventListener('pointerdown', function (ev) { var el = $('#dsPop'); if (el && !el.hidden && !el.contains(ev.target) && !(ev.target.closest && ev.target.closest('#dsBtn'))) hideSheet(true); }, true);
     document.addEventListener('keydown', function (ev) {
       if (ev.key === 'Escape' && $('#dsPop') && !$('#dsPop').hidden) { hideSheet(true); return; }
+      if (root.DQCalc && root.DQCalc.isOpen) return;
       if (current.screen !== 'task' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
       if (live.replay) { if (ev.key === 'ArrowLeft') showStep(live.replay.i - 1); else if (ev.key === 'ArrowRight') showStep(live.replay.i + 1); else if (ev.key === 'Escape') closeReplay(); return; }
       ed && ed.key(ev); renderInspector();

@@ -244,7 +244,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 @media (max-width: 1100px) { #scr-task.active { grid-template-columns: 1fr 280px; } #taskInfo { grid-column: 1 / -1; } }
 @media (max-width: 760px) {
   #scr-task.active { grid-template-columns: 1fr; padding: 8px; } .boardwrap { min-height: 300px; aspect-ratio: 1000 / 620; flex: none; }
-  .top { padding: 8px 10px; gap: 8px; } .brand span { display: none; } .top nav button { padding: 6px 8px; font-size: 13px; } #saveInd { display: none; }
+  .top { padding: 8px 10px; gap: 6px; } .brand span { display: none; } .top nav { gap: 2px; } .top nav button { padding: 6px 6px; font-size: 12px; } .top nav .long { display: none; } #saveInd { display: none; }
   .manual { grid-template-columns: 1fr; } .progress .bar { width: 140px; }
 }
 
@@ -485,6 +485,23 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .bb-mp { fill: var(--bg-secondary); stroke: var(--accent-green); stroke-width: 1.5; } .bb-mpt { font: 700 8px var(--font-code); fill: var(--accent-green); text-anchor: middle; }
 .bb-dash { stroke: var(--accent-green); stroke-dasharray: 3 3; }
 
+/* ---- Taschenrechner (Overlay ueber dem aktuellen Bildschirm) ---- */
+.calc-btn { background: none; border: 1px solid var(--line); border-radius: 8px; width: 34px; height: 30px; display: inline-grid; place-items: center; color: var(--text-dim); cursor: pointer; margin-left: 6px; }
+.calc-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; } .calc-btn:hover, body.calc-open .calc-btn { color: var(--accent-lead); border-color: var(--accent-lead); }
+.calc-ctx { float: right; margin-top: -4px; font-weight: 400; }
+#calc { position: fixed; inset: 0; z-index: 600; } #calc[hidden] { display: none; }
+.calc-back { position: absolute; inset: 0; background: rgba(0,0,0,.25); }
+.calc-box { position: absolute; right: 16px; bottom: 16px; width: 320px; max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow: auto; background: var(--bg-secondary); border: 1px solid var(--accent-lead-dim); border-radius: 14px; padding: 12px; box-shadow: 0 18px 50px rgba(0,0,0,.6); display: grid; gap: 8px; }
+.calc-head { display: flex; align-items: center; gap: 8px; } .calc-head b { color: var(--accent-lead); } .calc-head .small { flex: 1; } .calc-x { background: none; border: 0; color: var(--text-dim); font-size: 22px; line-height: 1; cursor: pointer; padding: 0 4px; } .calc-x:hover { color: var(--text-primary); }
+.calc-hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font: 12px var(--font-code); color: var(--text-dim); max-height: 96px; overflow: auto; } .calc-hist:empty { display: none; }
+.calc-hist li { display: flex; justify-content: space-between; gap: 8px; } .calc-hist button { background: none; border: 0; color: var(--text-dim); font: inherit; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; } .calc-hist button:hover { color: var(--accent-cyan); } .calc-hist b { color: var(--text-primary); white-space: nowrap; }
+.calc-in { width: 100%; box-sizing: border-box; background: #111; color: var(--text-primary); border: 1px solid #444; border-radius: 8px; padding: 10px 12px; font: 18px var(--font-code); text-align: right; } .calc-in:focus { border-color: var(--accent-lead); outline: none; }
+.calc-out { min-height: 22px; text-align: right; font: 700 18px var(--font-code); color: var(--text-dim); } .calc-out.ok { color: var(--accent-green); } .calc-out.err { color: var(--accent-red); font-size: 13px; font-weight: 400; }
+.calc-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; } .calc-keys button { background: #1e1e1e; border: 1px solid #3a3a3a; color: var(--text-primary); border-radius: 8px; padding: 10px 0; font: 600 16px var(--font-code); cursor: pointer; touch-action: manipulation; }
+.calc-keys button:hover { border-color: var(--accent-lead); } .calc-keys button.op { color: var(--accent-lead); } .calc-keys button.fn { color: var(--accent-cyan); } .calc-keys button.eq { grid-column: 1 / -1; background: var(--accent-lead); color: #111; border-color: var(--accent-lead); }
+.calc-fn { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; } .calc-fn button { background: none; border: 1px solid #3a3a3a; color: var(--text-dim); border-radius: 6px; padding: 3px 7px; font: 12px var(--font-code); cursor: pointer; } .calc-fn button:hover { color: var(--accent-cyan); border-color: var(--accent-cyan); } .calc-fn .small { flex-basis: 100%; }
+@media (max-width: 640px) { .calc-box { right: 8px; left: 8px; bottom: 8px; width: auto; } .calc-btn { margin-left: 2px; } }
+@media print { #calc, .calc-btn { display: none !important; } }
 /* ---- Werkbank-Tutorial ---- */
 .tutorial { display: grid; grid-template-columns: minmax(300px, 420px) 1fr; gap: 18px; max-width: 1300px; margin: 0 auto; padding: 24px 18px 60px; }
 .tut-text h2 { margin: 4px 0 10px; } .tut-text h3 { margin: 18px 0 6px; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); }
@@ -572,7 +589,8 @@ body.has-exam-bar .top { padding-top: 50px; }
 <header class="top">
   <div class="brand"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 4 12 2-6h8"/></svg><span>DIGITAL<b>QUEST</b></span></div>
   <span id="modeTag" class="mode-tag" hidden title="Dozentenmodus: mit einem Dozenten-Konto angemeldet – alle Stationen offen">DOZENT</span>
-  <nav><button data-go="map">Karte</button><button data-go="manual">Handbuch</button><button data-go="tutorial" title="Bedienung der Messgeraete auf der Werkbank ueben">Werkbank-Tutorial</button><button data-go="settings">Einstellungen</button></nav>
+  <nav><button data-go="map">Karte</button><button data-go="manual">Handbuch</button><button data-go="tutorial" title="Bedienung der Messgeraete auf der Werkbank ueben"><span class="long">Werkbank-</span>Tutorial</button><button data-go="settings">Einstellungen</button></nav>
+  <button class="calc-btn" id="btnCalc" title="Taschenrechner (Strg+Alt+R)" aria-label="Taschenrechner"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h2M8 16h2M12 16h2M16 16v1"/></svg></button>
   <a id="acctChip" class="acct-chip" href="../" hidden></a>
   <span id="saveInd"></span>
 </header>
@@ -7551,6 +7569,159 @@ body.has-exam-bar .top { padding-top: 50px; }
   if (typeof module !== 'undefined' && module.exports) module.exports = root.DQTiles;
 })(typeof window !== 'undefined' ? window : globalThis);
 
+/* ==== calc.js ==== */
+/* Digital Quest – eingebauter Taschenrechner (window.DQCalc), rein clientseitig, ohne Bibliothek.
+ * Overlay ueber dem aktuellen Bildschirm (Aufgabe, Theorie, Karte bleiben sichtbar), oeffnen ueber die Kopfzeile (🖩)
+ * oder den Knopf im Messprotokoll, schliessen mit X, Esc oder Klick daneben. Tastatur: Ziffern und Operatoren tippen,
+ * Enter rechnet. Rechenarten: + − × ÷, Klammern, Potenz ^ und x², Wurzel √, Prozent (postfix, 20% = 0,2), sin/cos/tan
+ * (Grad), log (Zehner), ln, abs, π. SI-Vorsaetze direkt an der Zahl: 4k7 → 4700, 100n → 100e-9, 2.2M, 5m, 47u/47µ.
+ * Fehler (Division durch 0, Klammer fehlt, unbekanntes Zeichen) erscheinen als Text im Rechner, nie als Absturz. */
+(function (root) {
+  'use strict';
+  var SI = { p: 1e-12, n: 1e-9, u: 1e-6, 'µ': 1e-6, m: 1e-3, k: 1e3, M: 1e6, G: 1e9 };
+  var FN = { sqrt: Math.sqrt, abs: Math.abs, ln: Math.log, log: function (x) { return Math.log(x) / Math.LN10; },
+    sin: function (x) { return Math.sin(x * Math.PI / 180); }, cos: function (x) { return Math.cos(x * Math.PI / 180); }, tan: function (x) { return Math.tan(x * Math.PI / 180); } };
+  var CONST = { pi: Math.PI, 'π': Math.PI, e: Math.E };
+  function fail(msg) { var e = new Error(msg); e.calc = true; throw e; }
+
+  /* ---------- Zerlegen ---------- */
+  function tokenize(src) {
+    var s = String(src).replace(/,/g, '.').replace(/×|·/g, '*').replace(/÷|:/g, '/').replace(/−|–/g, '-').replace(/√/g, 'sqrt').replace(/²/g, '^2'), t = [], i = 0;
+    while (i < s.length) {
+      var c = s[i];
+      if (c === ' ') { i++; continue; }
+      if (/[0-9.]/.test(c)) {
+        var m = /^(\d*\.?\d+(?:e[+-]?\d+)?|\d+\.)/i.exec(s.slice(i));
+        if (!m) fail('Zahl unvollstaendig');
+        var num = parseFloat(m[1]); i += m[1].length;
+        // SI-Vorsatz direkt an der Zahl (4k7 = 4,7k), nicht wenn ein Funktionsname folgt
+        var suf = s[i], rest = s.slice(i + 1);
+        if (suf && SI[suf] && !/^[a-zA-Z]/.test(rest)) {
+          i++;
+          var frac = /^\d+/.exec(s.slice(i)); if (frac && !/\./.test(m[1])) { num = parseFloat(m[1] + '.' + frac[0]); i += frac[0].length; }
+          num *= SI[suf];
+        }
+        t.push({ k: 'n', v: num }); continue;
+      }
+      if (/[a-zA-Zπ]/.test(c)) { var w = /^[a-zA-Zπ]+/.exec(s.slice(i))[0]; i += w.length; t.push({ k: 'w', v: w }); continue; }
+      if ('+-*/^%()'.indexOf(c) >= 0) { t.push({ k: c }); i++; continue; }
+      fail('Unbekanntes Zeichen: „' + c + '“');
+    }
+    return t;
+  }
+
+  /* ---------- Rechnen (rekursiver Abstieg) ---------- */
+  function evaluate(src) {
+    if (!String(src).trim()) fail('Nichts eingegeben');
+    var t = tokenize(src), p = 0;
+    function peek() { return t[p]; }
+    function take(k) { var x = t[p]; if (!x || (k && x.k !== k)) fail(k === ')' ? 'Klammer fehlt: )' : 'Ausdruck unvollstaendig'); p++; return x; }
+    function expr() { var v = term(); while (peek() && (peek().k === '+' || peek().k === '-')) { var op = take().k, r = term(); v = op === '+' ? v + r : v - r; } return v; }
+    function term() {
+      var v = unary();
+      while (peek() && (peek().k === '*' || peek().k === '/' || peek().k === '(' || peek().k === 'n' || peek().k === 'w')) {
+        var op = peek().k === '*' || peek().k === '/' ? take().k : '*'; // 2(3+4) oder 2π: implizite Multiplikation
+        var r = unary();
+        if (op === '/') { if (r === 0) fail('Division durch 0'); v = v / r; } else v = v * r;
+      }
+      return v;
+    }
+    // Vorzeichen bindet schwaecher als die Potenz (-2^2 = -4), Potenz ist rechtsassoziativ (2^3^2 = 512)
+    function unary() { if (peek() && peek().k === '-') { take(); return -unary(); } if (peek() && peek().k === '+') { take(); return unary(); } return power(); }
+    function power() { var b = postfix(); if (peek() && peek().k === '^') { take(); var e = unary(); b = Math.pow(b, e); } return b; }
+    function postfix() { var v = primary(); while (peek() && peek().k === '%') { take(); v = v / 100; } return v; }
+    function primary() {
+      var x = peek(); if (!x) fail('Ausdruck unvollstaendig');
+      if (x.k === 'n') { take(); return x.v; }
+      if (x.k === '(') { take(); var v = expr(); take(')'); return v; }
+      if (x.k === 'w') {
+        take();
+        if (CONST[x.v] !== undefined) return CONST[x.v];
+        var f = FN[x.v] || FN[x.v.toLowerCase()]; if (!f) fail('Unbekannt: „' + x.v + '“');
+        var arg; if (peek() && peek().k === '(') { take(); arg = expr(); take(')'); } else arg = unary();
+        var r = f(arg); if (!isFinite(r)) fail(x.v + ' nicht definiert fuer ' + fmt(arg)); return r;
+      }
+      if (x.k === ')') fail('Klammer fehlt: (');
+      fail('Operator ohne Zahl');
+    }
+    var v = expr();
+    if (p < t.length) fail(t[p].k === ')' ? 'Klammer zu viel: )' : 'Ausdruck unvollstaendig');
+    if (!isFinite(v)) fail(isNaN(v) ? 'Nicht berechenbar' : 'Ergebnis zu gross');
+    return v;
+  }
+  function fmt(v) {
+    if (v === 0) return '0';
+    var a = Math.abs(v);
+    if (a >= 1e12 || a < 1e-6) return v.toExponential(4).replace('e+', 'e');
+    var s = +v.toPrecision(10); return String(s);
+  }
+
+  /* ---------- Oberflaeche ---------- */
+  var el = null, hist = [], onLog = null;
+  var KEYS = [['(', ')', '√', '^'], ['7', '8', '9', '÷'], ['4', '5', '6', '×'], ['1', '2', '3', '−'], ['0', ',', '%', '+'], ['π', 'x²', 'C', '⌫']];
+  function build() {
+    el = document.createElement('div'); el.id = 'calc'; el.hidden = true; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Taschenrechner');
+    el.innerHTML = '<div class="calc-back"></div><div class="calc-box"><div class="calc-head"><b>Taschenrechner</b><span class="dim small">Enter = rechnen · Esc = schliessen</span><button class="calc-x" aria-label="Schliessen" title="Schliessen">×</button></div>' +
+      '<ol class="calc-hist" aria-label="Letzte Rechnungen"></ol>' +
+      '<input class="calc-in" id="calcIn" autocomplete="off" spellcheck="false" placeholder="z. B. 15 · 0,5 % + 0,1  oder  √(3² + 3,54²)" aria-label="Rechnung">' +
+      '<div class="calc-out" id="calcOut" aria-live="polite"></div>' +
+      '<div class="calc-keys">' + KEYS.map(function (row) { return row.map(function (k) { return '<button data-k="' + k + '"' + (/[÷×−+^%√]/.test(k) ? ' class="op"' : k === 'C' || k === '⌫' ? ' class="fn"' : '') + '>' + k + '</button>'; }).join(''); }).join('') +
+      '<button data-k="=" class="eq">=</button></div>' +
+      '<div class="calc-fn">' + ['sin(', 'cos(', 'tan(', 'log(', 'ln(', 'abs('].map(function (k) { return '<button data-k="' + k + '">' + k.replace('(', '') + '</button>'; }).join('') + '<span class="dim small">Winkel in Grad · 4k7 = 4700 · 100n = 100·10⁻⁹</span></div></div>';
+    document.body.appendChild(el);
+    var inp = el.querySelector('#calcIn');
+    el.querySelector('.calc-back').onclick = close; el.querySelector('.calc-x').onclick = close;
+    el.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { ev.preventDefault(); close(); } });
+    inp.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); run(); } });
+    inp.addEventListener('input', function () { show('', false); });
+    el.querySelectorAll('[data-k]').forEach(function (b) {
+      b.addEventListener('pointerdown', function (ev) { ev.preventDefault(); }); // Fokus bleibt im Eingabefeld
+      b.onclick = function () { key(b.dataset.k); };
+    });
+    el.querySelector('.calc-box').addEventListener('click', function (ev) { ev.stopPropagation(); });
+  }
+  function insert(txt) {
+    var inp = el.querySelector('#calcIn'), s = inp.selectionStart || inp.value.length, e = inp.selectionEnd || s;
+    inp.value = inp.value.slice(0, s) + txt + inp.value.slice(e); inp.selectionStart = inp.selectionEnd = s + txt.length; inp.focus(); show('', false);
+  }
+  function key(k) {
+    var inp = el.querySelector('#calcIn');
+    if (k === '=') return run();
+    if (k === 'C') { inp.value = ''; show('', false); inp.focus(); return; }
+    if (k === '⌫') { var s = inp.selectionStart || inp.value.length; if (s > 0) { inp.value = inp.value.slice(0, s - 1) + inp.value.slice(inp.selectionEnd || s); inp.selectionStart = inp.selectionEnd = s - 1; } inp.focus(); show('', false); return; }
+    if (k === 'x²') return insert('²');
+    if (k === '√') return insert('√(');
+    insert(k);
+  }
+  function show(text, isErr) { var o = el.querySelector('#calcOut'); o.textContent = text; o.classList.toggle('err', !!isErr); o.classList.toggle('ok', !!text && !isErr); }
+  function run() {
+    var inp = el.querySelector('#calcIn'), src = inp.value;
+    try {
+      var v = evaluate(src), out = fmt(v);
+      show('= ' + out, false);
+      hist.unshift({ q: src, a: out }); hist = hist.slice(0, 5); renderHist();
+      inp.value = out; inp.select();
+      if (onLog) onLog('calc', { expr: src.slice(0, 60) });
+    } catch (e) { if (!e.calc) console.error(e); show(e.calc ? e.message : 'Nicht berechenbar', true); }
+  }
+  function renderHist() {
+    var h = el.querySelector('.calc-hist');
+    h.innerHTML = hist.map(function (x) { return '<li><button title="Rechnung uebernehmen">' + esc(x.q) + '</button><b>= ' + esc(x.a) + '</b></li>'; }).join('');
+    Array.prototype.forEach.call(h.querySelectorAll('button'), function (b, i) { b.onclick = function () { el.querySelector('#calcIn').value = hist[i].q; el.querySelector('#calcIn').focus(); show('', false); }; });
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function open(preset) {
+    if (!el) build();
+    el.hidden = false; document.body.classList.add('calc-open');
+    var inp = el.querySelector('#calcIn'); if (preset !== undefined) inp.value = preset; inp.focus();
+  }
+  function close() { if (!el) return; el.hidden = true; document.body.classList.remove('calc-open'); }
+  function toggle() { if (!el || el.hidden) open(); else close(); }
+
+  root.DQCalc = { evaluate: evaluate, fmt: fmt, open: open, close: close, toggle: toggle, get isOpen() { return !!el && !el.hidden; }, get history() { return hist; }, set onLog(f) { onLog = f; } };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.DQCalc;
+})(typeof window !== 'undefined' ? window : globalThis);
+
 /* ==== account.js ==== */
 /* Digital Quest – Konto-Abgleich mit dem Portal (window.DQAccount), nach dem Vorbild von SPS Quest.
  * Nur in der Portal-Version (window.DQ_PORTAL, Spiel unter /labor/). Angemeldet wird im Portal; das Spiel liest die Sitzung
@@ -8343,7 +8514,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       (t.learn ? '<div class="learn"><b>Lernziel</b> ' + t.learn + '</div>' : '') +
       '<div class="hints"><button class="btn small" id="hint1">Tipp 1</button><button class="btn small" id="hint2">Tipp 2</button></div><div id="hintBox"></div>';
     if (t.measure.length) {
-      h += '<div class="protocol"><h3>Messprotokoll</h3>';
+      h += '<div class="protocol"><h3>Messprotokoll <button class="btn small calc-ctx" data-calc title="Taschenrechner oeffnen">🖩 Rechner</button></h3>';
       t.measure.forEach(function (m) {
         var v = draft && draft.answers && draft.answers[m.id] !== undefined ? draft.answers[m.id] : '';
         h += '<label><span>' + esc(m.ask) + '</span><input inputmode="decimal" data-ans="' + m.id + '" value="' + esc(v) + '" placeholder="Messwert"><em>' + esc(m.unit || '') + '</em></label>';
@@ -8366,7 +8537,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     var h = '<div class="crumb">Pruefung · Aufgabe ' + t.no + ' von ' + t.of + ' · Kapitel ' + t.ch + '</div><h2>' + esc(t.title) + '</h2>' +
       (t.story ? '<p class="story">' + t.story + '</p>' : '') + '<div class="brief">' + t.brief + '</div>';
     if (t.protocol.length) {
-      h += '<div class="protocol"><h3>Messprotokoll</h3>';
+      h += '<div class="protocol"><h3>Messprotokoll <button class="btn small calc-ctx" data-calc title="Taschenrechner oeffnen">🖩 Rechner</button></h3>';
       t.protocol.forEach(function (m) {
         var v = draft && draft.answers && draft.answers[m.id] !== undefined ? draft.answers[m.id] : '';
         h += '<label><span>' + esc(m.ask) + '</span><input inputmode="decimal" data-ans="' + m.id + '" value="' + esc(v) + '" placeholder="Wert"><em>' + esc(m.unit || '') + '</em></label>';
@@ -9037,6 +9208,12 @@ body.has-exam-bar .top { padding-top: 50px; }
         show(g);
       };
     });
+    if (root.DQCalc) {
+      root.DQCalc.onLog = log;
+      $('#btnCalc').onclick = function () { root.DQCalc.toggle(); };
+      document.addEventListener('click', function (ev) { var b = ev.target.closest && ev.target.closest('[data-calc]'); if (b) { ev.preventDefault(); root.DQCalc.open(); } });
+      document.addEventListener('keydown', function (ev) { if (ev.ctrlKey && ev.altKey && (ev.key === 'r' || ev.key === 'R')) { ev.preventDefault(); root.DQCalc.toggle(); } });
+    }
     $('#btnRot').onclick = function () { view().rotateSelected(); };
     $('#btnFit').onclick = function () { view().fit(); };
     window.addEventListener('resize', function () { if (ed && current.screen === 'task') view().fit(); if (tut && current.screen === 'tutorial') tut.bench.fit(); });
@@ -9065,6 +9242,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     document.addEventListener('pointerdown', function (ev) { var el = $('#dsPop'); if (el && !el.hidden && !el.contains(ev.target) && !(ev.target.closest && ev.target.closest('#dsBtn'))) hideSheet(true); }, true);
     document.addEventListener('keydown', function (ev) {
       if (ev.key === 'Escape' && $('#dsPop') && !$('#dsPop').hidden) { hideSheet(true); return; }
+      if (root.DQCalc && root.DQCalc.isOpen) return;
       if (current.screen !== 'task' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
       if (live.replay) { if (ev.key === 'ArrowLeft') showStep(live.replay.i - 1); else if (ev.key === 'ArrowRight') showStep(live.replay.i + 1); else if (ev.key === 'Escape') closeReplay(); return; }
       ed && ed.key(ev); renderInspector();
