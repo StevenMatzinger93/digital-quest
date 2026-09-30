@@ -421,13 +421,17 @@
     var body = '<g transform="translate(' + (w / 2 + pad) + ' ' + ((h / 2 + pad) * K) + ') scale(1 ' + K + ')">' +
       '<rect class="bside" x="' + (-w / 2) + '" y="' + (-h / 2 + 10) + '" width="' + w + '" height="' + h + '" rx="9" style="fill:url(#bSide)"/>' +
       '<g filter="url(#bShadow)">' + illus(p).replace('class="bblock"', 'class="bblock" style="fill:url(#bBlock)"') + '</g></g>';
-    var out = DEFS + body;
-    out = out.replace(/(id="|url\(#|href="#)b([A-Z])/g, '$1' + n + 'b$2');
+    var out = nsIds(DEFS + body, n);
     return '<svg class="benchicon" viewBox="0 0 ' + (w + 2 * pad) + ' ' + ((h + 2 * pad + 10) * K) + '" aria-hidden="true">' + out + '</svg>';
   }
 
+  /* Jede Werkbank-Instanz bekommt ein eigenes Praefix fuer alle Verlaufs-, Muster- und Filter-IDs (w1bBrass, w2bBrass …):
+   * Spiel-Werkbank, Tutorial-Werkbank und Mini-Schaltungen der Theorie stehen gleichzeitig im Dokument – bei gleichen IDs
+   * loest der Browser url(#bBrass) auf die erste (evtl. ausgeblendete) Definition auf und die Illustration wird flach/schwarz. */
+  var benchSeq = 0;
+  function nsIds(html, n) { return html.replace(/(id="|url\(#|href="#)b([A-Z])/g, '$1' + n + 'b$2'); }
   function Bench(svg, opts) {
-    this.svg = svg; this.opts = opts || {};
+    this.svg = svg; this.opts = opts || {}; this.ns = 'w' + (++benchSeq);
     this.core = this.opts.core || new Circuit(this.opts);
     this.sim = null; this.showVolt = false; this.mouse = [0, 0]; this.dirty = true;
     this.meter = { mode: 'OFF', text: 'OFF' }; this.scope = null; this.showFlow = false; this._anim = 0; this._phase = 0;
@@ -686,7 +690,8 @@
     });
     h.push('</g>');
     h.push('<rect x="' + this.view[0] + '" y="' + this.view[1] + '" width="' + this.view[2] + '" height="' + this.view[3] + '" fill="url(#bVignette)" pointer-events="none"/>');
-    this.svg.innerHTML = h.join('');
+    // Fuellungen der Bausteinbloecke inline (nicht per CSS), damit sie das Instanz-Praefix mitbekommen
+    this.svg.innerHTML = nsIds(h.join('').replace(/class="bblock"/g, 'class="bblock" style="fill:url(#bBlock)"').replace(/class="bside"/g, 'class="bside" style="fill:url(#bSide)"'), this.ns);
     this._animSetup();
   };
   /* Animationen ohne Neuzeichnen: wandernde Punkte auf den Kabeln (technische Stromrichtung, Tempo ~ log(Strom)),

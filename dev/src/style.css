@@ -137,7 +137,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 #bench { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; outline: none; background: #1b1612; }
 #board.off, #bench.off { display: none; }
 /*CIRCUIT-START*/
-.bblock { fill: url(#bBlock); stroke: rgba(0,0,0,.45); stroke-width: 1.5; } .bbevel { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 1.2; }
+.bblock { stroke: rgba(0,0,0,.45); stroke-width: 1.5; } .bbevel { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 1.2; }
 .bpart { cursor: grab; } .bsel { fill: none; stroke: #ffb000; stroke-width: 2.5; stroke-dasharray: 7 5; }
 .blead { fill: none; stroke: #9ea3a6; stroke-width: 2.8; stroke-linecap: round; } .bleadhi { fill: none; stroke: rgba(255,255,255,.55); stroke-width: .9; stroke-linecap: round; }
 .bprint { font: 700 12px var(--font-code); fill: #2b2b2b; text-anchor: middle; pointer-events: none; } .bprint.red { fill: #c62828; } .bprint.dark { fill: #222; font-size: 11px; }
@@ -255,7 +255,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 
 /* Werkbank-Details */
 /*CIRCUIT-START*/
-.bside { fill: url(#bSide); stroke: rgba(0,0,0,.45); stroke-width: 1.2; }
+.bside { stroke: rgba(0,0,0,.45); stroke-width: 1.2; }
 .bgloss { fill: rgba(255,255,255,.28); pointer-events: none; }
 .bsym .sym { stroke: #46505a; stroke-width: 5; } .bsym .sym.fillsym, .bsym .fillsym { fill: #46505a; } .bsym .symtxt, .bsym .plus { fill: #46505a; font-size: 26px; }
 .bsym .hit, .bsym .lamp-on, .bsym .lamp-off { display: none; } .bsym { pointer-events: none; }

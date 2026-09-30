@@ -427,6 +427,16 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     const done = await tp.$$eval('.tut-steps li.done', l => l.map(x => x.dataset.step));
     if (done.length !== 7) errors.push('Tutorial: nicht alle Schritte abgehakt: ' + done.join(','));
     await tp.screenshot({ path: shots + '/22_tutorial.png' });
+    // Verlaeufe/Filter der Tutorial-Werkbank: jede url(#…)-Referenz zeigt auf eine Definition im SELBEN SVG, und die IDs kommen im Dokument nur einmal vor
+    const refs = await tp.evaluate(() => {
+      const svg = document.querySelector('#tbench'), ids = new Set(), missing = [], dup = [];
+      svg.querySelectorAll('*').forEach(el => { for (const a of ['fill', 'filter', 'stroke', 'style']) { const v = el.getAttribute(a); if (!v) continue; const m = /url\(#([\w-]+)\)/.exec(v); if (m) ids.add(m[1]); } });
+      ids.forEach(id => { if (!svg.querySelector('#' + id)) missing.push(id); if (document.querySelectorAll('#' + id).length !== 1) dup.push(id); });
+      return { n: ids.size, missing, dup, sample: [...ids].slice(0, 3) };
+    });
+    if (refs.n < 8) errors.push('Tutorial: kaum Verlaufs-Referenzen gefunden (' + refs.n + ')');
+    if (refs.missing.length) errors.push('Tutorial: haengende Verlaufs-Referenzen: ' + refs.missing.join(','));
+    if (refs.dup.length) errors.push('Tutorial: Verlaufs-IDs mehrfach im Dokument: ' + refs.dup.join(','));
     await tp.click('#tutMap'); if (!await tp.isVisible('#scr-map.active')) errors.push('Tutorial: Zurueck zur Karte wirkt nicht');
     // Hinweis-Link in der ersten drag-Aufgabe
     await tp.evaluate(() => DigitalQuest.openItem('16.1')); if (!await tp.$('#taskInfo .tut-link [data-go="tutorial"]')) errors.push('16.1: Link zum Tutorial fehlt');
