@@ -11,7 +11,7 @@ const POOL_FILES = fs.readdirSync(src('content_exam')).filter(f => /\.js$/.test(
 POOL_FILES.forEach(f => require(src('content_exam/' + f)));
 // Theoriefragen: die Fragen der Lektionen (vom Validator gegen die Engine geprueft), Antworten werden je Pruefung gemischt
 const questions = [];
-globalThis.DQ.theories.forEach(t => t.questions.forEach((q, i) => {
+globalThis.DQ.theories.filter(t => t.ch >= 1 && t.ch <= 15).forEach(t => t.questions.forEach((q, i) => { // Kapitel 16 (Vertiefung) gehoert zu keiner Pruefungsstufe
   const o = { id: 'Q' + t.id.slice(1) + '_' + (i + 1), level: t.ch <= 10 ? 'grund' : 'profi', ch: t.ch, q: q.q, options: q.options.slice(), answer: q.correct };
   questions.push(o); if (!Exam.questionDef(o.id)) globalThis.defExamQuestion(Object.assign({}, o));
 }));

@@ -63,7 +63,14 @@
   /* Vorgaben vom Dozent (Konto): zugewiesene Stationen sind immer offen – eine Vorgabe soll man auch bearbeiten koennen */
   function vorgaben() { return ACCT ? ACCT.vorgaben() : []; }
   function assigned(id) { return vorgaben().some(function (v) { return v.items.indexOf(id) >= 0; }); }
-  function unlocked(id) { var i = ORDER.indexOf(id); return allOpen() || i <= 0 || !!S.done[ORDER[i - 1]] || assigned(id); }
+  /* Kapitel mit 'after' (z. B. Vertiefung Messtechnik nach 4.10) haengen nicht an der Karten-Reihenfolge: die erste Station oeffnet, sobald 'after' geloest ist */
+  var CH_OF = {}; DQ.chapters.forEach(function (c) { c.sequence.forEach(function (id) { CH_OF[id] = c; }); });
+  function unlocked(id) {
+    if (allOpen() || assigned(id)) return true;
+    var c = CH_OF[id], k = c ? c.sequence.indexOf(id) : -1;
+    if (c && c.after) return k <= 0 ? !!S.done[c.after] : !!S.done[c.sequence[k - 1]];
+    var i = ORDER.indexOf(id); return i <= 0 || !!S.done[ORDER[i - 1]];
+  }
   function nextOf(id) {
     var w = DQ.workshop && DQ.workshop.sequence.indexOf(id);
     if (w >= 0) return DQ.workshop.sequence[w + 1]; // Uebungswerkstatt: weiter innerhalb der Werkstatt

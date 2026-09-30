@@ -43,6 +43,14 @@ Kapitelplan, abgeleitet aus Stevens Quellmaterial in `99_inputs/` und `theorie/`
 | 14 | Elektrotechnik-Vertiefung | Ergänzungsstoff AU-Kurs | Ergänzungsstoff AU-Kurs | nach Bedarf | `neu formatiert/ET Kurs AU Zusatz_neu.docx` (+ Lösung) |
 | 15 | Anwendungsprojekt | – | – | Gesamtanlage bauen + messen, + Boss-Aufgabe | `Aufträge/Brems-Antriebssystem TP1410 Auftrag.docx` |
 
+## Teil V – Vertiefung Messtechnik (Kap. 16, Ergaenzung zu Teil I; offen nach 4.10, zaehlt nicht zu Zertifikat/Abzeichen; umgesetzt 30.09.2026)
+
+| Kap. | Thema | Theorie A | Theorie B | Theorie C | Messschwerpunkt | Quelle in 99_inputs/ |
+|---|---|---|---|---|---|---|
+| 16 | Messtechnik-Erweiterung | Analoge Messwerke (Drehspul, Dreheisen, Strommesszange) | Sinnbilder und Messkategorien CAT I–IV | Genauigkeit vertieft (analog/digital, Digit-Fehler, Systemfehler) | Messspitzen ziehen, eigener Oszilloskop-Tastkopf, Messbereich von Hand (OL); Instrumentenvergleich AVG/TRMS/Oszilloskop an Kurvenformen, Mischspannung, Frequenzgang, Einweg-/Brueckengleichrichter mit/ohne C, Strom am Shunt | `neu formatiert/Messtechnik Erweiterung_neu.docx` (nur Text/Formeln; alle Bilder neu gezeichnet) |
+
+Aufgaben 16.1 Datenblatt und Systemfehler · 16.2 Spannungs-/Strommessfehler · 16.3 Kurvenformen im Instrumentenvergleich · 16.4 Wechselgroesse mit Gleichanteil · 16.5 Frequenz erhoehen · 16.6 Einweggleichrichter · 16.7 Brueckengleichrichter mit/ohne Ladekondensator · 16.8 Strommessung am Gleichrichter. Alle mit `measureUX: 'drag'`.
+
 ## Offene Punkte
 - Kapitel 9/10 und 11/12 sind grobe Zuordnung – die beiden "neu formatiert"-Quelldokumente sind sehr umfangreich (4–6 MB), vor dem Ableiten der 10 Aufgaben pro Kapitel lohnt sich ein genauerer Blick in den Inhalt, damit die Reihenfolge zum Aufbau des Dokuments passt statt nur zum Dateinamen.
 - Kapitel 14 ist bewusst als Puffer/Vertiefung gedacht (Zusatzstoff), Position im Kapitelplan kann sich noch verschieben.

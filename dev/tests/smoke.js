@@ -141,7 +141,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   // Karte nach Teilen I–IV, Handbuch, Boss mit Auszeichnung (Loesung als Entwurf geladen), Zertifikat/Abzeichen
   await page.click('[data-go="map"]');
   const heads = await page.$$eval('.part-head .part-no', els => els.map(e => e.textContent));
-  if (heads.join('|') !== 'Teil I|Teil II|Teil III|Teil IV|Frei ueben') errors.push('Karte: Teile ' + heads.join('|'));
+  if (heads.join('|') !== 'Teil I|Teil II|Teil III|Teil IV|Teil V|Frei ueben') errors.push('Karte: Teile ' + heads.join('|'));
   if (await page.$$eval('.award-card', els => els.length) !== 2) errors.push('Karte: 2 Auszeichnungs-Karten erwartet');
   await page.click('[data-go="manual"]');
   for (const id of await page.$$eval('[data-man]', els => els.map(e => e.dataset.man))) {

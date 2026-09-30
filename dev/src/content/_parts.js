@@ -7,7 +7,9 @@
     { no: 'I', title: 'Elektrotechnische Grundlagen', stage: 'grund', chapters: [1, 2, 3, 4] },
     { no: 'II', title: 'Digitaltechnik Grundlagen', stage: 'grund', chapters: [5, 6, 7, 8] },
     { no: 'III', title: 'Kombinatorik und Anzeigen', stage: 'grund', chapters: [9, 10], award: 'grund' },
-    { no: 'IV', title: 'Zeitverhalten und Praxis', stage: 'profi', chapters: [11, 12, 13, 14, 15], award: 'profi' }
+    { no: 'IV', title: 'Zeitverhalten und Praxis', stage: 'profi', chapters: [11, 12, 13, 14, 15], award: 'profi' },
+    /* Ergaenzung zu Teil I: offen, sobald Kapitel 4 abgeschlossen ist (defChapter after: '4.10'); zaehlt nicht zu Zertifikat oder Abzeichen */
+    { no: 'V', title: 'Vertiefung Messtechnik', stage: 'grund', chapters: [16] }
   ];
   DQ.stages = { grund: 'Grundstufe', profi: 'Profi-Stufe' };
   /* Abzeichen im Spiel (nach den Boss-Aufgaben). Das gepruefte Zertifikat mit Pruefcode gibt es im Portal (Pruefung auf dem Server). */

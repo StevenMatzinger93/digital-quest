@@ -707,7 +707,8 @@
   'use strict';
   var DQ = root.DQ = root.DQ || { chapters: [], tasks: [], theories: [], byId: {} };
 
-  /* Kapitel: sequence legt die Reihenfolge fest, z. B. ['T1A','1.1','1.2',…,'T1B',…] */
+  /* Kapitel: sequence legt die Reihenfolge fest, z. B. ['T1A','1.1','1.2',…,'T1B',…]
+   * after (optional): Station, nach der die erste Station dieses Kapitels offen ist (statt der letzten Station des Vorkapitels) */
   root.defChapter = function (c) {
     if (!c.id || !c.title || !c.sequence) throw new Error('defChapter: id, title, sequence noetig');
     c.stage = c.stage || (c.id <= 10 ? 'grund' : 'profi');
