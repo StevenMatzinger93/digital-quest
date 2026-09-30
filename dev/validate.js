@@ -114,6 +114,8 @@ DQ.tasks.forEach(t => {
 // Theorien
 DQ.theories.forEach(th => {
   if (th.questions.length !== 5) warn(th.id, th.questions.length + ' statt 5 Fragen');
+  if (!th.merksatz) warn(th.id, 'merksatz fehlt (Empfehlung: ein bis zwei Saetze „Das Wichtigste in Kuerze“)');
+  else if (th.merksatz.length > 400) warn(th.id, 'merksatz ist lang (' + th.merksatz.length + ' Zeichen) – gedacht sind ein bis zwei Saetze');
   th.questions.forEach((q, i) => {
     const id = th.id + ' F' + (i + 1);
     if (!(q.correct >= 0 && q.correct < q.options.length)) err(id, 'correct ausserhalb');

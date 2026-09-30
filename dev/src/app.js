@@ -82,6 +82,7 @@
     $$('.screen').forEach(function (s) { s.classList.toggle('active', s.id === 'scr-' + name); });
     $$('[data-go]').forEach(function (b) { b.classList.toggle('active', b.dataset.go === name); });
     current.screen = name;
+    if (name !== 'theory' && speech.active) speech.stop();
     if (name !== 'task') stopLoop();
     if (typeof hideSheet === 'function') hideSheet(true);
     window.scrollTo(0, 0);
@@ -822,13 +823,38 @@
   function openTheory(th) {
     show('theory'); current.theory = th; current.started = Date.now();
     var V = root.DQVisuals, vis = V ? V.listOf(th.visual) : []; // Bild/Animation (visual) an {{visual}} bzw. nach dem ersten Absatz
-    var h = '<div class="theory"><div class="crumb">Kapitel ' + th.ch + ' · Theorie ' + th.id.slice(1) + '</div><h2>' + esc(th.title) + '</h2><article class="lesson">' + (V ? V.lessonHtml(th.lesson, vis) : th.lesson) + '</article>' +
+    var h = '<div class="theory"><div class="crumb">Kapitel ' + th.ch + ' · Theorie ' + th.id.slice(1) + '</div><div class="th-head"><h2>' + esc(th.title) + '</h2>' +
+      (speech.ok() ? '<button class="btn small" id="thRead" title="Lektion vorlesen (Stimme des Systems, offline)">🔊 Vorlesen</button>' : '') + '</div>' +
+      '<article class="lesson">' + (V ? V.lessonHtml(th.lesson, vis) : th.lesson) + '</article>' +
+      (th.merksatz ? '<aside class="merksatz"><h3>Das Wichtigste in Kuerze</h3><p>' + esc(th.merksatz) + '</p></aside>' : '') +
       '<button class="btn primary" id="toQuiz">Verstanden – zum Check</button><div id="quiz"></div></div>';
     $('#scr-theory').innerHTML = h;
+    if ($('#thRead')) $('#thRead').onclick = function () { speech.toggle($('#scr-theory .lesson'), th.merksatz, $('#thRead')); };
     current.visuals = V && vis.length ? V.mountAll($('#scr-theory .lesson'), vis) : []; // Instanzen (fuer Tests: DigitalQuest.visuals)
     $('#toQuiz').onclick = function () { this.hidden = true; renderQuiz(th); };
     log('theory_open', { id: th.id });
   }
+  /* Vorlesen mit der Sprachausgabe des Browsers (Web Speech API, offline, deutsche Systemstimme); zweiter Klick stoppt,
+   * Verlassen der Lektion stoppt (show). Ohne API kein Knopf. */
+  var speech = {
+    ok: function () { return !!(root.speechSynthesis && root.SpeechSynthesisUtterance); },
+    active: false, btn: null,
+    text: function (el, merk) {
+      var c = el.cloneNode(true); Array.prototype.forEach.call(c.querySelectorAll('.lesson-visual, svg, table, .formula, script, style'), function (x) { x.remove(); });
+      return (c.textContent || '').replace(/s+/g, ' ').trim() + (merk ? ' Das Wichtigste in Kuerze: ' + merk : '');
+    },
+    stop: function () { if (!this.ok()) return; try { root.speechSynthesis.cancel(); } catch (e) { /* egal */ } this.active = false; if (this.btn) { this.btn.textContent = '🔊 Vorlesen'; this.btn.classList.remove('on'); } },
+    toggle: function (el, merk, btn) {
+      if (!this.ok()) return;
+      if (this.active) { this.stop(); return; }
+      var self = this, u = new root.SpeechSynthesisUtterance(this.text(el, merk).slice(0, 8000)); u.lang = 'de-CH'; u.rate = 1;
+      var voices = root.speechSynthesis.getVoices ? root.speechSynthesis.getVoices() : [], v = voices.filter(function (x) { return /^de/.test(x.lang); })[0]; if (v) u.voice = v;
+      u.onend = u.onerror = function () { self.active = false; if (self.btn) { self.btn.textContent = '🔊 Vorlesen'; self.btn.classList.remove('on'); } };
+      this.active = true; this.btn = btn; if (btn) { btn.textContent = '⏹ Stopp'; btn.classList.add('on'); }
+      try { root.speechSynthesis.cancel(); root.speechSynthesis.speak(u); } catch (e) { this.stop(); }
+      log('theory_read', { id: current.theory && current.theory.id });
+    }
+  };
   function renderQuiz(th) {
     var h = '<h3>Check – ' + Math.round(th.pass * 100) + ' % zum Bestehen</h3>';
     th.questions.forEach(function (q, i) {

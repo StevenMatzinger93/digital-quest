@@ -18,6 +18,7 @@
 
   defTheory({
     id: 'T11A', ch: 11, title: 'Laden und Entladen', tags: ['elektro.kondensator', 'elektro.zeitkonstante'],
+    merksatz: 'Der Kondensator laedt sich e-foermig mit τ = R · C: nach 1 τ auf 63 %, nach 5 τ praktisch voll; beim Entladen bleibt nach 1 τ noch 37 %, im Gleichstrom-Arbeitspunkt sperrt er.',
     visual: { type: 'circuit', slow: true, caption: 'Der Taktgeber schaltet alle 2 s zwischen 5 V und 0 V um: Der Kondensator laedt sich ueber R1 auf und entlaedt sich wieder – nach τ = R · C ≈ 0,47 s sind 63 % erreicht, nach 5 τ ist er praktisch voll.',
       layout: { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 0.25 }, x: 180, y: 300 }, { id: 'GND1', type: 'ground', x: 480, y: 460 }, { id: 'R1', type: 'resistor', value: 10000, x: 340, y: 300 }, { id: 'C1', type: 'capacitor', value: 47e-6, x: 480, y: 380, rot: 90 }],
         wires: [W('CLK1.out', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'GND1.g')] },
@@ -125,6 +126,7 @@
 
   defTheory({
     id: 'T11B', ch: 11, title: 'RC-Glieder in Schaltungen', tags: ['elektro.rc', 'elektro.filter', 'digital.takt'],
+    merksatz: 'RC-Glieder verzoegern (0,69 τ bis zur Schaltschwelle), glaetten nach dem Gleichrichter und filtern: Tiefpass laesst tiefe, Hochpass hohe Frequenzen durch, Grenzfrequenz f_g = 1/(2πRC) bei −3 dB.',
     visual: { type: 'circuit', caption: 'Dasselbe RC-Glied an einem 5-Hz-Takt: Mit kleinem C folgt die Spannung dem Rechteck fast sofort, mit grossem C wird daraus ein flaches Dreieck um den Mittelwert (Integrierglied).',
       layout: { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 5 }, x: 180, y: 300 }, { id: 'GND1', type: 'ground', x: 480, y: 460 }, { id: 'R1', type: 'resistor', value: 10000, x: 340, y: 300 }, { id: 'C1', type: 'capacitor', value: 4.7e-6, x: 480, y: 380, rot: 90 }],
         wires: [W('CLK1.out', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'GND1.g')] },

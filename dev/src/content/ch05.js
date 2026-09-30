@@ -48,6 +48,7 @@
   /* ================= Theorie A ================= */
   defTheory({
     id: 'T5A', ch: 5, title: 'Stellenwertsystem und Dualzahlen', tags: ['digital.zahlensysteme', 'digital.binaer'],
+    merksatz: 'Im Stellenwertsystem zaehlt Ziffer mal Basis hoch Stelle; dual gibt es nur 0 und 1, mit n Bit die Zahlen 0 bis 2ⁿ − 1 – dezimal nach dual durch fortgesetztes Halbieren, Reste von unten lesen.',
     visual: { type: 'numberSteps', mode: 'divide', value: 43, base: 2, caption: 'Dezimal → dual: immer durch 2 teilen, die Reste von unten nach oben lesen. Zum Schluss die Probe mit den Wertigkeiten.' },
     lesson:
       '<p>In einem <b>Stellenwertsystem</b> haengt der Wert einer Ziffer von ihrer Stelle ab: <b>Wert = Ziffer · Basis<sup>Stelle</sup></b>, gelesen von rechts (Stelle 0) nach links. Die Basis bestimmt die Ziffern: dezimal (Basis 10) 0–9, dual/binaer (Basis 2) nur 0 und 1.</p>' +
@@ -145,6 +146,7 @@
   /* ================= Theorie B ================= */
   defTheory({
     id: 'T5B', ch: 5, title: 'Hexadezimal, BCD und Horner-Schema', tags: ['digital.hex', 'digital.bcd', 'digital.zahlensysteme'],
+    merksatz: 'Eine Hex-Ziffer entspricht vier Bit (0–9, A–F); das Horner-Schema rechnet jedes Fremdsystem von links nach dezimal um; BCD codiert jede Dezimalziffer einzeln mit vier Bit.',
     visual: { type: 'numberSteps', mode: 'bases', value: 173, caption: 'Dieselbe Zahl in BCD (jede Dezimalziffer 4 Bit) und hexadezimal (jede Hex-Ziffer 4 Bit), dann mit dem Horner-Schema zurueck: mal 16, plus naechste Ziffer.' },
     lesson:
       '<p>Das <b>Hexadezimalsystem</b> (Basis 16) hat die Ziffern 0–9 und A–F (A = 10 … F = 15). Weil 2⁴ = 16, entspricht <b>genau eine Hex-Ziffer vier Bits</b> (einem Nibble). Umrechnen binaer ↔ hex heisst: in Vierergruppen von rechts aufteilen.</p>' +

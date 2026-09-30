@@ -24,6 +24,7 @@
 
   defTheory({
     id: 'T10A', ch: 10, title: '7-Segment-Anzeigen', tags: ['digital.7segment', 'digital.decoder'],
+    merksatz: 'Sieben Segmente a–g bilden jede Ziffer; bei gemeinsamer Kathode leuchtet ein Segment bei 1, ein BCD-7-Segment-Decoder ist ein Codewandler von vier Bit auf sieben Segmentleitungen.',
     visual: { type: 'circuit', toggleView: false, height: 300, caption: 'Pegelschalter E1 … E4 (Wertigkeit 1, 2, 4, 8) anklicken: Der BCD-Decoder schaltet die Segmente, die Anzeige zeigt die Ziffer. Codes ueber 9 bleiben dunkel.',
       layout: (function () { var l = LG.io(4, []); l.parts.push({ id: 'IC1', type: 'dec7', x: 640, y: 300, rot: 0 }, { id: 'AZ1', type: 'seg7', x: 840, y: 300, rot: 0 });
         ['A', 'B', 'C', 'D'].forEach(function (k, i) { l.wires.push(W('E' + (i + 1) + '.out', 'IC1.' + k)); }); 'abcdefg'.split('').forEach(function (k) { l.wires.push(W('IC1.' + k, 'AZ1.' + k)); }); return l; })() },
@@ -119,6 +120,7 @@
 
   defTheory({
     id: 'T10B', ch: 10, title: 'Entwurf komplexer Schaltungen', tags: ['digital.entwurf', 'digital.komparator'],
+    merksatz: 'Komplexe Schaltungen entstehen systematisch: Eingaenge und Ausgaenge klaeren, Wahrheitstabelle je Ausgang mit X fuer unmoegliche Kombinationen, vereinfachen, gemeinsame Zwischensignale nutzen, alles pruefen.',
     visual: { type: 'circuit', toggleView: false, caption: '1-Bit-Komparator aus den Bausteinen der Kapitel 6–9: E1 = A, E2 = B. L1 leuchtet bei A > B, L2 bei A = B (XNOR), L3 bei A < B – immer genau eine.',
       layout: LG.net(2, [['U1', 'not', ['E1']], ['U2', 'not', ['E2']], ['U3', 'and', ['E1', 'U2']], ['U4', 'xnor', ['E1', 'E2']], ['U5', 'and', ['U1', 'E2']]], { L1: 'U3', L2: 'U4', L3: 'U5' }) },
     lesson:

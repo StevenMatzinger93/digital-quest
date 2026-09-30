@@ -19,6 +19,7 @@
 
   defTheory({
     id: 'T12A', ch: 12, title: 'Das Flipflop – ein Bit Gedaechtnis', tags: ['digital.flipflop', 'digital.speicher'],
+    merksatz: 'Zwei rueckgekoppelte NOR bilden das RS-Flipflop – ein Bit Gedaechtnis; zustandsgesteuert uebernimmt es solange C = 1 ist, flankengesteuert nur bei der steigenden Flanke (D-, JK-, T-Flipflop).',
     visual: { type: 'circuit', toggleView: false, caption: 'RS-Flipflop aus zwei NOR: E2 = S (Setzen), E1 = R (Ruecksetzen), L1 = Q, L2 = Q̄. Kurz S auf 1 und wieder 0 – Q bleibt 1; kurz R – Q bleibt 0. Das ist ein gespeichertes Bit.',
       layout: (function () { var l = LG.io(2, ['L1', 'L2']); l.parts.push({ id: 'U1', type: 'nor', x: 480, y: 170, rot: 0 }, { id: 'U2', type: 'nor', x: 480, y: 280, rot: 0 });
         l.wires.push(W('E1.out', 'U1.in1'), W('U2.out', 'U1.in2'), W('E2.out', 'U2.in2'), W('U1.out', 'U2.in1'), W('U1.out', 'L1.in'), W('U2.out', 'L2.in')); return l; })() },
@@ -126,6 +127,7 @@
 
   defTheory({
     id: 'T12B', ch: 12, title: 'Zaehler', tags: ['digital.zaehler', 'digital.flipflop'],
+    merksatz: 'T-Flipflops hintereinander teilen die Frequenz je durch 2 und zaehlen dual; asynchron getaktet schalten die Stufen nacheinander (kurze Zwischenwerte), synchron alle gleichzeitig ueber eine Logik an J/K.',
     visual: { type: 'circuit', toggleView: false, slow: true, caption: 'Asynchroner 3-Bit-Zaehler aus T-Flipflops am Takt (1 Hz): L1 = Wert 1, L2 = Wert 2, L3 = Wert 4. Jede Stufe halbiert die Frequenz – so zaehlt die Kette von 0 bis 7 und beginnt von vorn.',
       layout: { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 1 }, x: 160, y: 300, rot: 0 }, { id: 'E2', type: 'logicin', props: { closed: true }, x: 160, y: 120, rot: 0 }, { id: 'GND1', type: 'ground', x: 120, y: 480, rot: 0 },
         { id: 'FF1', type: 'tff', x: 320, y: 280, rot: 0 }, { id: 'FF2', type: 'tff', x: 520, y: 280, rot: 0 }, { id: 'FF3', type: 'tff', x: 720, y: 280, rot: 0 },

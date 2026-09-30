@@ -20,6 +20,7 @@
   /* ================= Theorie A ================= */
   defTheory({
     id: 'T4A', ch: 4, title: 'Messen, Pruefen, Messgeraete', tags: ['messen.grundbegriffe', 'messen.geraete', 'messen.sicherheit'],
+    merksatz: 'Messen liefert einen Zahlenwert, Pruefen nur ja/nein; Kalibrieren vergleicht, Justieren stellt nach, Eichen ist amtlich. Die Messkategorie CAT I–IV sagt, wo im Netz ein Geraet eingesetzt werden darf.',
     visual: { type: 'circuit', caption: 'Der Strommesser A1 liegt in Reihe im Kreis (fast 0 Ω), die Spannung misst man parallel zum Bauteil. Zieh am Widerstand: Strom und Spannung folgen dem Ohmschen Gesetz.',
       layout: { parts: [{ id: 'B1', type: 'battery', value: 9, x: 160, y: 300 }, { id: 'A1', type: 'ammeter', x: 320, y: 200 }, { id: 'R1', type: 'resistor', value: 470, x: 480, y: 300, rot: 90 }], wires: [W('B1.p', 'A1.a'), W('A1.b', 'R1.a'), W('R1.b', 'B1.n')] },
       bench: { parts: [{ id: 'B1', x: 240, y: 460 }, { id: 'A1', x: 480, y: 290 }, { id: 'R1', x: 740, y: 460, rot: 90 }] },
@@ -146,6 +147,7 @@
   /* ================= Theorie B ================= */
   defTheory({
     id: 'T4B', ch: 4, title: 'Genauigkeit und Messfehler', tags: ['messen.genauigkeit', 'messen.systemfehler'],
+    merksatz: 'Analoge Genauigkeit gilt in Prozent vom Endwert, digitale in Prozent vom Anzeigewert plus Digit; der Eigenverbrauch des Messgeraets (10 MΩ Voltmeter, 0,1 Ω Shunt) ist ein Systemfehler.',
     visual: { type: 'numberSteps', mode: 'dmm', value: 1.23456, unit: 'V', caption: 'Derselbe wahre Wert von 1,23456 V im Multimeter des Labors: Der Messbereich bestimmt die Aufloesung, die letzte Stelle schwankt, und der Kalibrierfehler verschiebt alles ein wenig.' },
     lesson:
       '<p><b>Analoge Geraete:</b> Die Genauigkeit (z. B. 0,5 %) bezieht sich auf den <b>Messbereich-Endwert</b>. Bereich 20 V, 0,5 % → ±0,1 V – egal ob 15 V oder 2 V angezeigt werden. Deshalb im kleinsten passenden Bereich messen.</p>' +

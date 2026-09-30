@@ -27,6 +27,7 @@
 
   defTheory({
     id: 'T15A', ch: 15, title: 'Die Antriebsstation', tags: ['antrieb.motor', 'antrieb.treiber', 'elektro.leistung'],
+    merksatz: 'Eine Antriebsstation liest sich als Blockbild Bedienung → Steuerung → Leistungsteil → Motor mit Messpunkten dazwischen; Motordaten stehen auf dem Typenschild, P = U · I, die Drehzahl folgt der Spannung.',
     visual: [{ type: 'block', caption: 'Blockbild der Antriebsstation: Signale laufen von der Bedienung ueber die Steuerung zum Leistungsteil und zum Motor; der Impulsgeber meldet die Drehzahl zurueck. An jedem Uebergang liegt ein Messpunkt (MP).',
       svg: '<svg class="blockbild" viewBox="0 0 700 230" role="img" aria-label="Blockbild Antriebsstation">' +
         '<defs><marker id="bbA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="bb-arrow"/></marker></defs>' +
@@ -161,6 +162,7 @@
 
   defTheory({
     id: 'T15B', ch: 15, title: 'Steuerung und Sicherheit', tags: ['steuerung.selbsthaltung', 'sicherheit.nothalt', 'messen.drehzahl'],
+    merksatz: 'Selbsthaltung Q = (Start ∨ Q) ∧ Stopp mit Oeffnern fuer Stopp und Not-Halt ist drahtbruchsicher und stoppdominant; der Not-Halt loescht die Selbsthaltung, ein Wiederanlauf braucht einen neuen Start.',
     visual: { type: 'circuit', toggleView: false, caption: 'Selbsthaltung mit Not-Halt: E1 = Start (Taster), E2 = Stopp und E3 = Not-Halt (Oeffner, in Ruhe 1), L1 = Motor EIN. Start kurz anklicken und wieder loesen – L1 bleibt an. Not-Halt loescht die Selbsthaltung: Nach dem Entriegeln bleibt L1 aus.',
       layout: { parts: [{ id: 'GND1', type: 'ground', x: 120, y: 560 }, { id: 'E1', type: 'logicin', x: 160, y: 160 }, { id: 'E2', type: 'logicin', props: { closed: true }, x: 160, y: 280 }, { id: 'E3', type: 'logicin', props: { closed: true }, x: 160, y: 400 },
         { id: 'L1', type: 'logicled', props: { color: 'gruen' }, x: 860, y: 300 }, { id: 'U1', type: 'or', x: 340, y: 180 }, { id: 'U2', type: 'and', x: 500, y: 260 }, { id: 'U3', type: 'and', x: 660, y: 300 }],

@@ -16,6 +16,7 @@
 
   defTheory({
     id: 'T13A', ch: 13, title: 'Diode und Z-Diode', tags: ['bauteil.diode', 'bauteil.zdiode'],
+    merksatz: 'Die Diode leitet ab etwa 0,7 V in Durchlassrichtung und sperrt umgekehrt; die Z-Diode wird in Sperrrichtung betrieben, haelt ab U_Z die Spannung fest und braucht dafuer immer einen Vorwiderstand.',
     visual: { type: 'circuit', caption: 'Z-Diode in Sperrrichtung mit Vorwiderstand: Unter 5,1 V sperrt sie – die ganze Spannung liegt an ihr. Darueber bricht sie durch und haelt ihre Spannung fest, der Rest faellt an R1 ab.',
       layout: { parts: [{ id: 'B1', type: 'battery', value: 8, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 470, x: 320, y: 200 }, { id: 'Z1', type: 'zener', x: 480, y: 300, rot: 270 }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'Z1.k'), W('Z1.a', 'B1.n')] },
       bench: { parts: [{ id: 'B1', x: 240, y: 460 }, { id: 'R1', x: 500, y: 290 }, { id: 'Z1', x: 740, y: 460, rot: 270 }] },
@@ -117,6 +118,7 @@
 
   defTheory({
     id: 'T13B', ch: 13, title: 'Der Transistor', tags: ['bauteil.transistor', 'elektro.schalten'],
+    merksatz: 'Ein kleiner Basisstrom steuert einen grossen Kollektorstrom (I_C = β · I_B); als Schalter wird der Transistor uebersteuert, bis er in Saettigung geht (U_CE ≈ 0,2 V) – Emitter und Logik-Masse verbinden.',
     visual: { type: 'circuit', caption: 'Der Basiswiderstand bestimmt den Basisstrom: Gross → wenig Basisstrom, der Transistor sperrt oder arbeitet aktiv (I_C = β · I_B, LED schwach). Klein → Saettigung, die LED leuchtet voll – der Transistor als Schalter.',
       layout: { parts: [{ id: 'B1', type: 'battery', value: 9, x: 700, y: 320 }, { id: 'R1', type: 'resistor', value: 220000, x: 320, y: 380 }, { id: 'Q1', type: 'npn', x: 480, y: 380 }, { id: 'R2', type: 'resistor', value: 390, x: 580, y: 160, rot: 90 }, { id: 'D1', type: 'led', props: { color: 'gruen' }, x: 580, y: 260, rot: 90 }],
         wires: [W('B1.p', 'R1.a'), W('R1.b', 'Q1.b'), W('B1.p', 'R2.a'), W('R2.b', 'D1.a'), W('D1.k', 'Q1.c'), W('Q1.e', 'B1.n')] },

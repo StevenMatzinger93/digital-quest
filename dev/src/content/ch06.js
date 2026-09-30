@@ -24,6 +24,7 @@
 
   defTheory({
     id: 'T6A', ch: 6, title: 'UND, ODER, NICHT', tags: ['digital.gatter', 'digital.und', 'digital.oder', 'digital.nicht'],
+    merksatz: 'UND liefert 1 nur bei lauter Einsen, ODER bei mindestens einer 1, NICHT kehrt um; unbenutzte Eingaenge festlegen und nie Ausgang gegen Ausgang schalten.',
     visual: { type: 'circuit', toggleView: false, caption: 'Pegelschalter E1 und E2 anklicken: L1 = E1 UND E2, L2 = E1 ODER E2, L3 = NICHT E1. Probiere alle vier Kombinationen.',
       layout: LG.net(2, [['U1', 'and', ['E1', 'E2']], ['U2', 'or', ['E1', 'E2']], ['U3', 'not', ['E1']]], { L1: 'U1', L2: 'U2', L3: 'U3' }) },
     lesson:
@@ -92,6 +93,7 @@
 
   defTheory({
     id: 'T6B', ch: 6, title: 'NAND, NOR, XOR, XNOR', tags: ['digital.nand', 'digital.nor', 'digital.xor', 'digital.gatter'],
+    merksatz: 'NAND und NOR sind die negierten Grundgatter und als Universalgatter Basis fuer alles; XOR ist 1 bei verschiedenen, XNOR bei gleichen Eingaengen (1-Bit-Vergleicher).',
     visual: { type: 'circuit', toggleView: false, caption: 'Dieselben Eingaenge an vier Gattern: L1 NAND, L2 NOR, L3 XOR, L4 XNOR. XOR leuchtet nur, wenn E1 und E2 verschieden sind, XNOR nur, wenn sie gleich sind.',
       layout: LG.net(2, [['U1', 'nand', ['E1', 'E2']], ['U2', 'nor', ['E1', 'E2']], ['U3', 'xor', ['E1', 'E2']], ['U4', 'xnor', ['E1', 'E2']]], { L1: 'U1', L2: 'U2', L3: 'U3', L4: 'U4' }) },
     lesson:

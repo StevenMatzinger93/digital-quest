@@ -13,8 +13,14 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   const pin = id => page.click(`[data-pin="${id}"] .pinhit`, { force: true });
   const check = async (name) => { await page.click('#btnCheck'); await page.waitForTimeout(100); const ok = await page.isVisible('#modal.open .win'); if (!ok) errors.push(name + ': nicht bestanden: ' + await page.textContent('#results')); else await page.click('#modal .modal-btns button:first-child'); };
 
-  // Theorie T1A
-  await page.click('[data-open="T1A"]'); await page.click('#toQuiz');
+  // Theorie T1A – mit Merksatz-Box und Vorlesen-Knopf (Web Speech API in Chromium vorhanden; ohne Stimmen darf kein Fehler entstehen)
+  await page.click('[data-open="T1A"]');
+  if (!/Wichtigste in Kuerze/.test(await page.textContent('#scr-theory .merksatz')) || (await page.textContent('#scr-theory .merksatz p')).length < 40) errors.push('T1A: Merksatz-Box fehlt');
+  if (await page.evaluate(() => 'speechSynthesis' in window)) {
+    if (!await page.$('#thRead')) errors.push('T1A: Vorlesen-Knopf fehlt');
+    else { await page.click('#thRead'); await page.waitForTimeout(150); await page.click('#thRead'); if (!/Vorlesen/.test(await page.textContent('#thRead'))) errors.push('T1A: Vorlesen stoppt nicht beim zweiten Klick'); }
+  }
+  await page.click('#toQuiz');
   for (const [i, j] of [[0, 1], [1, 1], [2, 2], [3, 1], [4, 1]]) await page.check(`input[name="q${i}"][value="${j}"]`);
   await page.click('#evalQuiz'); if (!/bestanden!/.test(await page.textContent('#quizRes'))) errors.push('T1A nicht bestanden');
 

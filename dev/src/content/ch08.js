@@ -25,6 +25,7 @@
 
   defTheory({
     id: 'T8A', ch: 8, title: 'Von der Wahrheitstabelle zur Schaltung', tags: ['digital.entwurf', 'digital.dnf'],
+    merksatz: 'Von der Aufgabe zur Wahrheitstabelle, daraus DNF (Minterme der Einsen verodern) oder KNF, vereinfachen, bauen und alle Kombinationen pruefen.',
     visual: [{ type: 'kmap', vars: 2, minterms: [1, 2], caption: 'Die Tabelle von A = 1 bei den Kombinationen 1 und 2 als Feld: Die Einsen liegen nicht benachbart – es bleiben zwei Terme (disjunktive Normalform).' },
       { type: 'circuit', toggleView: false, caption: 'Daraus gebaut: A = (ē1 · e2) ∨ (e1 · ē2) – je UND-Gatter ein Term, das ODER sammelt. Klicke die Eingaenge durch und vergleiche mit der Tabelle.',
         layout: LG.net(2, [['U1', 'not', ['E1']], ['U2', 'not', ['E2']], ['U3', 'and', ['U1', 'E2']], ['U4', 'and', ['E1', 'U2']], ['U5', 'or', ['U3', 'U4']]], { L1: 'U5' }) }],
@@ -92,6 +93,7 @@
 
   defTheory({
     id: 'T8B', ch: 8, title: 'Das KV-Diagramm', tags: ['digital.kv', 'digital.vereinfachen'],
+    merksatz: 'Im KV-Diagramm unterscheiden sich Nachbarfelder in genau einer Variablen; moeglichst grosse Paeckchen aus 2, 4 oder 8 Einsen (auch ueber den Rand, X darf mit) ergeben die kuerzesten Terme.',
     visual: { type: 'kmap', vars: 3, minterms: [1, 3, 5, 7], caption: 'Das Beispiel aus dem Text: alle Einsen haben e1 = 1 → ein Paeckchen aus vier Feldern, A = e1. Klicke eigene Einsen und X ein und lass die Paeckchen bilden.' },
     lesson:
       '<p>Das <b>KV-Diagramm</b> (Karnaugh-Veitch) ist die Wahrheitstabelle als Feld, so angeordnet, dass sich <b>benachbarte Felder in genau einer Variablen unterscheiden</b> (Gray-Code-Reihenfolge 0, 1, 3, 2). Auch der gegenueberliegende Rand ist benachbart.</p>' +

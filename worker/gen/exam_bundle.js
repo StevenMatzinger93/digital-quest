@@ -742,6 +742,7 @@
   };
 
   /* Theorie-Auftrag: Lektion (HTML) + Fragen; bestanden ab 80 %
+   * merksatz (empfohlen): ein bis zwei Saetze „Das Wichtigste in Kuerze“, erscheinen als Box am Ende der Lektion
    * visual (optional): Bild/Animation {type:'circuit'|'block'|…} oder Liste davon – siehe src/visuals.js und CLAUDE.md
    * question: {q, options[], correct, explain, verify?:{layout, mode, a, b} | verifyTruth?:{layout, sel, q}} */
   root.defTheory = function (t) {

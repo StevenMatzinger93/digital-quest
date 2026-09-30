@@ -24,6 +24,7 @@
 
   defTheory({
     id: 'T7A', ch: 7, title: 'Gesetze der Booleschen Algebra', tags: ['digital.boolesche_algebra'],
+    merksatz: 'Kommutativ-, Assoziativ-, Distributiv- und Absorptionsgesetz plus die Postulate erlauben es, Schaltfunktionen so umzuformen, dass dieselbe Wahrheitstabelle mit weniger Gattern auskommt.',
     visual: { type: 'circuit', toggleView: false, caption: 'Absorptionsgesetz live bewiesen: L1 = E1 ∧ (E1 ∨ E2) mit zwei Gattern, L2 = E1 ganz ohne Gatter. Bei jeder Eingangskombination leuchten beide gleich.',
       layout: LG.net(2, [['U1', 'or', ['E1', 'E2']], ['U2', 'and', ['E1', 'U1']]], { L1: 'U2', L2: 'E1' }) },
     lesson:
@@ -82,6 +83,7 @@
 
   defTheory({
     id: 'T7B', ch: 7, title: 'De Morgan und normierte Schaltungen', tags: ['digital.demorgan', 'digital.nand', 'digital.nor'],
+    merksatz: 'De Morgan tauscht UND und ODER und negiert jede Variable; damit laesst sich jede Funktion normiert aus nur NAND oder nur NOR aufbauen (NICHT aus NAND: beide Eingaenge verbinden).',
     visual: { type: 'circuit', toggleView: false, caption: 'De Morgan: L1 = ¬(E1 ∧ E2) mit einem NAND, L2 = ¬E1 ∨ ¬E2 aus zwei Invertern und einem ODER. Gleiche Wahrheitstabelle – probiere alle Kombinationen.',
       layout: LG.net(2, [['U1', 'nand', ['E1', 'E2']], ['U2', 'not', ['E1']], ['U3', 'not', ['E2']], ['U4', 'or', ['U2', 'U3']]], { L1: 'U1', L2: 'U4' }) },
     lesson:

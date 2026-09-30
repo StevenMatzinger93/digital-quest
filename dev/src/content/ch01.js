@@ -21,6 +21,7 @@
   };
   defTheory({
     id: 'T1A', ch: 1, title: 'Der Stromkreis', tags: ['elektro.stromkreis', 'elektro.grundgroessen', 'messen.multimeter'],
+    merksatz: 'Strom fliesst nur im geschlossenen Kreis – Spannung liegt zwischen zwei Punkten, Strom ist ueberall in der Reihe gleich; zwei Schalter in Reihe wirken als UND, parallel als ODER.',
     visual: { type: 'circuit', caption: 'Schalter S1 anklicken: Der Kreis schliesst sich, die Punkte zeigen den Strom (technische Richtung + → −), die Lampe leuchtet. Offen fliesst nirgends Strom.',
       layout: { parts: [{ id: 'B1', type: 'battery', value: 9, x: 160, y: 300 }, { id: 'S1', type: 'switch', x: 320, y: 200 }, { id: 'H1', type: 'lamp', x: 480, y: 300, rot: 90 }], wires: [W('B1.p', 'S1.a'), W('S1.b', 'H1.a'), W('H1.b', 'B1.n')] },
       bench: { parts: [{ id: 'B1', x: 240, y: 460 }, { id: 'S1', x: 480, y: 290 }, { id: 'H1', x: 740, y: 460, rot: 90 }] },
@@ -156,6 +157,7 @@
   var ohm = function (u, r) { return { parts: [bat(u), { id: 'R1', type: 'resistor', value: r }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'B1.n')] }; };
   defTheory({
     id: 'T1B', ch: 1, title: 'Ohmsches Gesetz und Vorwiderstand', tags: ['elektro.ohm', 'bauteil.led', 'elektro.leistung'],
+    merksatz: 'U = R · I: Doppelte Spannung, doppelter Strom; doppelter Widerstand, halber Strom. Eine LED braucht einen Vorwiderstand R = (U_B − U_F) / I, sonst brennt sie durch.',
     visual: { type: 'circuit', caption: 'Den Vorwiderstand verkleinern: Der Strom steigt, die LED wird heller – unter etwa 240 Ω fliessen mehr als 30 mA und sie brennt durch. „Neu starten“ setzt eine neue LED ein.',
       layout: { parts: [{ id: 'B1', type: 'battery', value: 9, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 470, x: 320, y: 200 }, { id: 'D1', type: 'led', x: 480, y: 300, rot: 90 }], wires: [W('B1.p', 'R1.a'), W('R1.b', 'D1.a'), W('D1.k', 'B1.n')] },
       bench: { parts: [{ id: 'B1', x: 240, y: 460 }, { id: 'R1', x: 500, y: 290 }, { id: 'D1', x: 740, y: 460, rot: 90 }] },

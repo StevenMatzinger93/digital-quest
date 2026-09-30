@@ -20,6 +20,7 @@
   /* ================= Theorie A ================= */
   defTheory({
     id: 'T3A', ch: 3, title: 'Gleich- und Wechselgroessen', tags: ['elektro.wechselgroessen', 'elektro.frequenz'],
+    merksatz: 'Wechselgroessen wiederholen sich mit der Periodendauer T, f = 1/T; der lineare Mittelwert ist der Gleichanteil (bei reinem Wechsel 0), die Sinusform ist die harmonische Schwingung mit Scheitelwert Û.',
     visual: { type: 'circuit', slow: true, caption: 'Eine Wechselspannung aendert laufend Richtung und Groesse – die Punkte pendeln hin und her. Stell Kurvenform und Frequenz ein und lies am Oszilloskop Scheitelwert und Periodendauer ab (Bildbreite 2 s).',
       layout: { parts: [{ id: 'G1', type: 'acsource', value: 5, props: { freq: 1, shape: 'sine', offset: 0 }, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 1000, x: 440, y: 300, rot: 90 }], wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] },
       bench: { parts: [{ id: 'G1', x: 250, y: 440 }, { id: 'R1', x: 640, y: 440, rot: 90 }] },
@@ -137,6 +138,7 @@
   /* ================= Theorie B ================= */
   defTheory({
     id: 'T3B', ch: 3, title: 'Gleichrichtwert, Effektivwert, AVG und TRMS', tags: ['elektro.effektivwert', 'messen.trms', 'elektro.gleichrichtwert'],
+    merksatz: 'Der Effektivwert ist die gleichwertige Gleichspannung fuer die Leistung (Sinus Û/√2); AVG-Geraete rechnen mit dem Formfaktor 1,11 und stimmen nur beim Sinus, TRMS stimmt bei jeder Kurvenform.',
     visual: { type: 'circuit', flow: false, caption: 'Gleicher Scheitelwert, andere Kurvenform: Das TRMS-Multimeter zeigt immer den echten Effektivwert, das AVG-Geraet rechnet mit dem Sinus-Formfaktor – beim Sinus stimmen beide, bei Rechteck und Dreieck nicht.',
       layout: { parts: [{ id: 'G1', type: 'acsource', value: 10, props: { freq: 50, shape: 'sine', offset: 0 }, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 1000, x: 440, y: 300, rot: 90 }], wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] },
       bench: { parts: [{ id: 'G1', x: 250, y: 440 }, { id: 'R1', x: 640, y: 440, rot: 90 }] },

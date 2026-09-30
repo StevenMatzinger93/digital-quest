@@ -23,6 +23,7 @@
 
   defTheory({
     id: 'T14A', ch: 14, title: 'Frequenzgang und Dezibel', tags: ['elektro.filter', 'elektro.frequenzgang', 'elektro.db'],
+    merksatz: 'Der Frequenzgang zeigt U_a/U_e ueber der logarithmischen Frequenz in Dezibel (20 · log); ein RC-Tiefpass 1. Ordnung hat bei f_g −3 dB und faellt darueber mit 20 dB pro Dekade.',
     visual: { type: 'bode', stages: [{ kind: 'lp', r: 1000, c: 1e-6 }], caption: 'Frequenzgang des RC-Tiefpasses (1 kΩ, 1 µF): bis zur Grenzfrequenz fast 0 dB, bei f_g −3 dB, darueber −20 dB pro Dekade. Fahr mit dem Regler die Kurve ab.' },
     lesson:
       '<p>Der <b>Frequenzgang</b> zeigt, wie stark eine Schaltung ein Signal abhaengig von der Frequenz durchlaesst. Man misst Eingang U<sub>e</sub> und Ausgang U<sub>a</sub> bei vielen Frequenzen (z. B. 1 Hz … 10 kHz) und traegt das Verhaeltnis auf – die Frequenzachse logarithmisch.</p>' +
@@ -110,6 +111,7 @@
 
   defTheory({
     id: 'T14B', ch: 14, title: 'Bandpass, Bandsperre, Signalformung', tags: ['elektro.filter', 'elektro.rc'],
+    merksatz: 'Hoch- und Tiefpass hintereinander ergeben einen Bandpass; je nach τ gegenueber der Periodendauer formt ein RC-Glied Rechteck zu Nadelimpulsen (Differenzierglied) oder Dreieck bis Gleichspannung (Integrierglied).',
     visual: [{ type: 'bode', stages: [{ kind: 'hp', r: 1000, c: 1e-6 }, { kind: 'lp', r: 10000, c: 10e-9 }], caption: 'RC-Bandpass wie in Aufgabe 14.6: Hochpass (f_g ≈ 159 Hz) und Tiefpass (f_g ≈ 1,6 kHz) hintereinander. Dazwischen liegt der Durchlassbereich; weil der Tiefpass den Hochpass belastet, erreicht die Kurve nicht ganz 0 dB.' },
       { type: 'circuit', flow: false, toggleView: false, caption: 'Dieselbe Schaltung im Labor: Stell die Generatorfrequenz ein und vergleiche die Effektivwerte am Ein- und Ausgang mit der Kurve oben.',
         layout: { parts: [{ id: 'G1', type: 'acsource', value: 10, props: { freq: 500, shape: 'sine', offset: 0 }, x: 160, y: 300 }, { id: 'C1', type: 'capacitor', value: 1e-6, x: 320, y: 200, rot: 0 }, { id: 'R1', type: 'resistor', value: 1000, x: 480, y: 300, rot: 90 }, { id: 'R2', type: 'resistor', value: 10000, x: 600, y: 200 }, { id: 'C2', type: 'capacitor', value: 10e-9, x: 720, y: 300, rot: 90 }],

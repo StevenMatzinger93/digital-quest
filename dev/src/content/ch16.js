@@ -81,6 +81,7 @@
   /* ================= Theorie A – Analoge Messwerke ================= */
   defTheory({
     id: 'T16A', ch: 16, title: 'Analoge Messwerke', tags: ['messen.geraete', 'elektro.gleichrichtwert', 'elektro.effektivwert'],
+    merksatz: 'Drehspulmesswerk: Drehmoment ~ I, lineare Skala, zeigt den Mittelwert (mit Gleichrichter den Gleichrichtwert, AVG); Dreheisenmesswerk: Kraft ~ I², gestauchte Skala, zeigt bei AC und DC den Effektivwert.',
     visual: [
       { type: 'block', svg: IMG_DREHSPUL, caption: 'Drehspulmesswerk: Dauermagnet aussen, die Spule dreht sich im Feld. Der Zeiger folgt dem Mittelwert des Stroms.' },
       { type: 'block', svg: IMG_DREHEISEN, caption: 'Dreheisenmesswerk: feste Spule, zwei Eisenplaettchen stossen sich ab – die Kraft haengt vom Quadrat des Stroms ab, der Zeiger zeigt den Effektivwert.' },
@@ -186,6 +187,7 @@
   /* ================= Theorie B – Sinnbilder und Messkategorien ================= */
   defTheory({
     id: 'T16B', ch: 16, title: 'Sinnbilder und Messkategorien', tags: ['messen.geraete', 'messen.sicherheit'],
+    merksatz: 'Die Sinnbilder auf dem Skalenfeld nennen Gebrauchslage, Pruefspannung, Klasse und Messwerk; die Messkategorie CAT I–IV muss zum Messort passen – je naeher an der Einspeisung, desto hoeher.',
     visual: [
       { type: 'block', svg: IMG_SINNBILDER, caption: 'Die wichtigsten Sinnbilder, wie sie klein auf dem Skalenfeld eines Zeigerinstruments stehen (eigene Zeichnung).' },
       { type: 'circuit', view: 'bench', caption: 'Werkstatt-Aufbau zur Messkategorie: Ein batteriebetriebener Kreis (CAT I) – hier reicht jedes Multimeter. Miss die Spannung: die Werte sind klein, aber die Regel „Messgeraet muss zur Anlage passen“ gilt immer.',
@@ -263,6 +265,7 @@
   var pMeas = { parts: [{ id: 'B1', type: 'battery', value: 12, x: 160, y: 300 }, { id: 'A1', type: 'ammeter', x: 320, y: 200 }, R('R1', 1000, 480, 300, 90)], wires: [W('B1.p', 'A1.a'), W('A1.b', 'R1.a'), W('R1.b', 'B1.n')] };
   defTheory({
     id: 'T16C', ch: 16, title: 'Genauigkeit vertieft', tags: ['messen.genauigkeit', 'messen.systemfehler'],
+    merksatz: 'Analog: Fehler = Klasse · Endwert (oben ablesen!); digital: Prozent vom Anzeigewert plus Digit, deshalb kleinsten passenden Bereich waehlen; Eigenverbrauch der Geraete ist ein Systemfehler.',
     visual: [
       { type: 'numberSteps', caption: 'Rechenweg fuer analoge und digitale Genauigkeit – Schritt fuer Schritt.', steps: [
         { text: 'Analog: Klasse 0,5, Skalenendwert 20 V, Zeiger bei 15 V. Der Fehler bezieht sich auf den Endwert.', rows: [{ label: 'Endwert', cells: ['20', 'V'] }, { label: 'Klasse', cells: ['0,5', '%'] }] },

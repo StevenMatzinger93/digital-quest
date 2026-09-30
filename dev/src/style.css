@@ -215,6 +215,9 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .theory, .settings { max-width: 820px; margin: 0 auto; padding: 24px 18px 60px; }
 .lesson { background: var(--bg-secondary); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px; margin: 12px 0 16px; }
 .formula { font-family: var(--font-code); font-size: 22px; text-align: center; color: var(--accent-lead); padding: 10px; }
+.th-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; } .th-head h2 { margin: 0; } .th-head .btn.on { border-color: var(--accent-red); color: var(--accent-red); }
+.merksatz { margin: 0 0 16px; padding: 14px 18px; border: 1px solid var(--accent-lead); border-left-width: 6px; border-radius: 12px; background: linear-gradient(90deg, rgba(255,176,0,.12), rgba(255,176,0,.03)); }
+.merksatz h3 { margin: 0 0 6px; font: 700 12px var(--font-code); letter-spacing: 2px; text-transform: uppercase; color: var(--accent-lead); } .merksatz p { margin: 0; font-size: 15px; line-height: 1.5; }
 .q { border: 1px solid var(--line); border-radius: 10px; margin: 10px 0; padding: 10px 14px; background: var(--bg-secondary); }
 .q legend { font-weight: 600; padding: 0 6px; } .q label { display: block; padding: 3px 0; cursor: pointer; }
 .q.ok { border-color: var(--accent-green); } .q.bad { border-color: var(--accent-red); } .expl { font-size: 14px; color: var(--text-dim); margin-top: 4px; }

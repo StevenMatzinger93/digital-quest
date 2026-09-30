@@ -27,6 +27,7 @@
 
   defTheory({
     id: 'T9A', ch: 9, title: 'Codes und Paritaet', tags: ['digital.codes', 'digital.paritaet'],
+    merksatz: 'Codes ordnen Zahlen Bitmuster zu: BCD je Ziffer, 3-Exzess = BCD + 3, Gray aendert pro Schritt genau ein Bit (Drehgeber); ein Paritaetsbit macht die Zahl der Einsen gerade oder ungerade.',
     visual: { type: 'numberSteps', mode: 'gray', bits: 3, parity: true, caption: 'Zaehle mit ▶ oder „Abspielen“ von 0 bis 7 und zurueck auf 0: Binaer kippen oft mehrere Bits gleichzeitig (3 → 4: alle drei), im Gray-Code immer genau eines. Die XOR-Kette ueber die Gray-Bits ergibt das Paritaetsbit – es wechselt bei jedem Schritt.' },
     lesson:
       '<p>Ein <b>Code</b> ordnet Zeichen oder Zahlen Bitmuster zu. <b>BCD</b> codiert jede Dezimalziffer mit 4 Bit. Der <b>3-Exzess-Code</b> ist BCD + 3 (0 → 0011) – praktisch fuer Rechenwerke, weil das Neunerkomplement einfach durch Invertieren entsteht. Beim <b>Gray-Code</b> aendert sich von einer Zahl zur naechsten <b>genau ein Bit</b> – wichtig fuer Drehgeber, damit beim Uebergang keine falschen Zwischenwerte entstehen.</p>' +
@@ -78,6 +79,7 @@
 
   defTheory({
     id: 'T9B', ch: 9, title: 'Multiplexer, Komparator, Addierer', tags: ['digital.multiplexer', 'digital.komparator', 'digital.addierer'],
+    merksatz: 'Ein Multiplexer waehlt per Steuereingang einen von 2ⁿ Eingaengen, der Komparator vergleicht zwei Zahlen, Halb- und Volladdierer bilden aus XOR und UND das Rechenwerk (S = a ⊕ b, C = a·b).',
     visual: { type: 'circuit', toggleView: false, caption: 'Volladdierer: E1 und E2 sind die Bits der beiden Zahlen, E3 der Uebertrag von der Stelle davor. L1 = Summe, L2 = Uebertrag zur naechsten Stelle – bei 1 + 1 + 1 leuchten beide.',
       layout: LG.net(3, [['U1', 'xor', ['E1', 'E2']], ['U2', 'xor', ['U1', 'E3']], ['U3', 'and', ['E1', 'E2']], ['U4', 'and', ['U1', 'E3']], ['U5', 'or', ['U3', 'U4']]], { L1: 'U2', L2: 'U5' }) },
     lesson:
