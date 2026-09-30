@@ -9,7 +9,7 @@
   defChapter({
     id: 16, title: 'Messtechnik-Erweiterung', after: '4.10',
     intro: 'Analoge Messwerke, Sinnbilder auf dem Skalenfeld, Messkategorien und die genaue Rechnung mit Messfehlern. Auf der Werkbank ziehst du die Messspitzen selbst an die Buchsen, schliesst den Tastkopf des Oszilloskops an und waehlst den Messbereich von Hand.',
-    sequence: ['T16A', 'T16B', 'T16C']
+    sequence: ['T16A', '16.1', '16.2', '16.3', 'T16B', '16.4', '16.5', 'T16C', '16.6', '16.7', '16.8']
   });
 
   var DRAG = 'drag';
@@ -114,10 +114,50 @@
   /* ================= Aufgaben 1–3 ================= */
   var load = { parts: [{ id: 'B1', type: 'battery', value: 230, props: { ri: 0.01, imax: 40 }, x: 160, y: 300, rot: 0 }, R('R1', 10, 440, 300, 90, { pmax: 6000 })], wires: [W('B1.p', 'R1.a'), W('R1.b', 'B1.n')] };
   var I1 = 230 / 10.01;
+  defTask({
+    id: '16.1', ch: 16, title: 'Datenblatt und Systemfehler', tags: ['messen.genauigkeit', 'messen.systemfehler', 'elektro.ohm'], measureUX: DRAG,
+    story: 'Ein Heizwiderstand von 10 Ω haengt an 230 V. Die Werkmeisterin will wissen, was das Multimeter misst – und wie genau.',
+    brief: 'Miss die Spannung an R1 mit dem Multimeter (<b>Bereich 600 V</b> von Hand waehlen). Berechne aus Datenblattwerten: Strom I = U/R und Leistung P = U·I. Bestimme den groessten Fehler eines <b>digitalen</b> Voltmeters mit ±(0,5 % + 1 Digit) im 600-V-Bereich (Aufloesung 0,1 V) und eines <b>analogen</b> Voltmeters der Klasse 1,5 mit Skalenendwert 300 V. Warum darfst du den Strom hier nicht mit dem 10-A-Bereich messen?',
+    learn: 'Datenblattwerte rechnen: Prozent vom Anzeigewert + Digit (digital) gegen Prozent vom Skalenendwert (analog).',
+    take: 'Digital: 0,5 % von 230 V + 0,1 V = 1,25 V. Analog Klasse 1,5 bei 300 V Endwert: 4,5 V – unabhaengig vom Anzeigewert. Und: 23 A sprengen den 10-A-Bereich (Sicherung!).',
+    hint: 'Rote Spitze auf R1.a, schwarze auf R1.b ziehen, V⎓ und Bereich 600V. Ein zu kleiner Bereich zeigt OL.',
+    hint2: 'I = 230 V / 10 Ω ≈ 23 A; P = 230 V · 23 A ≈ 5,3 kW. Digital: 230 · 0,005 + 0,1 = 1,25 V. Analog: 300 · 0,015 = 4,5 V.',
+    palette: [], start: load, ref: load,
+    bench: { parts: [{ id: 'B1', x: 240, y: 470 }, { id: 'R1', x: 620, y: 460, rot: 90 }] },
+    tests: [{ name: 'Anlage', expect: [{ sel: 'R1', i: [22.5, 23.5] }, { noFault: true }] }],
+    measure: [
+      { id: 'u', ask: 'Spannung an R1 (V⎓, Bereich 600 V)', unit: 'V', mode: 'V', a: 'R1.a', b: 'R1.b', tol: 0.02 },
+      { id: 'i', ask: 'Strom I = U / R (berechnet)', unit: 'A', value: I1, tol: 0.03 },
+      { id: 'p', ask: 'Leistung P = U · I (berechnet)', unit: 'W', value: 230 * 10 / 10.01 * I1, tol: 0.04 },
+      { id: 'ed', ask: 'Groesster Fehler digital ±(0,5 % + 1 Digit) bei 230 V', unit: 'V', value: digitalErr(230, 600, 0.5, 1), tol: 0.05 },
+      { id: 'ea', ask: 'Groesster Fehler analog Klasse 1,5, Endwert 300 V', unit: 'V', value: 4.5, tol: 0.05 }
+    ]
+  });
 
   var err = { parts: [{ id: 'B1', type: 'battery', value: 9, x: 160, y: 300, rot: 0 }, { id: 'S1', type: 'switch', x: 320, y: 200, rot: 0, props: { closed: false } }, R('R1', 10, 480, 300, 90, { pmax: 10 }),
     { id: 'S2', type: 'switch', x: 320, y: 420, rot: 0, props: { closed: false } }, R('R3', 10e6, 620, 220, 90), R('R2', 10e6, 620, 380, 90)],
     wires: [W('B1.p', 'S1.a'), W('S1.b', 'R1.a'), W('R1.b', 'B1.n'), W('B1.p', 'S2.a'), W('S2.b', 'R3.a'), W('R3.b', 'R2.a'), W('R2.b', 'B1.n')] };
+  defTask({
+    id: '16.2', ch: 16, title: 'Spannungs- und Strommessfehler', tags: ['messen.systemfehler', 'messen.spannung', 'messen.strom'], measureUX: DRAG,
+    story: 'Zwei Schaltungen, ein Multimeter: ein kleiner Widerstand (10 Ω) und ein hochohmiger Spannungsteiler (2 × 10 MΩ). Wo faelscht das Messgeraet, und wie stark?',
+    brief: 'Schliesse <b>S1</b> (Zweig mit R1 = 10 Ω): miss die Spannung an R1 und den Strom durch R1 (Leitung auftrennen, Amperemeter in Reihe, Bereich 10 A). Oeffne S1, schliesse <b>S2</b> (Teiler R3–R2, je 10 MΩ): miss die Spannung an R2. Berechne fuer beide Zweige die Werte <b>ohne</b> Messfehler (an R2 liegt rechnerisch die Haelfte von 9 V) und die Abweichung in Prozent bei R2.',
+    learn: 'Das Voltmeter (10 MΩ) belastet hochohmige Schaltungen, der Amperemeter-Shunt (0,1 Ω) stoert niederohmige.',
+    take: 'Bei 10 Ω stimmt die Spannung, der Shunt kostet 1 % Strom. Im 10-MΩ-Teiler zeigt das Voltmeter statt 4,5 V nur 3 V – 33 % Fehler, weil es selbst 10 MΩ hat. Spannungsrichtig fuer kleine, stromrichtig fuer grosse Widerstaende.',
+    hint: 'Schalter auf der Werkbank anklicken. Spitzen an R1.a/R1.b bzw. R2.a/R2.b ziehen, Bereich 20 V.',
+    hint2: 'R2 (10 MΩ) parallel zum Voltmeter (10 MΩ) ergibt 5 MΩ; der Teiler wird 10 MΩ : 5 MΩ – an R2 liegen nur noch 3 V statt 4,5 V. Abweichung: (4,5 − 3) / 4,5 = 33 %.',
+    palette: [], start: err, ref: err,
+    bench: { parts: [{ id: 'B1', x: 220, y: 470 }, { id: 'S1', x: 450, y: 230 }, { id: 'R1', x: 680, y: 230, rot: 0 }, { id: 'S2', x: 450, y: 640 }, { id: 'R3', x: 640, y: 640, rot: 0 }, { id: 'R2', x: 820, y: 640, rot: 0 }] },
+    tests: [{ name: 'R1 am Netz', set: { S1: { closed: true }, S2: { closed: false } }, expect: [{ sel: 'R1', i: [0.88, 0.91] }, { noFault: true }] },
+      { name: 'Teiler am Netz', set: { S1: { closed: false }, S2: { closed: true } }, expect: [{ sel: 'R2', v: [4.4, 4.6] }, { noFault: true }] }],
+    measure: [
+      { id: 'u1', ask: 'Spannung an R1 (S1 zu)', unit: 'V', mode: 'V', a: 'R1.a', b: 'R1.b', set: { S1: { closed: true }, S2: { closed: false } }, tol: 0.03 },
+      { id: 'i1', ask: 'Strom durch R1 (S1 zu, Amperemeter in Reihe)', unit: 'mA', mode: 'A', a: 'R1.a', b: 'R1.b', truth: { sel: 'R1', q: 'i' }, set: { S1: { closed: true }, S2: { closed: false } }, tol: 0.04 },
+      { id: 'i1c', ask: 'Strom durch R1 ohne Messfehler (berechnet)', unit: 'mA', value: 9 / 10.05, tol: 0.03 },
+      { id: 'u2', ask: 'Spannung an R2 angezeigt (S2 zu)', unit: 'V', mode: 'V', a: 'R2.a', b: 'R2.b', set: { S1: { closed: false }, S2: { closed: true } }, tol: 0.03 },
+      { id: 'u2c', ask: 'Spannung an R2 ohne Messfehler (berechnet)', unit: 'V', value: 4.5, tol: 0.02 },
+      { id: 'dev', ask: 'Abweichung an R2 in Prozent', unit: '%', value: 100 / 3, tol: 0.06 }
+    ]
+  });
 
   var wave = { parts: [gen(), R('R1', 1000, 440, 300, 90)], wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] };
   var bWave = { parts: [bG1, { id: 'R1', x: 660, y: 450, rot: 90 }] };
@@ -126,6 +166,22 @@
     if (q === 'avg' || q === 'rms') { m.mode = 'VAC'; m.meterType = q === 'avg' ? 'avg' : 'trms'; } else { m.mode = 'AC'; m.q = q; }
     return m;
   };
+  defTask({
+    id: '16.3', ch: 16, title: 'Kurvenformen im Instrumentenvergleich', tags: ['messen.trms', 'elektro.effektivwert', 'messen.oszilloskop'], measureUX: DRAG,
+    story: 'Dieselbe Spannung, drei Geraete, drei Kurvenformen: Fuell die Vergleichstabelle aus dem Lehrgang – mit echten Messungen.',
+    brief: 'Der Generator liefert Û = 10 V, 50 Hz. Miss an R1 fuer <b>Sinus, Rechteck und Dreieck</b> (Kurvenform im Eigenschaften-Panel umstellen): die Anzeige eines <b>AVG-Multimeters</b> (V~, Verfahren AVG), eines <b>TRMS-Multimeters</b> (V~, TRMS) und den <b>Scheitelwert</b> mit dem Oszilloskop (Tastkopf an R1). Bereich 20 V.',
+    learn: 'AVG stimmt nur beim Sinus; TRMS und Oszilloskop zeigen bei jeder Kurvenform das Richtige.',
+    take: 'Rechteck: AVG 11,1 V statt 10 V (+11 %). Dreieck: AVG 5,55 V statt 5,77 V (−4 %). Sinus: beide 7,07 V.',
+    hint: 'V~ waehlen, unter dem Panel zwischen „Mittelwert (AVG)“ und „Echt-Effektivwert (TRMS)“ umschalten. Fuer Û den Tastkopf ziehen und RUN druecken.',
+    hint2: 'Sinus 7,07 V · Rechteck TRMS 10 V, AVG 11,1 V · Dreieck TRMS 5,77 V, AVG 5,55 V. Û ist immer 10 V.',
+    palette: [], start: wave, ref: wave, bench: bWave,
+    tests: [{ name: 'Anlage', expect: [{ a: 'R1.a', b: 'R1.b', ac: 'peak', range: [9.8, 10.2] }, { noFault: true }] }],
+    measure: [
+      M('s_avg', 'Sinus: AVG-Geraet (V~ AVG)', 'avg', 'sine'), M('s_rms', 'Sinus: TRMS-Geraet (V~ TRMS)', 'rms', 'sine'), M('s_pk', 'Sinus: Û am Oszilloskop', 'peak', 'sine'),
+      M('q_avg', 'Rechteck: AVG-Geraet', 'avg', 'square'), M('q_rms', 'Rechteck: TRMS-Geraet', 'rms', 'square'), M('q_pk', 'Rechteck: Û am Oszilloskop', 'peak', 'square'),
+      M('t_avg', 'Dreieck: AVG-Geraet', 'avg', 'triangle'), M('t_rms', 'Dreieck: TRMS-Geraet', 'rms', 'triangle'), M('t_pk', 'Dreieck: Û am Oszilloskop', 'peak', 'triangle')
+    ]
+  });
 
   /* ================= Theorie B – Sinnbilder und Messkategorien ================= */
   defTheory({
@@ -166,9 +222,42 @@
   /* ================= Aufgaben 4–5 ================= */
   var mixL = { parts: [gen({ offset: 3 }, 5), R('R1', 1000, 440, 300, 90)], wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] };
   var rmsSine = 5 / Math.SQRT2, rmsSq = 5;
+  defTask({
+    id: '16.4', ch: 16, title: 'Wechselgroesse mit Gleichanteil', tags: ['messen.trms', 'elektro.mittelwert', 'elektro.effektivwert'], measureUX: DRAG,
+    story: 'Aus einem Sensorverstaerker kommt ein Sinus, der auf einem Gleichanteil reitet. Welches Geraet zeigt hier was?',
+    brief: 'Der Generator liefert Û = 5 V mit <b>3 V Gleichanteil</b>. Miss an R1 mit <b>V⎓</b> (zeigt den Gleichanteil), <b>V~ AVG</b> und <b>V~ TRMS</b> (Wechselanteil) und lies am Oszilloskop den <b>hoechsten Wert</b> ab. Berechne den <b>gesamten Effektivwert</b> √(U<sub>DC</sub>² + U<sub>AC</sub>²) – das zeigt nur ein TRMS-Geraet mit AC+DC-Kopplung. Stell danach auf <b>Rechteck</b> um und miss den TRMS-Wechselanteil erneut.',
+    learn: 'V~ ist AC-gekoppelt: Der Gleichanteil faellt weg. Nur TRMS mit AC+DC zeigt den wahren Effektivwert einer Mischgroesse.',
+    take: 'Sinus + 3 V: U_DC = 3 V, U_AC = 3,54 V → U_ges = 4,64 V. AVG und TRMS stimmen beim Sinus noch ueberein; beim Rechteck zeigt AVG wieder zu viel.',
+    hint: 'V⎓ mit Bereich 20 V zeigt bei schneller Wechselspannung den Mittelwert. Fuer Û den Tastkopf ziehen und RUN.',
+    hint2: 'Hoechster Wert = 3 V + 5 V = 8 V. U_ges = √(3² + 3,54²) V = 4,64 V. Rechteck TRMS = 5 V (Û).',
+    palette: [], start: mixL, ref: mixL, bench: bWave,
+    tests: [{ name: 'Anlage', expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [2.9, 3.1] }, { noFault: true }] }],
+    measure: [
+      { id: 'udc', ask: 'Gleichanteil U_DC (V⎓)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      M('avg', 'Wechselanteil AVG-Geraet (V~ AVG)', 'avg', 'sine', { offset: 3 }), M('rms', 'Wechselanteil TRMS-Geraet (V~ TRMS)', 'rms', 'sine', { offset: 3 }),
+      { id: 'pk', ask: 'Hoechster Wert am Oszilloskop', unit: 'V', mode: 'AC', q: 'peak', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'ges', ask: 'Gesamter Effektivwert (berechnet)', unit: 'V', value: Math.sqrt(9 + rmsSine * rmsSine), tol: 0.03 },
+      M('q_rms', 'Rechteck + 3 V: Wechselanteil TRMS', 'rms', 'square', { offset: 3 })
+    ]
+  });
 
   var lp = { parts: [gen(), R('R1', 10000, 320, 200, 0), { id: 'C1', type: 'capacitor', value: 100e-9, x: 480, y: 300, rot: 90 }], wires: [W('G1.p', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'G1.n')] };
   var F = function (id, f) { return { id: id, ask: 'U_a TRMS bei ' + (f >= 1000 ? f / 1000 + ' kHz' : f + ' Hz'), unit: 'V', mode: 'VAC', meterType: 'trms', a: 'C1.a', b: 'C1.b', tol: 0.05, set: { G1: { freq: f } } }; };
+  defTask({
+    id: '16.5', ch: 16, title: 'Frequenz erhoehen', tags: ['elektro.frequenz', 'elektro.filter', 'messen.oszilloskop'], measureUX: DRAG,
+    story: 'Wie weit kannst du die Frequenz drehen, bis die Geraete nichts Sinnvolles mehr zeigen?',
+    brief: 'Am RC-Glied (R1 = 10 kΩ, C1 = 100 nF, f<sub>g</sub> ≈ 159 Hz) miss die Ausgangsspannung an C1 mit <b>V~ TRMS</b> bei <b>50 Hz, 159 Hz, 1 kHz und 10 kHz</b> (Frequenz am Generator umstellen). Lies bei 1 kHz zusaetzlich den <b>Scheitelwert</b> am Oszilloskop ab (Zeitbasis 5 ms). Was zeigt <b>V⎓</b> bei jeder Frequenz?',
+    learn: 'Ein Multimeter mittelt ueber viele Perioden – der Gleichanteil bleibt 0, der Wechselanteil folgt dem Frequenzgang. Das Oszilloskop zeigt den Verlauf bis in den MHz-Bereich.',
+    take: 'Mit steigender Frequenz sinkt U_a am Tiefpass: 50 Hz ≈ 6,7 V, f_g ≈ 5 V, 1 kHz ≈ 1,1 V, 10 kHz ≈ 0,11 V. Reale Multimeter sind meist nur bis 1 kHz (AVG) bzw. einige kHz (TRMS) spezifiziert – darueber hilft nur das Oszilloskop.',
+    hint: 'Frequenz im Eigenschaften-Panel von G1 eintippen (z. B. 1k). Spitzen an C1.a und C1.b, Bereich 20 V; bei 10 kHz auf 2 V wechseln.',
+    hint2: 'U_a = U_e / √(1 + (f/f_g)²) mit U_e = 7,07 V. Bei 10 kHz sind es rund 112 mV – im 20-V-Bereich nur noch 0,11 V, im 2-V-Bereich 0,112 V.',
+    palette: [], start: lp, ref: lp,
+    bench: { parts: [bG1, { id: 'R1', x: 480, y: 260, rot: 0 }, { id: 'C1', x: 700, y: 450, rot: 90 }] },
+    tests: [{ name: 'Tiefpass', expect: [{ a: 'C1.a', b: 'C1.b', ac: 'rms', range: [6.4, 7.0] }, { noFault: true }] }],
+    measure: [F('f50', 50), F('f159', 159), F('f1k', 1000), F('f10k', 10000),
+      { id: 'pk1k', ask: 'Scheitelwert bei 1 kHz (Oszilloskop)', unit: 'V', mode: 'AC', q: 'peak', a: 'C1.a', b: 'C1.b', tol: 0.06, set: { G1: { freq: 1000 } } },
+      { id: 'dc', ask: 'V⎓ bei 1 kHz (Gleichanteil)', unit: 'V', mode: 'AC', q: 'dc', a: 'C1.a', b: 'C1.b', tol: 0.5, abs: 0.05, set: { G1: { freq: 1000 } } }]
+  });
 
   /* ================= Theorie C – Genauigkeit vertieft ================= */
   var pMeas = { parts: [{ id: 'B1', type: 'battery', value: 12, x: 160, y: 300 }, { id: 'A1', type: 'ammeter', x: 320, y: 200 }, R('R1', 1000, 480, 300, 90)], wires: [W('B1.p', 'A1.a'), W('A1.b', 'R1.a'), W('R1.b', 'B1.n')] };
@@ -213,20 +302,70 @@
   /* ================= Aufgaben 6–8 ================= */
   var half = { parts: [gen(), d('V1', 280, 200, 0), R('R1', 1000, 460, 300, 90)], wires: [W('G1.p', 'V1.a'), W('V1.k', 'R1.a'), W('R1.b', 'G1.n')] };
   var bHalf = { parts: [bG1, { id: 'V1', x: 480, y: 260, rot: 0 }, { id: 'R1', x: 700, y: 450, rot: 90 }] };
+  defTask({
+    id: '16.6', ch: 16, title: 'Einweggleichrichter – Instrumentenvergleich', tags: ['elektro.gleichrichter', 'messen.trms', 'elektro.mittelwert'], measureUX: DRAG,
+    story: 'Die Gleichrichterschaltung aus Kapitel 3 – jetzt mit der Frage: Welches Geraet zeigt hier was, und was ist der wahre Effektivwert?',
+    brief: 'Miss an R1 (Einweggleichrichter, Û = 10 V): <b>V⎓</b> (Gleichanteil), <b>V~ AVG</b> und <b>V~ TRMS</b> (Wechselanteil) sowie den <b>Scheitelwert</b> mit dem Oszilloskop. Berechne den <b>gesamten Effektivwert</b> √(U<sub>DC</sub>² + U<sub>AC</sub>²). Bereich 20 V.',
+    learn: 'Eine gleichgerichtete Spannung ist eine Mischgroesse: Gleichanteil plus kraeftiger Wechselanteil.',
+    take: 'U_DC ≈ 2,8 V, U_AC (TRMS) ≈ 3,6 V, Û ≈ 9,3 V; U_ges ≈ 4,6 V. AVG und TRMS liegen hier zufaellig nahe beieinander (3,58 V zu 3,56 V) – der Formfaktor der Einweg-Halbwelle ist fast der des Sinus; beim Rechteck wuerde AVG daneben liegen.',
+    hint: 'Alle Messungen an R1.a (rot/Tastkopf) gegen R1.b (schwarz/Erdungsclip).',
+    hint2: 'Wechselanteil der Einweg-Halbwelle: TRMS ≈ 3,56 V, AVG-Geraet ≈ 3,58 V. Gesamt: √(2,84² + 3,56²) ≈ 4,55 V.',
+    palette: [], start: half, ref: half, bench: bHalf,
+    tests: [{ name: 'gleichgerichtet', expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [2.6, 3.1] }, { noFault: true }] }],
+    measure: [
+      { id: 'dc', ask: 'Gleichanteil (V⎓)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.04 },
+      { id: 'avg', ask: 'Wechselanteil AVG-Geraet (V~ AVG)', unit: 'V', mode: 'VAC', meterType: 'avg', a: 'R1.a', b: 'R1.b', tol: 0.04 },
+      { id: 'rms', ask: 'Wechselanteil TRMS-Geraet (V~ TRMS)', unit: 'V', mode: 'VAC', meterType: 'trms', a: 'R1.a', b: 'R1.b', tol: 0.04 },
+      { id: 'pk', ask: 'Scheitelwert (Oszilloskop)', unit: 'V', mode: 'AC', q: 'peak', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'ges', ask: 'Gesamter Effektivwert (berechnet)', unit: 'V', value: 'rms2', tol: 0.05 }
+    ]
+  });
 
   var bridgeC = { parts: [gen(), d('V1', 280, 200, 0), d('V2', 280, 400, 0), d('V3', 540, 200, 180), d('V4', 540, 400, 180), R('R1', 1000, 640, 300, 90),
     { id: 'S1', type: 'switch', x: 760, y: 200, rot: 0, props: { closed: false } }, { id: 'C1', type: 'capacitor', value: 10e-6, x: 840, y: 300, rot: 90 }],
     wires: [W('G1.p', 'V1.a'), W('G1.p', 'V3.k'), W('G1.n', 'V2.a'), W('G1.n', 'V4.k'), W('V1.k', 'R1.a'), W('V2.k', 'R1.a'), W('V3.a', 'R1.b'), W('V4.a', 'R1.b'), W('R1.a', 'S1.a'), W('S1.b', 'C1.a'), W('C1.b', 'R1.b')] };
   var bBridge = { parts: [bG1, { id: 'V1', x: 430, y: 250, rot: 0 }, { id: 'V2', x: 430, y: 640, rot: 0 }, { id: 'V3', x: 600, y: 250, rot: 180 }, { id: 'V4', x: 600, y: 640, rot: 180 }, { id: 'R1', x: 730, y: 450, rot: 90 }, { id: 'S1', x: 850, y: 250, rot: 0 }, { id: 'C1', x: 850, y: 450, rot: 90 }] };
   var B = function (id, ask, q, withC, tol) { var m = { id: id, ask: ask, unit: 'V', a: 'R1.a', b: 'R1.b', tol: tol || 0.05, set: { S1: { closed: !!withC } } }; if (q === 'rms') { m.mode = 'VAC'; m.meterType = 'trms'; } else { m.mode = 'AC'; m.q = q; } return m; };
+  defTask({
+    id: '16.7', ch: 16, title: 'Brueckengleichrichter mit und ohne Ladekondensator', tags: ['elektro.gleichrichter', 'elektro.kondensator', 'messen.trms'], measureUX: DRAG,
+    story: 'Erst die nackte Bruecke, dann mit Ladekondensator: Die Zahlen auf den Geraeten veraendern sich drastisch.',
+    brief: 'Miss an R1 <b>ohne</b> Kondensator (S1 offen) und <b>mit</b> Kondensator (S1 geschlossen): jeweils <b>V⎓</b> (Gleichanteil), <b>V~ TRMS</b> (Restwelligkeit) und den <b>Scheitelwert</b> am Oszilloskop (Zeitbasis 50 ms). Bereich 20 V.',
+    learn: 'Der Ladekondensator hebt den Gleichanteil Richtung Scheitelwert und drueckt die Restwelligkeit.',
+    take: 'Ohne C: U_DC ≈ 5,0 V, U_AC ≈ 3,0 V, Û ≈ 8,6 V. Mit C (10 µF an 1 kΩ, τ = 10 ms): U_DC ≈ 6,7 V, U_AC nur noch ≈ 1,3 V – ein groesserer Kondensator wuerde den Gleichanteil weiter Richtung Û heben.',
+    hint: 'S1 auf der Werkbank anklicken. Tastkopf an R1.a, Erdungsclip an R1.b.',
+    hint2: 'Mit Kondensator sieht das Oszilloskop eine Saegezahn-Welligkeit oben am Scheitelwert – das ist die Restwelligkeit, die V~ TRMS misst.',
+    palette: [], start: bridgeC, ref: bridgeC, bench: bBridge,
+    tests: [{ name: 'ohne C', set: { S1: { closed: false } }, expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [4.9, 5.9] }, { noFault: true }] },
+      { name: 'mit C', set: { S1: { closed: true } }, expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [6.2, 8.6] }, { noFault: true }] }],
+    measure: [B('dc0', 'Ohne C: Gleichanteil (V⎓)', 'dc', false), B('ac0', 'Ohne C: Restwelligkeit (V~ TRMS)', 'rms', false), B('pk0', 'Ohne C: Scheitelwert (Oszilloskop)', 'peak', false, 0.04),
+      B('dc1', 'Mit C: Gleichanteil (V⎓)', 'dc', true), B('ac1', 'Mit C: Restwelligkeit (V~ TRMS)', 'rms', true, 0.08), B('pk1', 'Mit C: Scheitelwert (Oszilloskop)', 'peak', true, 0.04)]
+  });
 
   var shunt = { parts: [gen(), d('V1', 280, 200, 0), d('V2', 280, 400, 0), d('V3', 540, 200, 180), d('V4', 540, 400, 180), R('R1', 1000, 640, 260, 90), R('R2', 10, 640, 400, 90)],
     wires: [W('G1.p', 'V1.a'), W('G1.p', 'V3.k'), W('G1.n', 'V2.a'), W('G1.n', 'V4.k'), W('V1.k', 'R1.a'), W('V2.k', 'R1.a'), W('R1.b', 'R2.a'), W('V3.a', 'R2.b'), W('V4.a', 'R2.b')] };
   var bShunt = { parts: [bG1, { id: 'V1', x: 450, y: 250, rot: 0 }, { id: 'V2', x: 450, y: 640, rot: 0 }, { id: 'V3', x: 640, y: 250, rot: 180 }, { id: 'V4', x: 640, y: 640, rot: 180 }, { id: 'R1', x: 800, y: 340, rot: 90 }, { id: 'R2', x: 800, y: 560, rot: 90 }] };
+  defTask({
+    id: '16.8', ch: 16, title: 'Strommessung am Gleichrichter', tags: ['messen.strom', 'messen.systemfehler', 'elektro.gleichrichter'], measureUX: DRAG,
+    story: 'Wie misst man den pulsierenden Strom hinter dem Gleichrichter? Mit einem Mess-Shunt – so, wie es das Amperemeter innen auch macht.',
+    brief: 'In Reihe zur Last R1 (1 kΩ) liegt der <b>Mess-Shunt R2 = 10 Ω</b>. Miss an R2 den <b>Gleichanteil</b> (V⎓) und den <b>Wechselanteil</b> (V~ TRMS) und rechne beide mit I = U / 10 Ω in Stroeme um. Bestimme mit dem Oszilloskop den <b>Spitzenstrom</b>. Berechne den <b>Systemfehler</b>: Um wie viel Prozent verkleinert der Shunt den Laststrom gegenueber der Schaltung ohne Shunt?',
+    learn: 'Strommessung = Spannungsmessung an einem kleinen bekannten Widerstand. Der Shunt selbst ist ein Systemfehler.',
+    take: 'U_DC am Shunt ≈ 50 mV → I_DC ≈ 5,0 mA; Spitzenstrom ≈ 8,5 mA. 10 Ω zu 1 kΩ: der Strom sinkt um rund 1 % – der Eigenverbrauch des Amperemeters (0,1 Ω) waere nur 0,01 %.',
+    hint: 'Spitzen an R2.a (rot) und R2.b (schwarz), Bereich 200 mV fuer den Gleichanteil. Die Frage nach dem Systemfehler: Widerstand mit / ohne Shunt vergleichen.',
+    hint2: 'I_DC = 50 mV / 10 Ω = 5,0 mA. Systemfehler = 10 Ω / (1000 Ω + 10 Ω) ≈ 0,99 %.',
+    palette: [], start: shunt, ref: shunt, bench: bShunt,
+    tests: [{ name: 'Bruecke', expect: [{ a: 'R2.a', b: 'R2.b', ac: 'dc', range: [0.045, 0.062] }, { noFault: true }] }],
+    measure: [
+      { id: 'udc', ask: 'Gleichanteil am Shunt R2 (V⎓, Bereich 200 mV)', unit: 'mV', mode: 'AC', q: 'dc', a: 'R2.a', b: 'R2.b', tol: 0.05 },
+      { id: 'idc', ask: 'Gleichanteil des Stroms I = U / 10 Ω (berechnet)', unit: 'mA', value: 'idc', tol: 0.06 },
+      { id: 'uac', ask: 'Wechselanteil am Shunt (V~ TRMS)', unit: 'mV', mode: 'VAC', meterType: 'trms', a: 'R2.a', b: 'R2.b', tol: 0.06 },
+      { id: 'ipk', ask: 'Spitzenstrom aus dem Scheitelwert am Shunt (berechnet)', unit: 'mA', value: 'ipk', tol: 0.06 },
+      { id: 'sys', ask: 'Systemfehler durch den Shunt (Strom um … % kleiner)', unit: '%', value: 100 * 10 / 1010, tol: 0.08 }
+    ]
+  });
 
   /* Rechenwerte, die von der Simulation abhaengen: einmal beim Laden aus der Engine holen (gleiche Zahlen wie die Messungen) */
   var ROOT = typeof window !== "undefined" ? window : globalThis, E = ROOT.DQEngine, DQR = ROOT.DQ;
-  if (E && E.acMeasure && DQR.byId['16.6']) {
+  if (E && E.acMeasure) {
     var h = E.acMeasure(half, { a: 'R1.a', b: 'R1.b' }), s = E.acMeasure(shunt, { a: 'R2.a', b: 'R2.b' });
     DQR.byId["16.6"].measure.forEach(function (m) { if (m.value === 'rms2') m.value = Math.sqrt(h.dc * h.dc + h.rms * h.rms); });
     DQR.byId["16.8"].measure.forEach(function (m) { if (m.value === 'idc') m.value = s.dc / 10; if (m.value === 'ipk') m.value = s.peak / 10; });

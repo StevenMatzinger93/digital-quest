@@ -311,7 +311,7 @@
     [['a', 'probe-red', '+'], ['b', 'probe-black', 'COM']].forEach(function (k) {
       var pid = self.probes[k[0]]; if (!pid || !byId[pid.split('.')[0]]) return;
       var xy = pp(pid);
-      h.push('<g class="probe ' + k[1] + '"><path d="M' + xy[0] + ' ' + xy[1] + 'l14 -30"/><circle cx="' + (xy[0] + 14) + '" cy="' + (xy[1] - 36) + '" r="9"/><text x="' + (xy[0] + 14) + '" y="' + (xy[1] - 32) + '">' + (k[0] === 'a' ? '+' : '−') + '</text></g>');
+      h.push('<g class="probe ' + k[1] + '" pointer-events="none"><path d="M' + xy[0] + ' ' + xy[1] + 'l14 -30"/><circle cx="' + (xy[0] + 14) + '" cy="' + (xy[1] - 36) + '" r="9"/><text x="' + (xy[0] + 14) + '" y="' + (xy[1] - 32) + '">' + (k[0] === 'a' ? '+' : '−') + '</text></g>');
     });
     this.svg.innerHTML = h.join('');
     if (root.DQBench) root.DQBench.prototype._animSetup.call(this); // Stromfluss-Punkte wie auf der Werkbank
