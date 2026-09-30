@@ -374,6 +374,24 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await octx.close();
   }
 
+  // Messwerk-Animation in T16A: Vorhersage-Frage schaltet das Widget frei, Regler bewegt die Zeiger (linear vs. quadratisch)
+  {
+    const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('Messwerk: ' + e.message));
+    await tp.goto(url, { waitUntil: 'domcontentloaded' }); await tp.evaluate(() => DigitalQuest.openItem('T16A')); await tp.waitForSelector('.visual-meterwork');
+    if (!await tp.$eval('.visual-meterwork .mw', e => e.hidden)) errors.push('Messwerk: Widget schon vor der Vorhersage sichtbar');
+    await tp.click('.visual-meterwork [data-mwp="0"]'); await tp.waitForTimeout(100);
+    if (!/Nicht ganz/.test(await tp.textContent('.visual-meterwork .mw-expl')) || await tp.$eval('.visual-meterwork .mw', e => e.hidden)) errors.push('Messwerk: Vorhersage-Antwort schaltet das Widget nicht frei');
+    const ang = async () => tp.$$eval('.visual-meterwork .mw-needle', l => l.map(n => parseFloat(n.getAttribute('transform').slice(7))));
+    await tp.selectOption('.visual-meterwork [data-mw="signal"]', 'dc'); await tp.$eval('.visual-meterwork [data-mw="amp"]', e => { e.value = '1'; e.dispatchEvent(new Event('input')); }); await tp.waitForTimeout(2500);
+    const a1 = await ang();
+    await tp.$eval('.visual-meterwork [data-mw="amp"]', e => { e.value = '0.5'; e.dispatchEvent(new Event('input')); }); await tp.waitForTimeout(2500);
+    const a2 = await ang();
+    if (!(a1[0] > 35 && a1[1] > 35)) errors.push('Messwerk: Vollausschlag nicht erreicht: ' + a1.join('/'));
+    if (!(a2[0] < a1[0] - 30 && a2[1] < a2[0] - 10)) errors.push('Messwerk: halber Strom – Drehspul sollte halb, Dreheisen ein Viertel zeigen: ' + a2.join('/'));
+    await tp.screenshot({ path: shots + '/24_messwerk.png' });
+    await tp.close();
+  }
+
   // Werkbank-Tutorial: ueber die Kopfzeile, Uebungsaufbau mit echter Werkbank bedienen (Spitzen ziehen, Messart, Bereich/OL, Tastkopf, RUN), zurueck zur Karte
   {
     const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('Tutorial: ' + e.message));

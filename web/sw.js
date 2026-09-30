@@ -1,5 +1,5 @@
-// Service Worker: hält Portal und Labor offline verfügbar (Cache-first, Version f3c37546a4)
-const CACHE = 'dquest-f3c37546a4';
+// Service Worker: hält Portal und Labor offline verfügbar (Cache-first, Version e2ebd54b46)
+const CACHE = 'dquest-e2ebd54b46';
 const FILES = ["./","./index.html","./impressum.html","./datenschutz.html","./manifest.webmanifest","./icon.svg","./icon-192.png","./icon-512.png","./data/dq.json","./data/dq_live.json","./labor/","./labor/index.html","./labor/manifest.webmanifest"];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

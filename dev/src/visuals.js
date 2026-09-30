@@ -5,6 +5,8 @@
  *   kmap         KV-Diagramm (Phase C)
  *   bode         Frequenzgang (Phase D)
  *   block        Blockbild als fertiges Inline-SVG
+ *   meterwork    Messwerk-Animation: Drehspul (Moment ~ I) und Dreheisen (Moment ~ I²) nebeneinander, Zeiger folgen der
+ *                Drehmoment-Balance mit/ohne Daempfung, Eingang DC oder Kurvenform; davor eine Vorhersage-Frage (predict)
  * Gemeinsam: caption (Bildunterschrift, HTML). Einsetzen in die Lektion: Platzhalter {{visual}} (bzw. {{visual:2}} …),
  * sonst nach dem ersten Absatz. DQVisuals.check(v, E) liefert Fehlertexte fuer den Validator (ohne DOM). */
 (function (root) {
@@ -187,6 +189,107 @@
       if (!Array.isArray(s) || !s.length) return ['numberSteps: steps oder mode noetig'];
       var err = [];
       s.forEach(function (st, k) { if (!st.rows || !st.rows.length) err.push('numberSteps: Schritt ' + (k + 1) + ' ohne rows'); });
+      return err;
+    }
+  });
+
+  /* ---------- meterwork: Messwerk-Animation (Kapitel 16) ----------
+   * {type:'meterwork', imax? (Skalenendwert, Standard 10 mA), predict?: {q, options:[…], correct, explain}, signal? ('dc'|'sine'|'triangle'|'square'), damping? (true)}
+   * Zwei Instrumente nebeneinander: Drehspul (Antriebsmoment k1·I gegen Federmoment D·φ → φ ~ I, lineare Skala) und Dreheisen
+   * (Abstossung ~ I² → φ ~ I², gestauchte Skala). Der Zeiger ist ein gedaempfter Schwinger: J·φ'' = M(I) − D·φ − b·φ' –
+   * ohne Daempfung schwingt er ueber und pendelt aus. Bei Wechselstrom laeuft oben ein Punkt die Kurve entlang (verlangsamt);
+   * das Drehspulwerk hat einen Gleichrichter (Moment ~ |i|, Skala × 1,11 = AVG-Prinzip aus T3B), das Dreheisenwerk zeigt den Effektivwert. */
+  var MW = { rms: { sine: 1 / Math.SQRT2, triangle: 1 / Math.sqrt(3), square: 1, dc: 1 }, avg: { sine: 2 / Math.PI, triangle: 0.5, square: 1, dc: 1 } };
+  function mwWave(shape, ph) { // ph 0..1, Scheitelwert 1
+    if (shape === 'sine') return Math.sin(2 * Math.PI * ph);
+    if (shape === 'square') return ph < 0.5 ? 1 : -1;
+    if (shape === 'triangle') return ph < 0.25 ? 4 * ph : ph < 0.75 ? 2 - 4 * ph : 4 * ph - 4;
+    return 1;
+  }
+  function mwFace(kind, w) { // Skalenbogen 0…Endwert: linear (Drehspul) bzw. quadratisch gestaucht (Dreheisen); Zeiger dreht um (cx, cy)
+    var cx = w / 2, cy = 150, r = 112, ticks = '', labels = '';
+    for (var i = 0; i <= 10; i++) {
+      var x = i / 10, a = (kind === 'iron' ? x * x : x) * 90 - 45, ar = a * Math.PI / 180, big = i % 5 === 0;
+      ticks += 'M' + (cx + Math.sin(ar) * r).toFixed(1) + ' ' + (cy - Math.cos(ar) * r).toFixed(1) + 'L' + (cx + Math.sin(ar) * (r - (big ? 12 : 7))).toFixed(1) + ' ' + (cy - Math.cos(ar) * (r - (big ? 12 : 7))).toFixed(1);
+      if (big) labels += '<text x="' + (cx + Math.sin(ar) * (r - 22)).toFixed(1) + '" y="' + (cy - Math.cos(ar) * (r - 22) + 4).toFixed(1) + '" class="mw-num">' + (i / 10 * 100) + '</text>';
+    }
+    var mech = kind === 'coil'
+      ? '<rect x="' + (cx - 78) + '" y="168" width="34" height="46" rx="4" fill="#c62828" opacity=".85"/><rect x="' + (cx + 44) + '" y="168" width="34" height="46" rx="4" fill="#1e88e5" opacity=".85"/>' +
+        '<text x="' + (cx - 61) + '" y="198" class="mw-pole">N</text><text x="' + (cx + 61) + '" y="198" class="mw-pole">S</text>' +
+        '<circle cx="' + cx + '" cy="191" r="22" fill="#4a5058"/><rect class="mw-coil" x="' + (cx - 16) + '" y="169" width="32" height="44" rx="3" fill="none" stroke="#e0b400" stroke-width="4"/>' +
+        '<text x="' + cx + '" y="232" class="mw-lbl">Dauermagnet · drehbare Spule</text>'
+      : '<rect x="' + (cx - 60) + '" y="166" width="120" height="50" rx="6" fill="none" stroke="#e0b400" stroke-width="5" stroke-dasharray="9 4"/>' +
+        '<rect x="' + (cx - 22) + '" y="174" width="9" height="34" fill="#8d9296"/><rect class="mw-plate" x="' + (cx + 8) + '" y="174" width="9" height="34" fill="#cfd2d4"/>' +
+        '<path class="mw-force" d="M' + (cx - 10) + ' 191h14" stroke="#ff8c00" stroke-width="2"/><text x="' + cx + '" y="232" class="mw-lbl">feste Spule · zwei Eisenplaettchen</text>';
+    return '<svg viewBox="0 0 ' + w + ' 240" class="mw-face" aria-label="' + (kind === 'coil' ? 'Drehspulmesswerk' : 'Dreheisenmesswerk') + '">' +
+      '<path d="M' + (cx + Math.sin(-Math.PI / 4) * r).toFixed(1) + ' ' + (cy - Math.cos(-Math.PI / 4) * r).toFixed(1) + 'A' + r + ' ' + r + ' 0 0 1 ' + (cx + Math.sin(Math.PI / 4) * r).toFixed(1) + ' ' + (cy - Math.cos(Math.PI / 4) * r).toFixed(1) + '" class="mw-arc"/>' +
+      '<path d="' + ticks + '" class="mw-ticks"/>' + labels + mech +
+      '<g class="mw-needle" transform="rotate(-45 ' + cx + ' ' + cy + ')"><path d="M' + cx + ' ' + (cy + 14) + 'L' + cx + ' ' + (cy - r + 4) + '" stroke="#ff3333" stroke-width="2.6" stroke-linecap="round"/><circle cx="' + cx + '" cy="' + cy + '" r="5" fill="#222" stroke="#999"/></g>' +
+      '<text x="' + cx + '" y="' + (cy + 34) + '" class="mw-read"></text></svg>';
+  }
+  register('meterwork', {
+    mount: function (el, v) {
+      var imax = v.imax || 10, w = 320, state = { signal: v.signal || 'dc', damp: v.damping !== false, amp: 0.6, t: 0 }, F = 8; // F: Frequenz der Wechselgroesse (verlangsamt sichtbar)
+      var pred = v.predict;
+      el.innerHTML = (pred ? '<div class="mw-predict"><h4>Vorhersage – erst denken, dann probieren</h4><p>' + pred.q + '</p>' + pred.options.map(function (o, i) { return '<button class="btn small" data-mwp="' + i + '">' + o + '</button>'; }).join('') + '<p class="mw-expl"></p></div>' : '') +
+        '<div class="mw"' + (pred ? ' hidden' : '') + '>' +
+        '<div class="mw-wave"><svg viewBox="0 0 640 70" class="mw-wsvg"><path class="mw-wpath" d=""/><circle class="mw-dot" r="5" cx="0" cy="35"/><text x="6" y="14" class="mw-lbl">Eingangsstrom i(t) – verlangsamt</text></svg></div>' +
+        '<div class="mw-faces"><div><h4>Drehspulmesswerk <span class="dim">M = k₁ · I · (mit Gleichrichter)</span></h4>' + mwFace('coil', w) + '</div><div><h4>Dreheisenmesswerk <span class="dim">M = k₂ · I²</span></h4>' + mwFace('iron', w) + '</div></div>' +
+        '<div class="mw-ctl"><label><span>Strom I</span><input type="range" min="0" max="1" step="0.01" value="' + state.amp + '" data-mw="amp"><b class="mono mw-i"></b></label>' +
+        '<label><span>Eingang</span><select data-mw="signal">' + [['dc', 'Gleichstrom'], ['sine', 'Sinus'], ['triangle', 'Dreieck'], ['square', 'Rechteck']].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === state.signal ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>' +
+        '<label><span>Daempfung</span><select data-mw="damp"><option value="1"' + (state.damp ? ' selected' : '') + '>mit (Wirbelstrom / Luftkammer)</option><option value="0"' + (state.damp ? '' : ' selected') + '>ohne – Zeiger schwingt ueber</option></select></label>' +
+        '<button class="btn small" data-mw="kick" title="Strom kurz wegnehmen und wieder anlegen">Sprung</button></div>' +
+        '<p class="mw-note dim small"></p></div>';
+      var box = el.querySelector('.mw'), faces = el.querySelectorAll('.mw-face'), needles = el.querySelectorAll('.mw-needle'), reads = el.querySelectorAll('.mw-read'), coil = el.querySelector('.mw-coil'), plate = el.querySelector('.mw-plate'), force = el.querySelector('.mw-force');
+      var wpath = el.querySelector('.mw-wpath'), dot = el.querySelector('.mw-dot'), note = el.querySelector('.mw-note'), iOut = el.querySelector('.mw-i');
+      var ph = [0, 0], vel = [0, 0], raf = 0, last = 0, cx = w / 2, cy = 150;
+      if (pred) el.querySelectorAll('[data-mwp]').forEach(function (b) {
+        b.onclick = function () {
+          var i = +b.dataset.mwp, ok = i === pred.correct;
+          el.querySelectorAll('[data-mwp]').forEach(function (x) { x.disabled = true; x.classList.toggle('ok', +x.dataset.mwp === pred.correct); x.classList.toggle('bad', x === b && !ok); });
+          el.querySelector('.mw-expl').innerHTML = (ok ? '✔ Richtig. ' : '✘ Nicht ganz. ') + (pred.explain || '') + ' Jetzt ausprobieren:';
+          box.hidden = false; if (pred.signal) { state.signal = pred.signal; el.querySelector('[data-mw="signal"]').value = pred.signal; } start();
+        };
+      });
+      function current(t) { return state.signal === 'dc' ? state.amp : state.amp * mwWave(state.signal, (t * F) % 1); } // in Anteilen von imax
+      function torque(k, i) { return k === 0 ? Math.abs(i) * (state.signal === 'dc' ? 1 : 1.11) : i * i; } // Drehspul mit Gleichrichter (Skala mit Formfaktor), Dreheisen ~ I²
+      function step(dt) {
+        var sub = 8, h = dt / sub, w0 = 2 * Math.PI * 1.1, z = state.damp ? 0.75 : 0.06;
+        for (var s = 0; s < sub; s++) {
+          state.t += h; var i = current(state.t);
+          for (var k = 0; k < 2; k++) { var acc = w0 * w0 * (torque(k, i) - ph[k]) - 2 * z * w0 * vel[k]; vel[k] += acc * h; ph[k] += vel[k] * h; if (ph[k] < -0.03) { ph[k] = -0.03; vel[k] = 0; } if (ph[k] > 1.12) { ph[k] = 1.12; vel[k] = -vel[k] * 0.3; } }
+        }
+      }
+      function draw() {
+        for (var k = 0; k < 2; k++) needles[k].setAttribute('transform', 'rotate(' + (ph[k] * 90 - 45).toFixed(2) + ' ' + cx + ' ' + cy + ')');
+        var i = current(state.t), Ia = state.amp * imax;
+        var show0 = state.signal === 'dc' ? Ia : Ia * MW.avg[state.signal] * 1.11, show1 = state.signal === 'dc' ? Ia : Ia * MW.rms[state.signal];
+        reads[0].textContent = (state.signal === 'dc' ? 'zeigt ' : 'Anzeige (AVG-Skala) ') + show0.toFixed(2) + ' mA'; reads[1].textContent = (state.signal === 'dc' ? 'zeigt ' : 'Anzeige (Effektivwert) ') + show1.toFixed(2) + ' mA';
+        coil.setAttribute('transform', 'rotate(' + (-ph[0] * 60).toFixed(1) + ' ' + cx + ' 191)'); plate.setAttribute('transform', 'rotate(' + (-ph[1] * 40).toFixed(1) + ' ' + (cx + 12) + ' 174)'); force.setAttribute('opacity', Math.min(1, 0.2 + i * i));
+        iOut.textContent = (state.signal === 'dc' ? 'I = ' : 'Î = ') + Ia.toFixed(1) + ' mA';
+        // Kurve oben: zwei Perioden, Punkt bei der aktuellen Phase
+        var d = '', N = 128; for (var n = 0; n <= N; n++) { var t = n / N * 2, y = 35 - (state.signal === 'dc' ? state.amp : state.amp * mwWave(state.signal, t % 1)) * 28; d += (n ? 'L' : 'M') + (n / N * 640).toFixed(1) + ' ' + y.toFixed(1); }
+        wpath.setAttribute('d', d);
+        var phase = state.signal === 'dc' ? (state.t * 0.5) % 1 : ((state.t * F) % 1) / 2 + (Math.floor(state.t * F) % 2) * 0.5;
+        dot.setAttribute('cx', (phase * 640).toFixed(1)); dot.setAttribute('cy', (35 - i * 28).toFixed(1));
+        note.textContent = state.signal === 'dc' ? 'Gleichstrom: beide Zeiger stehen bei I – das Dreheisenwerk aber auf seiner gestauchten Skala.'
+          : state.signal === 'sine' ? 'Sinus: Drehspul (Gleichrichtwert × 1,11) und Dreheisen (Effektivwert) zeigen gleich viel – der Formfaktor stimmt hier.'
+          : state.signal === 'triangle' ? 'Dreieck: die AVG-Skala zeigt 0,555·Î, der Effektivwert ist 0,577·Î – das Drehspulwerk liegt 4 % zu tief.'
+          : 'Rechteck: die AVG-Skala zeigt 1,11·Î, der Effektivwert ist Î – das Drehspulwerk liegt 11 % zu hoch.';
+      }
+      function loop(now) { if (!el.isConnected || box.hidden) { raf = 0; return; } var dt = Math.min(0.05, (now - last) / 1000); last = now; step(dt); draw(); raf = requestAnimationFrame(loop); }
+      function start() { if (raf) return; last = performance.now(); raf = requestAnimationFrame(loop); }
+      el.querySelector('[data-mw="amp"]').oninput = function () { state.amp = +this.value; draw(); start(); };
+      el.querySelector('[data-mw="signal"]').onchange = function () { state.signal = this.value; draw(); start(); };
+      el.querySelector('[data-mw="damp"]').onchange = function () { state.damp = this.value === '1'; start(); };
+      el.querySelector('[data-mw="kick"]').onclick = function () { var a = state.amp; state.amp = 0; step(0.4); state.amp = a; start(); };
+      draw(); if (!pred) start();
+      return { destroy: function () { if (raf) cancelAnimationFrame(raf); raf = 0; }, get state() { return state; }, get angles() { return ph.slice(); }, answer: function (i) { var b = el.querySelector('[data-mwp="' + i + '"]'); if (b) b.click(); } };
+    },
+    check: function (v) {
+      var err = [];
+      if (v.predict) { var p = v.predict; if (!p.q || !Array.isArray(p.options) || p.options.length < 2) err.push('meterwork: predict braucht q und mindestens 2 options'); if (!(p.correct >= 0 && p.correct < (p.options || []).length)) err.push('meterwork: predict.correct ausserhalb'); }
+      if (v.signal && !MW.rms[v.signal]) err.push('meterwork: signal muss dc, sine, triangle oder square sein');
       return err;
     }
   });
