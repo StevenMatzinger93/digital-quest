@@ -291,6 +291,30 @@
         { text: 'Zweiter Anteil: 1 Digit = eine Stelle der letzten Anzeigeziffer, hier 0,1 V.', rows: [{ label: '1 Digit', cells: ['0,1', 'V'], hl: [0] }] },
         { text: 'Beide Anteile addieren: ±0,175 V. Der wahre Wert liegt zwischen 14,825 V und 15,175 V.', rows: [{ label: 'Fehler gesamt', cells: ['±0,175', 'V'], hl: [0] }, { label: 'Bereich', cells: ['14,825', '…', '15,175', 'V'] }] }
       ] },
+      { type: 'worked', caption: 'Drei Musterbeispiele: Das erste ist vollstaendig vorgerechnet, im zweiten rechnest du einen Schritt selbst, im dritten zwei. Komma oder Punkt, Toleranz 2 %.', examples: [
+        { title: 'Analog, Klasse', given: [{ label: 'Instrument', value: 'Klasse 1,5' }, { label: 'Endwert', value: '300 V' }, { label: 'Zeiger', value: '230 V' }],
+          result: 'Der wahre Wert liegt zwischen 225,5 V und 234,5 V.',
+          steps: [
+            { text: 'Der Klassenfehler bezieht sich auf den <b>Endwert</b>, nicht auf den Zeigerstand.', label: 'absoluter Fehler', expr: '1,5 % · 300 V', value: 4.5, digits: 1, unit: 'V' },
+            { text: 'Wie viel ist das vom abgelesenen Wert? Absoluten Fehler durch den Anzeigewert teilen.', label: 'relativer Fehler', expr: '4,5 V / 230 V', value: 1.96, unit: '%' },
+            { text: 'Unteres und oberes Ende des Bereichs, in dem der wahre Wert liegt.', label: 'Bereich', expr: '230 V ∓ 4,5 V', value: 225.5, digits: 1, unit: 'V … 234,5 V' }
+          ] },
+        { title: 'Digital, % + Digit', given: [{ label: 'Anzeige', value: '12,50 V' }, { label: 'Angabe', value: '±(0,8 % + 2 Digit)' }, { label: 'Bereich', value: '20 V (Aufloesung 0,01 V)' }],
+          result: 'Gesamtfehler ±0,12 V, das sind 0,96 % vom Anzeigewert.',
+          steps: [
+            { text: 'Erster Anteil: Prozent <b>vom Anzeigewert</b>.', label: 'Prozentanteil', expr: '0,8 % · 12,50 V', value: 0.1, unit: 'V' },
+            { text: 'Zweiter Anteil: 2 Digit. Ein Digit ist der Wert der letzten Anzeigestelle – hier 0,01 V.', label: 'Digitanteil', expr: '2 · 0,01 V', value: 0.02, unit: 'V' },
+            { text: 'Jetzt du: Beide Anteile addieren.', label: 'Fehler gesamt', expr: '0,1 V + 0,02 V', value: 0.12, unit: 'V', input: true, help: 'Prozentanteil und Digitanteil zusammenzaehlen.', solution: 'beide Anteile addiert' }
+          ] },
+        { title: 'Systemfehler, stromrichtig', given: [{ label: 'Verbraucher', value: 'R = 10 Ω, I = 1 A' }, { label: 'Amperemeter-Shunt', value: '0,1 Ω' }, { label: 'Voltmeter', value: 'ueber Verbraucher UND Amperemeter' }],
+          result: 'Das Voltmeter zeigt 10,1 V statt 10 V – die Leistung wird um 1 % zu gross bestimmt (10,1 W statt 10 W).',
+          steps: [
+            { text: 'Spannung am Verbraucher selbst (das waere der richtige Wert).', label: 'U am Verbraucher', expr: '10 Ω · 1 A', value: 10, digits: 1, unit: 'V' },
+            { text: 'Jetzt du: Welche Spannung faellt am Shunt des Amperemeters ab? Der ganze Strom fliesst hindurch.', label: 'U am Shunt', expr: '0,1 Ω · 1 A', value: 0.1, unit: 'V', input: true, help: 'Ohmsches Gesetz: U = R · I mit dem Shunt-Widerstand.', solution: 'U = 0,1 Ω · 1 A' },
+            { text: 'Das Voltmeter misst beides zusammen.', label: 'Voltmeter zeigt', expr: '10 V + 0,1 V', value: 10.1, digits: 1, unit: 'V' },
+            { text: 'Jetzt du: Um wie viel Prozent ist die Anzeige zu gross (bezogen auf den wahren Wert)?', label: 'relativer Fehler', expr: '0,1 V / 10 V', value: 1, digits: 1, unit: '%', input: true, help: 'Fehler durch wahren Wert, mal 100.', solution: '0,1 / 10 = 0,01 = 1 %' }
+          ] }
+      ] },
       { type: 'circuit', view: 'bench', caption: 'Werkstatt-Aufbau zum Systemfehler: Das Amperemeter A1 liegt in Reihe; wird die Spannung parallel zu R1 gemessen, fliesst der Voltmeterstrom zusaetzlich durch A1. Zieh an R1 – je groesser R1, desto groesser der Anteil des Voltmeterstroms (10 MΩ).',
         layout: pMeas, bench: { parts: [{ id: 'B1', x: 240, y: 470 }, { id: 'A1', x: 480, y: 280 }, { id: 'R1', x: 720, y: 460, rot: 90 }] },
         sliders: [{ part: 'R1', prop: 'value', label: 'R1', min: 1000, max: 10e6, log: true, unit: 'Ω', round: 2 }],
@@ -309,12 +333,16 @@
       '<ul><li><b>Spannungsrichtig</b> (Voltmeter direkt am Verbraucher, Amperemeter davor): U stimmt, aber das Amperemeter misst den Voltmeterstrom U/10 MΩ mit. Bei 12 V sind das 1,2 µA – bei einem 1-kΩ-Verbraucher (12 mA) egal, bei 10 MΩ (1,2 µA) ein Fehler von 100 %.</li>' +
       '<li><b>Stromrichtig</b> (Amperemeter direkt am Verbraucher, Voltmeter ueber beide): I stimmt, aber das Voltmeter misst den Spannungsabfall am Shunt mit (I · 0,1 Ω). Bei 1 A sind das 0,1 V – bei 10 Ω Verbraucher 1 % Fehler.</li></ul>' +
       '<p>Faustregel: <b>kleine Widerstaende spannungsrichtig, grosse Widerstaende stromrichtig</b> messen – oder den Eigenverbrauch herausrechnen.</p>' +
-      '{{visual:2}}',
+      '<h3>Rechne mit</h3><p>Drei Beispiele in steigender Selbststaendigkeit: Zuerst schaust du zu, dann rechnest du einen Schritt, dann zwei. Das Rechenfeld akzeptiert Komma oder Punkt; der Taschenrechner in der Kopfzeile hilft.</p>' +
+      '{{visual:2}}' +
+      '<p><b>Grenzfall unten an der Skala.</b> Der absolute Klassenfehler bleibt ueber die ganze Skala gleich – am unteren Skalenende wird er deshalb relativ riesig: Ein Amperemeter der Klasse 2,5 mit Endwert 100 mA hat immer ±2,5 mA Fehler. Zeigt es 4 mA, sind das ±62,5 % – der Messwert ist praktisch wertlos. Bei 80 mA sind es nur ±3,1 %. Darum: Messbereich wechseln, sobald der Zeiger im unteren Drittel steht.</p>' +
+      '{{visual:3}}',
     questions: [
       { q: 'Analoges Voltmeter, Klasse 1,5, Endwert 300 V, Zeiger bei 230 V. Groesster Fehler?', options: ['±1,15 V', '±3,45 V', '±4,5 V', '±15 V'], correct: 2, explain: '1,5 % vom Endwert 300 V = 4,5 V – unabhaengig vom Anzeigewert.' },
       { q: 'Digitales Voltmeter, Anzeige 230,0 V, ±(0,5 % + 1 Digit). Groesster Fehler?', options: ['±1,15 V', '±1,25 V', '±2,3 V', '±0,1 V'], correct: 1, explain: '0,5 % von 230 V = 1,15 V, dazu 1 Digit = 0,1 V → 1,25 V.' },
       { q: 'Warum soll der Zeiger eines analogen Instruments im oberen Drittel stehen?', options: ['Weil die Skala dort feiner ist', 'Weil der Klassenfehler absolut gleich bleibt und relativ kleiner wird', 'Weil das Messwerk sonst zu warm wird', 'Weil unten der Gleichrichter nicht arbeitet'], correct: 1, explain: '±0,1 V sind bei 15 V nur 0,67 %, bei 2 V aber 5 %.' },
       { q: 'Welche Rolle spielt der Messbereich beim Digit-Fehler?', options: ['Keine', 'Im kleineren Bereich ist 1 Digit weniger wert – der Fehler sinkt', 'Im kleineren Bereich ist der Fehler groesser', 'Der Digit-Fehler gilt nur bei AUTO'], correct: 1, explain: '20-V-Bereich: 1 Digit = 0,01 V; 600-V-Bereich: 1 Digit = 0,1 V.' },
+      { q: 'Analoges Amperemeter, Klasse 2,5, Endwert 100 mA, Zeiger bei 4 mA. Wie gross ist der relative Fehler der Ablesung?', options: ['±2,5 %', '±6,25 %', '±62,5 %', '±0,1 %'], correct: 2, explain: 'Absoluter Fehler 2,5 % · 100 mA = ±2,5 mA, bezogen auf 4 mA sind das ±62,5 %. Am unteren Skalenende ist ein analoges Instrument fast unbrauchbar – Bereich wechseln.' },
       { q: 'Spannungsrichtige Leistungsmessung an 10 MΩ mit einem 10-MΩ-Voltmeter: Was misst das Amperemeter?', options: ['Nur den Verbraucherstrom', 'Den doppelten Verbraucherstrom (Voltmeterstrom kommt dazu)', 'Nichts', 'Den Strom des Shunts'], correct: 1, explain: 'Voltmeter und Verbraucher sind gleich gross – beide Stroeme sind gleich, das Amperemeter zeigt das Doppelte.' }
     ]
   });

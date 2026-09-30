@@ -5,6 +5,8 @@
  *   kmap         KV-Diagramm (Phase C)
  *   bode         Frequenzgang (Phase D)
  *   block        Blockbild als fertiges Inline-SVG
+ *   worked       Musterbeispiele mit Fading: Beispiel 1 vollstaendig vorgerechnet, Beispiel 2 mit einem, Beispiel 3 mit
+ *                zwei Eingabeschritten – die Eingabe wird gegen den vorgerechneten Wert geprueft (Toleranz), Loesung nach 2 Fehlversuchen
  *   meterwork    Messwerk-Animation: Drehspul (Moment ~ I) und Dreheisen (Moment ~ I²) nebeneinander, Zeiger folgen der
  *                Drehmoment-Balance mit/ohne Daempfung, Eingang DC oder Kurvenform; davor eine Vorhersage-Frage (predict)
  * Gemeinsam: caption (Bildunterschrift, HTML). Einsetzen in die Lektion: Platzhalter {{visual}} (bzw. {{visual:2}} …),
@@ -189,6 +191,63 @@
       if (!Array.isArray(s) || !s.length) return ['numberSteps: steps oder mode noetig'];
       var err = [];
       s.forEach(function (st, k) { if (!st.rows || !st.rows.length) err.push('numberSteps: Schritt ' + (k + 1) + ' ohne rows'); });
+      return err;
+    }
+  });
+
+  /* ---------- worked: Musterbeispiele mit Fading (Kapitel 16) ----------
+   * {type:'worked', examples:[{title, given:[{label, value}], steps:[{text, label, expr?, value (Zahl), unit, digits?, tol? (relativ, Standard 2 %), input? (true = Lernende rechnen selbst)}]}]}
+   * Schritte erscheinen nacheinander („Naechster Schritt“). Eingabeschritte zeigen ein Feld: Wert eintippen (Komma erlaubt),
+   * „Pruefen“ vergleicht mit dem Sollwert; nach zwei Fehlversuchen laesst sich die Loesung zeigen. Fading: Zahl der Eingaben je Beispiel steigt. */
+  function wkFmt(x, d) { return (+x).toFixed(d === undefined ? 2 : d).replace('.', ','); }
+  register('worked', {
+    mount: function (el, v) {
+      var ex = v.examples, cur = 0;
+      el.innerHTML = '<div class="wk"><div class="wk-tabs">' + ex.map(function (e, i) { return '<button class="btn small" data-wk-tab="' + i + '">' + (i + 1) + '. ' + esc(e.title) + (e.steps.some(function (s) { return s.input; }) ? ' <span class="dim">(' + e.steps.filter(function (s) { return s.input; }).length + '× selbst rechnen)</span>' : '') + '</button>'; }).join('') + '</div><div class="wk-body"></div></div>';
+      var body = el.querySelector('.wk-body');
+      function show(k) {
+        cur = k; el.querySelectorAll('[data-wk-tab]').forEach(function (b, i) { b.classList.toggle('on', i === k); });
+        var e = ex[k], shown = 0;
+        body.innerHTML = '<div class="wk-given">' + (e.given || []).map(function (g) { return '<span><span class="dim">' + esc(g.label) + '</span> <b class="mono">' + esc(g.value) + '</b></span>'; }).join('') + '</div><ol class="wk-steps"></ol><div class="wk-bar"><button class="btn small primary" data-wk="next">Naechster Schritt</button><span class="wk-done dim small"></span></div>';
+        var ol = body.querySelector('.wk-steps'), next = body.querySelector('[data-wk="next"]'), done = body.querySelector('.wk-done');
+        function reveal() {
+          if (shown >= e.steps.length) return;
+          var s = e.steps[shown], li = document.createElement('li'), idx = shown; shown++;
+          li.className = 'wk-step' + (s.input ? ' input' : '');
+          li.innerHTML = '<p>' + s.text + '</p><div class="wk-row"><span class="wk-lbl">' + esc(s.label) + '</span>' + (s.expr ? '<span class="mono wk-expr">' + esc(s.expr) + '</span>' : '') +
+            (s.input ? '<span class="wk-in"><input type="text" inputmode="decimal" class="mono" placeholder="?" aria-label="' + esc(s.label) + '"> <span class="wk-unit">' + esc(s.unit || '') + '</span> <button class="btn small" data-wk="check">Pruefen</button></span><span class="wk-fb"></span>'
+              : '<span class="mono wk-val">= ' + wkFmt(s.value, s.digits) + ' ' + esc(s.unit || '') + '</span>') + '</div>';
+          ol.appendChild(li);
+          if (s.input) {
+            next.disabled = true; var tries = 0, inp = li.querySelector('input'), fb = li.querySelector('.wk-fb');
+            function check() {
+              var x = parseFloat(String(inp.value).replace(/s/g, '').replace(',', '.').replace(/^±/, ''));
+              if (isNaN(x)) { fb.textContent = 'Bitte eine Zahl eingeben.'; fb.className = 'wk-fb bad'; return; }
+              var tol = s.tol === undefined ? 0.02 : s.tol, ok = Math.abs(x - s.value) <= Math.max(Math.abs(s.value) * tol, 1e-9);
+              tries++;
+              if (ok) { fb.textContent = '✔ Richtig: ' + wkFmt(s.value, s.digits) + ' ' + (s.unit || ''); fb.className = 'wk-fb ok'; inp.disabled = true; li.querySelector('[data-wk="check"]').disabled = true; li.classList.add('solved'); next.disabled = false; if (idx === e.steps.length - 1) finish(); }
+              else { fb.innerHTML = '✘ Das stimmt noch nicht' + (Math.abs(x) > Math.abs(s.value) ? ' (zu gross).' : ' (zu klein).') + (tries >= 2 ? ' <button class="btn small" data-wk="solve">Loesung zeigen</button>' : ' Noch einmal – ' + (s.help || 'Formel oben anwenden.')); fb.className = 'wk-fb bad';
+                var sv = fb.querySelector('[data-wk="solve"]'); if (sv) sv.onclick = function () { inp.value = wkFmt(s.value, s.digits); inp.disabled = true; li.querySelector('[data-wk="check"]').disabled = true; fb.textContent = 'Loesung: ' + wkFmt(s.value, s.digits) + ' ' + (s.unit || '') + (s.solution ? ' – ' + s.solution : ''); fb.className = 'wk-fb shown'; next.disabled = false; if (idx === e.steps.length - 1) finish(); }; }
+            }
+            li.querySelector('[data-wk="check"]').onclick = check; inp.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); check(); } }); inp.focus();
+          } else if (shown >= e.steps.length) finish();
+        }
+        function finish() { next.hidden = true; done.textContent = e.result || 'Beispiel abgeschlossen.'; if (k < ex.length - 1) done.innerHTML += ' <button class="btn small" data-wk="nextEx">Weiter zu Beispiel ' + (k + 2) + '</button>'; var b = done.querySelector('[data-wk="nextEx"]'); if (b) b.onclick = function () { show(k + 1); }; }
+        next.onclick = reveal; reveal();
+      }
+      el.querySelectorAll('[data-wk-tab]').forEach(function (b) { b.onclick = function () { show(+b.dataset.wkTab); }; });
+      show(0);
+      return { show: show, get current() { return cur; } };
+    },
+    check: function (v) {
+      var err = [];
+      if (!Array.isArray(v.examples) || !v.examples.length) return ['worked: examples fehlen'];
+      v.examples.forEach(function (e, i) {
+        if (!e.title || !Array.isArray(e.steps) || !e.steps.length) err.push('worked: Beispiel ' + (i + 1) + ' braucht title und steps');
+        (e.steps || []).forEach(function (s, k) { if (!s.text || !s.label) err.push('worked: Beispiel ' + (i + 1) + ' Schritt ' + (k + 1) + ' braucht text und label'); if (typeof s.value !== 'number' || !isFinite(s.value)) err.push('worked: Beispiel ' + (i + 1) + ' Schritt ' + (k + 1) + ': value muss eine Zahl sein'); });
+      });
+      var n = v.examples.map(function (e) { return e.steps.filter(function (s) { return s.input; }).length; });
+      for (var i = 1; i < n.length; i++) if (n[i] < n[i - 1]) err.push('worked: Fading – Beispiel ' + (i + 1) + ' hat weniger Eingabeschritte als Beispiel ' + i);
       return err;
     }
   });

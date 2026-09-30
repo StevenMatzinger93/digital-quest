@@ -392,6 +392,24 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await tp.close();
   }
 
+  // Musterbeispiele (worked) in T16C: Schritte erscheinen nacheinander, Eingabe wird gegen den Sollwert geprueft
+  {
+    const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('Worked: ' + e.message));
+    await tp.goto(url, { waitUntil: 'domcontentloaded' }); await tp.evaluate(() => DigitalQuest.openItem('T16C')); await tp.waitForSelector('.visual-worked');
+    if (await tp.$$eval('.visual-worked .wk-step', l => l.length) !== 1) errors.push('Worked: Beispiel 1 sollte mit einem Schritt beginnen');
+    await tp.click('.visual-worked [data-wk="next"]'); await tp.click('.visual-worked [data-wk="next"]');
+    if (!/Weiter zu Beispiel 2/.test(await tp.textContent('.visual-worked .wk-done'))) errors.push('Worked: Beispiel 1 nicht abgeschlossen');
+    await tp.click('.visual-worked [data-wk-tab="1"]'); await tp.click('.visual-worked [data-wk="next"]'); await tp.click('.visual-worked [data-wk="next"]');
+    if (!await tp.$('.visual-worked .wk-step.input input')) errors.push('Worked: Beispiel 2 zeigt kein Eingabefeld');
+    if (!await tp.$eval('.visual-worked [data-wk="next"]', b => b.disabled)) errors.push('Worked: Weiter-Knopf muesste bis zur richtigen Eingabe gesperrt sein');
+    await tp.fill('.visual-worked .wk-step.input input', '0,5'); await tp.click('.visual-worked [data-wk="check"]');
+    if (!/stimmt noch nicht/.test(await tp.textContent('.visual-worked .wk-fb'))) errors.push('Worked: falsche Eingabe nicht erkannt');
+    await tp.fill('.visual-worked .wk-step.input input', '0,12'); await tp.click('.visual-worked [data-wk="check"]');
+    if (!/Richtig/.test(await tp.textContent('.visual-worked .wk-fb')) || !/0,96 %/.test(await tp.textContent('.visual-worked .wk-done'))) errors.push('Worked: richtige Eingabe nicht angenommen');
+    await tp.screenshot({ path: shots + '/25_worked.png' });
+    await tp.close();
+  }
+
   // Werkbank-Tutorial: ueber die Kopfzeile, Uebungsaufbau mit echter Werkbank bedienen (Spitzen ziehen, Messart, Bereich/OL, Tastkopf, RUN), zurueck zur Karte
   {
     const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('Tutorial: ' + e.message));

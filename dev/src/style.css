@@ -438,6 +438,17 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .visual-cap { margin: 6px 2px 0; font-size: 13px; color: var(--text-dim); }
 /* numberSteps: Zahlen-Schritt-Widget */
 .ns { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-secondary); padding: 12px 14px; }
+/* Musterbeispiele mit Fading (worked) */
+.wk-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; } .wk-tabs .btn.on { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+.wk-given { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; margin-bottom: 8px; padding: 8px 10px; background: rgba(255,255,255,.04); border-radius: 8px; }
+.wk-steps { margin: 0; padding-left: 22px; } .wk-step { margin: 0 0 10px; animation: wkIn .3s ease; } .wk-step p { margin: 0 0 4px; } @keyframes wkIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.wk-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 10px; border-left: 3px solid var(--accent-cyan); background: rgba(0,0,0,.25); border-radius: 0 8px 8px 0; font-size: 14px; }
+.wk-step.input .wk-row { border-left-color: var(--accent-lead); } .wk-step.solved .wk-row { border-left-color: var(--accent-green); }
+.wk-lbl { color: var(--text-dim); } .wk-expr { color: #cfd6dd; } .wk-val { color: var(--accent-lead); font-weight: 700; }
+.wk-in input { width: 90px; background: #111; color: #fff; border: 1px solid #555; border-radius: 6px; padding: 4px 6px; font-size: 14px; text-align: right; } .wk-in input:disabled { color: var(--accent-green); }
+.wk-fb { flex-basis: 100%; font-size: 13px; } .wk-fb.ok { color: var(--accent-green); } .wk-fb.bad { color: var(--accent-red); } .wk-fb.shown { color: var(--accent-lead); } .wk-fb:empty { display: none; }
+.wk-bar { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+
 /* Messwerk-Animation (meterwork) */
 .mw-predict { padding: 12px 14px; border: 1px dashed var(--accent-cyan); border-radius: 10px; margin-bottom: 10px; } .mw-predict h4 { margin: 0 0 6px; color: var(--accent-cyan); font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
 .mw-predict .btn { margin: 4px 6px 4px 0; } .mw-predict .btn.ok { border-color: var(--accent-green); color: var(--accent-green); } .mw-predict .btn.bad { border-color: var(--accent-red); color: var(--accent-red); } .mw-expl { margin: 8px 0 0; font-size: 14px; } .mw-expl:empty { display: none; }
