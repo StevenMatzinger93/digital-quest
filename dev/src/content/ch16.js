@@ -55,14 +55,35 @@
     scale(255, 172, 150, 40, 'I') +
     '<text x="470" y="130" fill="#e8e8e8" font-size="12">Beide Plättchen werden</text><text x="470" y="148" fill="#e8e8e8" font-size="12">gleichsinnig magnetisiert</text><text x="470" y="166" fill="#e8e8e8" font-size="12">und stossen sich ab –</text><text x="470" y="184" fill="#e8e8e8" font-size="12">egal, in welche Richtung</text><text x="470" y="202" fill="#e8e8e8" font-size="12">der Strom fliesst.</text>' +
     '<text x="470" y="236" fill="#1ec8e0" font-size="12" font-weight="700">AC und DC: Effektivwert</text><text x="470" y="254" fill="#9aa" font-size="11">(Kraft ~ I², Skala nicht linear)</text>');
-  var IMG_ZANGE = SVG(560, 220,
-    '<text x="20" y="30" fill="#ffb000" font-size="15" font-weight="700">Strommesszange</text>' +
-    '<path d="M60 130h440" stroke="#2a6fdb" stroke-width="10" stroke-linecap="round"/><text x="60" y="118" fill="#9aa" font-size="11">Leiter (nicht aufgetrennt)</text>' +
-    '<circle cx="280" cy="130" r="48" fill="none" stroke="#3a3f47" stroke-width="18"/><circle cx="280" cy="130" r="48" fill="none" stroke="#e0b400" stroke-width="4" stroke-dasharray="6 6"/>' +
-    '<path d="M280 178v40h60v-60" fill="none" stroke="#3a3f47" stroke-width="18" stroke-linecap="round"/>' +
-    '<rect x="330" y="150" width="70" height="30" rx="4" fill="#b9c6a2"/><text x="338" y="171" fill="#1b2413" font-size="13" font-family="monospace" font-weight="700">2.34 A</text>' +
-    '<circle cx="280" cy="130" r="70" fill="none" stroke="#1ec8e0" stroke-width="1.2" stroke-dasharray="3 5"/><circle cx="280" cy="130" r="90" fill="none" stroke="#1ec8e0" stroke-width="1" stroke-dasharray="3 7" opacity=".6"/>' +
-    '<text x="380" y="70" fill="#1ec8e0" font-size="12">Magnetfeld um den Leiter</text><text x="380" y="88" fill="#e8e8e8" font-size="12">induziert in der Zangenspule</text><text x="380" y="106" fill="#e8e8e8" font-size="12">einen proportionalen Strom.</text>');
+  // Strommesszange (Feedback 01.10.2026): Zange quer zum Leiter in leichter Perspektive, Magnetfeld als koaxiale Ellipsen um den Leiter,
+  // Strompfeil, genau ein Leiter in der Zange; rechts das Gegenbeispiel Hin- und Rückleiter zusammen → 0.
+  var IMG_ZANGE = SVG(700, 250,
+    '<defs><linearGradient id="zgBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a5058"/><stop offset="1" stop-color="#23272c"/></linearGradient>' +
+    '<linearGradient id="zgJaw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8e969e"/><stop offset=".5" stop-color="#d7dce0"/><stop offset="1" stop-color="#5d6469"/></linearGradient></defs>' +
+    '<text x="20" y="28" fill="#ffb000" font-size="15" font-weight="700">Strommesszange – Strom messen ohne Auftrennen</text>' +
+    // Leiter mit Strompfeil
+    '<path d="M40 128h420" stroke="#2a6fdb" stroke-width="11" stroke-linecap="round"/><path d="M40 124h420" stroke="rgba(255,255,255,.35)" stroke-width="2"/>' +
+    '<path d="M330 118l26 10-26 10" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><text x="300" y="104" fill="#e8e8e8" font-size="12" font-weight="700">I</text>' +
+    '<text x="44" y="112" fill="#9aa" font-size="11">nur ein Leiter – nicht aufgetrennt</text>' +
+    // Magnetfeld: koaxiale Ellipsen quer zum Leiter (Feldlinien liegen in Ebenen senkrecht zum Leiter)
+    '<ellipse cx="200" cy="128" rx="13" ry="60" fill="none" stroke="#1ec8e0" stroke-width="1.3" stroke-dasharray="4 5"/>' +
+    '<ellipse cx="200" cy="128" rx="18" ry="82" fill="none" stroke="#1ec8e0" stroke-width="1.1" stroke-dasharray="3 6" opacity=".6"/>' +
+    '<path d="M213 68l-6-7M213 68l-8 2" fill="none" stroke="#1ec8e0" stroke-width="1.3"/><text x="222" y="60" fill="#1ec8e0" font-size="11">Magnetfeld B um den Leiter</text>' +
+    // Zange: Backen als Ring quer zum Leiter (Ellipse), Gelenk unten, Griff mit Anzeige
+    '<ellipse cx="200" cy="128" rx="11" ry="46" fill="none" stroke="url(#zgJaw)" stroke-width="13"/><ellipse cx="200" cy="128" rx="11" ry="46" fill="none" stroke="rgba(0,0,0,.45)" stroke-width="1"/>' +
+    '<path d="M200 82q3-3 6 0" fill="none" stroke="#111" stroke-width="2"/>' + // Backenspalt oben
+    '<rect x="186" y="170" width="28" height="18" rx="3" fill="#3a3f47" stroke="#111"/>' +
+    '<path d="M188 188q12 46 12 52h22q-6-6 8-52z" fill="url(#zgBody)" stroke="#111"/>' +
+    '<rect x="150" y="160" width="36" height="22" rx="4" fill="#b9c6a2" stroke="#1b2413"/><text x="155" y="175" fill="#1b2413" font-size="11" font-family="monospace" font-weight="700">2.34A</text>' +
+    '<text x="110" y="206" fill="#e8e8e8" font-size="12">Das Feld des Leiters induziert in der</text><text x="110" y="222" fill="#e8e8e8" font-size="12">Zangenspule einen proportionalen Strom</text><text x="110" y="238" fill="#9aa" font-size="11">(Wechselstrom: Induktion · Gleichstrom: Hall-Sensor).</text>' +
+    // Gegenbeispiel rechts: Hin- und Rueckleiter zusammen in der Zange → Felder heben sich auf
+    '<g transform="translate(500 0)"><text x="20" y="104" fill="#9aa" font-size="11">Hin- und Rückleiter zusammen:</text>' +
+    '<path d="M20 122h160" stroke="#2a6fdb" stroke-width="8" stroke-linecap="round"/><path d="M20 136h160" stroke="#8a4a12" stroke-width="8" stroke-linecap="round"/>' +
+    '<path d="M120 118l12 4-12 4" fill="none" stroke="#fff" stroke-width="2"/><path d="M80 132l-12 4 12 4" fill="none" stroke="#fff" stroke-width="2"/>' +
+    '<ellipse cx="100" cy="129" rx="9" ry="34" fill="none" stroke="url(#zgJaw)" stroke-width="10"/>' +
+    '<rect x="88" y="166" width="24" height="14" rx="3" fill="#3a3f47" stroke="#111"/><path d="M90 180q10 30 10 36h14q-4-6 6-36z" fill="url(#zgBody)" stroke="#111"/>' +
+    '<rect x="118" y="160" width="40" height="20" rx="4" fill="#b9c6a2" stroke="#1b2413"/><text x="124" y="174" fill="#1b2413" font-size="11" font-family="monospace" font-weight="700">0.00A</text>' +
+    '<text x="20" y="206" fill="#e8e8e8" font-size="12">Die Felder heben sich auf – Anzeige 0.</text></g>');
   var sym = function (x, y, inner, label) { return '<g transform="translate(' + x + ' ' + y + ')"><rect x="0" y="0" width="124" height="64" rx="6" fill="#1e2228" stroke="#3a3f47"/><g transform="translate(62 26)" fill="none" stroke="#e8e8e8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</g><text x="62" y="58" fill="#9aa" font-size="8.5" text-anchor="middle">' + label + '</text></g>'; };
   var IMG_SINNBILDER = SVG(700, 260,
     '<text x="20" y="26" fill="#ffb000" font-size="15" font-weight="700">Sinnbilder auf dem Skalenfeld</text>' +
@@ -84,42 +105,40 @@
     merksatz: 'Drehspulmesswerk: Drehmoment ~ I, lineare Skala, zeigt den Mittelwert (mit Gleichrichter den Gleichrichtwert, AVG); Dreheisenmesswerk: Kraft ~ I², gestauchte Skala, zeigt bei AC und DC den Effektivwert.',
     visual: [
       { type: 'block', svg: IMG_DREHSPUL, caption: 'Drehspulmesswerk: Dauermagnet aussen, die Spule dreht sich im Feld. Der Zeiger folgt dem Mittelwert des Stroms.' },
-      { type: 'block', svg: IMG_DREHEISEN, caption: 'Dreheisenmesswerk: feste Spule, zwei Eisenplättchen stossen sich ab – die Kraft hängt vom Quadrat des Stroms ab, der Zeiger zeigt den Effektivwert.' },
+      { type: 'block', svg: IMG_DREHEISEN, collapsed: 'Bild einblenden: Dreheisenmesswerk', caption: 'Dreheisenmesswerk: feste Spule, zwei Eisenplättchen stossen sich ab – die Kraft hängt vom Quadrat des Stroms ab, der Zeiger zeigt den Effektivwert.' },
       { type: 'meterwork', imax: 10, signal: 'dc', caption: 'Beide Messwerke am selben Strom: Regler ziehen und die Zeiger vergleichen (linear gegen quadratisch). Dämpfung ausschalten und „Sprung“ drücken – der Zeiger schwingt über. Bei Wechselstrom läuft oben der Momentanwert, die Zeiger pendeln sich auf Gleichrichtwert × 1,11 (Drehspul mit Gleichrichter) bzw. Effektivwert (Dreheisen) ein – das AVG-Prinzip aus Theorie 3B.',
         predict: { q: 'Der Generator liefert eine <b>Dreieckspannung</b> mit Î = 10 mA Spitzenstrom. Welches Instrument zeigt den <b>höheren</b> Wert an?', options: ['Drehspulmesswerk mit Gleichrichter (AVG-Skala)', 'Dreheisenmesswerk (Effektivwert)', 'Beide zeigen dasselbe'], correct: 1, signal: 'triangle',
           explain: 'Beim Dreieck ist der Gleichrichtwert 0,5·Î, mit Formfaktor 1,11 zeigt die AVG-Skala 5,55 mA; der echte Effektivwert ist Î/√3 = 5,77 mA. Das Dreheisenwerk misst ihn direkt – nur beim Sinus stimmen beide überein.' } },
-      { type: 'circuit', view: 'bench', caption: 'Werkstatt-Aufbau: Derselbe Strom durch R1, einmal als Sinus, einmal als Rechteck. Vergleiche, was ein Drehspulgerät mit Gleichrichter (AVG-Anzeige) und ein Dreheisengerät (Effektivwert) anzeigen würden – und den Gleichanteil, den ein Drehspulgerät ohne Gleichrichter zeigt.',
+      { type: 'circuit', view: 'bench', collapsed: 'Werkstatt-Aufbau einblenden: Sinus, Rechteck, Dreieck am Multimeter', caption: 'Werkstatt-Aufbau: Derselbe Strom durch R1, einmal als Sinus, einmal als Rechteck. Vergleiche, was ein Drehspulgerät mit Gleichrichter (AVG-Anzeige) und ein Dreheisengerät (Effektivwert) anzeigen würden – und den Gleichanteil, den ein Drehspulgerät ohne Gleichrichter zeigt.',
         layout: { parts: [gen(), R('R1', 1000, 440, 300, 90)], wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] },
         bench: { parts: [{ id: 'G1', x: 250, y: 440 }, { id: 'R1', x: 640, y: 440, rot: 90 }] },
         sliders: [{ part: 'G1', prop: 'shape', label: 'Kurvenform', choices: [{ value: 'sine', label: 'Sinus' }, { value: 'square', label: 'Rechteck' }, { value: 'triangle', label: 'Dreieck' }] }, { part: 'G1', prop: 'offset', label: 'Gleichanteil', min: 0, max: 5, step: 0.5, unit: 'V' }],
         readouts: [{ label: 'Drehspul ohne Gleichrichter (Mittelwert)', a: 'R1.a', b: 'R1.b', ac: 'dc' }, { label: 'Drehspul mit Gleichrichter (AVG-Anzeige)', a: 'R1.a', b: 'R1.b', ac: 'avg' }, { label: 'Dreheisen / TRMS (Effektivwert des Wechselanteils)', a: 'R1.a', b: 'R1.b', ac: 'rms' }],
         scope: { a: 'R1.a', b: 'R1.b', span: 0.04, label: 'U an R1' } },
-      { type: 'block', svg: IMG_ZANGE, caption: 'Strommesszange: misst ohne Auftrennen des Kreises über das Magnetfeld des Leiters.' }
+      { type: 'block', svg: IMG_ZANGE, collapsed: 'Bild einblenden: Strommesszange', caption: 'Strommesszange: misst ohne Auftrennen über das Magnetfeld des Leiters – links ein Leiter, rechts Hin- und Rückleiter zusammen (Anzeige 0).' }
     ],
     lesson:
-      '<p>Vor dem Digitalmultimeter gab es das <b>Zeigerinstrument</b> – und in Schaltschränken, an Netzgeräten und in vielen Prüfständen hängt es noch heute. Zwei Messwerke musst du kennen, weil sie <i>unterschiedlich</i> auf Wechselgrössen reagieren.</p>' +
+      '<p>Vor dem Digitalmultimeter gab es das <b>Zeigerinstrument</b> – in Schaltschränken und an Netzgeräten hängt es noch heute. Zwei Messwerke musst du kennen, weil sie bei Wechselgrössen <i>Verschiedenes</i> anzeigen.</p>' +
       '{{visual}}' +
-      '<p><b>Drehspulmesswerk.</b> Ein Dauermagnet (Stator) umgibt eine drehbar gelagerte Spule (Rotor). Fliesst der Messstrom durch die Spule, entsteht ein Drehmoment, das der Spiralfeder entgegenwirkt; Zeiger und Spule bleiben dort stehen, wo Magnetkraft und Federkraft gleich gross sind. Der Ausschlag ist <b>proportional zum Strom</b>, die Skala linear. Gebaut ist es für <b>Strom</b>; mit einem Vorwiderstand wird daraus ein Spannungsmesser. Weil das Drehmoment mit der Stromrichtung das Vorzeichen wechselt, zeigt es bei Wechselstrom den <b>linearen Mittelwert</b> – bei reinem Wechselstrom also 0. Erst ein eingebauter <b>Gleichrichter</b> macht daraus ein Wechselstrominstrument: Es zeigt dann den <b>Gleichrichtwert</b>, und die Skala ist mit dem Formfaktor 1,11 auf den Sinus-Effektivwert umgerechnet (das AVG-Prinzip aus Theorie 3B).</p>' +
+      '<p><b>Drehspulmesswerk.</b> Ein Dauermagnet steht fest, eine Spule dreht sich darin gegen eine Spiralfeder. Das Antriebsmoment ist <b>proportional zum Strom</b> (M = k₁ · I), das Federmoment proportional zum Winkel (M = D · φ). Wo beide gleich sind, steht der Zeiger: φ = (k₁/D) · I – <b>lineare Skala</b>. Bei Wechselstrom wechselt das Moment mit der Stromrichtung, der Zeiger zeigt den <b>Mittelwert</b> (reiner Wechselstrom: 0). Erst ein eingebauter <b>Gleichrichter</b> macht ein Wechselstrominstrument daraus: Es zeigt den Gleichrichtwert, die Skala ist mit dem Formfaktor 1,11 auf den Sinus umgerechnet – das AVG-Prinzip aus Theorie 3B.</p>' +
       '{{visual:2}}' +
-      '<p><b>Dreheisenmesswerk.</b> Hier steht die Spule fest (Stator), im Inneren sitzen zwei <b>Weicheisenplättchen</b> – eines fest, eines drehbar mit dem Zeiger. Der Strom magnetisiert beide gleichsinnig, sie stossen sich ab. Die Kraft hängt vom <b>Quadrat</b> des Stroms ab, darum ist die Richtung egal: Das Dreheisenmesswerk misst Gleich- <i>und</i> Wechselstrom und zeigt bei Wechselstrom den <b>Effektivwert</b> – unabhängig von der Kurvenform, wie ein TRMS-Gerät. Die Skala ist dafür nicht linear (unten gedrängt) und das Messwerk ist robust, aber weniger empfindlich.</p>' +
-      '<p><b>Warum linear, warum quadratisch? Die Drehmoment-Balance.</b> Der Zeiger steht, wenn das Antriebsmoment der Spule und das Rückstellmoment der Spiralfeder gleich gross sind. Die Feder gehorcht bei beiden Bauformen demselben Gesetz: ihr Moment wächst proportional zum Ausschlagwinkel, M<sub>F</sub> = D · φ. Beim <b>Drehspulmesswerk</b> ist das Antriebsmoment proportional zum Strom, weil das Feld des Dauermagneten fest ist und nur die Kraft auf die stromdurchflossene Spule mit I wächst: M<sub>A</sub> = k₁ · I. Gleichsetzen ergibt</p>' +
-      '<div class="formula">k₁ · I = D · φ &nbsp;⇒&nbsp; φ = (k₁ / D) · I &nbsp;→ lineare Skala</div>' +
-      '<p>Beim <b>Dreheisenmesswerk</b> gibt es keinen Dauermagneten: Derselbe Strom magnetisiert <i>beide</i> Plättchen. Die Kraft zwischen zwei Magneten hängt vom Produkt ihrer Stärken ab, und beide sind proportional zu I – also ist die Abstossung proportional zu I · I:</p>' +
-      '<div class="formula">k₂ · I² = D · φ &nbsp;⇒&nbsp; φ = (k₂ / D) · I² &nbsp;→ quadratische, unten gestauchte Skala</div>' +
-      '<p>Daraus folgt alles Weitere: Weil I² nie negativ wird, ist dem Dreheisenwerk die Stromrichtung egal, und der Mittelwert von I² ist genau das Quadrat des Effektivwerts – es zeigt den Effektivwert, bei jeder Kurvenform. Das Drehspulwerk mittelt dagegen I selbst.</p>' +
+      '<p><b>Dreheisenmesswerk.</b> Die Spule steht fest, zwei <b>Weicheisenplättchen</b> werden vom Strom gleichsinnig magnetisiert und stossen sich ab. Beide Magnetisierungen wachsen mit I, die Kraft also mit <b>I²</b> (M = k₂ · I²): φ = (k₂/D) · I² – <b>unten gestauchte Skala</b>. Weil I² nie negativ wird, ist die Stromrichtung egal, und der Mittelwert von I² ist das Quadrat des Effektivwerts: Das Dreheisenwerk zeigt bei Gleich- und Wechselstrom den <b>Effektivwert</b>, bei jeder Kurvenform – wie ein TRMS-Gerät. Robust, aber weniger empfindlich.</p>' +
       '{{visual:3}}' +
-      '<p><b>Dämpfung.</b> Ohne Bremse würde der Zeiger bei jeder Änderung überschwingen und lange pendeln (Feder und träge Masse bilden einen Schwinger). Beim Drehspulwerk übernimmt das die <b>Wirbelstromdämpfung</b>: Die Spule sitzt auf einem Aluminiumrahmen, in dem die Bewegung im Magnetfeld Wirbelströme erzeugt – sie bremsen genau die Bewegung, nicht die Anzeige. Das Eisenplättchen des Dreheisenwerks ist kein guter Wirbelstromleiter, darum bekommt es eine <b>Luft- oder Öldämpfung</b> (ein Flügel in einer Kammer). Probier in der Animation „ohne Dämpfung“ und „Sprung“.</p>' +
-      '<p><b>Frequenzgrenzen.</b> Das Drehspul-Gleichrichterinstrument ist mechanisch träge (der Zeiger folgt nur dem Mittelwert, das ist gewollt), begrenzt wird es durch den <b>Gleichrichter</b>: Die Dioden werden mit steigender Frequenz träge und die Skalenkorrektur mit dem Formfaktor stimmt nur für den Sinus – typische Instrumente sind bis einige hundert Hertz bis wenige Kilohertz brauchbar. Das Dreheisenwerk verliert bei höherer Frequenz durch <b>Wirbelströme im Eisen</b> und die Induktivität der Spule an Anzeige – es ist ein Instrument für 16⅔ bis einige hundert Hertz (Netzfrequenz). Genau das untersuchst du in <b>Aufgabe 16.5 „Frequenz erhöhen“</b>: dort siehst du, wie Multimeter (AVG/TRMS) mit der Frequenz aus dem spezifizierten Bereich laufen, während das Oszilloskop weiter richtig zeigt.</p>' +
-      '<p>Merke dir die Zuordnung, sie erklärt die Tabelle „Messfehler nach Instrumentenwahl“: <b>Drehspul + Gleichrichter = AVG-Verhalten</b> (beim Sinus richtig, beim Rechteck ≈ 11 % zu viel, beim Dreieck ≈ 4 % zu wenig, bei Mischspannung falsch), <b>Dreheisen = Effektivwert</b> (immer richtig, auch mit Gleichanteil).</p>' +
+      '<p><b>Dämpfung.</b> Feder und träge Masse bilden einen Schwinger – ohne Bremse würde der Zeiger überschwingen und pendeln. Drehspulwerke bremsen mit Wirbelströmen im Aluminiumrahmen der Spule, Dreheisenwerke mit einer Luft- oder Ölkammer. Probier in der Animation „ohne Dämpfung“ und „Sprung“.</p>' +
+      '<p><b>Merke die Zuordnung</b> – sie erklärt die Tabelle „Messfehler nach Instrumentenwahl“: <b>Drehspul + Gleichrichter = AVG-Verhalten</b> (Sinus richtig, Rechteck ≈ 11 % zu viel, Dreieck ≈ 4 % zu wenig, Mischspannung falsch), <b>Dreheisen = Effektivwert</b> (immer richtig, auch mit Gleichanteil).</p>' +
       '{{visual:4}}' +
-      '<p><b>Strommesszange.</b> Sie misst Strom, <i>ohne den Kreis aufzutrennen</i>: Die Zange umschliesst den Leiter; dessen Magnetfeld induziert in der Zangenspule einen proportionalen Strom, den das Gerät auswertet (Wechselstrom über Induktion, Gleichstrom mit Hall-Sensor). Wichtig: nur <b>einen</b> Leiter umschliessen – bei Hin- und Rückleiter zusammen heben sich die Felder auf, die Zange zeigt 0.</p>' +
-      '<h3>Vergleich</h3><table class="tt"><tr><th></th><th>Drehspulmesswerk</th><th>Dreheisenmesswerk</th></tr>' +
+      '<p><b>Strommesszange.</b> Sie misst Strom, <i>ohne den Kreis aufzutrennen</i>: Das Magnetfeld des umschlossenen Leiters induziert in der Zangenspule einen proportionalen Strom (Gleichstrom: Hall-Sensor). Nur <b>einen</b> Leiter umschliessen – bei Hin- und Rückleiter zusammen heben sich die Felder auf, die Zange zeigt 0.</p>' +
+      '{{visual:5}}' +
+      '<details class="zusatz"><summary>Zusatz: Frequenzgrenzen</summary>' +
+      '<p>Das Drehspul-Gleichrichterinstrument begrenzt der <b>Gleichrichter</b>: Die Dioden werden mit steigender Frequenz träge, und die Skalenkorrektur mit dem Formfaktor stimmt nur für den Sinus – brauchbar bis einige hundert Hertz, höchstens wenige Kilohertz. Das Dreheisenwerk verliert bei höherer Frequenz durch <b>Wirbelströme im Eisen</b> und die Induktivität der Spule an Anzeige – ein Instrument für 16⅔ bis einige hundert Hertz (Netzfrequenz). Genau das untersuchst du in <b>Aufgabe 16.5 „Frequenz erhöhen“</b>: Multimeter (AVG/TRMS) laufen mit der Frequenz aus dem spezifizierten Bereich, das Oszilloskop zeigt weiter richtig.</p></details>' +
+      '<details class="zusatz"><summary>Zusatz: Vergleichstabelle (Eigenverbrauch, Frequenzbereich, Einsatz)</summary>' +
+      '<table class="tt"><tr><th></th><th>Drehspulmesswerk</th><th>Dreheisenmesswerk</th></tr>' +
       '<tr><td>Skala</td><td>linear (φ ~ I)</td><td>quadratisch, unten gestaucht (φ ~ I²)</td></tr>' +
       '<tr><td>Anzeige bei AC</td><td>Mittelwert; mit Gleichrichter Gleichrichtwert × 1,11 (nur Sinus richtig)</td><td>Effektivwert, jede Kurvenform</td></tr>' +
       '<tr><td>Eigenverbrauch für Vollausschlag</td><td>klein: etwa 50 µA … 1 mA, ca. 0,1 V</td><td>gross: etwa 0,1 … 1 A bzw. 1 … 3 W (kräftige Spule)</td></tr>' +
       '<tr><td>Frequenzbereich</td><td>DC; mit Gleichrichter bis einige 100 Hz … wenige kHz</td><td>DC und 16⅔ … einige 100 Hz (Netzfrequenz)</td></tr>' +
       '<tr><td>Dämpfung</td><td>Wirbelstrom im Spulenrahmen</td><td>Luft- oder Ölkammer</td></tr>' +
-      '<tr><td>Typischer Einsatz</td><td>Vielfachmessgerät, empfindliche Gleichstrommessungen, Mittelwertanzeige</td><td>Schaltschrank- und Netzinstrumente (Effektivwert von Netzstrom/-spannung), robust</td></tr></table>',
+      '<tr><td>Typischer Einsatz</td><td>Vielfachmessgerät, empfindliche Gleichstrommessungen, Mittelwertanzeige</td><td>Schaltschrank- und Netzinstrumente (Effektivwert von Netzstrom/-spannung), robust</td></tr></table></details>',
     questions: [
       { q: 'Was zeigt ein Drehspulmesswerk ohne Gleichrichter bei einem reinen Sinusstrom?', options: ['den Effektivwert', 'den Gleichrichtwert', 'den Scheitelwert', '0 – den linearen Mittelwert'], correct: 3, explain: 'Das Drehmoment wechselt mit der Stromrichtung das Vorzeichen; im Mittel bleibt der Zeiger bei 0.' },
       { q: 'Warum zeigt das Dreheisenmesswerk bei Wechselstrom den Effektivwert?', options: ['Es hat einen eingebauten Gleichrichter', 'Die Abstosskraft der Plättchen hängt vom Quadrat des Stroms ab', 'Die Spule ist drehbar gelagert', 'Es misst nur Gleichstrom'], correct: 1, explain: 'Kraft ~ I²: Die Richtung spielt keine Rolle, der Mittelwert des Quadrats ist der Effektivwert.' },
@@ -133,7 +152,7 @@
   var load = { parts: [{ id: 'B1', type: 'battery', value: 230, props: { ri: 0.01, imax: 40 }, x: 160, y: 300, rot: 0 }, R('R1', 10, 440, 300, 90, { pmax: 6000 })], wires: [W('B1.p', 'R1.a'), W('R1.b', 'B1.n')] };
   var I1 = 230 / 10.01;
   defTask({
-    id: '16.1', ch: 16, title: 'Datenblatt und Systemfehler', tags: ['messen.genauigkeit', 'messen.systemfehler', 'elektro.ohm'], measureUX: DRAG,
+    id: '16.1', ch: 16, title: 'Datenblatt und Systemfehler', tags: ['messen.genauigkeit', 'messen.systemfehler', 'elektro.ohm'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Ein Heizwiderstand von 10 Ω hängt an 230 V. Die Werkmeisterin will wissen, was das Multimeter misst – und wie genau.',
     brief: 'Miss die Spannung an R1 mit dem Multimeter (<b>Bereich 600 V</b> von Hand wählen). Berechne aus Datenblattwerten: Strom I = U/R und Leistung P = U·I. Bestimme den grössten Fehler eines <b>digitalen</b> Voltmeters mit ±(0,5 % + 1 Digit) im 600-V-Bereich (Auflösung 0,1 V) und eines <b>analogen</b> Voltmeters der Klasse 1,5 mit Skalenendwert 300 V. Warum darfst du den Strom hier nicht mit dem 10-A-Bereich messen?',
     learn: 'Datenblattwerte rechnen: Prozent vom Anzeigewert + Digit (digital) gegen Prozent vom Skalenendwert (analog).',
@@ -156,7 +175,7 @@
     { id: 'S2', type: 'switch', x: 320, y: 420, rot: 0, props: { closed: false } }, R('R3', 10e6, 620, 220, 90), R('R2', 10e6, 620, 380, 90)],
     wires: [W('B1.p', 'S1.a'), W('S1.b', 'R1.a'), W('R1.b', 'B1.n'), W('B1.p', 'S2.a'), W('S2.b', 'R3.a'), W('R3.b', 'R2.a'), W('R2.b', 'B1.n')] };
   defTask({
-    id: '16.2', ch: 16, title: 'Spannungs- und Strommessfehler', tags: ['messen.systemfehler', 'messen.spannung', 'messen.strom'], measureUX: DRAG,
+    id: '16.2', ch: 16, title: 'Spannungs- und Strommessfehler', tags: ['messen.systemfehler', 'messen.spannung', 'messen.strom'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Zwei Schaltungen, ein Multimeter: ein kleiner Widerstand (10 Ω) und ein hochohmiger Spannungsteiler (2 × 10 MΩ). Wo fälscht das Messgerät, und wie stark?',
     brief: 'Schliesse <b>S1</b> (Zweig mit R1 = 10 Ω): miss die Spannung an R1 und den Strom durch R1 (Leitung auftrennen, Amperemeter in Reihe, Bereich 10 A). Öffne S1, schliesse <b>S2</b> (Teiler R3–R2, je 10 MΩ): miss die Spannung an R2. Berechne für beide Zweige die Werte <b>ohne</b> Messfehler (an R2 liegt rechnerisch die Hälfte von 9 V) und die Abweichung in Prozent bei R2.',
     learn: 'Das Voltmeter (10 MΩ) belastet hochohmige Schaltungen, der Amperemeter-Shunt (0,1 Ω) stört niederohmige.',
@@ -185,7 +204,7 @@
     return m;
   };
   defTask({
-    id: '16.3', ch: 16, title: 'Kurvenformen im Instrumentenvergleich', tags: ['messen.trms', 'elektro.effektivwert', 'messen.oszilloskop'], measureUX: DRAG,
+    id: '16.3', ch: 16, title: 'Kurvenformen im Instrumentenvergleich', tags: ['messen.trms', 'elektro.effektivwert', 'messen.oszilloskop'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Dieselbe Spannung, drei Geräte, drei Kurvenformen: Füll die Vergleichstabelle aus dem Lehrgang – mit echten Messungen.',
     brief: 'Der Generator liefert Û = 10 V, 50 Hz. Miss an R1 für <b>Sinus, Rechteck und Dreieck</b> (Kurvenform im Eigenschaften-Panel umstellen): die Anzeige eines <b>AVG-Multimeters</b> (V~, Verfahren AVG), eines <b>TRMS-Multimeters</b> (V~, TRMS) und den <b>Scheitelwert</b> mit dem Oszilloskop (Tastkopf an R1). Bereich 20 V.',
     learn: 'AVG stimmt nur beim Sinus; TRMS und Oszilloskop zeigen bei jeder Kurvenform das Richtige.',
@@ -242,7 +261,7 @@
   var mixL = { parts: [gen({ offset: 3 }, 5), R('R1', 1000, 440, 300, 90)], wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] };
   var rmsSine = 5 / Math.SQRT2, rmsSq = 5;
   defTask({
-    id: '16.4', ch: 16, title: 'Wechselgrösse mit Gleichanteil', tags: ['messen.trms', 'elektro.mittelwert', 'elektro.effektivwert'], measureUX: DRAG,
+    id: '16.4', ch: 16, title: 'Wechselgrösse mit Gleichanteil', tags: ['messen.trms', 'elektro.mittelwert', 'elektro.effektivwert'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Aus einem Sensorverstärker kommt ein Sinus, der auf einem Gleichanteil reitet. Welches Gerät zeigt hier was?',
     brief: 'Der Generator liefert Û = 5 V mit <b>3 V Gleichanteil</b>. Miss an R1 mit <b>V⎓</b> (zeigt den Gleichanteil), <b>V~ AVG</b> und <b>V~ TRMS</b> (Wechselanteil) und lies am Oszilloskop den <b>höchsten Wert</b> ab. Berechne den <b>gesamten Effektivwert</b> √(U<sub>DC</sub>² + U<sub>AC</sub>²) – das zeigt nur ein TRMS-Gerät mit AC+DC-Kopplung. Stell danach auf <b>Rechteck</b> um und miss den TRMS-Wechselanteil erneut.',
     learn: 'V~ ist AC-gekoppelt: Der Gleichanteil fällt weg. Nur TRMS mit AC+DC zeigt den wahren Effektivwert einer Mischgrösse.',
@@ -263,7 +282,7 @@
   var lp = { parts: [gen(), R('R1', 10000, 320, 200, 0), { id: 'C1', type: 'capacitor', value: 100e-9, x: 480, y: 300, rot: 90 }], wires: [W('G1.p', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'G1.n')] };
   var F = function (id, f) { return { id: id, ask: 'U_a TRMS bei ' + (f >= 1000 ? f / 1000 + ' kHz' : f + ' Hz'), unit: 'V', mode: 'VAC', meterType: 'trms', a: 'C1.a', b: 'C1.b', tol: 0.05, set: { G1: { freq: f } } }; };
   defTask({
-    id: '16.5', ch: 16, title: 'Frequenz erhöhen', tags: ['elektro.frequenz', 'elektro.filter', 'messen.oszilloskop'], measureUX: DRAG,
+    id: '16.5', ch: 16, title: 'Frequenz erhöhen', tags: ['elektro.frequenz', 'elektro.filter', 'messen.oszilloskop'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Wie weit kannst du die Frequenz drehen, bis die Geräte nichts Sinnvolles mehr zeigen?',
     brief: 'Am RC-Glied (R1 = 10 kΩ, C1 = 100 nF, f<sub>g</sub> ≈ 159 Hz) miss die Ausgangsspannung an C1 mit <b>V~ TRMS</b> bei <b>50 Hz, 159 Hz, 1 kHz und 10 kHz</b> (Frequenz am Generator umstellen). Lies bei 1 kHz zusätzlich den <b>Scheitelwert</b> am Oszilloskop ab (Zeitbasis 5 ms). Was zeigt <b>V⎓</b> bei jeder Frequenz?',
     learn: 'Ein Multimeter mittelt über viele Perioden – der Gleichanteil bleibt 0, der Wechselanteil folgt dem Frequenzgang. Das Oszilloskop zeigt den Verlauf bis in den MHz-Bereich.',
@@ -351,7 +370,7 @@
   var half = { parts: [gen(), d('V1', 280, 200, 0), R('R1', 1000, 460, 300, 90)], wires: [W('G1.p', 'V1.a'), W('V1.k', 'R1.a'), W('R1.b', 'G1.n')] };
   var bHalf = { parts: [bG1, { id: 'V1', x: 480, y: 260, rot: 0 }, { id: 'R1', x: 700, y: 450, rot: 90 }] };
   defTask({
-    id: '16.6', ch: 16, title: 'Einweggleichrichter – Instrumentenvergleich', tags: ['elektro.gleichrichter', 'messen.trms', 'elektro.mittelwert'], measureUX: DRAG,
+    id: '16.6', ch: 16, title: 'Einweggleichrichter – Instrumentenvergleich', tags: ['elektro.gleichrichter', 'messen.trms', 'elektro.mittelwert'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Die Gleichrichterschaltung aus Kapitel 3 – jetzt mit der Frage: Welches Gerät zeigt hier was, und was ist der wahre Effektivwert?',
     brief: 'Miss an R1 (Einweggleichrichter, Û = 10 V): <b>V⎓</b> (Gleichanteil), <b>V~ AVG</b> und <b>V~ TRMS</b> (Wechselanteil) sowie den <b>Scheitelwert</b> mit dem Oszilloskop. Berechne den <b>gesamten Effektivwert</b> √(U<sub>DC</sub>² + U<sub>AC</sub>²). Bereich 20 V.',
     learn: 'Eine gleichgerichtete Spannung ist eine Mischgrösse: Gleichanteil plus kräftiger Wechselanteil.',
@@ -375,7 +394,7 @@
   var bBridge = { parts: [bG1, { id: 'V1', x: 430, y: 250, rot: 0 }, { id: 'V2', x: 430, y: 640, rot: 0 }, { id: 'V3', x: 600, y: 250, rot: 180 }, { id: 'V4', x: 600, y: 640, rot: 180 }, { id: 'R1', x: 730, y: 450, rot: 90 }, { id: 'S1', x: 850, y: 250, rot: 0 }, { id: 'C1', x: 850, y: 450, rot: 90 }] };
   var B = function (id, ask, q, withC, tol) { var m = { id: id, ask: ask, unit: 'V', a: 'R1.a', b: 'R1.b', tol: tol || 0.05, set: { S1: { closed: !!withC } } }; if (q === 'rms') { m.mode = 'VAC'; m.meterType = 'trms'; } else { m.mode = 'AC'; m.q = q; } return m; };
   defTask({
-    id: '16.7', ch: 16, title: 'Brückengleichrichter mit und ohne Ladekondensator', tags: ['elektro.gleichrichter', 'elektro.kondensator', 'messen.trms'], measureUX: DRAG,
+    id: '16.7', ch: 16, title: 'Brückengleichrichter mit und ohne Ladekondensator', tags: ['elektro.gleichrichter', 'elektro.kondensator', 'messen.trms'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Erst die nackte Brücke, dann mit Ladekondensator: Die Zahlen auf den Geräten verändern sich drastisch.',
     brief: 'Miss an R1 <b>ohne</b> Kondensator (S1 offen) und <b>mit</b> Kondensator (S1 geschlossen): jeweils <b>V⎓</b> (Gleichanteil), <b>V~ TRMS</b> (Restwelligkeit) und den <b>Scheitelwert</b> am Oszilloskop (Zeitbasis 50 ms). Bereich 20 V.',
     learn: 'Der Ladekondensator hebt den Gleichanteil Richtung Scheitelwert und drückt die Restwelligkeit.',
@@ -393,7 +412,7 @@
     wires: [W('G1.p', 'V1.a'), W('G1.p', 'V3.k'), W('G1.n', 'V2.a'), W('G1.n', 'V4.k'), W('V1.k', 'R1.a'), W('V2.k', 'R1.a'), W('R1.b', 'R2.a'), W('V3.a', 'R2.b'), W('V4.a', 'R2.b')] };
   var bShunt = { parts: [bG1, { id: 'V1', x: 450, y: 250, rot: 0 }, { id: 'V2', x: 450, y: 640, rot: 0 }, { id: 'V3', x: 640, y: 250, rot: 180 }, { id: 'V4', x: 640, y: 640, rot: 180 }, { id: 'R1', x: 800, y: 340, rot: 90 }, { id: 'R2', x: 800, y: 560, rot: 90 }] };
   defTask({
-    id: '16.8', ch: 16, title: 'Strommessung am Gleichrichter', tags: ['messen.strom', 'messen.systemfehler', 'elektro.gleichrichter'], measureUX: DRAG,
+    id: '16.8', ch: 16, title: 'Strommessung am Gleichrichter', tags: ['messen.strom', 'messen.systemfehler', 'elektro.gleichrichter'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Wie misst man den pulsierenden Strom hinter dem Gleichrichter? Mit einem Mess-Shunt – so, wie es das Amperemeter innen auch macht.',
     brief: 'In Reihe zur Last R1 (1 kΩ) liegt der <b>Mess-Shunt R2 = 10 Ω</b>. Miss an R2 den <b>Gleichanteil</b> (V⎓) und den <b>Wechselanteil</b> (V~ TRMS) und rechne beide mit I = U / 10 Ω in Ströme um. Bestimme mit dem Oszilloskop den <b>Spitzenstrom</b>. Berechne den <b>Systemfehler</b>: Um wie viel Prozent verkleinert der Shunt den Laststrom gegenüber der Schaltung ohne Shunt?',
     learn: 'Strommessung = Spannungsmessung an einem kleinen bekannten Widerstand. Der Shunt selbst ist ein Systemfehler.',

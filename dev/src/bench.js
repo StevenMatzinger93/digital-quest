@@ -555,8 +555,8 @@
     }
     var pan = null, pinch = null, touches = {};
     svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
-    svg.addEventListener('wheel', function (ev) { // Mausrad: zur Mausposition hin zoomen (nicht in der Mini-Schaltung – dort scrollt die Lektion)
-      if (self.opts.tight) return;
+    svg.addEventListener('wheel', function (ev) { // Strg/⌘ + Mausrad: zur Mausposition hin zoomen; ohne Taste scrollt die Seite weiter (Feedback: „Werkbank rauf und runter“)
+      if (self.opts.tight || !(ev.ctrlKey || ev.metaKey)) return;
       ev.preventDefault();
       self.zoomAt(Math.exp(ev.deltaY * 0.0015), ev.clientX, ev.clientY);
     }, { passive: false });

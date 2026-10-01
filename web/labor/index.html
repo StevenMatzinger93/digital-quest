@@ -144,6 +144,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 #board { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; outline: none; }
 /* Werkbank (bench.js) – feste Laborfarben, unabhaengig vom Thema */
 #bench { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; outline: none; background: #1b1612; }
+/* Die Zeichenfläche wächst nicht mit einer langen Seitenleiste über den Bildschirm hinaus (Einstellungs-Box, Lösung, Protokoll) */
+#board, #bench { max-height: calc(100vh - 170px); }
 #board.off, #bench.off { display: none; }
 /*CIRCUIT-START*/
 .bblock { stroke: rgba(0,0,0,.45); stroke-width: 1.5; } .bbevel { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 1.2; }
@@ -471,6 +473,15 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .sb-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; } .sb-stats div { background: #0e1012; border: 1px solid #2a2a2a; border-radius: 8px; padding: 6px 10px; display: grid; } .sb-stats span { font-size: 11px; color: #8a8a8a; } .sb-stats b { font-size: 18px; color: #39ff14; }
 @media (max-width: 640px) { .sb-box { padding: 10px; } .sb-stats b { font-size: 15px; } }
 
+/* Vorführ-Modus */
+#demoBox { margin: 8px 0; } .demo { border: 1px solid var(--accent-cyan); border-radius: 10px; padding: 8px 10px; background: rgba(30,200,224,.06); }
+.demo-head { display: flex; align-items: center; gap: 10px; } .demo-head b { color: var(--accent-cyan); } .demo-head .small { flex: 1; } .demo-text { margin: 6px 0; font-size: 14px; min-height: 20px; } .demo-rw .wk-row { margin: 2px 0 4px; }
+
+/* Zusatzbloecke in Lektionen, eingeklappte Bilder, Abspielsteuerung */
+.lesson details.zusatz { margin: 10px 0; border: 1px dashed var(--line); border-radius: 10px; padding: 6px 12px; } .lesson details.zusatz summary { cursor: pointer; color: var(--accent-cyan); font-weight: 600; } .lesson details.zusatz[open] summary { margin-bottom: 6px; }
+.visual.collapsed { padding: 4px 0; } .visual-show { margin: 4px 0; }
+.playbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 8px; font-size: 13px; } .playbar-speed { display: flex; align-items: center; gap: 6px; } .playbar-speed span { color: var(--text-dim); } .playbar select { background: #111; color: #ddd; border: 1px solid #444; border-radius: 6px; padding: 4px 6px; }
+
 /* Musterbeispiele mit Fading (worked) */
 .wk-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; } .wk-tabs .btn.on { border-color: var(--accent-cyan); color: var(--accent-cyan); }
 .wk-given { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; margin-bottom: 8px; padding: 8px 10px; background: rgba(255,255,255,.04); border-radius: 8px; }
@@ -652,7 +663,7 @@ body.has-exam-bar .top { padding-top: 50px; }
         <div id="palette"></div><span class="sep"></span>
         <button class="tb" id="btnRot" title="Drehen (R)">⟳ Drehen</button>
         <button class="tb" id="btnDel" title="Löschen (Entf)">✕ Löschen</button>
-        <button class="tb" id="btnFit" title="Ansicht einpassen">⤢ Einpassen</button>
+        <button class="tb" id="btnFit" data-tip="Werkbank: Zoom mit Strg + Mausrad, Verschieben durch Ziehen auf der leeren Tischfläche" title="Ansicht einpassen">⤢ Einpassen</button>
         <button class="tb" id="btnVolt" title="Knotenspannungen einfärben">U anzeigen</button>
         <button class="tb" id="btnFlow" title="Stromfluss zeigen: Punkte wandern in technischer Stromrichtung (+ → −), je schneller, desto mehr Strom; Stromwert an jedem Kabel">⇢ Strom</button>
         <button class="tb" id="btnReplay" title="Rechenschritte bzw. Zeitverlauf Schritt für Schritt ansehen">⏱ Zeitlupe</button>
@@ -1413,7 +1424,7 @@ body.has-exam-bar .top { padding-top: 50px; }
    * palette: erlaubte Bauteiltypen; start / ref: Layouts {parts, wires}; wrong: [{name, parts, wires}]
    * need, tests, measure: siehe engine.js runTask
    * bench (optional): Werkbank-Layout {parts:[{id, x, y, rot}]} – eigene Lage je Bauteil-ID aus start/ref (siehe bench.js)
-   * measureUX (optional): 'legacy' (Standard: Klick auf die Buchse setzt die Messspitze) | 'drag' (Werkbank: Spitzen ziehen,
+   * measureUX (optional): 'drag' (Standard: Werkbank – Spitzen ziehen) | 'legacy' (Klick auf die Buchse setzt die Messspitze; Werkbank: Spitzen ziehen,
    *   eigener Oszilloskop-Tastkopf, Messbereich von Hand waehlen – Schema-Ansicht bleibt beim Klick)
    * boss: true fuer Abschlussaufgabe */
   root.defTask = function (t) {
@@ -1421,12 +1432,19 @@ body.has-exam-bar .top { padding-top: 50px; }
     t.kind = 'task';
     t.palette = t.palette || [];
     t.tests = t.tests || []; t.measure = t.measure || []; t.wrong = t.wrong || []; t.tags = t.tags || [];
-    t.measureUX = t.measureUX || 'legacy';
     // rechenweg (optional): { messwertId: HTML | [{text, label?, expr?, value?, unit?}] } – erscheint in der Lösungsansicht und beim Aufdecken
     // eines Messwerts; fehlt er, erzeugt die App einen minimalen Rechenweg aus measure (Sollwert, Messart, Anschlüsse).
     if (t.rechenweg) Object.keys(t.rechenweg).forEach(function (k) { if (!(t.measure || []).some(function (m) { return m.id === k; })) throw new Error('defTask ' + t.id + ': rechenweg für unbekannten Messwert „' + k + '“'); });
-    t.measureUX = t.measureUX || 'legacy';
+    // measureUX: 'drag' (Standard seit 01.10.2026 – Werkbank: Spitzen und Tastkopf ziehen) | 'legacy' (Klick setzt die Spitze, nur noch für Sonderfälle)
+    // rangeUX: 'auto' (Standard: Messbereich automatisch) | 'manual' (Bereich von Hand wählen, falscher Bereich zeigt OL – Kapitel 16, Tutorial)
+    // setup (optional): HTML für die Box „So stellst du das Gerät ein“ oder { messwertId: HTML } je Messwert; sonst automatisch aus measure
+    t.measureUX = t.measureUX || 'drag';
     if (t.measureUX !== 'legacy' && t.measureUX !== 'drag') throw new Error('defTask ' + t.id + ': measureUX muss legacy oder drag sein');
+    t.rangeUX = t.rangeUX || 'auto';
+    if (t.rangeUX !== 'auto' && t.rangeUX !== 'manual') throw new Error('defTask ' + t.id + ': rangeUX muss auto oder manual sein');
+    // demo (optional): Messwert-ID, die der Vorführ-Modus zeigt (sonst der erste Messwert mit Spitzen a/b und Messart V, V~, Ω oder Oszilloskop)
+    if (t.demo && !(t.measure || []).some(function (m) { return m.id === t.demo; })) throw new Error('defTask ' + t.id + ': demo verweist auf unbekannten Messwert „' + t.demo + '“');
+    if (t.setup && typeof t.setup === 'object') Object.keys(t.setup).forEach(function (k) { if (!(t.measure || []).some(function (m) { return m.id === k; })) throw new Error('defTask ' + t.id + ': setup für unbekannten Messwert „' + k + '“'); });
     DQ.tasks.push(t); DQ.byId[t.id] = t; return t;
   };
 
@@ -5000,14 +5018,35 @@ body.has-exam-bar .top { padding-top: 50px; }
     scale(255, 172, 150, 40, 'I') +
     '<text x="470" y="130" fill="#e8e8e8" font-size="12">Beide Plättchen werden</text><text x="470" y="148" fill="#e8e8e8" font-size="12">gleichsinnig magnetisiert</text><text x="470" y="166" fill="#e8e8e8" font-size="12">und stossen sich ab –</text><text x="470" y="184" fill="#e8e8e8" font-size="12">egal, in welche Richtung</text><text x="470" y="202" fill="#e8e8e8" font-size="12">der Strom fliesst.</text>' +
     '<text x="470" y="236" fill="#1ec8e0" font-size="12" font-weight="700">AC und DC: Effektivwert</text><text x="470" y="254" fill="#9aa" font-size="11">(Kraft ~ I², Skala nicht linear)</text>');
-  var IMG_ZANGE = SVG(560, 220,
-    '<text x="20" y="30" fill="#ffb000" font-size="15" font-weight="700">Strommesszange</text>' +
-    '<path d="M60 130h440" stroke="#2a6fdb" stroke-width="10" stroke-linecap="round"/><text x="60" y="118" fill="#9aa" font-size="11">Leiter (nicht aufgetrennt)</text>' +
-    '<circle cx="280" cy="130" r="48" fill="none" stroke="#3a3f47" stroke-width="18"/><circle cx="280" cy="130" r="48" fill="none" stroke="#e0b400" stroke-width="4" stroke-dasharray="6 6"/>' +
-    '<path d="M280 178v40h60v-60" fill="none" stroke="#3a3f47" stroke-width="18" stroke-linecap="round"/>' +
-    '<rect x="330" y="150" width="70" height="30" rx="4" fill="#b9c6a2"/><text x="338" y="171" fill="#1b2413" font-size="13" font-family="monospace" font-weight="700">2.34 A</text>' +
-    '<circle cx="280" cy="130" r="70" fill="none" stroke="#1ec8e0" stroke-width="1.2" stroke-dasharray="3 5"/><circle cx="280" cy="130" r="90" fill="none" stroke="#1ec8e0" stroke-width="1" stroke-dasharray="3 7" opacity=".6"/>' +
-    '<text x="380" y="70" fill="#1ec8e0" font-size="12">Magnetfeld um den Leiter</text><text x="380" y="88" fill="#e8e8e8" font-size="12">induziert in der Zangenspule</text><text x="380" y="106" fill="#e8e8e8" font-size="12">einen proportionalen Strom.</text>');
+  // Strommesszange (Feedback 01.10.2026): Zange quer zum Leiter in leichter Perspektive, Magnetfeld als koaxiale Ellipsen um den Leiter,
+  // Strompfeil, genau ein Leiter in der Zange; rechts das Gegenbeispiel Hin- und Rückleiter zusammen → 0.
+  var IMG_ZANGE = SVG(700, 250,
+    '<defs><linearGradient id="zgBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a5058"/><stop offset="1" stop-color="#23272c"/></linearGradient>' +
+    '<linearGradient id="zgJaw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8e969e"/><stop offset=".5" stop-color="#d7dce0"/><stop offset="1" stop-color="#5d6469"/></linearGradient></defs>' +
+    '<text x="20" y="28" fill="#ffb000" font-size="15" font-weight="700">Strommesszange – Strom messen ohne Auftrennen</text>' +
+    // Leiter mit Strompfeil
+    '<path d="M40 128h420" stroke="#2a6fdb" stroke-width="11" stroke-linecap="round"/><path d="M40 124h420" stroke="rgba(255,255,255,.35)" stroke-width="2"/>' +
+    '<path d="M330 118l26 10-26 10" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><text x="300" y="104" fill="#e8e8e8" font-size="12" font-weight="700">I</text>' +
+    '<text x="44" y="112" fill="#9aa" font-size="11">nur ein Leiter – nicht aufgetrennt</text>' +
+    // Magnetfeld: koaxiale Ellipsen quer zum Leiter (Feldlinien liegen in Ebenen senkrecht zum Leiter)
+    '<ellipse cx="200" cy="128" rx="13" ry="60" fill="none" stroke="#1ec8e0" stroke-width="1.3" stroke-dasharray="4 5"/>' +
+    '<ellipse cx="200" cy="128" rx="18" ry="82" fill="none" stroke="#1ec8e0" stroke-width="1.1" stroke-dasharray="3 6" opacity=".6"/>' +
+    '<path d="M213 68l-6-7M213 68l-8 2" fill="none" stroke="#1ec8e0" stroke-width="1.3"/><text x="222" y="60" fill="#1ec8e0" font-size="11">Magnetfeld B um den Leiter</text>' +
+    // Zange: Backen als Ring quer zum Leiter (Ellipse), Gelenk unten, Griff mit Anzeige
+    '<ellipse cx="200" cy="128" rx="11" ry="46" fill="none" stroke="url(#zgJaw)" stroke-width="13"/><ellipse cx="200" cy="128" rx="11" ry="46" fill="none" stroke="rgba(0,0,0,.45)" stroke-width="1"/>' +
+    '<path d="M200 82q3-3 6 0" fill="none" stroke="#111" stroke-width="2"/>' + // Backenspalt oben
+    '<rect x="186" y="170" width="28" height="18" rx="3" fill="#3a3f47" stroke="#111"/>' +
+    '<path d="M188 188q12 46 12 52h22q-6-6 8-52z" fill="url(#zgBody)" stroke="#111"/>' +
+    '<rect x="150" y="160" width="36" height="22" rx="4" fill="#b9c6a2" stroke="#1b2413"/><text x="155" y="175" fill="#1b2413" font-size="11" font-family="monospace" font-weight="700">2.34A</text>' +
+    '<text x="110" y="206" fill="#e8e8e8" font-size="12">Das Feld des Leiters induziert in der</text><text x="110" y="222" fill="#e8e8e8" font-size="12">Zangenspule einen proportionalen Strom</text><text x="110" y="238" fill="#9aa" font-size="11">(Wechselstrom: Induktion · Gleichstrom: Hall-Sensor).</text>' +
+    // Gegenbeispiel rechts: Hin- und Rueckleiter zusammen in der Zange → Felder heben sich auf
+    '<g transform="translate(500 0)"><text x="20" y="104" fill="#9aa" font-size="11">Hin- und Rückleiter zusammen:</text>' +
+    '<path d="M20 122h160" stroke="#2a6fdb" stroke-width="8" stroke-linecap="round"/><path d="M20 136h160" stroke="#8a4a12" stroke-width="8" stroke-linecap="round"/>' +
+    '<path d="M120 118l12 4-12 4" fill="none" stroke="#fff" stroke-width="2"/><path d="M80 132l-12 4 12 4" fill="none" stroke="#fff" stroke-width="2"/>' +
+    '<ellipse cx="100" cy="129" rx="9" ry="34" fill="none" stroke="url(#zgJaw)" stroke-width="10"/>' +
+    '<rect x="88" y="166" width="24" height="14" rx="3" fill="#3a3f47" stroke="#111"/><path d="M90 180q10 30 10 36h14q-4-6 6-36z" fill="url(#zgBody)" stroke="#111"/>' +
+    '<rect x="118" y="160" width="40" height="20" rx="4" fill="#b9c6a2" stroke="#1b2413"/><text x="124" y="174" fill="#1b2413" font-size="11" font-family="monospace" font-weight="700">0.00A</text>' +
+    '<text x="20" y="206" fill="#e8e8e8" font-size="12">Die Felder heben sich auf – Anzeige 0.</text></g>');
   var sym = function (x, y, inner, label) { return '<g transform="translate(' + x + ' ' + y + ')"><rect x="0" y="0" width="124" height="64" rx="6" fill="#1e2228" stroke="#3a3f47"/><g transform="translate(62 26)" fill="none" stroke="#e8e8e8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</g><text x="62" y="58" fill="#9aa" font-size="8.5" text-anchor="middle">' + label + '</text></g>'; };
   var IMG_SINNBILDER = SVG(700, 260,
     '<text x="20" y="26" fill="#ffb000" font-size="15" font-weight="700">Sinnbilder auf dem Skalenfeld</text>' +
@@ -5029,42 +5068,40 @@ body.has-exam-bar .top { padding-top: 50px; }
     merksatz: 'Drehspulmesswerk: Drehmoment ~ I, lineare Skala, zeigt den Mittelwert (mit Gleichrichter den Gleichrichtwert, AVG); Dreheisenmesswerk: Kraft ~ I², gestauchte Skala, zeigt bei AC und DC den Effektivwert.',
     visual: [
       { type: 'block', svg: IMG_DREHSPUL, caption: 'Drehspulmesswerk: Dauermagnet aussen, die Spule dreht sich im Feld. Der Zeiger folgt dem Mittelwert des Stroms.' },
-      { type: 'block', svg: IMG_DREHEISEN, caption: 'Dreheisenmesswerk: feste Spule, zwei Eisenplättchen stossen sich ab – die Kraft hängt vom Quadrat des Stroms ab, der Zeiger zeigt den Effektivwert.' },
+      { type: 'block', svg: IMG_DREHEISEN, collapsed: 'Bild einblenden: Dreheisenmesswerk', caption: 'Dreheisenmesswerk: feste Spule, zwei Eisenplättchen stossen sich ab – die Kraft hängt vom Quadrat des Stroms ab, der Zeiger zeigt den Effektivwert.' },
       { type: 'meterwork', imax: 10, signal: 'dc', caption: 'Beide Messwerke am selben Strom: Regler ziehen und die Zeiger vergleichen (linear gegen quadratisch). Dämpfung ausschalten und „Sprung“ drücken – der Zeiger schwingt über. Bei Wechselstrom läuft oben der Momentanwert, die Zeiger pendeln sich auf Gleichrichtwert × 1,11 (Drehspul mit Gleichrichter) bzw. Effektivwert (Dreheisen) ein – das AVG-Prinzip aus Theorie 3B.',
         predict: { q: 'Der Generator liefert eine <b>Dreieckspannung</b> mit Î = 10 mA Spitzenstrom. Welches Instrument zeigt den <b>höheren</b> Wert an?', options: ['Drehspulmesswerk mit Gleichrichter (AVG-Skala)', 'Dreheisenmesswerk (Effektivwert)', 'Beide zeigen dasselbe'], correct: 1, signal: 'triangle',
           explain: 'Beim Dreieck ist der Gleichrichtwert 0,5·Î, mit Formfaktor 1,11 zeigt die AVG-Skala 5,55 mA; der echte Effektivwert ist Î/√3 = 5,77 mA. Das Dreheisenwerk misst ihn direkt – nur beim Sinus stimmen beide überein.' } },
-      { type: 'circuit', view: 'bench', caption: 'Werkstatt-Aufbau: Derselbe Strom durch R1, einmal als Sinus, einmal als Rechteck. Vergleiche, was ein Drehspulgerät mit Gleichrichter (AVG-Anzeige) und ein Dreheisengerät (Effektivwert) anzeigen würden – und den Gleichanteil, den ein Drehspulgerät ohne Gleichrichter zeigt.',
+      { type: 'circuit', view: 'bench', collapsed: 'Werkstatt-Aufbau einblenden: Sinus, Rechteck, Dreieck am Multimeter', caption: 'Werkstatt-Aufbau: Derselbe Strom durch R1, einmal als Sinus, einmal als Rechteck. Vergleiche, was ein Drehspulgerät mit Gleichrichter (AVG-Anzeige) und ein Dreheisengerät (Effektivwert) anzeigen würden – und den Gleichanteil, den ein Drehspulgerät ohne Gleichrichter zeigt.',
         layout: { parts: [gen(), R('R1', 1000, 440, 300, 90)], wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] },
         bench: { parts: [{ id: 'G1', x: 250, y: 440 }, { id: 'R1', x: 640, y: 440, rot: 90 }] },
         sliders: [{ part: 'G1', prop: 'shape', label: 'Kurvenform', choices: [{ value: 'sine', label: 'Sinus' }, { value: 'square', label: 'Rechteck' }, { value: 'triangle', label: 'Dreieck' }] }, { part: 'G1', prop: 'offset', label: 'Gleichanteil', min: 0, max: 5, step: 0.5, unit: 'V' }],
         readouts: [{ label: 'Drehspul ohne Gleichrichter (Mittelwert)', a: 'R1.a', b: 'R1.b', ac: 'dc' }, { label: 'Drehspul mit Gleichrichter (AVG-Anzeige)', a: 'R1.a', b: 'R1.b', ac: 'avg' }, { label: 'Dreheisen / TRMS (Effektivwert des Wechselanteils)', a: 'R1.a', b: 'R1.b', ac: 'rms' }],
         scope: { a: 'R1.a', b: 'R1.b', span: 0.04, label: 'U an R1' } },
-      { type: 'block', svg: IMG_ZANGE, caption: 'Strommesszange: misst ohne Auftrennen des Kreises über das Magnetfeld des Leiters.' }
+      { type: 'block', svg: IMG_ZANGE, collapsed: 'Bild einblenden: Strommesszange', caption: 'Strommesszange: misst ohne Auftrennen über das Magnetfeld des Leiters – links ein Leiter, rechts Hin- und Rückleiter zusammen (Anzeige 0).' }
     ],
     lesson:
-      '<p>Vor dem Digitalmultimeter gab es das <b>Zeigerinstrument</b> – und in Schaltschränken, an Netzgeräten und in vielen Prüfständen hängt es noch heute. Zwei Messwerke musst du kennen, weil sie <i>unterschiedlich</i> auf Wechselgrössen reagieren.</p>' +
+      '<p>Vor dem Digitalmultimeter gab es das <b>Zeigerinstrument</b> – in Schaltschränken und an Netzgeräten hängt es noch heute. Zwei Messwerke musst du kennen, weil sie bei Wechselgrössen <i>Verschiedenes</i> anzeigen.</p>' +
       '{{visual}}' +
-      '<p><b>Drehspulmesswerk.</b> Ein Dauermagnet (Stator) umgibt eine drehbar gelagerte Spule (Rotor). Fliesst der Messstrom durch die Spule, entsteht ein Drehmoment, das der Spiralfeder entgegenwirkt; Zeiger und Spule bleiben dort stehen, wo Magnetkraft und Federkraft gleich gross sind. Der Ausschlag ist <b>proportional zum Strom</b>, die Skala linear. Gebaut ist es für <b>Strom</b>; mit einem Vorwiderstand wird daraus ein Spannungsmesser. Weil das Drehmoment mit der Stromrichtung das Vorzeichen wechselt, zeigt es bei Wechselstrom den <b>linearen Mittelwert</b> – bei reinem Wechselstrom also 0. Erst ein eingebauter <b>Gleichrichter</b> macht daraus ein Wechselstrominstrument: Es zeigt dann den <b>Gleichrichtwert</b>, und die Skala ist mit dem Formfaktor 1,11 auf den Sinus-Effektivwert umgerechnet (das AVG-Prinzip aus Theorie 3B).</p>' +
+      '<p><b>Drehspulmesswerk.</b> Ein Dauermagnet steht fest, eine Spule dreht sich darin gegen eine Spiralfeder. Das Antriebsmoment ist <b>proportional zum Strom</b> (M = k₁ · I), das Federmoment proportional zum Winkel (M = D · φ). Wo beide gleich sind, steht der Zeiger: φ = (k₁/D) · I – <b>lineare Skala</b>. Bei Wechselstrom wechselt das Moment mit der Stromrichtung, der Zeiger zeigt den <b>Mittelwert</b> (reiner Wechselstrom: 0). Erst ein eingebauter <b>Gleichrichter</b> macht ein Wechselstrominstrument daraus: Es zeigt den Gleichrichtwert, die Skala ist mit dem Formfaktor 1,11 auf den Sinus umgerechnet – das AVG-Prinzip aus Theorie 3B.</p>' +
       '{{visual:2}}' +
-      '<p><b>Dreheisenmesswerk.</b> Hier steht die Spule fest (Stator), im Inneren sitzen zwei <b>Weicheisenplättchen</b> – eines fest, eines drehbar mit dem Zeiger. Der Strom magnetisiert beide gleichsinnig, sie stossen sich ab. Die Kraft hängt vom <b>Quadrat</b> des Stroms ab, darum ist die Richtung egal: Das Dreheisenmesswerk misst Gleich- <i>und</i> Wechselstrom und zeigt bei Wechselstrom den <b>Effektivwert</b> – unabhängig von der Kurvenform, wie ein TRMS-Gerät. Die Skala ist dafür nicht linear (unten gedrängt) und das Messwerk ist robust, aber weniger empfindlich.</p>' +
-      '<p><b>Warum linear, warum quadratisch? Die Drehmoment-Balance.</b> Der Zeiger steht, wenn das Antriebsmoment der Spule und das Rückstellmoment der Spiralfeder gleich gross sind. Die Feder gehorcht bei beiden Bauformen demselben Gesetz: ihr Moment wächst proportional zum Ausschlagwinkel, M<sub>F</sub> = D · φ. Beim <b>Drehspulmesswerk</b> ist das Antriebsmoment proportional zum Strom, weil das Feld des Dauermagneten fest ist und nur die Kraft auf die stromdurchflossene Spule mit I wächst: M<sub>A</sub> = k₁ · I. Gleichsetzen ergibt</p>' +
-      '<div class="formula">k₁ · I = D · φ &nbsp;⇒&nbsp; φ = (k₁ / D) · I &nbsp;→ lineare Skala</div>' +
-      '<p>Beim <b>Dreheisenmesswerk</b> gibt es keinen Dauermagneten: Derselbe Strom magnetisiert <i>beide</i> Plättchen. Die Kraft zwischen zwei Magneten hängt vom Produkt ihrer Stärken ab, und beide sind proportional zu I – also ist die Abstossung proportional zu I · I:</p>' +
-      '<div class="formula">k₂ · I² = D · φ &nbsp;⇒&nbsp; φ = (k₂ / D) · I² &nbsp;→ quadratische, unten gestauchte Skala</div>' +
-      '<p>Daraus folgt alles Weitere: Weil I² nie negativ wird, ist dem Dreheisenwerk die Stromrichtung egal, und der Mittelwert von I² ist genau das Quadrat des Effektivwerts – es zeigt den Effektivwert, bei jeder Kurvenform. Das Drehspulwerk mittelt dagegen I selbst.</p>' +
+      '<p><b>Dreheisenmesswerk.</b> Die Spule steht fest, zwei <b>Weicheisenplättchen</b> werden vom Strom gleichsinnig magnetisiert und stossen sich ab. Beide Magnetisierungen wachsen mit I, die Kraft also mit <b>I²</b> (M = k₂ · I²): φ = (k₂/D) · I² – <b>unten gestauchte Skala</b>. Weil I² nie negativ wird, ist die Stromrichtung egal, und der Mittelwert von I² ist das Quadrat des Effektivwerts: Das Dreheisenwerk zeigt bei Gleich- und Wechselstrom den <b>Effektivwert</b>, bei jeder Kurvenform – wie ein TRMS-Gerät. Robust, aber weniger empfindlich.</p>' +
       '{{visual:3}}' +
-      '<p><b>Dämpfung.</b> Ohne Bremse würde der Zeiger bei jeder Änderung überschwingen und lange pendeln (Feder und träge Masse bilden einen Schwinger). Beim Drehspulwerk übernimmt das die <b>Wirbelstromdämpfung</b>: Die Spule sitzt auf einem Aluminiumrahmen, in dem die Bewegung im Magnetfeld Wirbelströme erzeugt – sie bremsen genau die Bewegung, nicht die Anzeige. Das Eisenplättchen des Dreheisenwerks ist kein guter Wirbelstromleiter, darum bekommt es eine <b>Luft- oder Öldämpfung</b> (ein Flügel in einer Kammer). Probier in der Animation „ohne Dämpfung“ und „Sprung“.</p>' +
-      '<p><b>Frequenzgrenzen.</b> Das Drehspul-Gleichrichterinstrument ist mechanisch träge (der Zeiger folgt nur dem Mittelwert, das ist gewollt), begrenzt wird es durch den <b>Gleichrichter</b>: Die Dioden werden mit steigender Frequenz träge und die Skalenkorrektur mit dem Formfaktor stimmt nur für den Sinus – typische Instrumente sind bis einige hundert Hertz bis wenige Kilohertz brauchbar. Das Dreheisenwerk verliert bei höherer Frequenz durch <b>Wirbelströme im Eisen</b> und die Induktivität der Spule an Anzeige – es ist ein Instrument für 16⅔ bis einige hundert Hertz (Netzfrequenz). Genau das untersuchst du in <b>Aufgabe 16.5 „Frequenz erhöhen“</b>: dort siehst du, wie Multimeter (AVG/TRMS) mit der Frequenz aus dem spezifizierten Bereich laufen, während das Oszilloskop weiter richtig zeigt.</p>' +
-      '<p>Merke dir die Zuordnung, sie erklärt die Tabelle „Messfehler nach Instrumentenwahl“: <b>Drehspul + Gleichrichter = AVG-Verhalten</b> (beim Sinus richtig, beim Rechteck ≈ 11 % zu viel, beim Dreieck ≈ 4 % zu wenig, bei Mischspannung falsch), <b>Dreheisen = Effektivwert</b> (immer richtig, auch mit Gleichanteil).</p>' +
+      '<p><b>Dämpfung.</b> Feder und träge Masse bilden einen Schwinger – ohne Bremse würde der Zeiger überschwingen und pendeln. Drehspulwerke bremsen mit Wirbelströmen im Aluminiumrahmen der Spule, Dreheisenwerke mit einer Luft- oder Ölkammer. Probier in der Animation „ohne Dämpfung“ und „Sprung“.</p>' +
+      '<p><b>Merke die Zuordnung</b> – sie erklärt die Tabelle „Messfehler nach Instrumentenwahl“: <b>Drehspul + Gleichrichter = AVG-Verhalten</b> (Sinus richtig, Rechteck ≈ 11 % zu viel, Dreieck ≈ 4 % zu wenig, Mischspannung falsch), <b>Dreheisen = Effektivwert</b> (immer richtig, auch mit Gleichanteil).</p>' +
       '{{visual:4}}' +
-      '<p><b>Strommesszange.</b> Sie misst Strom, <i>ohne den Kreis aufzutrennen</i>: Die Zange umschliesst den Leiter; dessen Magnetfeld induziert in der Zangenspule einen proportionalen Strom, den das Gerät auswertet (Wechselstrom über Induktion, Gleichstrom mit Hall-Sensor). Wichtig: nur <b>einen</b> Leiter umschliessen – bei Hin- und Rückleiter zusammen heben sich die Felder auf, die Zange zeigt 0.</p>' +
-      '<h3>Vergleich</h3><table class="tt"><tr><th></th><th>Drehspulmesswerk</th><th>Dreheisenmesswerk</th></tr>' +
+      '<p><b>Strommesszange.</b> Sie misst Strom, <i>ohne den Kreis aufzutrennen</i>: Das Magnetfeld des umschlossenen Leiters induziert in der Zangenspule einen proportionalen Strom (Gleichstrom: Hall-Sensor). Nur <b>einen</b> Leiter umschliessen – bei Hin- und Rückleiter zusammen heben sich die Felder auf, die Zange zeigt 0.</p>' +
+      '{{visual:5}}' +
+      '<details class="zusatz"><summary>Zusatz: Frequenzgrenzen</summary>' +
+      '<p>Das Drehspul-Gleichrichterinstrument begrenzt der <b>Gleichrichter</b>: Die Dioden werden mit steigender Frequenz träge, und die Skalenkorrektur mit dem Formfaktor stimmt nur für den Sinus – brauchbar bis einige hundert Hertz, höchstens wenige Kilohertz. Das Dreheisenwerk verliert bei höherer Frequenz durch <b>Wirbelströme im Eisen</b> und die Induktivität der Spule an Anzeige – ein Instrument für 16⅔ bis einige hundert Hertz (Netzfrequenz). Genau das untersuchst du in <b>Aufgabe 16.5 „Frequenz erhöhen“</b>: Multimeter (AVG/TRMS) laufen mit der Frequenz aus dem spezifizierten Bereich, das Oszilloskop zeigt weiter richtig.</p></details>' +
+      '<details class="zusatz"><summary>Zusatz: Vergleichstabelle (Eigenverbrauch, Frequenzbereich, Einsatz)</summary>' +
+      '<table class="tt"><tr><th></th><th>Drehspulmesswerk</th><th>Dreheisenmesswerk</th></tr>' +
       '<tr><td>Skala</td><td>linear (φ ~ I)</td><td>quadratisch, unten gestaucht (φ ~ I²)</td></tr>' +
       '<tr><td>Anzeige bei AC</td><td>Mittelwert; mit Gleichrichter Gleichrichtwert × 1,11 (nur Sinus richtig)</td><td>Effektivwert, jede Kurvenform</td></tr>' +
       '<tr><td>Eigenverbrauch für Vollausschlag</td><td>klein: etwa 50 µA … 1 mA, ca. 0,1 V</td><td>gross: etwa 0,1 … 1 A bzw. 1 … 3 W (kräftige Spule)</td></tr>' +
       '<tr><td>Frequenzbereich</td><td>DC; mit Gleichrichter bis einige 100 Hz … wenige kHz</td><td>DC und 16⅔ … einige 100 Hz (Netzfrequenz)</td></tr>' +
       '<tr><td>Dämpfung</td><td>Wirbelstrom im Spulenrahmen</td><td>Luft- oder Ölkammer</td></tr>' +
-      '<tr><td>Typischer Einsatz</td><td>Vielfachmessgerät, empfindliche Gleichstrommessungen, Mittelwertanzeige</td><td>Schaltschrank- und Netzinstrumente (Effektivwert von Netzstrom/-spannung), robust</td></tr></table>',
+      '<tr><td>Typischer Einsatz</td><td>Vielfachmessgerät, empfindliche Gleichstrommessungen, Mittelwertanzeige</td><td>Schaltschrank- und Netzinstrumente (Effektivwert von Netzstrom/-spannung), robust</td></tr></table></details>',
     questions: [
       { q: 'Was zeigt ein Drehspulmesswerk ohne Gleichrichter bei einem reinen Sinusstrom?', options: ['den Effektivwert', 'den Gleichrichtwert', 'den Scheitelwert', '0 – den linearen Mittelwert'], correct: 3, explain: 'Das Drehmoment wechselt mit der Stromrichtung das Vorzeichen; im Mittel bleibt der Zeiger bei 0.' },
       { q: 'Warum zeigt das Dreheisenmesswerk bei Wechselstrom den Effektivwert?', options: ['Es hat einen eingebauten Gleichrichter', 'Die Abstosskraft der Plättchen hängt vom Quadrat des Stroms ab', 'Die Spule ist drehbar gelagert', 'Es misst nur Gleichstrom'], correct: 1, explain: 'Kraft ~ I²: Die Richtung spielt keine Rolle, der Mittelwert des Quadrats ist der Effektivwert.' },
@@ -5078,7 +5115,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   var load = { parts: [{ id: 'B1', type: 'battery', value: 230, props: { ri: 0.01, imax: 40 }, x: 160, y: 300, rot: 0 }, R('R1', 10, 440, 300, 90, { pmax: 6000 })], wires: [W('B1.p', 'R1.a'), W('R1.b', 'B1.n')] };
   var I1 = 230 / 10.01;
   defTask({
-    id: '16.1', ch: 16, title: 'Datenblatt und Systemfehler', tags: ['messen.genauigkeit', 'messen.systemfehler', 'elektro.ohm'], measureUX: DRAG,
+    id: '16.1', ch: 16, title: 'Datenblatt und Systemfehler', tags: ['messen.genauigkeit', 'messen.systemfehler', 'elektro.ohm'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Ein Heizwiderstand von 10 Ω hängt an 230 V. Die Werkmeisterin will wissen, was das Multimeter misst – und wie genau.',
     brief: 'Miss die Spannung an R1 mit dem Multimeter (<b>Bereich 600 V</b> von Hand wählen). Berechne aus Datenblattwerten: Strom I = U/R und Leistung P = U·I. Bestimme den grössten Fehler eines <b>digitalen</b> Voltmeters mit ±(0,5 % + 1 Digit) im 600-V-Bereich (Auflösung 0,1 V) und eines <b>analogen</b> Voltmeters der Klasse 1,5 mit Skalenendwert 300 V. Warum darfst du den Strom hier nicht mit dem 10-A-Bereich messen?',
     learn: 'Datenblattwerte rechnen: Prozent vom Anzeigewert + Digit (digital) gegen Prozent vom Skalenendwert (analog).',
@@ -5101,7 +5138,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     { id: 'S2', type: 'switch', x: 320, y: 420, rot: 0, props: { closed: false } }, R('R3', 10e6, 620, 220, 90), R('R2', 10e6, 620, 380, 90)],
     wires: [W('B1.p', 'S1.a'), W('S1.b', 'R1.a'), W('R1.b', 'B1.n'), W('B1.p', 'S2.a'), W('S2.b', 'R3.a'), W('R3.b', 'R2.a'), W('R2.b', 'B1.n')] };
   defTask({
-    id: '16.2', ch: 16, title: 'Spannungs- und Strommessfehler', tags: ['messen.systemfehler', 'messen.spannung', 'messen.strom'], measureUX: DRAG,
+    id: '16.2', ch: 16, title: 'Spannungs- und Strommessfehler', tags: ['messen.systemfehler', 'messen.spannung', 'messen.strom'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Zwei Schaltungen, ein Multimeter: ein kleiner Widerstand (10 Ω) und ein hochohmiger Spannungsteiler (2 × 10 MΩ). Wo fälscht das Messgerät, und wie stark?',
     brief: 'Schliesse <b>S1</b> (Zweig mit R1 = 10 Ω): miss die Spannung an R1 und den Strom durch R1 (Leitung auftrennen, Amperemeter in Reihe, Bereich 10 A). Öffne S1, schliesse <b>S2</b> (Teiler R3–R2, je 10 MΩ): miss die Spannung an R2. Berechne für beide Zweige die Werte <b>ohne</b> Messfehler (an R2 liegt rechnerisch die Hälfte von 9 V) und die Abweichung in Prozent bei R2.',
     learn: 'Das Voltmeter (10 MΩ) belastet hochohmige Schaltungen, der Amperemeter-Shunt (0,1 Ω) stört niederohmige.',
@@ -5130,7 +5167,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     return m;
   };
   defTask({
-    id: '16.3', ch: 16, title: 'Kurvenformen im Instrumentenvergleich', tags: ['messen.trms', 'elektro.effektivwert', 'messen.oszilloskop'], measureUX: DRAG,
+    id: '16.3', ch: 16, title: 'Kurvenformen im Instrumentenvergleich', tags: ['messen.trms', 'elektro.effektivwert', 'messen.oszilloskop'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Dieselbe Spannung, drei Geräte, drei Kurvenformen: Füll die Vergleichstabelle aus dem Lehrgang – mit echten Messungen.',
     brief: 'Der Generator liefert Û = 10 V, 50 Hz. Miss an R1 für <b>Sinus, Rechteck und Dreieck</b> (Kurvenform im Eigenschaften-Panel umstellen): die Anzeige eines <b>AVG-Multimeters</b> (V~, Verfahren AVG), eines <b>TRMS-Multimeters</b> (V~, TRMS) und den <b>Scheitelwert</b> mit dem Oszilloskop (Tastkopf an R1). Bereich 20 V.',
     learn: 'AVG stimmt nur beim Sinus; TRMS und Oszilloskop zeigen bei jeder Kurvenform das Richtige.',
@@ -5187,7 +5224,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   var mixL = { parts: [gen({ offset: 3 }, 5), R('R1', 1000, 440, 300, 90)], wires: [W('G1.p', 'R1.a'), W('R1.b', 'G1.n')] };
   var rmsSine = 5 / Math.SQRT2, rmsSq = 5;
   defTask({
-    id: '16.4', ch: 16, title: 'Wechselgrösse mit Gleichanteil', tags: ['messen.trms', 'elektro.mittelwert', 'elektro.effektivwert'], measureUX: DRAG,
+    id: '16.4', ch: 16, title: 'Wechselgrösse mit Gleichanteil', tags: ['messen.trms', 'elektro.mittelwert', 'elektro.effektivwert'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Aus einem Sensorverstärker kommt ein Sinus, der auf einem Gleichanteil reitet. Welches Gerät zeigt hier was?',
     brief: 'Der Generator liefert Û = 5 V mit <b>3 V Gleichanteil</b>. Miss an R1 mit <b>V⎓</b> (zeigt den Gleichanteil), <b>V~ AVG</b> und <b>V~ TRMS</b> (Wechselanteil) und lies am Oszilloskop den <b>höchsten Wert</b> ab. Berechne den <b>gesamten Effektivwert</b> √(U<sub>DC</sub>² + U<sub>AC</sub>²) – das zeigt nur ein TRMS-Gerät mit AC+DC-Kopplung. Stell danach auf <b>Rechteck</b> um und miss den TRMS-Wechselanteil erneut.',
     learn: 'V~ ist AC-gekoppelt: Der Gleichanteil fällt weg. Nur TRMS mit AC+DC zeigt den wahren Effektivwert einer Mischgrösse.',
@@ -5208,7 +5245,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   var lp = { parts: [gen(), R('R1', 10000, 320, 200, 0), { id: 'C1', type: 'capacitor', value: 100e-9, x: 480, y: 300, rot: 90 }], wires: [W('G1.p', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'G1.n')] };
   var F = function (id, f) { return { id: id, ask: 'U_a TRMS bei ' + (f >= 1000 ? f / 1000 + ' kHz' : f + ' Hz'), unit: 'V', mode: 'VAC', meterType: 'trms', a: 'C1.a', b: 'C1.b', tol: 0.05, set: { G1: { freq: f } } }; };
   defTask({
-    id: '16.5', ch: 16, title: 'Frequenz erhöhen', tags: ['elektro.frequenz', 'elektro.filter', 'messen.oszilloskop'], measureUX: DRAG,
+    id: '16.5', ch: 16, title: 'Frequenz erhöhen', tags: ['elektro.frequenz', 'elektro.filter', 'messen.oszilloskop'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Wie weit kannst du die Frequenz drehen, bis die Geräte nichts Sinnvolles mehr zeigen?',
     brief: 'Am RC-Glied (R1 = 10 kΩ, C1 = 100 nF, f<sub>g</sub> ≈ 159 Hz) miss die Ausgangsspannung an C1 mit <b>V~ TRMS</b> bei <b>50 Hz, 159 Hz, 1 kHz und 10 kHz</b> (Frequenz am Generator umstellen). Lies bei 1 kHz zusätzlich den <b>Scheitelwert</b> am Oszilloskop ab (Zeitbasis 5 ms). Was zeigt <b>V⎓</b> bei jeder Frequenz?',
     learn: 'Ein Multimeter mittelt über viele Perioden – der Gleichanteil bleibt 0, der Wechselanteil folgt dem Frequenzgang. Das Oszilloskop zeigt den Verlauf bis in den MHz-Bereich.',
@@ -5296,7 +5333,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   var half = { parts: [gen(), d('V1', 280, 200, 0), R('R1', 1000, 460, 300, 90)], wires: [W('G1.p', 'V1.a'), W('V1.k', 'R1.a'), W('R1.b', 'G1.n')] };
   var bHalf = { parts: [bG1, { id: 'V1', x: 480, y: 260, rot: 0 }, { id: 'R1', x: 700, y: 450, rot: 90 }] };
   defTask({
-    id: '16.6', ch: 16, title: 'Einweggleichrichter – Instrumentenvergleich', tags: ['elektro.gleichrichter', 'messen.trms', 'elektro.mittelwert'], measureUX: DRAG,
+    id: '16.6', ch: 16, title: 'Einweggleichrichter – Instrumentenvergleich', tags: ['elektro.gleichrichter', 'messen.trms', 'elektro.mittelwert'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Die Gleichrichterschaltung aus Kapitel 3 – jetzt mit der Frage: Welches Gerät zeigt hier was, und was ist der wahre Effektivwert?',
     brief: 'Miss an R1 (Einweggleichrichter, Û = 10 V): <b>V⎓</b> (Gleichanteil), <b>V~ AVG</b> und <b>V~ TRMS</b> (Wechselanteil) sowie den <b>Scheitelwert</b> mit dem Oszilloskop. Berechne den <b>gesamten Effektivwert</b> √(U<sub>DC</sub>² + U<sub>AC</sub>²). Bereich 20 V.',
     learn: 'Eine gleichgerichtete Spannung ist eine Mischgrösse: Gleichanteil plus kräftiger Wechselanteil.',
@@ -5320,7 +5357,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   var bBridge = { parts: [bG1, { id: 'V1', x: 430, y: 250, rot: 0 }, { id: 'V2', x: 430, y: 640, rot: 0 }, { id: 'V3', x: 600, y: 250, rot: 180 }, { id: 'V4', x: 600, y: 640, rot: 180 }, { id: 'R1', x: 730, y: 450, rot: 90 }, { id: 'S1', x: 850, y: 250, rot: 0 }, { id: 'C1', x: 850, y: 450, rot: 90 }] };
   var B = function (id, ask, q, withC, tol) { var m = { id: id, ask: ask, unit: 'V', a: 'R1.a', b: 'R1.b', tol: tol || 0.05, set: { S1: { closed: !!withC } } }; if (q === 'rms') { m.mode = 'VAC'; m.meterType = 'trms'; } else { m.mode = 'AC'; m.q = q; } return m; };
   defTask({
-    id: '16.7', ch: 16, title: 'Brückengleichrichter mit und ohne Ladekondensator', tags: ['elektro.gleichrichter', 'elektro.kondensator', 'messen.trms'], measureUX: DRAG,
+    id: '16.7', ch: 16, title: 'Brückengleichrichter mit und ohne Ladekondensator', tags: ['elektro.gleichrichter', 'elektro.kondensator', 'messen.trms'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Erst die nackte Brücke, dann mit Ladekondensator: Die Zahlen auf den Geräten verändern sich drastisch.',
     brief: 'Miss an R1 <b>ohne</b> Kondensator (S1 offen) und <b>mit</b> Kondensator (S1 geschlossen): jeweils <b>V⎓</b> (Gleichanteil), <b>V~ TRMS</b> (Restwelligkeit) und den <b>Scheitelwert</b> am Oszilloskop (Zeitbasis 50 ms). Bereich 20 V.',
     learn: 'Der Ladekondensator hebt den Gleichanteil Richtung Scheitelwert und drückt die Restwelligkeit.',
@@ -5338,7 +5375,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     wires: [W('G1.p', 'V1.a'), W('G1.p', 'V3.k'), W('G1.n', 'V2.a'), W('G1.n', 'V4.k'), W('V1.k', 'R1.a'), W('V2.k', 'R1.a'), W('R1.b', 'R2.a'), W('V3.a', 'R2.b'), W('V4.a', 'R2.b')] };
   var bShunt = { parts: [bG1, { id: 'V1', x: 450, y: 250, rot: 0 }, { id: 'V2', x: 450, y: 640, rot: 0 }, { id: 'V3', x: 640, y: 250, rot: 180 }, { id: 'V4', x: 640, y: 640, rot: 180 }, { id: 'R1', x: 800, y: 340, rot: 90 }, { id: 'R2', x: 800, y: 560, rot: 90 }] };
   defTask({
-    id: '16.8', ch: 16, title: 'Strommessung am Gleichrichter', tags: ['messen.strom', 'messen.systemfehler', 'elektro.gleichrichter'], measureUX: DRAG,
+    id: '16.8', ch: 16, title: 'Strommessung am Gleichrichter', tags: ['messen.strom', 'messen.systemfehler', 'elektro.gleichrichter'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Wie misst man den pulsierenden Strom hinter dem Gleichrichter? Mit einem Mess-Shunt – so, wie es das Amperemeter innen auch macht.',
     brief: 'In Reihe zur Last R1 (1 kΩ) liegt der <b>Mess-Shunt R2 = 10 Ω</b>. Miss an R2 den <b>Gleichanteil</b> (V⎓) und den <b>Wechselanteil</b> (V~ TRMS) und rechne beide mit I = U / 10 Ω in Ströme um. Bestimme mit dem Oszilloskop den <b>Spitzenstrom</b>. Berechne den <b>Systemfehler</b>: Um wie viel Prozent verkleinert der Shunt den Laststrom gegenüber der Schaltung ohne Shunt?',
     learn: 'Strommessung = Spannungsmessung an einem kleinen bekannten Widerstand. Der Shunt selbst ist ein Systemfehler.',
@@ -5860,6 +5897,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p><b>Leitung ziehen:</b> Anschluss anklicken, dann den Ziel-Anschluss. Leitung anklicken und <kbd>Entf</kbd> entfernt sie.</p>' +
       '<p><b>Schalter</b> schaltest du per Klick, <b>Taster</b> sind nur gedrückt, solange du sie hältst.</p>' +
       '<p>Die Schaltung wird <b>laufend simuliert</b>. „U anzeigen“ färbt alle Knoten nach ihrer Spannung (blau = 0 V, rot = höchste Spannung). Fährst du über ein Bauteil, siehst du U, I und P.</p>' +
+      '<p><b>Messen auf der Werkbank:</b> Messspitzen (rot = +, schwarz = COM) und den Tastkopf des Oszilloskops mit der Maus an die Buchsen <b>ziehen</b>; daneben loslassen legt sie zurück. Im Schaltplan setzt ein Klick die Spitze. In den Messtechnik-Aufgaben (Kapitel 16) wählst du zusätzlich den <b>Messbereich</b> am Gerät – zu klein zeigt OL. Jede Messaufgabe hat oben die Box „So stellst du das Gerät ein“. Zoom auf der Werkbank: <kbd>Strg</kbd> + Mausrad, Verschieben durch Ziehen auf der leeren Tischfläche; das Mausrad allein scrollt die Seite.</p>' +
       '<p><b>Schaltplan oder Werkbank:</b> Der Knopf „Werkbank“ / „Schaltplan“ wechselt die Darstellung. Es ist dieselbe Schaltung – auf der Werkbank stecken die Bauteile auf Steckbausteinen und werden mit Laborkabeln verbunden. Bauen, Messen und Prüfen funktionieren in beiden Ansichten gleich. Auf der Werkbank zoomst du mit dem Mausrad (Handy: zwei Finger) und verschiebst den Tisch, indem du auf einer freien Stelle ziehst; „Einpassen“ zeigt wieder alles.</p>' +
       '<p><b>Zeitlupe:</b> zeigt Schritt für Schritt, wie die Simulation zum Ergebnis kommt – welche LED leitend wird, welches Gatter umschaltet, wie sich ein Kondensator über die Zeit lädt. Mit dem Schieberegler oder den Pfeiltasten blättern, „Live“ kehrt zurück.</p>' +
       '<p><b>Strom zeigen</b> („⇢ Strom“ in der Werkzeugleiste): Punkte wandern entlang der Leitungen in <b>technischer Stromrichtung</b> (von + nach −) – je schneller, desto mehr Strom. An jedem Kabel steht der Stromwert. So siehst du, wo sich der Strom aufteilt und wo gar keiner fliesst.</p>' +
@@ -5871,6 +5909,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p>Oben auf der Karte stehen die <b>Vorgaben vom Dozent</b>, mit Frist; ist die Frist vorbei und noch etwas offen, wird sie rot. Gesperrt wird nichts – vorgegebene Stationen sind immer offen.</p>' +
       '<p><b>Sterne:</b> Jede gelöste Aufgabe gibt 1 bis 3 Sterne – 3 ohne Fehlversuch und ohne Tipp, 2 mit höchstens zwei Fehlversuchen und einem Tipp, 1 sobald du einen Sollwert aufgedeckt oder die Lösung angesehen hast. Wer eine Aufgabe nochmals sauber löst, verbessert seine Sterne.</p>' +
       '<p><b>Messwerte einzeln:</b> Im Messprotokoll wird jeder Wert für sich geprüft (✓ richtig, ✗ falsch, ○ offen). Richtige Werte bleiben stehen. Nach zwei falschen Eingaben an einem Wert kannst du seinen <b>Sollwert aufdecken</b> (mit Rechenweg) – er zählt dann als erledigt. Die Aufgabe ist gelöst, sobald die Schaltung alle Tests besteht und jeder Wert richtig oder aufgedeckt ist.</p>' +
+      '<p><b>Vorführen:</b> In Messaufgaben zeigt der Knopf „Vorführen“ auf der Werkbank an einem Beispiel, wie gemessen wird: Messart und Bereich, die Spitzen gleiten zu den Buchsen, Anzeige, dann der Rechenweg Schritt für Schritt – mit Tempo, Pause, Einzelschritt und Abbrechen. Dein Aufbau bleibt unverändert; die Vorführung zählt wie ein Tipp. In Prüfung und Live-Challenge gibt es sie nicht.</p>' +
       '<p><b>Lösung ansehen:</b> Nach zwei gescheiterten Prüfungen erscheint der Knopf „Lösung ansehen“: Referenzschaltung, alle Sollwerte und der Rechenweg. Ansehen schaltet nichts frei – bauen und messen musst du selbst; die Station zählt dann mit höchstens 1 Stern. In Prüfung und Live-Challenge gibt es keine Lösung.</p>' +
       '<p><b>Für Lehrpersonen:</b> Das Dozenten-Konto legt der Admin an. Im Portal unter <b>Leitstand</b>: Klassen anlegen, Klassencode weitergeben oder Konten erzeugen (Zugangszettel drucken), Passwörter zurücksetzen, Fortschritt und Schaltungen der Lernenden ansehen und <b>Vorgaben</b> machen. Wer mit einem Dozenten-Konto angemeldet ist, hat im Labor automatisch den <b>Dozentenmodus</b>: alle Stationen offen, Sprungliste auf der Karte, Freie Werkbank mit allen Bauteilen.</p>' },
     { id: 'live', title: 'Live-Challenge', html:
@@ -6168,6 +6207,8 @@ body.has-exam-bar .top { padding-top: 50px; }
     var d = E.PARTS[p.type], q = p.props || {}, v = p.value !== undefined ? p.value : (q.value !== undefined ? q.value : d.props.value);
     switch (p.type) {
       case 'battery': return fmtVal(v) + ' V';
+      case 'switch': return q.closed ? 'zu' : 'offen'; // Stellung ausschreiben (Feedback 01.10.2026: „bei Schaltern kommt nur Strom, wenn sie unbetätigt sind“)
+      case 'button': return q.closed ? 'gedrückt' : '';
       case 'acsource': return 'Û ' + fmtVal(v) + ' V ' + ({ square: '⊓', triangle: '△' }[q.shape] || '∿') + ' ' + fmtVal(q.freq || d.props.freq) + ' Hz';
       case 'resistor': case 'pot': case 'lamp': return fmtVal(v) + ' Ω';
       case 'capacitor': return fmtVal(v) + 'F';
@@ -7001,8 +7042,8 @@ body.has-exam-bar .top { padding-top: 50px; }
     }
     var pan = null, pinch = null, touches = {};
     svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
-    svg.addEventListener('wheel', function (ev) { // Mausrad: zur Mausposition hin zoomen (nicht in der Mini-Schaltung – dort scrollt die Lektion)
-      if (self.opts.tight) return;
+    svg.addEventListener('wheel', function (ev) { // Strg/⌘ + Mausrad: zur Mausposition hin zoomen; ohne Taste scrollt die Seite weiter (Feedback: „Werkbank rauf und runter“)
+      if (self.opts.tight || !(ev.ctrlKey || ev.metaKey)) return;
       ev.preventDefault();
       self.zoomAt(Math.exp(ev.deltaY * 0.0015), ev.clientX, ev.clientY);
     }, { passive: false });
@@ -7360,12 +7401,39 @@ body.has-exam-bar .top { padding-top: 50px; }
   /* type: { mount(el, v) → {destroy}?, check(v, E) → [fehler] } */
   function register(type, def) { TYPES[type] = def; }
 
+  /* Einstellungen der Lernenden (Tempo der Animationen): die App hängt root.DQ_PREFS = {get, set} ein; ohne App (Validator) Standardwerte */
+  var PREFS = { get: function (k, d) { try { var p = root.DQ_PREFS, v = p && p.get(k); return v === undefined || v === null ? d : v; } catch (e) { return d; } }, set: function (k, v) { try { var p = root.DQ_PREFS; if (p) p.set(k, v); } catch (e) { /* ohne App */ } } };
+  var REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* Gemeinsame Abspielsteuerung fuer Bausteine mit Zeitverlauf: Tempo (0,25× / 0,5× / 1×, Standard langsam, gemerkt in den Einstellungen),
+   * Pause/Weiter, ein Schritt. ctl = {onPlay(), onPause(), onStep(), onSpeed(f)}. Nichts startet von allein endlos: play() nur nach Bedienung. */
+  function playbar(ctl, opt) {
+    opt = opt || {};
+    var speed = +PREFS.get('animSpeed', REDUCED ? 0.25 : 0.5), bar = document.createElement('div'); bar.className = 'playbar';
+    bar.innerHTML = '<button class="btn small" data-pb="play" aria-label="Abspielen">▶ Start</button><button class="btn small" data-pb="step" title="Einen Schritt weiter">▶| Schritt</button>' +
+      '<label class="playbar-speed"><span>Tempo</span><select data-pb="speed" aria-label="Tempo">' + [0.25, 0.5, 1].map(function (f) { return '<option value="' + f + '"' + (f === speed ? ' selected' : '') + '>' + String(f).replace('.', ',') + '×' + (f === 0.25 ? ' (sehr langsam)' : f === 0.5 ? ' (langsam)' : '') + '</option>'; }).join('') + '</select></label>' +
+      (opt.note ? '<span class="dim small">' + opt.note + '</span>' : '');
+    var playing = false, bPlay = bar.querySelector('[data-pb="play"]');
+    function setPlaying(p) { playing = p; bPlay.textContent = p ? '❚❚ Pause' : '▶ ' + (opt.resume && ctl.started && ctl.started() ? 'Weiter' : 'Start'); bPlay.setAttribute('aria-label', p ? 'Pause' : 'Abspielen'); }
+    bPlay.onclick = function () { if (playing) { ctl.onPause(); setPlaying(false); } else { ctl.onPlay(); setPlaying(true); } };
+    bar.querySelector('[data-pb="step"]').onclick = function () { if (playing) { ctl.onPause(); setPlaying(false); } ctl.onStep(); };
+    bar.querySelector('[data-pb="speed"]').onchange = function () { speed = +this.value; PREFS.set('animSpeed', speed); ctl.onSpeed(speed); };
+    setPlaying(false);
+    return { el: bar, get speed() { return speed; }, get playing() { return playing; }, setPlaying: setPlaying };
+  }
   function mount(el, v) {
     var t = TYPES[v.type];
     if (!t || !t.mount) { el.innerHTML = '<p class="dim small">Bild „' + v.type + '“ ist noch nicht verfügbar.</p>'; return null; }
     el.classList.add('visual', 'visual-' + v.type);
     var body = document.createElement('div'); body.className = 'visual-body'; el.appendChild(body);
-    if (v.caption) { var cap = document.createElement('p'); cap.className = 'visual-cap'; cap.innerHTML = v.caption; el.appendChild(cap); }
+    var cap = null; if (v.caption) { cap = document.createElement('p'); cap.className = 'visual-cap'; cap.innerHTML = v.caption; el.appendChild(cap); }
+    if (v.collapsed) { // Bild erst auf Knopfdruck (hoechstens zwei Bilder je Lektion sichtbar)
+      el.classList.add('collapsed'); body.hidden = true; if (cap) cap.hidden = true;
+      var btn = document.createElement('button'); btn.className = 'btn small visual-show'; btn.textContent = typeof v.collapsed === 'string' ? v.collapsed : 'Bild einblenden';
+      var inst = null, holder = { get inst() { return inst; }, destroy: function () { if (inst && inst.destroy) inst.destroy(); } };
+      btn.onclick = function () { btn.remove(); body.hidden = false; if (cap) cap.hidden = false; el.classList.remove('collapsed'); inst = t.mount(body, v); holder.shown = true; };
+      el.insertBefore(btn, body);
+      return holder;
+    }
     return t.mount(body, v);
   }
   function check(v, E) {
@@ -7521,7 +7589,7 @@ body.has-exam-bar .top { padding-top: 50px; }
         if (timer) { stop(); return; }
         if (i >= steps.length - 1) i = -1;
         play.textContent = '⏸ Anhalten';
-        timer = setInterval(function () { if (!el.isConnected || i >= steps.length - 1) { stop(); return; } go(1); }, v.interval || 1400);
+        timer = setInterval(function () { if (!el.isConnected || i >= steps.length - 1) { stop(); return; } go(1); }, (v.interval || 1400) / Math.max(0.25, +PREFS.get('animSpeed', REDUCED ? 0.25 : 0.5) * 2)); // Tempo 0,5× = Standardintervall
         go(1);
       };
       draw();
@@ -7698,6 +7766,9 @@ body.has-exam-bar .top { padding-top: 50px; }
         '<button class="btn small" data-mw="kick" title="Strom kurz wegnehmen und wieder anlegen">Sprung</button></div>' +
         '<p class="mw-note dim small"></p></div>';
       var box = el.querySelector('.mw'), faces = el.querySelectorAll('.mw-face'), needles = el.querySelectorAll('.mw-needle'), reads = el.querySelectorAll('.mw-read'), coil = el.querySelector('.mw-coil'), plate = el.querySelector('.mw-plate'), force = el.querySelector('.mw-force');
+      // Abspielsteuerung: Tempo, Pause, Schritt (Feedback „Grafiken viel zu schnell“) – oberhalb der Kurve
+      var pb = playbar({ onPlay: function () { start(true); }, onPause: function () { stop(); }, onStep: function () { stop(); step(0.25); draw(); }, onSpeed: function () {}, started: function () { return state.t > 0; } }, { resume: true, note: 'Zeiger folgen dem Strom – Tempo nach Wunsch, Schritt = ¼ s' });
+      box.insertBefore(pb.el, box.firstChild);
       var wpath = el.querySelector('.mw-wpath'), dot = el.querySelector('.mw-dot'), note = el.querySelector('.mw-note'), iOut = el.querySelector('.mw-i');
       var ph = [0, 0], vel = [0, 0], raf = 0, last = 0, cx = w / 2, cy = 150;
       if (pred) el.querySelectorAll('[data-mwp]').forEach(function (b) {
@@ -7734,14 +7805,15 @@ body.has-exam-bar .top { padding-top: 50px; }
           : state.signal === 'triangle' ? 'Dreieck: die AVG-Skala zeigt 0,555·Î, der Effektivwert ist 0,577·Î – das Drehspulwerk liegt 4 % zu tief.'
           : 'Rechteck: die AVG-Skala zeigt 1,11·Î, der Effektivwert ist Î – das Drehspulwerk liegt 11 % zu hoch.';
       }
-      function loop(now) { if (!el.isConnected || box.hidden) { raf = 0; return; } var dt = Math.min(0.05, (now - last) / 1000); last = now; step(dt); draw(); raf = requestAnimationFrame(loop); }
-      function start() { if (raf) return; last = performance.now(); raf = requestAnimationFrame(loop); }
+      function loop(now) { if (!el.isConnected || box.hidden) { raf = 0; pb.setPlaying(false); return; } var dt = Math.min(0.05, (now - last) / 1000) * pb.speed; last = now; step(dt); draw(); raf = requestAnimationFrame(loop); }
+      function start(force) { if (REDUCED && !force) { draw(); return; } if (raf) return; last = performance.now(); raf = requestAnimationFrame(loop); pb.setPlaying(true); }
+      function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; pb.setPlaying(false); }
       el.querySelector('[data-mw="amp"]').oninput = function () { state.amp = +this.value; draw(); start(); };
       el.querySelector('[data-mw="signal"]').onchange = function () { state.signal = this.value; draw(); start(); };
       el.querySelector('[data-mw="damp"]').onchange = function () { state.damp = this.value === '1'; start(); };
       el.querySelector('[data-mw="kick"]').onclick = function () { var a = state.amp; state.amp = 0; step(0.4); state.amp = a; start(); };
-      draw(); if (!pred) start();
-      return { destroy: function () { if (raf) cancelAnimationFrame(raf); raf = 0; }, get state() { return state; }, get angles() { return ph.slice(); }, answer: function (i) { var b = el.querySelector('[data-mwp="' + i + '"]'); if (b) b.click(); } };
+      draw(); // kein Autostart: Anfang mit Beschriftung, Start per Knopf oder erster Bedienung
+      return { destroy: function () { if (raf) cancelAnimationFrame(raf); raf = 0; }, get state() { return state; }, get angles() { return ph.slice(); }, get speed() { return pb.speed; }, get playing() { return !!raf; }, answer: function (i) { var b = el.querySelector('[data-mwp="' + i + '"]'); if (b) b.click(); } };
     },
     check: function (v) {
       var err = [];
@@ -7916,7 +7988,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     }
   });
 
-  root.DQVisuals = { transfer: transfer, bodeLayout: bodeLayout, minimize: minimize, gen: GEN, register: register, mount: mount, mountAll: mountAll, lessonHtml: lessonHtml, check: check, listOf: listOf, types: function () { return Object.keys(TYPES); } };
+  root.DQVisuals = { playbar: playbar, transfer: transfer, bodeLayout: bodeLayout, minimize: minimize, gen: GEN, register: register, mount: mount, mountAll: mountAll, lessonHtml: lessonHtml, check: check, listOf: listOf, types: function () { return Object.keys(TYPES); } };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* ==== tiles.js ==== */
@@ -8922,7 +8994,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       t.palette.forEach(function (k) { types[k] = true; }); t.start.parts.forEach(function (p) { types[p.type] = true; });
     });
     if (!Object.keys(types).length) types.battery = types.lamp = types.switch = true;
-    return { id: 'sandbox', kind: 'task', sandbox: true, ch: 0, title: 'Freie Werkbank', tags: [],
+    return { measureUX: 'drag', rangeUX: 'manual',  id: 'sandbox', kind: 'task', sandbox: true, ch: 0, title: 'Freie Werkbank', tags: [],
       brief: 'Baue und miss frei – ohne Auftrag und ohne Prüfung. Alle Bauteile, die du bisher freigeschaltet hast, liegen bereit. Dein Aufbau bleibt gespeichert.',
       palette: Object.keys(E.PARTS).filter(function (k) { return types[k]; }), start: { parts: [], wires: [] }, tests: [], measure: [], wrong: [] };
   }
@@ -8934,7 +9006,8 @@ body.has-exam-bar .top { padding-top: 50px; }
   var live = { net: null, state: E.newState(), dynamic: false, raf: 0, last: 0, res: null, trace: [], hist: [], replay: null };
   var HIST_MAX = 300;
   var meter = { mode: 'OFF', a: null, b: null, next: 'a', range: 'AUTO' }; // range: 'AUTO' oder Endwert (nur measureUX 'drag')
-  function dragUX() { return !!(current.task && current.task.measureUX === 'drag'); } // Werkbank: Messspitzen ziehen statt klicken
+  function dragUX() { return !!(current.task && current.task.measureUX === 'drag'); } // Werkbank: Messspitzen ziehen statt klicken (Standard)
+  function manualRange() { return !!(current.task && current.task.rangeUX === 'manual'); } // Messbereich von Hand (Kapitel 16, Sandbox)
   function preferredView() { return /[?&]werkbank\b/.test(location.search) || S.settings.view === 'bench' ? 'bench' : 'schema'; }
   function meterType() { return S.settings.meterType === 'avg' ? 'avg' : 'trms'; }
 
@@ -8958,6 +9031,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   function openTask(t, opt) {
     opt = opt || {};
     show('task');
+    if (demo) { demoPause(); demo = null; } // laufende Vorführung verwerfen (der neue Entwurf wird frisch geladen)
     current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0; current.live = opt.live || null; current.exam = opt.exam || null;
     syncHash('task');
     var draft = opt.live || opt.exam ? (opt.layout ? { layout: E.clone(opt.layout), answers: opt.answers || {} } : null) : S.drafts[t.id];
@@ -8966,6 +9040,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     closeReplay(true);
     live.state = E.newState();
     meter = { mode: 'OFF', a: null, b: null, next: 'a', range: 'AUTO' };
+    if ($('#tb')) $('#tb').value = String(suggestTb(layout)); // Oszilloskop-Bildbreite passend zur Aufgabe (Feedback: Aliasing bei 1 s)
     renderTaskPanels(t, draft);
     if (!ed) {
       core = new Circuit({
@@ -9007,6 +9082,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<div class="brief">' + t.brief + (t.limit && t.brief.indexOf('class="limit"') < 0 ? limitText(t.limit) : '') + '</div>' +
       (t.learn ? '<div class="learn"><b>Lernziel</b> ' + t.learn + '</div>' : '') +
       '<div class="hints"><button class="btn small" id="hint1">Tipp 1</button><button class="btn small" id="hint2">Tipp 2</button></div><div id="hintBox"></div>';
+    if (t.measure.length && !current.live) h += setupHtml(t) + (demoMeasure(t) ? '<div id="demoBox"><button class="btn" id="btnDemo" title="Zeigt an einem Beispiel, wie gemessen und gerechnet wird – dein Aufbau bleibt unverändert">▶ Vorführen</button> <span class="dim small">zählt wie ein Tipp</span></div>' : '');
     if (t.measure.length) {
       h += '<div class="protocol"><h3>Messprotokoll <span class="proto-count" id="protoCount"></span><button class="btn small calc-ctx" data-calc title="Taschenrechner öffnen">🖩 Rechner</button></h3>' +
         '<p class="proto-note dim small">Gib den Wert so an, wie dein Gerät ihn anzeigt bzw. wie du ihn berechnest. Innerhalb der Toleranz ist er richtig – auf eine sinnvolle Stellenzahl runden (Komma oder Punkt).</p>';
@@ -9018,10 +9094,11 @@ body.has-exam-bar .top { padding-top: 50px; }
       h += '</div>';
     }
     h += '<button class="btn primary big" id="btnCheck">Prüfen</button><div id="results"></div><div id="solBox"></div>';
-    if (t.measureUX === 'drag') h += '<p class="tut-link"><b>Neu:</b> Messspitzen ziehen, Messbereich wählen, Tastkopf anschliessen – <a href="#" data-go="tutorial">Anleitung ansehen</a></p>';
+    if (t.measure.length) h += '<p class="tut-link"><b>Messen auf der Werkbank:</b> Spitzen und Tastkopf ziehen' + (t.rangeUX === 'manual' ? ', Messbereich wählen' : '') + ' – <a href="#" data-go="tutorial">Anleitung ansehen</a></p>';
     $('#taskInfo').innerHTML = h;
     var tl = $('#taskInfo [data-go="tutorial"]'); if (tl) tl.onclick = function (ev) { ev.preventDefault(); renderTutorial(); show('tutorial'); };
     var bk = $('#taskInfo [data-back]'); if (bk) bk.onclick = goMap;
+    var bd = $('#btnDemo'); if (bd) bd.onclick = function () { demoStart(t); };
     $('#hint1').onclick = function () { if (current.hints < 1 && LIVE) LIVE.hint(); current.hints = Math.max(current.hints, 1); $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div>'; };
     $('#hint2').onclick = function () { if (current.hints < 2 && LIVE) LIVE.hint(); current.hints = 2; $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div><div class="hint">' + t.hint2 + '</div>'; };
     $$('[data-ans]').forEach(function (inp) { inp.oninput = persistDraft; });
@@ -9097,6 +9174,37 @@ body.has-exam-bar .top { padding-top: 50px; }
     $('#btnSol').hidden = true;
     if (root.DQMini) { try { if (solMini && solMini.destroy) solMini.destroy(); solMini = root.DQMini.mount($('#solCircuit'), { layout: t.ref, bench: t.bench, view: viewMode, height: 240 }); } catch (e) { $('#solCircuit').innerHTML = '<p class="dim small">(' + esc(e.message) + ')</p>'; } }
     $('#solClose').onclick = function () { v.hidden = true; $('#btnSol').hidden = false; };
+  }
+  /* ---------- „So stellst du das Gerät ein“ (Feedback 01.10.2026): je Messwert Messart, Spitzen, Bereich (nur rangeUX manual),
+   * beim Oszilloskop Tastkopf/Clip und Bildbreite, Schalterstellungen aus measure.set – automatisch aus measure[], Handtext über task.setup. */
+  function suggestRange(u, val) { var l = E.DMM_MANUAL[u] || []; for (var i = 0; i < l.length; i++) if (Math.abs(val) <= l[i] * 0.999) return l[i]; return l[l.length - 1]; }
+  function sourceFreqs(layout) { var f = []; (layout.parts || []).forEach(function (p) { if (p.type === 'acsource' || p.type === 'clock') { var q = p.props || {}; f.push(q.freq || E.PARTS[p.type].props.freq); } }); return f; }
+  function suggestTb(layout) {
+    var opts = $$('#tb option').map(function (o) { return +o.value; }).sort(function (a, b) { return a - b; }), fr = sourceFreqs(layout);
+    if (fr.length) { var want = 2.5 / Math.min.apply(null, fr); for (var i = 0; i < opts.length; i++) if (opts[i] >= want) return opts[i]; return opts[opts.length - 1]; }
+    if ((layout.parts || []).some(function (p) { return p.type === 'capacitor'; })) return opts[opts.length - 1]; // Lade-/Entladekurve: langer Ausschnitt
+    return opts.length > 1 ? opts[1] : opts[0];
+  }
+  function tbLabel(v) { var o = $$('#tb option').filter(function (o) { return +o.value === v; })[0]; return o ? o.textContent : E.fmt(v, 's'); }
+  function setupHtml(t) {
+    if (typeof t.setup === 'string') return '<details class="setup" open><summary>So stellst du das Gerät ein</summary>' + t.setup + '</details>';
+    var soll = sollOf(t, null), manual = t.rangeUX === 'manual', rows = t.measure.map(function (m) {
+      if (t.setup && t.setup[m.id]) return '<li><b>' + esc(m.ask) + ':</b> ' + t.setup[m.id] + '</li>';
+      var parts = [], setTxt = m.set ? Object.keys(m.set).map(function (k) { return k.indexOf('@') === 0 ? '' : k + ' ' + (m.set[k].closed ? 'zu' : 'offen'); }).filter(Boolean).join(', ') : '';
+      if (setTxt) parts.push('Schalter: ' + setTxt);
+      if (m.value !== undefined) parts.push('Rechenwert – kein Messgerät, Ergebnis in ' + (m.unit || 'der angegebenen Einheit') + ' eintragen');
+      else if (m.truth && !m.mode) parts.push(m.truth.q === 'i' ? 'A⎓ in Reihe mit ' + m.truth.sel + ' (Leitung an ' + m.truth.sel + ' lösen, Spitzen in die Lücke)' : 'V⎓ an ' + m.truth.sel);
+      else if (m.mode === 'AC') parts.push('Oszilloskop: Tastkopf CH1 an ' + m.a + ', Erdungsclip an ' + (m.b || 'Masse') + ', Bildbreite ' + tbLabel(suggestTb(t.ref)) + ', RUN – ' + ({ dc: 'Mittelwert ablesen', peak: 'Scheitelwert ablesen', pp: 'Spitze-Spitze ablesen', rms: 'Effektivwert', avg: 'Gleichrichtwert' }[m.q || 'dc'] || m.q));
+      else {
+        var u = m.mode === 'A' ? 'A' : m.mode === 'R' ? 'Ω' : 'V', mode = m.mode === 'A' ? 'A⎓ (in Reihe: Leitung lösen, Spitzen in die Lücke)' : m.mode === 'R' ? 'Ω (spannungsfrei!)' : m.mode === 'VAC' ? 'V~, Verfahren ' + ((m.meterType || 'trms').toUpperCase()) : 'V⎓';
+        parts.push('Messart ' + mode);
+        if (m.mode !== 'A') parts.push('rote Spitze an ' + m.a + ', schwarze an ' + (m.b || 'Masse'));
+        if (manual && soll[m.id] !== undefined) { var sc = E.UNIT_SCALE[m.unit] || 1, rg = suggestRange(u, soll[m.id] * sc); parts.push('Bereich ' + E.rangeLabel(rg, u)); }
+      }
+      return '<li><b>' + esc(m.ask) + ':</b> ' + parts.join(' · ') + '</li>';
+    });
+    return '<details class="setup"' + (t.ch === 16 || t.ch === 'W' ? ' open' : '') + '><summary>So stellst du das Gerät ein</summary><ol>' + rows.join('') + '</ol>' +
+      '<p class="dim small">Spitzen und Tastkopf auf der Werkbank ziehen, im Schaltplan auf die Anschlüsse klicken. OL heisst nur: Bereich zu klein.</p></details>';
   }
   /* Toleranz-Hinweis je Protokollzeile: Prozent aus tol (Standard 3 %), bei Rechenwerten Einheit und Stellenzahl */
   function tolText(m) {
@@ -9385,7 +9493,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     renderRangeRow(); if (ed) tick(0);
   }
   function rangeList() {
-    if (!dragUX() || meter.mode === 'OFF') return null;
+    if (!manualRange() || meter.mode === 'OFF') return null;
     var u = rangeUnit();
     return [{ label: 'AUTO', value: 'AUTO', on: meter.range === 'AUTO' }].concat(E.DMM_MANUAL[u].map(function (v) { return { label: E.rangeLabel(v, u), value: v, on: meter.range === v }; }));
   }
@@ -9418,40 +9526,55 @@ body.has-exam-bar .top { padding-top: 50px; }
       return m.ac;
     }
     var fs = Infinity; (net ? net.parts : []).forEach(function (p) { if ((p.type === 'acsource' || p.type === 'clock') && p.props.freq > 0) fs = Math.min(fs, p.props.freq); });
+    var raw = NaN; // Rohwert in der Basiseinheit (für Bereichs- und Vorzeichenhinweise)
     if (m.mode === 'OFF') txt = 'OFF';
-    else if (!mn || !r) txt = m.mode === 'R' ? '0L Ω' : '- - -';
+    else if (!mn || !r) {
+      txt = m.mode === 'R' ? '0L Ω' : '- - -';
+      if (r) warn = !m.a && !m.b ? 'Zwei Spitzen setzen: rot (+) an den Pluspunkt, schwarz (COM) an den Bezugspunkt – auf der Werkbank ziehen, im Schaltplan anklicken.' : 'Noch die ' + (m.a ? 'schwarze (COM)' : 'rote (+)') + ' Spitze an einen Anschluss setzen.';
+    }
     else if (m.mode === 'V') {
-      var vdc = r.nodeV[mn.a] - r.nodeV[mn.b];
-      if (isFinite(fs) && fs >= 5) { var ac1 = ac(); if (ac1.ok) vdc = ac1.dc; } // DMM zeigt bei schnellem Wechsel den Mittelwert (ohne Wechselquelle: Momentanwert mit Eigenverbrauch)
-      txt = E.dmm(vdc, 'V', undefined, rg).text;
+      var vdc = r.nodeV[mn.a] - r.nodeV[mn.b], acV = null;
+      if (isFinite(fs) && fs >= 5) { var ac1 = ac(); if (ac1.ok) { vdc = ac1.dc; acV = ac1; } } // DMM zeigt bei schnellem Wechsel den Mittelwert (ohne Wechselquelle: Momentanwert mit Eigenverbrauch)
+      raw = vdc; txt = E.dmm(vdc, 'V', undefined, rg).text;
+      if (acV && acV.rms > 0.05 && Math.abs(vdc) < 0.05 * acV.rms) warn = 'Deine Schaltung liefert Wechselspannung: V⎓ zeigt nur den Mittelwert (hier ≈ 0). Für den Effektivwert V~ wählen.';
     } else if (m.mode === 'VAC') {
       var a2 = ac();
       if (!a2.ok) { txt = 'Err'; warn = a2.error; }
-      else { txt = E.dmm(mt === 'avg' ? a2.avg : a2.rms, 'V', undefined, rg).text; if (a2.static) warn = 'Keine Wechselquelle im Aufbau – V~ zeigt nur den Wechselanteil (hier 0).'; }
+      else { raw = mt === 'avg' ? a2.avg : a2.rms; txt = E.dmm(raw, 'V', undefined, rg).text; if (a2.static) warn = 'Du misst V~, die Schaltung liefert Gleichspannung – V~ zeigt nur den Wechselanteil (hier 0). Wähle V⎓.'; }
     } else if (m.mode === 'A') {
       if (state.fuse) {
         txt = 'FUSE';
         var fi = state.fuseInfo;
-        warn = 'Sicherung durchgebrannt' + (fi ? ': Durch das Messgerät wären ' + E.fmt(Math.abs(fi.i), 'A') + ' geflossen (Sicherung ' + E.fmt(fi.imax, 'A') + ')' : '') + '. Das Amperemeter hat fast 0 Ω – es gehört in Reihe, nie parallel zu einer Quelle.';
-      } else txt = E.dmm((r.nodeV[mn.a] - r.nodeV[mn.b]) / E.METER.rA, 'A', undefined, rg).text;
+        warn = 'Sicherung durchgebrannt: Die Spitzen lagen parallel zu einer Quelle' + (fi ? ' – ' + E.fmt(Math.abs(fi.i), 'A') + ' statt höchstens ' + E.fmt(fi.imax, 'A') : '') + '. A-Messung immer in Reihe: Kreis auftrennen (eine Leitung löschen), das Messgerät in die Lücke setzen, dann „Sicherung ersetzen“.';
+      } else { raw = (r.nodeV[mn.a] - r.nodeV[mn.b]) / E.METER.rA; txt = E.dmm(raw, 'A', undefined, rg).text; }
     } else if (m.mode === 'R') {
       var mr = E.measure(layout, { mode: 'R', a: m.a, b: m.b }, state);
-      txt = mr.ok ? E.dmm(mr.value, 'Ω', undefined, rg).text.replace('OL', '0L') : 'Err'; warn = mr.ok ? '' : mr.error;
+      txt = mr.ok ? E.dmm(mr.value, 'Ω', undefined, rg).text.replace('OL', '0L') : 'Err'; if (mr.ok) raw = mr.value;
+      warn = mr.ok ? '' : /spannungsfrei/.test(mr.error || '') ? 'Widerstandsmessung nur spannungsfrei: Schalter öffnen bzw. Quelle abklemmen oder das Bauteil einseitig herauslösen (eine Leitung löschen).' : mr.error;
     }
     var ol = !!(rg && mn && /^0?L$|OL|0L/.test(txt));
-    if (ol && !warn) warn = 'OL: Der Messwert liegt über dem gewählten Bereich ' + E.rangeLabel(rg, unit) + ' – grösseren Bereich wählen.';
+    if (ol && !warn) warn = 'Bereich zu klein (OL): ' + E.rangeLabel(rg, unit) + ' reicht nicht' + (isFinite(raw) && Math.abs(raw) > 0 ? ' – nimm ' + E.rangeLabel(suggestRange(unit, raw), unit) : ' – nimm den nächsten grösseren Bereich') + '.';
+    else if (rg && !warn && isFinite(raw) && Math.abs(raw) > 0 && Math.abs(raw) < rg / 20 && suggestRange(unit, raw) < rg) warn = 'Bereich zu gross: ' + E.rangeLabel(rg, unit) + ' zeigt nur wenige Stellen – nimm ' + E.rangeLabel(suggestRange(unit, raw), unit) + '.';
+    if (!warn && (m.mode === 'V' || m.mode === 'A') && isFinite(raw) && raw < -0.001) warn = 'Negatives Vorzeichen: rote und schwarze Spitze sind vertauscht – zulässig, der Betrag stimmt.';
     return { text: txt, sub: sub, warn: warn, ol: ol, range: rg ? E.rangeLabel(rg, unit) : null };
   }
   /* Kurve fuers Oszilloskop (Aufgabe und Tutorial): Abtastung ueber T Sekunden, Skala, Punkte fuer den Werkbank-Schirm */
+  /* Oszilloskop-Kurve: Abtastung mindestens 50 Punkte je Periode der schnellsten Quelle (kein Aliasing bei langer Bildbreite),
+   * vorher Einschwingen wie E.acMeasure (5·R·C, höchstens 3 s), damit die Kurve den eingeschwungenen Zustand zeigt. */
   function scopeCurve(layout, sp, T, label) {
-    var s = E.simulate(layout, { dt: T / 400, tEnd: T, probes: [{ a: sp.a, b: sp.b || undefined }] }).samples;
+    var fr = sourceFreqs(layout), fmax = fr.length ? Math.max.apply(null, fr) : 0, dt = T / 400;
+    if (fmax > 0) dt = Math.min(dt, 1 / (fmax * 50)); dt = Math.max(dt, T / 20000);
+    var rs = [], cs = []; (layout.parts || []).forEach(function (p) { var v = p.value !== undefined ? p.value : (p.props && p.props.value); if (p.type === 'resistor' && v > 0) rs.push(v); if (p.type === 'capacitor' && v > 0) cs.push(v); });
+    var tauMax = rs.length && cs.length ? Math.max.apply(null, rs) * Math.max.apply(null, cs) : 0, settle = null;
+    if (fr.length && tauMax > 0) { var T0 = 1 / Math.min.apply(null, fr); settle = { t: Math.ceil(Math.min(5 * tauMax, 3) / T0) * T0, dt: T0 / 40 }; } // ohne Wechselquelle (Ladekurve) bewusst ab t = 0
+    var s = E.simulate(layout, { dt: dt, tEnd: T, settle: settle, probes: [{ a: sp.a, b: sp.b || undefined }] }).samples;
     var vs = s.map(function (x) { return x.ch0; }), mx = Math.max.apply(null, vs), mn = Math.min.apply(null, vs);
     var top = Math.max(1, Math.ceil(Math.max(mx, 0) * 1.1)), bot = Math.min(0, Math.floor(mn * 1.1)), stepN = Math.max(1, Math.floor(s.length / 150));
     return { samples: s, top: top, bot: bot, mx: mx, mn: mn, pts: s.filter(function (x, k) { return k % stepN === 0; }).map(function (x) { return [x.t / T, (x.ch0 - bot) / (top - bot)]; }),
       info: 'CH1 ' + sp.a + (sp.b ? '–' + sp.b : '') + ' · ' + bot + '…' + top + ' V · ' + label, text: 'Kanal: ' + sp.a + ' gegen ' + (sp.b || 'Masse') + ' · ' + bot + '…' + top + ' V · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') };
   }
   function updateMeter(r, mn) {
-    var lcd = $('#lcd'), rg = dragUX() && meter.range !== 'AUTO' ? meter.range : undefined;
+    var lcd = $('#lcd'), rg = manualRange() && meter.range !== 'AUTO' ? meter.range : undefined;
     var rd = meterReading(meter, ed.layout, live.net, r, live.state, mn, rg, meterType()), txt = rd.text, warn = rd.warn;
     lcd.textContent = txt;
     if (bench) bench.meter = { mode: meter.mode, text: txt, fuse: live.state.fuse, sub: rd.sub, ranges: rangeList(), range: rd.range };
@@ -9484,7 +9607,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     if (p.type === 'led') {
       h += '<label class="fld"><span>Farbe</span><select data-prop="color"' + (lock ? ' disabled' : '') + '>' + Object.keys(E.LED_COLORS).map(function (c) { return '<option value="' + c + '"' + ((q.color || 'rot') === c ? ' selected' : '') + '>' + (E.LED_COLORS[c].label || c) + '</option>'; }).join('') + '</select></label>';
     }
-    if (p.type === 'switch') h += '<button class="btn small" id="tgl">' + (q.closed ? 'Öffnen' : 'Schliessen') + '</button>';
+    if (p.type === 'switch') h += '<p class="small">Stellung: <b>' + (q.closed ? 'zu (geschlossen) – Strom kann fliessen' : 'offen – kein Strom') + '</b></p><button class="btn small" id="tgl">' + (q.closed ? 'Schalter öffnen' : 'Schalter schliessen') + '</button>';
     if (p.type === 'logicin') h += '<button class="btn small" id="tgl">Pegel auf ' + (q.closed ? '0' : '1') + ' schalten</button>';
     if (r) {
       h += '<dl class="readout">';
@@ -9511,7 +9634,11 @@ body.has-exam-bar .top { padding-top: 50px; }
   /* ---------- Oszilloskop ----------
    * Kanal 1: bei measureUX 'drag' der eigene Tastkopf (core.scopeProbes.tip gegen gnd, Erdungsclip offen = Masse),
    * sonst (Altbestand, Schema-Ansicht) die Messspitzen des Multimeters. */
-  function scopeProbes() { return dragUX() && core ? { a: core.scopeProbes.tip, b: core.scopeProbes.gnd, own: true } : { a: meter.a, b: meter.b, own: false }; }
+  /* Kanal 1: eigener Tastkopf, sobald er auf der Werkbank angeschlossen ist; im Schaltplan (kein Tastkopf zum Ziehen) sonst die Multimeter-Spitzen */
+  function scopeProbes() {
+    if (dragUX() && core && (core.scopeProbes.tip || viewMode === 'bench')) return { a: core.scopeProbes.tip, b: core.scopeProbes.gnd, own: true };
+    return { a: meter.a, b: meter.b, own: false };
+  }
   function scope() {
     var cv = $('#scope'), ctx = cv.getContext('2d'), T = +$('#tb').value;
     var w = cv.width = cv.clientWidth * (window.devicePixelRatio || 1), h = cv.height = cv.clientHeight * (window.devicePixelRatio || 1);
@@ -9521,7 +9648,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     for (i = 1; i < 8; i++) { ctx.beginPath(); ctx.moveTo(0, h * i / 8); ctx.lineTo(w, h * i / 8); ctx.stroke(); }
     var sp = scopeProbes();
     if (!sp.a) {
-      $('#scopeInfo').textContent = sp.own ? 'Tastkopf anschliessen: den gelben Tastkopf (CH1) auf der Werkbank an einen Anschluss ziehen, den schwarzen Erdungsclip an den Bezugspunkt.' : 'Setze zuerst die rote Messspitze (Multimeter V).';
+      $('#scopeInfo').textContent = sp.own ? 'Tastkopf anschliessen: den gelben Tastkopf (CH1) an den Messpunkt ziehen, den schwarzen Erdungsclip an Masse bzw. den Bezugspunkt – dann RUN.' : 'Setze zuerst die rote Messspitze (Multimeter V).';
       bench.scope = { pts: [], info: sp.own ? 'Tastkopf anschliessen' : 'Zuerst rote Messspitze setzen (V)' }; bench.render(); return;
     }
     var c;
@@ -9570,6 +9697,90 @@ body.has-exam-bar .top { padding-top: 50px; }
     $('.sb-back', el).onclick = close; $('.sb-x', el).onclick = close; document.addEventListener('keydown', esc1);
     $('.sb-x', el).focus();
     log('scope_big', { id: current.task && current.task.id });
+  }
+
+  /* ---------- Vorführ-Modus (Feedback 01.10.2026, Phase 6) ----------
+   * Zeigt an EINEM Messwert der Aufgabe (task.demo oder der erste mit Spitzen und Messart V / V~ / Ω / Oszilloskop), wie gemessen wird:
+   * Messart und Bereich am Gerät, Spitzen bzw. Tastkopf gleiten zu den Buchsen (dieselbe dragProbeTo/dropProbe-Logik wie beim Ziehen),
+   * Anzeige, dann der Rechenweg Schritt für Schritt. Tempo/Pause/Schritt wie in den Theorie-Animationen (DQVisuals.playbar), Abbrechen jederzeit.
+   * Der Entwurf wird nie verändert: Alles läuft auf dem Live-Zustand, am Ende wird der Zustand vor der Vorführung wiederhergestellt.
+   * Zählt wie ein Tipp (current.hints ≥ 1), Ereignis demo_view. Nicht in Prüfung und Live-Challenge. */
+  var demo = null;
+  function demoAble(m) { return !!(m.a && (m.mode === 'V' || m.mode === 'VAC' || m.mode === 'R' || m.mode === 'AC')); }
+  function demoMeasure(t) { var ms = t.measure || [], pick = t.demo ? ms.filter(function (m) { return m.id === t.demo; })[0] : null; return pick && demoAble(pick) ? pick : ms.filter(demoAble)[0] || null; }
+  function demoStart(t) {
+    if (demo || current.exam || current.live || !ed) return;
+    var m = demoMeasure(t); if (!m) return;
+    if (viewMode !== 'bench') setView('bench', true);
+    var lockedIds = t.start.parts.map(function (p) { return p.id; });
+    var saved = { layout: E.clone(ed.layout), probes: { a: core.probes.a, b: core.probes.b }, scope: { tip: core.scopeProbes.tip, gnd: core.scopeProbes.gnd }, meter: E.clone(meter), tries: current.tries, hints: current.hints, draft: JSON.stringify(S.drafts[t.id] || null), tb: $('#tb').value };
+    var soll = sollOf(t, null)[m.id], isScope = m.mode === 'AC', pa = isScope ? 'tip' : 'a', pb = isScope ? 'gnd' : 'b';
+    var modeLbl = { V: 'V⎓ (Gleichspannung)', VAC: 'V~ (Wechselspannung, ' + (m.meterType || 'TRMS').toUpperCase() + ')', R: 'Ω (Widerstand, spannungsfrei)' }[m.mode];
+    var setTxt = m.set ? Object.keys(m.set).filter(function (k) { return k[0] !== '@'; }).map(function (k) { return k + ' ' + (m.set[k].closed ? 'zu' : 'offen'); }).join(', ') : '';
+    var steps = [];
+    steps.push({ text: 'Wir messen: <b>' + esc(m.ask) + '</b>.' + (setTxt ? ' Zuerst die Schalter stellen: ' + esc(setTxt) + '.' : ''), run: function () {
+      if (m.set) { Object.keys(m.set).forEach(function (k) { if (k[0] === '@') return; var p = core.part(k); if (p) { p.props = p.props || {}; Object.keys(m.set[k]).forEach(function (q) { p.props[q] = m.set[k][q]; }); } }); core.redraw(); rebuild(); }
+    } });
+    if (!isScope) steps.push({ text: 'Messart <b>' + modeLbl + '</b> am Drehschalter wählen.', run: function () { setMeterMode(m.mode); } });
+    if (!isScope && manualRange() && soll !== undefined) { var u = m.mode === 'R' ? 'Ω' : 'V', rg = suggestRange(u, soll * (E.UNIT_SCALE[m.unit] || 1)); steps.push({ text: 'Bereich <b>' + esc(E.rangeLabel(rg, u)) + '</b> wählen – der kleinste, in den der Wert passt.', run: function () { setMeterRange(rg); } }); }
+    steps.push({ text: (isScope ? 'Gelben <b>Tastkopf CH1</b>' : 'Rote Spitze <b>(+)</b>') + ' an <b>' + esc(m.a) + '</b> ziehen.', move: pa, pin: m.a, dur: 1.6 });
+    if (m.b || !isScope) steps.push({ text: (isScope ? 'Schwarzen <b>Erdungsclip</b>' : 'Schwarze Spitze <b>(COM)</b>') + ' an <b>' + esc(m.b || 'Masse') + '</b> ziehen.', move: pb, pin: m.b || null, dur: 1.6 });
+    if (isScope) steps.push({ text: 'Passende Bildbreite wählen und <b>RUN</b> drücken – das Oszilloskop zeichnet die Kurve.', run: function () { $('#tb').value = String(suggestTb(ed.layout)); scope(); } });
+    steps.push({ text: 'Ablesen.', run: function () { tick(0); var txt = isScope ? $('#scopeInfo').textContent : $('#lcd').textContent + ($('#mmWarn').textContent ? ' – ' + $('#mmWarn').textContent : ''); demo.read = txt; }, after: function () { return 'Anzeige: <b class="mono">' + esc(demo.read) + '</b>'; } });
+    var rw = t.rechenweg && t.rechenweg[m.id];
+    if (Array.isArray(rw)) rw.forEach(function (s, k) { steps.push({ text: '<b>Rechenweg ' + (k + 1) + ':</b> ' + (s.text || ''), rw: s }); });
+    else steps.push({ text: '<b>Sollwert:</b> ' + fmtSoll(soll, m.unit) + ' (Toleranz ±' + Math.round((m.tol || 0.03) * 100) + ' %).', rw: rw ? null : { label: m.ask, value: soll, unit: m.unit }, html: typeof rw === 'string' ? rw : null });
+    steps.push({ text: '<b>Jetzt du:</b> Miss selbst und trage deine Werte ins Protokoll ein – dein Aufbau ist unverändert.', end: true });
+    demo = { t: t, m: m, steps: steps, i: -1, p: 0, raf: 0, saved: saved, lockedIds: lockedIds, read: '', hold: 0, done: false };
+    var box = $('#demoBox'); box.innerHTML = '<div class="demo"><div class="demo-head"><b>Vorführung</b><span class="dim small">Schritt <span id="demoPos">0</span> / ' + steps.length + '</span><button class="btn small" id="demoStop">Abbrechen</button></div><div id="demoBar"></div><p class="demo-text" id="demoText"></p><div class="demo-rw" id="demoRw"></div></div>';
+    var V = root.DQVisuals, pb = V && V.playbar ? V.playbar({ onPlay: function () { demoResume(); }, onPause: function () { demoPause(); }, onStep: function () { demoPause(); demoAdvance(true); }, onSpeed: function () {}, started: function () { return demo && demo.i >= 0; } }, { resume: true }) : null;
+    if (pb) { $('#demoBar').appendChild(pb.el); demo.pb = pb; }
+    $('#demoStop').onclick = function () { demoEnd(true); };
+    log('demo_view', { id: t.id, mid: m.id });
+    demoAdvance(false); demoResume();
+  }
+  function demoSpeed() { return demo && demo.pb ? demo.pb.speed : 0.5; }
+  function demoProbeStart(which) { var d = Bench.DEV.meter, s = Bench.DEV.scope; return which === 'tip' || which === 'gnd' ? [s.x + (which === 'tip' ? 40 : 80), s.y + 150] : [d.x + (which === 'a' ? -54 : -2), d.y + 200]; }
+  function demoPinXY(pid) { var s = pid.split('.'), p = core.part(s[0]); return p ? bench.pinPos(p, s[1]) : null; }
+  /* naechsten Schritt beginnen; instant = Animation sofort zu Ende fuehren (Schritt-Taste) */
+  function demoAdvance(instant) {
+    if (!demo) return;
+    var cur = demo.steps[demo.i];
+    if (cur && cur.move && demo.p < 1) { core.dropProbe(cur.move, cur.pin); demo.p = 1; } // laufende Bewegung abschliessen
+    if (demo.i >= demo.steps.length - 1) { demoEnd(false); return; }
+    demo.i++; demo.p = 0; demo.hold = 0;
+    var s = demo.steps[demo.i]; $('#demoPos').textContent = String(demo.i + 1); $('#demoText').innerHTML = s.text;
+    if (s.run) { try { s.run(); } catch (e) { /* Vorführung bleibt stabil */ } if (s.after) $('#demoText').innerHTML = s.text + ' ' + s.after(); }
+    if (s.rw) { var r = s.rw; $('#demoRw').innerHTML += '<div class="wk-row"><span class="wk-lbl">' + esc(r.label || '') + '</span>' + (r.expr ? '<span class="mono wk-expr">' + esc(r.expr) + '</span>' : '') + (r.value !== undefined ? '<span class="mono wk-val">= ' + fmtSoll(r.value, r.unit) + '</span>' : '') + '</div>'; }
+    if (s.html) $('#demoRw').innerHTML += '<div class="rw">' + s.html + '</div>';
+    if (s.move) { s.from = demoProbeStart(s.move); s.to = s.pin ? demoPinXY(s.pin) : null; if (!s.to) { core.dropProbe(s.move, null); demo.p = 1; } else if (instant) { core.dropProbe(s.move, s.pin); demo.p = 1; } else core.dragProbeTo(s.move, s.from); }
+    if (s.end) { demo.done = true; demoPause(); setTimeout(function () { if (demo && demo.done) demoEnd(false); }, 4000 / demoSpeed()); }
+  }
+  function demoFrame(now) {
+    if (!demo) return;
+    var dt = Math.min(0.05, (now - demo.last) / 1000) * demoSpeed(); demo.last = now;
+    var s = demo.steps[demo.i];
+    if (s && s.move && demo.p < 1) {
+      demo.p = Math.min(1, demo.p + dt / s.dur); var k = demo.p < 0.5 ? 2 * demo.p * demo.p : 1 - Math.pow(-2 * demo.p + 2, 2) / 2; // weich
+      core.dragProbeTo(s.move, [s.from[0] + (s.to[0] - s.from[0]) * k, s.from[1] + (s.to[1] - s.from[1]) * k]);
+      if (demo.p >= 1) core.dropProbe(s.move, s.pin);
+    } else if (!s.end) { demo.hold += dt; if (demo.hold >= (s.rw ? 2.2 : 1.4)) { demoAdvance(false); } }
+    if (demo && demo.raf) demo.raf = requestAnimationFrame(demoFrame);
+  }
+  function demoResume() { if (!demo || demo.raf) return; demo.last = performance.now(); demo.raf = requestAnimationFrame(demoFrame); if (demo.pb) demo.pb.setPlaying(true); }
+  function demoPause() { if (!demo) return; if (demo.raf) cancelAnimationFrame(demo.raf); demo.raf = 0; if (demo.pb) demo.pb.setPlaying(false); }
+  /* Ende oder Abbruch: Zustand vor der Vorführung wiederherstellen (Schaltung, Spitzen, Messgerät, Bildbreite, Versuche); zählt wie ein Tipp */
+  function demoEnd(aborted) {
+    if (!demo) return;
+    var d = demo, t = d.t; demoPause(); demo = null;
+    core.load(d.saved.layout, d.lockedIds, t.bench);
+    core.probes.a = d.saved.probes.a; core.probes.b = d.saved.probes.b; core.scopeProbes.tip = d.saved.scope.tip; core.scopeProbes.gnd = d.saved.scope.gnd;
+    meter = d.saved.meter; $('#tb').value = d.saved.tb; renderRangeRow(); $$('[data-mm]').forEach(function (b) { b.classList.toggle('on', b.dataset.mm === meter.mode); });
+    rebuild(); core.redraw(); bench.scope = null; bench.render();
+    if (JSON.stringify(S.drafts[t.id] || null) !== d.saved.draft) { S.drafts[t.id] = d.saved.draft === 'null' ? undefined : JSON.parse(d.saved.draft); if (!S.drafts[t.id]) delete S.drafts[t.id]; save(); }
+    current.tries = d.saved.tries; current.hints = Math.max(d.saved.hints, 1);
+    var box = $('#demoBox'); if (box) { box.innerHTML = '<button class="btn" id="btnDemo">▶ Vorführen</button> <span class="dim small">' + (aborted ? 'abgebrochen – ' : 'fertig – ') + 'dein Aufbau ist unverändert, die Vorführung zählt wie ein Tipp</span>'; $('#btnDemo').onclick = function () { demoStart(t); }; }
+    log(aborted ? 'demo_abort' : 'demo_done', { id: t.id, mid: d.m.id });
   }
 
   /* ---------- Pruefen ---------- */
@@ -9852,6 +10063,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   /* ================= Start ================= */
   function init() {
     applyTheme(); applyMode();
+    root.DQ_PREFS = { get: function (k) { return S.settings[k]; }, set: function (k, v) { S.settings[k] = v; save(); } }; // Tempo der Theorie-Animationen u. a.
     if (ACCT) ACCT.init({ state: function () { return S; }, fresh: fresh, modal: modal, esc: esc, toast: toast, summary: summary, refresh: refreshView,
       setState: function (n) { S = normalize(n); clearTimeout(saveTimer); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { indicator('Nicht gespeichert!', 'err'); } } });
     root.DQ_REPORT_CONTEXT = function () {
@@ -9939,7 +10151,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     if (ACCT) { var rd = ACCT.start(); if (LIVE) rd.then(function () { LIVE.start(); }); if (EXAM) rd.then(function () { EXAM.start(); }); }
   }
 
-  window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, get examUI() { return EXAM; }, get tutorial() { return tut; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; } };
+  window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, get examUI() { return EXAM; }, get tutorial() { return tut; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; }, get demo() { return demo; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>

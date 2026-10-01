@@ -119,6 +119,10 @@ DQ.theories.forEach(th => {
   if (th.questions.length !== 5) warn(th.id, th.questions.length + ' statt 5 Fragen');
   if (!th.merksatz) warn(th.id, 'merksatz fehlt (Empfehlung: ein bis zwei Sätze „Das Wichtigste in Kürze“)');
   else if (th.merksatz.length > 400) warn(th.id, 'merksatz ist lang (' + th.merksatz.length + ' Zeichen) – gedacht sind ein bis zwei Sätze');
+  { // Lesezeit: Haupttext ohne Zusatzbloecke (<details>) soll in rund 4 Minuten lesbar sein (Hinweis, kein Fehler)
+    const main = String(th.lesson).replace(/<details[\s\S]*?<\/details>/g, '').replace(/<[^>]+>/g, '');
+    if (main.length > 2600) warn(th.id, 'Lektion lang (' + main.length + ' Zeichen Haupttext ohne Zusatzblöcke) – kürzen oder Teile in <details class="zusatz"> auslagern');
+  }
   th.questions.forEach((q, i) => {
     const id = th.id + ' F' + (i + 1);
     if (!(q.correct >= 0 && q.correct < q.options.length)) err(id, 'correct ausserhalb');

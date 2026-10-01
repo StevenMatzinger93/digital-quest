@@ -1683,6 +1683,8 @@ body.beamer-mode main{ min-height:100vh; }
     var d = E.PARTS[p.type], q = p.props || {}, v = p.value !== undefined ? p.value : (q.value !== undefined ? q.value : d.props.value);
     switch (p.type) {
       case 'battery': return fmtVal(v) + ' V';
+      case 'switch': return q.closed ? 'zu' : 'offen'; // Stellung ausschreiben (Feedback 01.10.2026: „bei Schaltern kommt nur Strom, wenn sie unbetätigt sind“)
+      case 'button': return q.closed ? 'gedrückt' : '';
       case 'acsource': return 'Û ' + fmtVal(v) + ' V ' + ({ square: '⊓', triangle: '△' }[q.shape] || '∿') + ' ' + fmtVal(q.freq || d.props.freq) + ' Hz';
       case 'resistor': case 'pot': case 'lamp': return fmtVal(v) + ' Ω';
       case 'capacitor': return fmtVal(v) + 'F';
@@ -2518,8 +2520,8 @@ body.beamer-mode main{ min-height:100vh; }
     }
     var pan = null, pinch = null, touches = {};
     svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
-    svg.addEventListener('wheel', function (ev) { // Mausrad: zur Mausposition hin zoomen (nicht in der Mini-Schaltung – dort scrollt die Lektion)
-      if (self.opts.tight) return;
+    svg.addEventListener('wheel', function (ev) { // Strg/⌘ + Mausrad: zur Mausposition hin zoomen; ohne Taste scrollt die Seite weiter (Feedback: „Werkbank rauf und runter“)
+      if (self.opts.tight || !(ev.ctrlKey || ev.metaKey)) return;
       ev.preventDefault();
       self.zoomAt(Math.exp(ev.deltaY * 0.0015), ev.clientX, ev.clientY);
     }, { passive: false });

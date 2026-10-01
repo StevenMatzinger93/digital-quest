@@ -18,12 +18,39 @@
   /* type: { mount(el, v) → {destroy}?, check(v, E) → [fehler] } */
   function register(type, def) { TYPES[type] = def; }
 
+  /* Einstellungen der Lernenden (Tempo der Animationen): die App hängt root.DQ_PREFS = {get, set} ein; ohne App (Validator) Standardwerte */
+  var PREFS = { get: function (k, d) { try { var p = root.DQ_PREFS, v = p && p.get(k); return v === undefined || v === null ? d : v; } catch (e) { return d; } }, set: function (k, v) { try { var p = root.DQ_PREFS; if (p) p.set(k, v); } catch (e) { /* ohne App */ } } };
+  var REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* Gemeinsame Abspielsteuerung fuer Bausteine mit Zeitverlauf: Tempo (0,25× / 0,5× / 1×, Standard langsam, gemerkt in den Einstellungen),
+   * Pause/Weiter, ein Schritt. ctl = {onPlay(), onPause(), onStep(), onSpeed(f)}. Nichts startet von allein endlos: play() nur nach Bedienung. */
+  function playbar(ctl, opt) {
+    opt = opt || {};
+    var speed = +PREFS.get('animSpeed', REDUCED ? 0.25 : 0.5), bar = document.createElement('div'); bar.className = 'playbar';
+    bar.innerHTML = '<button class="btn small" data-pb="play" aria-label="Abspielen">▶ Start</button><button class="btn small" data-pb="step" title="Einen Schritt weiter">▶| Schritt</button>' +
+      '<label class="playbar-speed"><span>Tempo</span><select data-pb="speed" aria-label="Tempo">' + [0.25, 0.5, 1].map(function (f) { return '<option value="' + f + '"' + (f === speed ? ' selected' : '') + '>' + String(f).replace('.', ',') + '×' + (f === 0.25 ? ' (sehr langsam)' : f === 0.5 ? ' (langsam)' : '') + '</option>'; }).join('') + '</select></label>' +
+      (opt.note ? '<span class="dim small">' + opt.note + '</span>' : '');
+    var playing = false, bPlay = bar.querySelector('[data-pb="play"]');
+    function setPlaying(p) { playing = p; bPlay.textContent = p ? '❚❚ Pause' : '▶ ' + (opt.resume && ctl.started && ctl.started() ? 'Weiter' : 'Start'); bPlay.setAttribute('aria-label', p ? 'Pause' : 'Abspielen'); }
+    bPlay.onclick = function () { if (playing) { ctl.onPause(); setPlaying(false); } else { ctl.onPlay(); setPlaying(true); } };
+    bar.querySelector('[data-pb="step"]').onclick = function () { if (playing) { ctl.onPause(); setPlaying(false); } ctl.onStep(); };
+    bar.querySelector('[data-pb="speed"]').onchange = function () { speed = +this.value; PREFS.set('animSpeed', speed); ctl.onSpeed(speed); };
+    setPlaying(false);
+    return { el: bar, get speed() { return speed; }, get playing() { return playing; }, setPlaying: setPlaying };
+  }
   function mount(el, v) {
     var t = TYPES[v.type];
     if (!t || !t.mount) { el.innerHTML = '<p class="dim small">Bild „' + v.type + '“ ist noch nicht verfügbar.</p>'; return null; }
     el.classList.add('visual', 'visual-' + v.type);
     var body = document.createElement('div'); body.className = 'visual-body'; el.appendChild(body);
-    if (v.caption) { var cap = document.createElement('p'); cap.className = 'visual-cap'; cap.innerHTML = v.caption; el.appendChild(cap); }
+    var cap = null; if (v.caption) { cap = document.createElement('p'); cap.className = 'visual-cap'; cap.innerHTML = v.caption; el.appendChild(cap); }
+    if (v.collapsed) { // Bild erst auf Knopfdruck (hoechstens zwei Bilder je Lektion sichtbar)
+      el.classList.add('collapsed'); body.hidden = true; if (cap) cap.hidden = true;
+      var btn = document.createElement('button'); btn.className = 'btn small visual-show'; btn.textContent = typeof v.collapsed === 'string' ? v.collapsed : 'Bild einblenden';
+      var inst = null, holder = { get inst() { return inst; }, destroy: function () { if (inst && inst.destroy) inst.destroy(); } };
+      btn.onclick = function () { btn.remove(); body.hidden = false; if (cap) cap.hidden = false; el.classList.remove('collapsed'); inst = t.mount(body, v); holder.shown = true; };
+      el.insertBefore(btn, body);
+      return holder;
+    }
     return t.mount(body, v);
   }
   function check(v, E) {
@@ -179,7 +206,7 @@
         if (timer) { stop(); return; }
         if (i >= steps.length - 1) i = -1;
         play.textContent = '⏸ Anhalten';
-        timer = setInterval(function () { if (!el.isConnected || i >= steps.length - 1) { stop(); return; } go(1); }, v.interval || 1400);
+        timer = setInterval(function () { if (!el.isConnected || i >= steps.length - 1) { stop(); return; } go(1); }, (v.interval || 1400) / Math.max(0.25, +PREFS.get('animSpeed', REDUCED ? 0.25 : 0.5) * 2)); // Tempo 0,5× = Standardintervall
         go(1);
       };
       draw();
@@ -356,6 +383,9 @@
         '<button class="btn small" data-mw="kick" title="Strom kurz wegnehmen und wieder anlegen">Sprung</button></div>' +
         '<p class="mw-note dim small"></p></div>';
       var box = el.querySelector('.mw'), faces = el.querySelectorAll('.mw-face'), needles = el.querySelectorAll('.mw-needle'), reads = el.querySelectorAll('.mw-read'), coil = el.querySelector('.mw-coil'), plate = el.querySelector('.mw-plate'), force = el.querySelector('.mw-force');
+      // Abspielsteuerung: Tempo, Pause, Schritt (Feedback „Grafiken viel zu schnell“) – oberhalb der Kurve
+      var pb = playbar({ onPlay: function () { start(true); }, onPause: function () { stop(); }, onStep: function () { stop(); step(0.25); draw(); }, onSpeed: function () {}, started: function () { return state.t > 0; } }, { resume: true, note: 'Zeiger folgen dem Strom – Tempo nach Wunsch, Schritt = ¼ s' });
+      box.insertBefore(pb.el, box.firstChild);
       var wpath = el.querySelector('.mw-wpath'), dot = el.querySelector('.mw-dot'), note = el.querySelector('.mw-note'), iOut = el.querySelector('.mw-i');
       var ph = [0, 0], vel = [0, 0], raf = 0, last = 0, cx = w / 2, cy = 150;
       if (pred) el.querySelectorAll('[data-mwp]').forEach(function (b) {
@@ -392,14 +422,15 @@
           : state.signal === 'triangle' ? 'Dreieck: die AVG-Skala zeigt 0,555·Î, der Effektivwert ist 0,577·Î – das Drehspulwerk liegt 4 % zu tief.'
           : 'Rechteck: die AVG-Skala zeigt 1,11·Î, der Effektivwert ist Î – das Drehspulwerk liegt 11 % zu hoch.';
       }
-      function loop(now) { if (!el.isConnected || box.hidden) { raf = 0; return; } var dt = Math.min(0.05, (now - last) / 1000); last = now; step(dt); draw(); raf = requestAnimationFrame(loop); }
-      function start() { if (raf) return; last = performance.now(); raf = requestAnimationFrame(loop); }
+      function loop(now) { if (!el.isConnected || box.hidden) { raf = 0; pb.setPlaying(false); return; } var dt = Math.min(0.05, (now - last) / 1000) * pb.speed; last = now; step(dt); draw(); raf = requestAnimationFrame(loop); }
+      function start(force) { if (REDUCED && !force) { draw(); return; } if (raf) return; last = performance.now(); raf = requestAnimationFrame(loop); pb.setPlaying(true); }
+      function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; pb.setPlaying(false); }
       el.querySelector('[data-mw="amp"]').oninput = function () { state.amp = +this.value; draw(); start(); };
       el.querySelector('[data-mw="signal"]').onchange = function () { state.signal = this.value; draw(); start(); };
       el.querySelector('[data-mw="damp"]').onchange = function () { state.damp = this.value === '1'; start(); };
       el.querySelector('[data-mw="kick"]').onclick = function () { var a = state.amp; state.amp = 0; step(0.4); state.amp = a; start(); };
-      draw(); if (!pred) start();
-      return { destroy: function () { if (raf) cancelAnimationFrame(raf); raf = 0; }, get state() { return state; }, get angles() { return ph.slice(); }, answer: function (i) { var b = el.querySelector('[data-mwp="' + i + '"]'); if (b) b.click(); } };
+      draw(); // kein Autostart: Anfang mit Beschriftung, Start per Knopf oder erster Bedienung
+      return { destroy: function () { if (raf) cancelAnimationFrame(raf); raf = 0; }, get state() { return state; }, get angles() { return ph.slice(); }, get speed() { return pb.speed; }, get playing() { return !!raf; }, answer: function (i) { var b = el.querySelector('[data-mwp="' + i + '"]'); if (b) b.click(); } };
     },
     check: function (v) {
       var err = [];
@@ -574,5 +605,5 @@
     }
   });
 
-  root.DQVisuals = { transfer: transfer, bodeLayout: bodeLayout, minimize: minimize, gen: GEN, register: register, mount: mount, mountAll: mountAll, lessonHtml: lessonHtml, check: check, listOf: listOf, types: function () { return Object.keys(TYPES); } };
+  root.DQVisuals = { playbar: playbar, transfer: transfer, bodeLayout: bodeLayout, minimize: minimize, gen: GEN, register: register, mount: mount, mountAll: mountAll, lessonHtml: lessonHtml, check: check, listOf: listOf, types: function () { return Object.keys(TYPES); } };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -135,6 +135,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 #board { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; outline: none; }
 /* Werkbank (bench.js) – feste Laborfarben, unabhaengig vom Thema */
 #bench { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; outline: none; background: #1b1612; }
+/* Die Zeichenfläche wächst nicht mit einer langen Seitenleiste über den Bildschirm hinaus (Einstellungs-Box, Lösung, Protokoll) */
+#board, #bench { max-height: calc(100vh - 170px); }
 #board.off, #bench.off { display: none; }
 /*CIRCUIT-START*/
 .bblock { stroke: rgba(0,0,0,.45); stroke-width: 1.5; } .bbevel { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 1.2; }
@@ -461,6 +463,15 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 #sbCanvas { width: 100%; aspect-ratio: 2 / 1; display: block; border-radius: 8px; border: 1px solid #333; }
 .sb-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; } .sb-stats div { background: #0e1012; border: 1px solid #2a2a2a; border-radius: 8px; padding: 6px 10px; display: grid; } .sb-stats span { font-size: 11px; color: #8a8a8a; } .sb-stats b { font-size: 18px; color: #39ff14; }
 @media (max-width: 640px) { .sb-box { padding: 10px; } .sb-stats b { font-size: 15px; } }
+
+/* Vorführ-Modus */
+#demoBox { margin: 8px 0; } .demo { border: 1px solid var(--accent-cyan); border-radius: 10px; padding: 8px 10px; background: rgba(30,200,224,.06); }
+.demo-head { display: flex; align-items: center; gap: 10px; } .demo-head b { color: var(--accent-cyan); } .demo-head .small { flex: 1; } .demo-text { margin: 6px 0; font-size: 14px; min-height: 20px; } .demo-rw .wk-row { margin: 2px 0 4px; }
+
+/* Zusatzbloecke in Lektionen, eingeklappte Bilder, Abspielsteuerung */
+.lesson details.zusatz { margin: 10px 0; border: 1px dashed var(--line); border-radius: 10px; padding: 6px 12px; } .lesson details.zusatz summary { cursor: pointer; color: var(--accent-cyan); font-weight: 600; } .lesson details.zusatz[open] summary { margin-bottom: 6px; }
+.visual.collapsed { padding: 4px 0; } .visual-show { margin: 4px 0; }
+.playbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 8px; font-size: 13px; } .playbar-speed { display: flex; align-items: center; gap: 6px; } .playbar-speed span { color: var(--text-dim); } .playbar select { background: #111; color: #ddd; border: 1px solid #444; border-radius: 6px; padding: 4px 6px; }
 
 /* Musterbeispiele mit Fading (worked) */
 .wk-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; } .wk-tabs .btn.on { border-color: var(--accent-cyan); color: var(--accent-cyan); }

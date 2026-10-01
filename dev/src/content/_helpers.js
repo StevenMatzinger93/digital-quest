@@ -16,7 +16,7 @@
    * palette: erlaubte Bauteiltypen; start / ref: Layouts {parts, wires}; wrong: [{name, parts, wires}]
    * need, tests, measure: siehe engine.js runTask
    * bench (optional): Werkbank-Layout {parts:[{id, x, y, rot}]} – eigene Lage je Bauteil-ID aus start/ref (siehe bench.js)
-   * measureUX (optional): 'legacy' (Standard: Klick auf die Buchse setzt die Messspitze) | 'drag' (Werkbank: Spitzen ziehen,
+   * measureUX (optional): 'drag' (Standard: Werkbank – Spitzen ziehen) | 'legacy' (Klick auf die Buchse setzt die Messspitze; Werkbank: Spitzen ziehen,
    *   eigener Oszilloskop-Tastkopf, Messbereich von Hand waehlen – Schema-Ansicht bleibt beim Klick)
    * boss: true fuer Abschlussaufgabe */
   root.defTask = function (t) {
@@ -24,12 +24,19 @@
     t.kind = 'task';
     t.palette = t.palette || [];
     t.tests = t.tests || []; t.measure = t.measure || []; t.wrong = t.wrong || []; t.tags = t.tags || [];
-    t.measureUX = t.measureUX || 'legacy';
     // rechenweg (optional): { messwertId: HTML | [{text, label?, expr?, value?, unit?}] } – erscheint in der Lösungsansicht und beim Aufdecken
     // eines Messwerts; fehlt er, erzeugt die App einen minimalen Rechenweg aus measure (Sollwert, Messart, Anschlüsse).
     if (t.rechenweg) Object.keys(t.rechenweg).forEach(function (k) { if (!(t.measure || []).some(function (m) { return m.id === k; })) throw new Error('defTask ' + t.id + ': rechenweg für unbekannten Messwert „' + k + '“'); });
-    t.measureUX = t.measureUX || 'legacy';
+    // measureUX: 'drag' (Standard seit 01.10.2026 – Werkbank: Spitzen und Tastkopf ziehen) | 'legacy' (Klick setzt die Spitze, nur noch für Sonderfälle)
+    // rangeUX: 'auto' (Standard: Messbereich automatisch) | 'manual' (Bereich von Hand wählen, falscher Bereich zeigt OL – Kapitel 16, Tutorial)
+    // setup (optional): HTML für die Box „So stellst du das Gerät ein“ oder { messwertId: HTML } je Messwert; sonst automatisch aus measure
+    t.measureUX = t.measureUX || 'drag';
     if (t.measureUX !== 'legacy' && t.measureUX !== 'drag') throw new Error('defTask ' + t.id + ': measureUX muss legacy oder drag sein');
+    t.rangeUX = t.rangeUX || 'auto';
+    if (t.rangeUX !== 'auto' && t.rangeUX !== 'manual') throw new Error('defTask ' + t.id + ': rangeUX muss auto oder manual sein');
+    // demo (optional): Messwert-ID, die der Vorführ-Modus zeigt (sonst der erste Messwert mit Spitzen a/b und Messart V, V~, Ω oder Oszilloskop)
+    if (t.demo && !(t.measure || []).some(function (m) { return m.id === t.demo; })) throw new Error('defTask ' + t.id + ': demo verweist auf unbekannten Messwert „' + t.demo + '“');
+    if (t.setup && typeof t.setup === 'object') Object.keys(t.setup).forEach(function (k) { if (!(t.measure || []).some(function (m) { return m.id === k; })) throw new Error('defTask ' + t.id + ': setup für unbekannten Messwert „' + k + '“'); });
     DQ.tasks.push(t); DQ.byId[t.id] = t; return t;
   };
 

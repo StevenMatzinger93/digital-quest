@@ -19,6 +19,7 @@ const PRE = { p: 1e-12, n: 1e-9, 'µ': 1e-6, u: 1e-6, m: 1e-3, '': 1, k: 1e3, M:
 async function atomicClick(page, sel, key) {
   const r = await page.evaluate(([sel, key]) => {
     const el = document.querySelector(sel); if (!el) return 'fehlt: ' + sel;
+    el.scrollIntoView({ block: 'center', inline: 'center' }); // wie eine Person: erst hinscrollen (lange Seitenleiste)
     const q = el.getBoundingClientRect(), x = q.left + q.width / 2, y = q.top + q.height / 2;
     const svg = el.closest('svg'), box = svg ? svg.getBoundingClientRect() : null;
     if (box && (x < box.left || x > box.right || y < box.top || y > box.bottom)) return 'ausserhalb des Ausschnitts: ' + sel;
@@ -38,6 +39,7 @@ async function atomicDrag(page, which, pid) {
   const r = await page.evaluate(([which, pid]) => {
     const pr = document.querySelector('#bench [data-probe="' + which + '"] .bprobehit'), pin = document.querySelector('#bench [data-pin="' + pid + '"] .bpinhit'), svg = document.getElementById('bench');
     if (!pr) return 'Spitze fehlt: ' + which; if (!pin) return 'Buchse fehlt: ' + pid;
+    svg.scrollIntoView({ block: 'center' });
     const a = pr.getBoundingClientRect(), b = pin.getBoundingClientRect();
     const ev = (t, x, y) => new PointerEvent(t, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 7, pointerType: 'mouse', isPrimary: true, buttons: t === 'pointerup' ? 0 : 1 });
     pr.dispatchEvent(ev('pointerdown', a.left + a.width / 2, a.top + a.height / 2));
@@ -126,7 +128,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
       if (got.size !== want.size || [...want].some(k => !got.has(k))) fail('Leitungen nach dem Bauen weichen ab');
       // 4. Messprotokoll: mit dem Multimeter der Ansicht messen
       const dial = async mode => { if (view === 'bench') await atomicClick(page, `#bench [data-dial="${mode}"] .bdialhit`, 'data-dial'); else await page.click(`[data-mm="${mode}"]`); };
-      const drag = view === 'bench' && t.measureUX === 'drag'; // neue Messtechnik-Aufgaben: Spitzen ziehen statt klicken
+      const drag = view === 'bench' && t.measureUX === 'drag'; // Werkbank: Spitzen ziehen (Standard fuer alle Aufgaben seit 01.10.2026)
       const readMeter = async (m, mode, a, b) => {
         await dial(mode);
         if (drag) { await atomicDrag(page, 'a', a); await atomicDrag(page, 'b', b); } else { await pin(a); await pin(b); }
@@ -184,8 +186,8 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
   if (!only || only === 'bedienung') {
     const tag = 'Bedienung [Werkbank]', fail = m => errors.push(tag + ': ' + m);
     try {
-      const id = await page.evaluate(() => { const t = window.DQ.tasks.find(x => x.measureUX === 'drag' && x.start.parts.some(p => p.type === 'battery' || p.type === 'acsource') && x.ref.wires.length) || window.DQ.byId['1.4'];
-        t.measureUX = 'drag'; delete DigitalQuest.state.drafts[t.id]; DigitalQuest.openItem(t.id); DigitalQuest.setView('bench'); return t.id; });
+      const id = await page.evaluate(() => { const t = window.DQ.tasks.find(x => x.rangeUX === 'manual' && x.start.parts.some(p => p.type === 'battery' || p.type === 'acsource') && x.ref.wires.length) || window.DQ.byId['16.1'];
+        t.measureUX = 'drag'; t.rangeUX = 'manual'; delete DigitalQuest.state.drafts[t.id]; DigitalQuest.openItem(t.id); DigitalQuest.setView('bench'); return t.id; });
       const ref = await page.evaluate(i => window.DQ.byId[i].ref, id), src = ref.parts.find(p => p.type === 'battery' || p.type === 'acsource');
       for (const w of ref.wires) { await atomicClick(page, `#bench [data-pin="${w.from}"] .bpinhit`, 'data-pin'); await atomicClick(page, `#bench [data-pin="${w.to}"] .bpinhit`, 'data-pin'); }
       const box = sel => page.evaluate(s => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; }, sel);
@@ -223,11 +225,13 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
       await atomicClick(page, '#bench [data-scope="run"] rect', 'data-scope'); await page.waitForTimeout(150);
       if (!await page.$('#bench .bsctrace') || !/Kanal: / .test(await page.textContent('#scopeInfo'))) fail('Oszilloskop mit Tastkopf zeigt keine Kurve');
       if (await page.evaluate(() => DigitalQuest.core.probes.a) !== src.id + '.p') fail('Tastkopf hat die Multimeter-Spitze verstellt');
-      // Altbestand unveraendert: Klick setzt die Spitze, keine Bereichstasten, kein Tastkopf
-      await page.evaluate(() => { DigitalQuest.openItem('1.5'); DigitalQuest.setView('bench'); }); // 1.5 ist Altbestand (legacy)
+      // Altbestand (rangeUX auto): Spitzen werden gezogen, aber keine Bereichstasten; Klick auf die Buchse beginnt eine Leitung
+      await page.evaluate(() => { DigitalQuest.openItem('1.5'); DigitalQuest.setView('bench'); });
       await atomicClick(page, '#bench [data-dial="V"] .bdialhit', 'data-dial'); await atomicClick(page, '#bench [data-pin="B1.p"] .bpinhit', 'data-pin');
-      if (await page.evaluate(() => DigitalQuest.core.probes.a) !== 'B1.p') fail('Altbestand: Klick setzt die Spitze nicht mehr');
-      if (await page.$('#bench [data-range]') || await page.$('#bench [data-probe]')) fail('Altbestand: Bereichstasten oder greifbare Spitzen sichtbar');
+      if (await page.evaluate(() => DigitalQuest.core.probes.a)) fail('Altbestand: Klick auf die Buchse setzt noch eine Spitze');
+      await page.keyboard.press('Escape');
+      if (await page.$('#bench [data-range]') || !await page.$('#bench [data-probe]')) fail('Altbestand: Bereichstasten sichtbar oder Spitzen nicht greifbar');
+      await atomicDrag(page, 'a', 'B1.p'); if (await page.evaluate(() => DigitalQuest.core.probes.a) !== 'B1.p') fail('Altbestand: Ziehen setzt die Spitze nicht');
     } catch (e) { fail('gescheitert: ' + e.message.split('\n')[0]); await page.screenshot({ path: path.join(__dirname, 'shots', 'fehler_bedienung.png') }); }
     runs++;
   }
@@ -238,6 +242,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
       const tag = 'Katalog ' + c.type + ' [' + (view === 'bench' ? 'Werkbank' : 'Schaltplan') + ']';
       try {
         await page.click(`[data-add="${c.type}"]`, { timeout: 3000 });
+        await page.mouse.move(2, 2); // weg von der Palette (Datenblatt-Popover), kein Escape – das hebt die Auswahl auf
         const id = await page.evaluate(() => DigitalQuest.core.sel);
         for (const f of FIELDS[c.type] || []) if (!await page.$(`#inspector [data-prop="${f}"]`)) errors.push(tag + ': Eigenschaft ' + f + ' fehlt im Panel');
         for (const r of [0, 1]) { // unrotiert und um 90° gedreht: jeder Anschluss sichtbar und obenauf, Klick startet eine Leitung

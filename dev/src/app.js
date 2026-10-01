@@ -275,7 +275,7 @@
       t.palette.forEach(function (k) { types[k] = true; }); t.start.parts.forEach(function (p) { types[p.type] = true; });
     });
     if (!Object.keys(types).length) types.battery = types.lamp = types.switch = true;
-    return { id: 'sandbox', kind: 'task', sandbox: true, ch: 0, title: 'Freie Werkbank', tags: [],
+    return { measureUX: 'drag', rangeUX: 'manual',  id: 'sandbox', kind: 'task', sandbox: true, ch: 0, title: 'Freie Werkbank', tags: [],
       brief: 'Baue und miss frei – ohne Auftrag und ohne Prüfung. Alle Bauteile, die du bisher freigeschaltet hast, liegen bereit. Dein Aufbau bleibt gespeichert.',
       palette: Object.keys(E.PARTS).filter(function (k) { return types[k]; }), start: { parts: [], wires: [] }, tests: [], measure: [], wrong: [] };
   }
@@ -287,7 +287,8 @@
   var live = { net: null, state: E.newState(), dynamic: false, raf: 0, last: 0, res: null, trace: [], hist: [], replay: null };
   var HIST_MAX = 300;
   var meter = { mode: 'OFF', a: null, b: null, next: 'a', range: 'AUTO' }; // range: 'AUTO' oder Endwert (nur measureUX 'drag')
-  function dragUX() { return !!(current.task && current.task.measureUX === 'drag'); } // Werkbank: Messspitzen ziehen statt klicken
+  function dragUX() { return !!(current.task && current.task.measureUX === 'drag'); } // Werkbank: Messspitzen ziehen statt klicken (Standard)
+  function manualRange() { return !!(current.task && current.task.rangeUX === 'manual'); } // Messbereich von Hand (Kapitel 16, Sandbox)
   function preferredView() { return /[?&]werkbank\b/.test(location.search) || S.settings.view === 'bench' ? 'bench' : 'schema'; }
   function meterType() { return S.settings.meterType === 'avg' ? 'avg' : 'trms'; }
 
@@ -311,6 +312,7 @@
   function openTask(t, opt) {
     opt = opt || {};
     show('task');
+    if (demo) { demoPause(); demo = null; } // laufende Vorführung verwerfen (der neue Entwurf wird frisch geladen)
     current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0; current.live = opt.live || null; current.exam = opt.exam || null;
     syncHash('task');
     var draft = opt.live || opt.exam ? (opt.layout ? { layout: E.clone(opt.layout), answers: opt.answers || {} } : null) : S.drafts[t.id];
@@ -319,6 +321,7 @@
     closeReplay(true);
     live.state = E.newState();
     meter = { mode: 'OFF', a: null, b: null, next: 'a', range: 'AUTO' };
+    if ($('#tb')) $('#tb').value = String(suggestTb(layout)); // Oszilloskop-Bildbreite passend zur Aufgabe (Feedback: Aliasing bei 1 s)
     renderTaskPanels(t, draft);
     if (!ed) {
       core = new Circuit({
@@ -360,6 +363,7 @@
       '<div class="brief">' + t.brief + (t.limit && t.brief.indexOf('class="limit"') < 0 ? limitText(t.limit) : '') + '</div>' +
       (t.learn ? '<div class="learn"><b>Lernziel</b> ' + t.learn + '</div>' : '') +
       '<div class="hints"><button class="btn small" id="hint1">Tipp 1</button><button class="btn small" id="hint2">Tipp 2</button></div><div id="hintBox"></div>';
+    if (t.measure.length && !current.live) h += setupHtml(t) + (demoMeasure(t) ? '<div id="demoBox"><button class="btn" id="btnDemo" title="Zeigt an einem Beispiel, wie gemessen und gerechnet wird – dein Aufbau bleibt unverändert">▶ Vorführen</button> <span class="dim small">zählt wie ein Tipp</span></div>' : '');
     if (t.measure.length) {
       h += '<div class="protocol"><h3>Messprotokoll <span class="proto-count" id="protoCount"></span><button class="btn small calc-ctx" data-calc title="Taschenrechner öffnen">🖩 Rechner</button></h3>' +
         '<p class="proto-note dim small">Gib den Wert so an, wie dein Gerät ihn anzeigt bzw. wie du ihn berechnest. Innerhalb der Toleranz ist er richtig – auf eine sinnvolle Stellenzahl runden (Komma oder Punkt).</p>';
@@ -371,10 +375,11 @@
       h += '</div>';
     }
     h += '<button class="btn primary big" id="btnCheck">Prüfen</button><div id="results"></div><div id="solBox"></div>';
-    if (t.measureUX === 'drag') h += '<p class="tut-link"><b>Neu:</b> Messspitzen ziehen, Messbereich wählen, Tastkopf anschliessen – <a href="#" data-go="tutorial">Anleitung ansehen</a></p>';
+    if (t.measure.length) h += '<p class="tut-link"><b>Messen auf der Werkbank:</b> Spitzen und Tastkopf ziehen' + (t.rangeUX === 'manual' ? ', Messbereich wählen' : '') + ' – <a href="#" data-go="tutorial">Anleitung ansehen</a></p>';
     $('#taskInfo').innerHTML = h;
     var tl = $('#taskInfo [data-go="tutorial"]'); if (tl) tl.onclick = function (ev) { ev.preventDefault(); renderTutorial(); show('tutorial'); };
     var bk = $('#taskInfo [data-back]'); if (bk) bk.onclick = goMap;
+    var bd = $('#btnDemo'); if (bd) bd.onclick = function () { demoStart(t); };
     $('#hint1').onclick = function () { if (current.hints < 1 && LIVE) LIVE.hint(); current.hints = Math.max(current.hints, 1); $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div>'; };
     $('#hint2').onclick = function () { if (current.hints < 2 && LIVE) LIVE.hint(); current.hints = 2; $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div><div class="hint">' + t.hint2 + '</div>'; };
     $$('[data-ans]').forEach(function (inp) { inp.oninput = persistDraft; });
@@ -450,6 +455,37 @@
     $('#btnSol').hidden = true;
     if (root.DQMini) { try { if (solMini && solMini.destroy) solMini.destroy(); solMini = root.DQMini.mount($('#solCircuit'), { layout: t.ref, bench: t.bench, view: viewMode, height: 240 }); } catch (e) { $('#solCircuit').innerHTML = '<p class="dim small">(' + esc(e.message) + ')</p>'; } }
     $('#solClose').onclick = function () { v.hidden = true; $('#btnSol').hidden = false; };
+  }
+  /* ---------- „So stellst du das Gerät ein“ (Feedback 01.10.2026): je Messwert Messart, Spitzen, Bereich (nur rangeUX manual),
+   * beim Oszilloskop Tastkopf/Clip und Bildbreite, Schalterstellungen aus measure.set – automatisch aus measure[], Handtext über task.setup. */
+  function suggestRange(u, val) { var l = E.DMM_MANUAL[u] || []; for (var i = 0; i < l.length; i++) if (Math.abs(val) <= l[i] * 0.999) return l[i]; return l[l.length - 1]; }
+  function sourceFreqs(layout) { var f = []; (layout.parts || []).forEach(function (p) { if (p.type === 'acsource' || p.type === 'clock') { var q = p.props || {}; f.push(q.freq || E.PARTS[p.type].props.freq); } }); return f; }
+  function suggestTb(layout) {
+    var opts = $$('#tb option').map(function (o) { return +o.value; }).sort(function (a, b) { return a - b; }), fr = sourceFreqs(layout);
+    if (fr.length) { var want = 2.5 / Math.min.apply(null, fr); for (var i = 0; i < opts.length; i++) if (opts[i] >= want) return opts[i]; return opts[opts.length - 1]; }
+    if ((layout.parts || []).some(function (p) { return p.type === 'capacitor'; })) return opts[opts.length - 1]; // Lade-/Entladekurve: langer Ausschnitt
+    return opts.length > 1 ? opts[1] : opts[0];
+  }
+  function tbLabel(v) { var o = $$('#tb option').filter(function (o) { return +o.value === v; })[0]; return o ? o.textContent : E.fmt(v, 's'); }
+  function setupHtml(t) {
+    if (typeof t.setup === 'string') return '<details class="setup" open><summary>So stellst du das Gerät ein</summary>' + t.setup + '</details>';
+    var soll = sollOf(t, null), manual = t.rangeUX === 'manual', rows = t.measure.map(function (m) {
+      if (t.setup && t.setup[m.id]) return '<li><b>' + esc(m.ask) + ':</b> ' + t.setup[m.id] + '</li>';
+      var parts = [], setTxt = m.set ? Object.keys(m.set).map(function (k) { return k.indexOf('@') === 0 ? '' : k + ' ' + (m.set[k].closed ? 'zu' : 'offen'); }).filter(Boolean).join(', ') : '';
+      if (setTxt) parts.push('Schalter: ' + setTxt);
+      if (m.value !== undefined) parts.push('Rechenwert – kein Messgerät, Ergebnis in ' + (m.unit || 'der angegebenen Einheit') + ' eintragen');
+      else if (m.truth && !m.mode) parts.push(m.truth.q === 'i' ? 'A⎓ in Reihe mit ' + m.truth.sel + ' (Leitung an ' + m.truth.sel + ' lösen, Spitzen in die Lücke)' : 'V⎓ an ' + m.truth.sel);
+      else if (m.mode === 'AC') parts.push('Oszilloskop: Tastkopf CH1 an ' + m.a + ', Erdungsclip an ' + (m.b || 'Masse') + ', Bildbreite ' + tbLabel(suggestTb(t.ref)) + ', RUN – ' + ({ dc: 'Mittelwert ablesen', peak: 'Scheitelwert ablesen', pp: 'Spitze-Spitze ablesen', rms: 'Effektivwert', avg: 'Gleichrichtwert' }[m.q || 'dc'] || m.q));
+      else {
+        var u = m.mode === 'A' ? 'A' : m.mode === 'R' ? 'Ω' : 'V', mode = m.mode === 'A' ? 'A⎓ (in Reihe: Leitung lösen, Spitzen in die Lücke)' : m.mode === 'R' ? 'Ω (spannungsfrei!)' : m.mode === 'VAC' ? 'V~, Verfahren ' + ((m.meterType || 'trms').toUpperCase()) : 'V⎓';
+        parts.push('Messart ' + mode);
+        if (m.mode !== 'A') parts.push('rote Spitze an ' + m.a + ', schwarze an ' + (m.b || 'Masse'));
+        if (manual && soll[m.id] !== undefined) { var sc = E.UNIT_SCALE[m.unit] || 1, rg = suggestRange(u, soll[m.id] * sc); parts.push('Bereich ' + E.rangeLabel(rg, u)); }
+      }
+      return '<li><b>' + esc(m.ask) + ':</b> ' + parts.join(' · ') + '</li>';
+    });
+    return '<details class="setup"' + (t.ch === 16 || t.ch === 'W' ? ' open' : '') + '><summary>So stellst du das Gerät ein</summary><ol>' + rows.join('') + '</ol>' +
+      '<p class="dim small">Spitzen und Tastkopf auf der Werkbank ziehen, im Schaltplan auf die Anschlüsse klicken. OL heisst nur: Bereich zu klein.</p></details>';
   }
   /* Toleranz-Hinweis je Protokollzeile: Prozent aus tol (Standard 3 %), bei Rechenwerten Einheit und Stellenzahl */
   function tolText(m) {
@@ -738,7 +774,7 @@
     renderRangeRow(); if (ed) tick(0);
   }
   function rangeList() {
-    if (!dragUX() || meter.mode === 'OFF') return null;
+    if (!manualRange() || meter.mode === 'OFF') return null;
     var u = rangeUnit();
     return [{ label: 'AUTO', value: 'AUTO', on: meter.range === 'AUTO' }].concat(E.DMM_MANUAL[u].map(function (v) { return { label: E.rangeLabel(v, u), value: v, on: meter.range === v }; }));
   }
@@ -771,40 +807,55 @@
       return m.ac;
     }
     var fs = Infinity; (net ? net.parts : []).forEach(function (p) { if ((p.type === 'acsource' || p.type === 'clock') && p.props.freq > 0) fs = Math.min(fs, p.props.freq); });
+    var raw = NaN; // Rohwert in der Basiseinheit (für Bereichs- und Vorzeichenhinweise)
     if (m.mode === 'OFF') txt = 'OFF';
-    else if (!mn || !r) txt = m.mode === 'R' ? '0L Ω' : '- - -';
+    else if (!mn || !r) {
+      txt = m.mode === 'R' ? '0L Ω' : '- - -';
+      if (r) warn = !m.a && !m.b ? 'Zwei Spitzen setzen: rot (+) an den Pluspunkt, schwarz (COM) an den Bezugspunkt – auf der Werkbank ziehen, im Schaltplan anklicken.' : 'Noch die ' + (m.a ? 'schwarze (COM)' : 'rote (+)') + ' Spitze an einen Anschluss setzen.';
+    }
     else if (m.mode === 'V') {
-      var vdc = r.nodeV[mn.a] - r.nodeV[mn.b];
-      if (isFinite(fs) && fs >= 5) { var ac1 = ac(); if (ac1.ok) vdc = ac1.dc; } // DMM zeigt bei schnellem Wechsel den Mittelwert (ohne Wechselquelle: Momentanwert mit Eigenverbrauch)
-      txt = E.dmm(vdc, 'V', undefined, rg).text;
+      var vdc = r.nodeV[mn.a] - r.nodeV[mn.b], acV = null;
+      if (isFinite(fs) && fs >= 5) { var ac1 = ac(); if (ac1.ok) { vdc = ac1.dc; acV = ac1; } } // DMM zeigt bei schnellem Wechsel den Mittelwert (ohne Wechselquelle: Momentanwert mit Eigenverbrauch)
+      raw = vdc; txt = E.dmm(vdc, 'V', undefined, rg).text;
+      if (acV && acV.rms > 0.05 && Math.abs(vdc) < 0.05 * acV.rms) warn = 'Deine Schaltung liefert Wechselspannung: V⎓ zeigt nur den Mittelwert (hier ≈ 0). Für den Effektivwert V~ wählen.';
     } else if (m.mode === 'VAC') {
       var a2 = ac();
       if (!a2.ok) { txt = 'Err'; warn = a2.error; }
-      else { txt = E.dmm(mt === 'avg' ? a2.avg : a2.rms, 'V', undefined, rg).text; if (a2.static) warn = 'Keine Wechselquelle im Aufbau – V~ zeigt nur den Wechselanteil (hier 0).'; }
+      else { raw = mt === 'avg' ? a2.avg : a2.rms; txt = E.dmm(raw, 'V', undefined, rg).text; if (a2.static) warn = 'Du misst V~, die Schaltung liefert Gleichspannung – V~ zeigt nur den Wechselanteil (hier 0). Wähle V⎓.'; }
     } else if (m.mode === 'A') {
       if (state.fuse) {
         txt = 'FUSE';
         var fi = state.fuseInfo;
-        warn = 'Sicherung durchgebrannt' + (fi ? ': Durch das Messgerät wären ' + E.fmt(Math.abs(fi.i), 'A') + ' geflossen (Sicherung ' + E.fmt(fi.imax, 'A') + ')' : '') + '. Das Amperemeter hat fast 0 Ω – es gehört in Reihe, nie parallel zu einer Quelle.';
-      } else txt = E.dmm((r.nodeV[mn.a] - r.nodeV[mn.b]) / E.METER.rA, 'A', undefined, rg).text;
+        warn = 'Sicherung durchgebrannt: Die Spitzen lagen parallel zu einer Quelle' + (fi ? ' – ' + E.fmt(Math.abs(fi.i), 'A') + ' statt höchstens ' + E.fmt(fi.imax, 'A') : '') + '. A-Messung immer in Reihe: Kreis auftrennen (eine Leitung löschen), das Messgerät in die Lücke setzen, dann „Sicherung ersetzen“.';
+      } else { raw = (r.nodeV[mn.a] - r.nodeV[mn.b]) / E.METER.rA; txt = E.dmm(raw, 'A', undefined, rg).text; }
     } else if (m.mode === 'R') {
       var mr = E.measure(layout, { mode: 'R', a: m.a, b: m.b }, state);
-      txt = mr.ok ? E.dmm(mr.value, 'Ω', undefined, rg).text.replace('OL', '0L') : 'Err'; warn = mr.ok ? '' : mr.error;
+      txt = mr.ok ? E.dmm(mr.value, 'Ω', undefined, rg).text.replace('OL', '0L') : 'Err'; if (mr.ok) raw = mr.value;
+      warn = mr.ok ? '' : /spannungsfrei/.test(mr.error || '') ? 'Widerstandsmessung nur spannungsfrei: Schalter öffnen bzw. Quelle abklemmen oder das Bauteil einseitig herauslösen (eine Leitung löschen).' : mr.error;
     }
     var ol = !!(rg && mn && /^0?L$|OL|0L/.test(txt));
-    if (ol && !warn) warn = 'OL: Der Messwert liegt über dem gewählten Bereich ' + E.rangeLabel(rg, unit) + ' – grösseren Bereich wählen.';
+    if (ol && !warn) warn = 'Bereich zu klein (OL): ' + E.rangeLabel(rg, unit) + ' reicht nicht' + (isFinite(raw) && Math.abs(raw) > 0 ? ' – nimm ' + E.rangeLabel(suggestRange(unit, raw), unit) : ' – nimm den nächsten grösseren Bereich') + '.';
+    else if (rg && !warn && isFinite(raw) && Math.abs(raw) > 0 && Math.abs(raw) < rg / 20 && suggestRange(unit, raw) < rg) warn = 'Bereich zu gross: ' + E.rangeLabel(rg, unit) + ' zeigt nur wenige Stellen – nimm ' + E.rangeLabel(suggestRange(unit, raw), unit) + '.';
+    if (!warn && (m.mode === 'V' || m.mode === 'A') && isFinite(raw) && raw < -0.001) warn = 'Negatives Vorzeichen: rote und schwarze Spitze sind vertauscht – zulässig, der Betrag stimmt.';
     return { text: txt, sub: sub, warn: warn, ol: ol, range: rg ? E.rangeLabel(rg, unit) : null };
   }
   /* Kurve fuers Oszilloskop (Aufgabe und Tutorial): Abtastung ueber T Sekunden, Skala, Punkte fuer den Werkbank-Schirm */
+  /* Oszilloskop-Kurve: Abtastung mindestens 50 Punkte je Periode der schnellsten Quelle (kein Aliasing bei langer Bildbreite),
+   * vorher Einschwingen wie E.acMeasure (5·R·C, höchstens 3 s), damit die Kurve den eingeschwungenen Zustand zeigt. */
   function scopeCurve(layout, sp, T, label) {
-    var s = E.simulate(layout, { dt: T / 400, tEnd: T, probes: [{ a: sp.a, b: sp.b || undefined }] }).samples;
+    var fr = sourceFreqs(layout), fmax = fr.length ? Math.max.apply(null, fr) : 0, dt = T / 400;
+    if (fmax > 0) dt = Math.min(dt, 1 / (fmax * 50)); dt = Math.max(dt, T / 20000);
+    var rs = [], cs = []; (layout.parts || []).forEach(function (p) { var v = p.value !== undefined ? p.value : (p.props && p.props.value); if (p.type === 'resistor' && v > 0) rs.push(v); if (p.type === 'capacitor' && v > 0) cs.push(v); });
+    var tauMax = rs.length && cs.length ? Math.max.apply(null, rs) * Math.max.apply(null, cs) : 0, settle = null;
+    if (fr.length && tauMax > 0) { var T0 = 1 / Math.min.apply(null, fr); settle = { t: Math.ceil(Math.min(5 * tauMax, 3) / T0) * T0, dt: T0 / 40 }; } // ohne Wechselquelle (Ladekurve) bewusst ab t = 0
+    var s = E.simulate(layout, { dt: dt, tEnd: T, settle: settle, probes: [{ a: sp.a, b: sp.b || undefined }] }).samples;
     var vs = s.map(function (x) { return x.ch0; }), mx = Math.max.apply(null, vs), mn = Math.min.apply(null, vs);
     var top = Math.max(1, Math.ceil(Math.max(mx, 0) * 1.1)), bot = Math.min(0, Math.floor(mn * 1.1)), stepN = Math.max(1, Math.floor(s.length / 150));
     return { samples: s, top: top, bot: bot, mx: mx, mn: mn, pts: s.filter(function (x, k) { return k % stepN === 0; }).map(function (x) { return [x.t / T, (x.ch0 - bot) / (top - bot)]; }),
       info: 'CH1 ' + sp.a + (sp.b ? '–' + sp.b : '') + ' · ' + bot + '…' + top + ' V · ' + label, text: 'Kanal: ' + sp.a + ' gegen ' + (sp.b || 'Masse') + ' · ' + bot + '…' + top + ' V · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') };
   }
   function updateMeter(r, mn) {
-    var lcd = $('#lcd'), rg = dragUX() && meter.range !== 'AUTO' ? meter.range : undefined;
+    var lcd = $('#lcd'), rg = manualRange() && meter.range !== 'AUTO' ? meter.range : undefined;
     var rd = meterReading(meter, ed.layout, live.net, r, live.state, mn, rg, meterType()), txt = rd.text, warn = rd.warn;
     lcd.textContent = txt;
     if (bench) bench.meter = { mode: meter.mode, text: txt, fuse: live.state.fuse, sub: rd.sub, ranges: rangeList(), range: rd.range };
@@ -837,7 +888,7 @@
     if (p.type === 'led') {
       h += '<label class="fld"><span>Farbe</span><select data-prop="color"' + (lock ? ' disabled' : '') + '>' + Object.keys(E.LED_COLORS).map(function (c) { return '<option value="' + c + '"' + ((q.color || 'rot') === c ? ' selected' : '') + '>' + (E.LED_COLORS[c].label || c) + '</option>'; }).join('') + '</select></label>';
     }
-    if (p.type === 'switch') h += '<button class="btn small" id="tgl">' + (q.closed ? 'Öffnen' : 'Schliessen') + '</button>';
+    if (p.type === 'switch') h += '<p class="small">Stellung: <b>' + (q.closed ? 'zu (geschlossen) – Strom kann fliessen' : 'offen – kein Strom') + '</b></p><button class="btn small" id="tgl">' + (q.closed ? 'Schalter öffnen' : 'Schalter schliessen') + '</button>';
     if (p.type === 'logicin') h += '<button class="btn small" id="tgl">Pegel auf ' + (q.closed ? '0' : '1') + ' schalten</button>';
     if (r) {
       h += '<dl class="readout">';
@@ -864,7 +915,11 @@
   /* ---------- Oszilloskop ----------
    * Kanal 1: bei measureUX 'drag' der eigene Tastkopf (core.scopeProbes.tip gegen gnd, Erdungsclip offen = Masse),
    * sonst (Altbestand, Schema-Ansicht) die Messspitzen des Multimeters. */
-  function scopeProbes() { return dragUX() && core ? { a: core.scopeProbes.tip, b: core.scopeProbes.gnd, own: true } : { a: meter.a, b: meter.b, own: false }; }
+  /* Kanal 1: eigener Tastkopf, sobald er auf der Werkbank angeschlossen ist; im Schaltplan (kein Tastkopf zum Ziehen) sonst die Multimeter-Spitzen */
+  function scopeProbes() {
+    if (dragUX() && core && (core.scopeProbes.tip || viewMode === 'bench')) return { a: core.scopeProbes.tip, b: core.scopeProbes.gnd, own: true };
+    return { a: meter.a, b: meter.b, own: false };
+  }
   function scope() {
     var cv = $('#scope'), ctx = cv.getContext('2d'), T = +$('#tb').value;
     var w = cv.width = cv.clientWidth * (window.devicePixelRatio || 1), h = cv.height = cv.clientHeight * (window.devicePixelRatio || 1);
@@ -874,7 +929,7 @@
     for (i = 1; i < 8; i++) { ctx.beginPath(); ctx.moveTo(0, h * i / 8); ctx.lineTo(w, h * i / 8); ctx.stroke(); }
     var sp = scopeProbes();
     if (!sp.a) {
-      $('#scopeInfo').textContent = sp.own ? 'Tastkopf anschliessen: den gelben Tastkopf (CH1) auf der Werkbank an einen Anschluss ziehen, den schwarzen Erdungsclip an den Bezugspunkt.' : 'Setze zuerst die rote Messspitze (Multimeter V).';
+      $('#scopeInfo').textContent = sp.own ? 'Tastkopf anschliessen: den gelben Tastkopf (CH1) an den Messpunkt ziehen, den schwarzen Erdungsclip an Masse bzw. den Bezugspunkt – dann RUN.' : 'Setze zuerst die rote Messspitze (Multimeter V).';
       bench.scope = { pts: [], info: sp.own ? 'Tastkopf anschliessen' : 'Zuerst rote Messspitze setzen (V)' }; bench.render(); return;
     }
     var c;
@@ -923,6 +978,90 @@
     $('.sb-back', el).onclick = close; $('.sb-x', el).onclick = close; document.addEventListener('keydown', esc1);
     $('.sb-x', el).focus();
     log('scope_big', { id: current.task && current.task.id });
+  }
+
+  /* ---------- Vorführ-Modus (Feedback 01.10.2026, Phase 6) ----------
+   * Zeigt an EINEM Messwert der Aufgabe (task.demo oder der erste mit Spitzen und Messart V / V~ / Ω / Oszilloskop), wie gemessen wird:
+   * Messart und Bereich am Gerät, Spitzen bzw. Tastkopf gleiten zu den Buchsen (dieselbe dragProbeTo/dropProbe-Logik wie beim Ziehen),
+   * Anzeige, dann der Rechenweg Schritt für Schritt. Tempo/Pause/Schritt wie in den Theorie-Animationen (DQVisuals.playbar), Abbrechen jederzeit.
+   * Der Entwurf wird nie verändert: Alles läuft auf dem Live-Zustand, am Ende wird der Zustand vor der Vorführung wiederhergestellt.
+   * Zählt wie ein Tipp (current.hints ≥ 1), Ereignis demo_view. Nicht in Prüfung und Live-Challenge. */
+  var demo = null;
+  function demoAble(m) { return !!(m.a && (m.mode === 'V' || m.mode === 'VAC' || m.mode === 'R' || m.mode === 'AC')); }
+  function demoMeasure(t) { var ms = t.measure || [], pick = t.demo ? ms.filter(function (m) { return m.id === t.demo; })[0] : null; return pick && demoAble(pick) ? pick : ms.filter(demoAble)[0] || null; }
+  function demoStart(t) {
+    if (demo || current.exam || current.live || !ed) return;
+    var m = demoMeasure(t); if (!m) return;
+    if (viewMode !== 'bench') setView('bench', true);
+    var lockedIds = t.start.parts.map(function (p) { return p.id; });
+    var saved = { layout: E.clone(ed.layout), probes: { a: core.probes.a, b: core.probes.b }, scope: { tip: core.scopeProbes.tip, gnd: core.scopeProbes.gnd }, meter: E.clone(meter), tries: current.tries, hints: current.hints, draft: JSON.stringify(S.drafts[t.id] || null), tb: $('#tb').value };
+    var soll = sollOf(t, null)[m.id], isScope = m.mode === 'AC', pa = isScope ? 'tip' : 'a', pb = isScope ? 'gnd' : 'b';
+    var modeLbl = { V: 'V⎓ (Gleichspannung)', VAC: 'V~ (Wechselspannung, ' + (m.meterType || 'TRMS').toUpperCase() + ')', R: 'Ω (Widerstand, spannungsfrei)' }[m.mode];
+    var setTxt = m.set ? Object.keys(m.set).filter(function (k) { return k[0] !== '@'; }).map(function (k) { return k + ' ' + (m.set[k].closed ? 'zu' : 'offen'); }).join(', ') : '';
+    var steps = [];
+    steps.push({ text: 'Wir messen: <b>' + esc(m.ask) + '</b>.' + (setTxt ? ' Zuerst die Schalter stellen: ' + esc(setTxt) + '.' : ''), run: function () {
+      if (m.set) { Object.keys(m.set).forEach(function (k) { if (k[0] === '@') return; var p = core.part(k); if (p) { p.props = p.props || {}; Object.keys(m.set[k]).forEach(function (q) { p.props[q] = m.set[k][q]; }); } }); core.redraw(); rebuild(); }
+    } });
+    if (!isScope) steps.push({ text: 'Messart <b>' + modeLbl + '</b> am Drehschalter wählen.', run: function () { setMeterMode(m.mode); } });
+    if (!isScope && manualRange() && soll !== undefined) { var u = m.mode === 'R' ? 'Ω' : 'V', rg = suggestRange(u, soll * (E.UNIT_SCALE[m.unit] || 1)); steps.push({ text: 'Bereich <b>' + esc(E.rangeLabel(rg, u)) + '</b> wählen – der kleinste, in den der Wert passt.', run: function () { setMeterRange(rg); } }); }
+    steps.push({ text: (isScope ? 'Gelben <b>Tastkopf CH1</b>' : 'Rote Spitze <b>(+)</b>') + ' an <b>' + esc(m.a) + '</b> ziehen.', move: pa, pin: m.a, dur: 1.6 });
+    if (m.b || !isScope) steps.push({ text: (isScope ? 'Schwarzen <b>Erdungsclip</b>' : 'Schwarze Spitze <b>(COM)</b>') + ' an <b>' + esc(m.b || 'Masse') + '</b> ziehen.', move: pb, pin: m.b || null, dur: 1.6 });
+    if (isScope) steps.push({ text: 'Passende Bildbreite wählen und <b>RUN</b> drücken – das Oszilloskop zeichnet die Kurve.', run: function () { $('#tb').value = String(suggestTb(ed.layout)); scope(); } });
+    steps.push({ text: 'Ablesen.', run: function () { tick(0); var txt = isScope ? $('#scopeInfo').textContent : $('#lcd').textContent + ($('#mmWarn').textContent ? ' – ' + $('#mmWarn').textContent : ''); demo.read = txt; }, after: function () { return 'Anzeige: <b class="mono">' + esc(demo.read) + '</b>'; } });
+    var rw = t.rechenweg && t.rechenweg[m.id];
+    if (Array.isArray(rw)) rw.forEach(function (s, k) { steps.push({ text: '<b>Rechenweg ' + (k + 1) + ':</b> ' + (s.text || ''), rw: s }); });
+    else steps.push({ text: '<b>Sollwert:</b> ' + fmtSoll(soll, m.unit) + ' (Toleranz ±' + Math.round((m.tol || 0.03) * 100) + ' %).', rw: rw ? null : { label: m.ask, value: soll, unit: m.unit }, html: typeof rw === 'string' ? rw : null });
+    steps.push({ text: '<b>Jetzt du:</b> Miss selbst und trage deine Werte ins Protokoll ein – dein Aufbau ist unverändert.', end: true });
+    demo = { t: t, m: m, steps: steps, i: -1, p: 0, raf: 0, saved: saved, lockedIds: lockedIds, read: '', hold: 0, done: false };
+    var box = $('#demoBox'); box.innerHTML = '<div class="demo"><div class="demo-head"><b>Vorführung</b><span class="dim small">Schritt <span id="demoPos">0</span> / ' + steps.length + '</span><button class="btn small" id="demoStop">Abbrechen</button></div><div id="demoBar"></div><p class="demo-text" id="demoText"></p><div class="demo-rw" id="demoRw"></div></div>';
+    var V = root.DQVisuals, pb = V && V.playbar ? V.playbar({ onPlay: function () { demoResume(); }, onPause: function () { demoPause(); }, onStep: function () { demoPause(); demoAdvance(true); }, onSpeed: function () {}, started: function () { return demo && demo.i >= 0; } }, { resume: true }) : null;
+    if (pb) { $('#demoBar').appendChild(pb.el); demo.pb = pb; }
+    $('#demoStop').onclick = function () { demoEnd(true); };
+    log('demo_view', { id: t.id, mid: m.id });
+    demoAdvance(false); demoResume();
+  }
+  function demoSpeed() { return demo && demo.pb ? demo.pb.speed : 0.5; }
+  function demoProbeStart(which) { var d = Bench.DEV.meter, s = Bench.DEV.scope; return which === 'tip' || which === 'gnd' ? [s.x + (which === 'tip' ? 40 : 80), s.y + 150] : [d.x + (which === 'a' ? -54 : -2), d.y + 200]; }
+  function demoPinXY(pid) { var s = pid.split('.'), p = core.part(s[0]); return p ? bench.pinPos(p, s[1]) : null; }
+  /* naechsten Schritt beginnen; instant = Animation sofort zu Ende fuehren (Schritt-Taste) */
+  function demoAdvance(instant) {
+    if (!demo) return;
+    var cur = demo.steps[demo.i];
+    if (cur && cur.move && demo.p < 1) { core.dropProbe(cur.move, cur.pin); demo.p = 1; } // laufende Bewegung abschliessen
+    if (demo.i >= demo.steps.length - 1) { demoEnd(false); return; }
+    demo.i++; demo.p = 0; demo.hold = 0;
+    var s = demo.steps[demo.i]; $('#demoPos').textContent = String(demo.i + 1); $('#demoText').innerHTML = s.text;
+    if (s.run) { try { s.run(); } catch (e) { /* Vorführung bleibt stabil */ } if (s.after) $('#demoText').innerHTML = s.text + ' ' + s.after(); }
+    if (s.rw) { var r = s.rw; $('#demoRw').innerHTML += '<div class="wk-row"><span class="wk-lbl">' + esc(r.label || '') + '</span>' + (r.expr ? '<span class="mono wk-expr">' + esc(r.expr) + '</span>' : '') + (r.value !== undefined ? '<span class="mono wk-val">= ' + fmtSoll(r.value, r.unit) + '</span>' : '') + '</div>'; }
+    if (s.html) $('#demoRw').innerHTML += '<div class="rw">' + s.html + '</div>';
+    if (s.move) { s.from = demoProbeStart(s.move); s.to = s.pin ? demoPinXY(s.pin) : null; if (!s.to) { core.dropProbe(s.move, null); demo.p = 1; } else if (instant) { core.dropProbe(s.move, s.pin); demo.p = 1; } else core.dragProbeTo(s.move, s.from); }
+    if (s.end) { demo.done = true; demoPause(); setTimeout(function () { if (demo && demo.done) demoEnd(false); }, 4000 / demoSpeed()); }
+  }
+  function demoFrame(now) {
+    if (!demo) return;
+    var dt = Math.min(0.05, (now - demo.last) / 1000) * demoSpeed(); demo.last = now;
+    var s = demo.steps[demo.i];
+    if (s && s.move && demo.p < 1) {
+      demo.p = Math.min(1, demo.p + dt / s.dur); var k = demo.p < 0.5 ? 2 * demo.p * demo.p : 1 - Math.pow(-2 * demo.p + 2, 2) / 2; // weich
+      core.dragProbeTo(s.move, [s.from[0] + (s.to[0] - s.from[0]) * k, s.from[1] + (s.to[1] - s.from[1]) * k]);
+      if (demo.p >= 1) core.dropProbe(s.move, s.pin);
+    } else if (!s.end) { demo.hold += dt; if (demo.hold >= (s.rw ? 2.2 : 1.4)) { demoAdvance(false); } }
+    if (demo && demo.raf) demo.raf = requestAnimationFrame(demoFrame);
+  }
+  function demoResume() { if (!demo || demo.raf) return; demo.last = performance.now(); demo.raf = requestAnimationFrame(demoFrame); if (demo.pb) demo.pb.setPlaying(true); }
+  function demoPause() { if (!demo) return; if (demo.raf) cancelAnimationFrame(demo.raf); demo.raf = 0; if (demo.pb) demo.pb.setPlaying(false); }
+  /* Ende oder Abbruch: Zustand vor der Vorführung wiederherstellen (Schaltung, Spitzen, Messgerät, Bildbreite, Versuche); zählt wie ein Tipp */
+  function demoEnd(aborted) {
+    if (!demo) return;
+    var d = demo, t = d.t; demoPause(); demo = null;
+    core.load(d.saved.layout, d.lockedIds, t.bench);
+    core.probes.a = d.saved.probes.a; core.probes.b = d.saved.probes.b; core.scopeProbes.tip = d.saved.scope.tip; core.scopeProbes.gnd = d.saved.scope.gnd;
+    meter = d.saved.meter; $('#tb').value = d.saved.tb; renderRangeRow(); $$('[data-mm]').forEach(function (b) { b.classList.toggle('on', b.dataset.mm === meter.mode); });
+    rebuild(); core.redraw(); bench.scope = null; bench.render();
+    if (JSON.stringify(S.drafts[t.id] || null) !== d.saved.draft) { S.drafts[t.id] = d.saved.draft === 'null' ? undefined : JSON.parse(d.saved.draft); if (!S.drafts[t.id]) delete S.drafts[t.id]; save(); }
+    current.tries = d.saved.tries; current.hints = Math.max(d.saved.hints, 1);
+    var box = $('#demoBox'); if (box) { box.innerHTML = '<button class="btn" id="btnDemo">▶ Vorführen</button> <span class="dim small">' + (aborted ? 'abgebrochen – ' : 'fertig – ') + 'dein Aufbau ist unverändert, die Vorführung zählt wie ein Tipp</span>'; $('#btnDemo').onclick = function () { demoStart(t); }; }
+    log(aborted ? 'demo_abort' : 'demo_done', { id: t.id, mid: d.m.id });
   }
 
   /* ---------- Pruefen ---------- */
@@ -1205,6 +1344,7 @@
   /* ================= Start ================= */
   function init() {
     applyTheme(); applyMode();
+    root.DQ_PREFS = { get: function (k) { return S.settings[k]; }, set: function (k, v) { S.settings[k] = v; save(); } }; // Tempo der Theorie-Animationen u. a.
     if (ACCT) ACCT.init({ state: function () { return S; }, fresh: fresh, modal: modal, esc: esc, toast: toast, summary: summary, refresh: refreshView,
       setState: function (n) { S = normalize(n); clearTimeout(saveTimer); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { indicator('Nicht gespeichert!', 'err'); } } });
     root.DQ_REPORT_CONTEXT = function () {
@@ -1292,6 +1432,6 @@
     if (ACCT) { var rd = ACCT.start(); if (LIVE) rd.then(function () { LIVE.start(); }); if (EXAM) rd.then(function () { EXAM.start(); }); }
   }
 
-  window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, get examUI() { return EXAM; }, get tutorial() { return tut; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; } };
+  window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, get examUI() { return EXAM; }, get tutorial() { return tut; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; }, get demo() { return demo; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

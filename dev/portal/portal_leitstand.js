@@ -181,7 +181,7 @@ async function viewStudent(id){
     const x = b.dataset.task, t = itemOf(meta, x), d = done[x] ? (info[x] || {}) : null, draft = dr[x];
     const ans = draft && draft.answers ? Object.keys(draft.answers).filter(k => draft.answers[k] !== '') : [];
     dialog(x + ': ' + t.title,
-      '<p class="muted small">' + (d ? 'gelöst' + (d.at ? ' ' + fmtDate(d.at) : '') + ' · ' + (d.stars || 1) + '★ · ' + Math.max(0, (d.tries || 1) - 1) + ' Fehlversuche · ' + (d.hints || 0) + ' Tipps' : draft ? 'noch nicht gelöst · Entwurf' : 'noch nicht begonnen') + '</p>' +
+      '<p class="muted small">' + (d ? 'gelöst' + (d.at ? ' ' + fmtDate(d.at) : '') + ' · ' + (d.stars || 1) + '★ · ' + Math.max(0, (d.tries || 1) - 1) + ' Fehlversuche · ' + (d.hints || 0) + ' Tipps' + (d.solution ? ' · <b>Lösung angesehen</b>' : '') + (d.revealed ? ' · <b>' + d.revealed + ' Wert(e) aufgedeckt</b>' : '') : draft ? 'noch nicht gelöst · Entwurf' : 'noch nicht begonnen') + '</p>' +
       '<div id="stCircuit"></div>' +
       (ans.length ? '<h4 style="margin:12px 0 4px">Messprotokoll</h4><table class="tbl"><tbody>' + ans.map(k => '<tr><td class="muted">' + esc(k) + '</td><td class="num">' + esc(draft.answers[k]) + '</td></tr>').join('') + '</tbody></table>' : ''),
       [{ label:'Schliessen', value:true, cls:'pri' }], { wide:true, onOpen: () => circuitView($('stCircuit'), draft && draft.layout), onClose: () => { if(MINI){ try{ MINI.destroy(); }catch(e){} MINI = null; } } });

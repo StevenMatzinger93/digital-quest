@@ -64,6 +64,16 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
 
   // ===== Werkbank (Umschalt-Button in der Toolbar): 1.1 komplett auf der Werkbank bauen =====
   const bpin = id => page.click(`#bench [data-pin="${id}"] .bpinhit`, { force: true });
+  // Messspitze/Tastkopf ziehen (Standard fuer alle Aufgaben seit 01.10.2026) – atomar per PointerEvents, wie tests/tasks.js
+  const bdrag = (which, pid) => page.evaluate(([which, pid]) => {
+    const pr = document.querySelector('#bench [data-probe="' + which + '"] .bprobehit'), pin = document.querySelector('#bench [data-pin="' + pid + '"] .bpinhit'), svg = document.getElementById('bench');
+    if (!pr || !pin) return 'fehlt: ' + (pr ? pid : which);
+    const a = pr.getBoundingClientRect(), b = pin.getBoundingClientRect();
+    const ev = (t, x, y) => new PointerEvent(t, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 7, pointerType: 'mouse', isPrimary: true, buttons: t === 'pointerup' ? 0 : 1 });
+    pr.dispatchEvent(ev('pointerdown', a.left + a.width / 2, a.top + a.height / 2)); svg.dispatchEvent(ev('pointermove', (a.left + b.left) / 2, (a.top + b.top) / 2));
+    svg.dispatchEvent(ev('pointermove', b.left + b.width / 2, b.top + b.height / 2)); svg.dispatchEvent(ev('pointerup', b.left + b.width / 2, b.top + b.height / 2));
+    const set = which === 'tip' || which === 'gnd' ? DigitalQuest.core.scopeProbes[which] : DigitalQuest.core.probes[which]; return set === pid ? 'ok' : 'liegt nicht an ' + pid;
+  }, [which, pid]).then(r => { if (r !== 'ok') errors.push('Werkbank ziehen ' + which + '→' + pid + ': ' + r); });
   await page.evaluate(() => { delete DigitalQuest.state.drafts['1.1']; delete DigitalQuest.state.drafts['1.8']; DigitalQuest.openItem('1.1'); });
   await page.click('#btnView');
   if (!await page.isVisible('#bench') || await page.isVisible('#board')) errors.push('Werkbank: Umschalt-Button wirkt nicht');
@@ -86,11 +96,11 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   await page.click('[data-add="resistor"]');
   await page.fill('[data-prop="value"]', '470'); await page.dispatchEvent('[data-prop="value"]', 'change');
   await bpin('B1.p'); await bpin('R1.a'); await bpin('R1.b'); await bpin('D1.a'); await bpin('D1.k'); await bpin('B1.n');
-  await page.click('#bench [data-dial="V"] .bdialhit', { force: true }); await bpin('D1.a'); await bpin('D1.k');
+  await page.click('#bench [data-dial="V"] .bdialhit', { force: true }); await bdrag('a', 'D1.a'); await bdrag('b', 'D1.k');
   const lcdB = await page.textContent('#bench .bmlcd'), lcdP = await page.textContent('#lcd');
   if (lcdB !== lcdP || !/^1\.9\d\d V$/.test(lcdP)) errors.push('Werkbank-Multimeter: ' + lcdB + ' / ' + lcdP);
   await page.fill('[data-ans="uled"]', String(parseFloat(lcdP)));
-  await page.click('#bench [data-scope] rect', { force: true });
+  await bdrag('tip', 'D1.a'); await bdrag('gnd', 'D1.k'); await page.click('#bench [data-scope] rect', { force: true });
   if (!await page.locator('#bench .bsctrace').count()) errors.push('Werkbank-Oszilloskop: keine Kurve');
   await page.screenshot({ path: shots + '/7_werkbank_led.png' });
   // Live-Anzeige: Knotenspannungen und Tooltips mit Simulationswerten
@@ -117,6 +127,8 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   // Zoom (Mausrad), Verschieben (Ziehen auf leerer Flaeche), Einpassen
   const bb = await page.locator('#bench').boundingBox(), v0 = await page.evaluate(() => DigitalQuest.bench.view.slice());
   await page.mouse.move(bb.x + bb.width * 0.3, bb.y + bb.height * 0.5); await page.mouse.wheel(0, -300); await page.waitForTimeout(50);
+  if (JSON.stringify(await page.evaluate(() => DigitalQuest.bench.view.slice())) !== JSON.stringify(v0)) errors.push('Werkbank: Mausrad ohne Strg darf nicht zoomen (Seite soll scrollen)');
+  await page.keyboard.down('Control'); await page.mouse.wheel(0, -300); await page.keyboard.up('Control'); await page.waitForTimeout(50);
   const v1 = await page.evaluate(() => DigitalQuest.bench.view.slice());
   await page.mouse.move(bb.x + 20, bb.y + bb.height - 20); await page.mouse.down(); await page.mouse.move(bb.x + 120, bb.y + bb.height - 60, { steps: 5 }); await page.mouse.up();
   const v2 = await page.evaluate(() => DigitalQuest.bench.view.slice());
@@ -134,7 +146,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   await page.selectOption('[data-prop="shape"]', 'square');
   await page.click('[data-add="resistor"]');
   for (const x of ['G1.p', 'R1.a', 'R1.b', 'G1.n']) await bdown(`[data-pin="${x}"] .bpinhit`);
-  await bdown('[data-dial="VAC"] .bdialhit'); await bdown('[data-pin="R1.a"] .bpinhit'); await bdown('[data-pin="R1.b"] .bpinhit');
+  await bdown('[data-dial="VAC"] .bdialhit'); await bdrag('a', 'R1.a'); await bdrag('b', 'R1.b');
   await page.click('[data-mt="trms"]'); const trms = parseFloat(await page.textContent('#lcd'));
   await page.click('[data-mt="avg"]'); const avg = parseFloat(await page.textContent('#lcd'));
   if (!(Math.abs(trms - 10) < 0.2 && Math.abs(avg - 11.1) < 0.2)) errors.push('V~ Rechteck: TRMS ' + trms + ' / AVG ' + avg);
@@ -217,6 +229,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     if (!kinds.length) { errors.push(id + ': kein Bild in der Lektion'); continue; }
     for (let k = 0; k < kinds.length; k++) {
       const sel = '.lesson-visual:nth-of-type(' + (k + 1) + ')', vis = (await page.$$('.lesson-visual'))[k], t = kinds[k], tag = id + ' Bild ' + (k + 1) + ' (' + t + ')';
+      if (await vis.evaluate(el => el.classList.contains('collapsed') && !!el.querySelector('.visual-show'))) continue; // eingeklappt („Bild einblenden“): erst auf Knopfdruck
       if (!(await vis.evaluate(el => el.querySelector('.visual-body') && el.querySelector('.visual-body').innerHTML.length > 50))) { errors.push(tag + ': leer'); continue; }
       if (t === 'circuit') {
         const ci = await page.evaluate(() => DigitalQuest.visuals.slice(0).map(v => !!(v && v.core)));
@@ -379,13 +392,28 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('Messwerk: ' + e.message));
     await tp.goto(url, { waitUntil: 'domcontentloaded' }); await tp.evaluate(() => DigitalQuest.openItem('T16A')); await tp.waitForSelector('.visual-meterwork');
     if (!await tp.$eval('.visual-meterwork .mw', e => e.hidden)) errors.push('Messwerk: Widget schon vor der Vorhersage sichtbar');
+    if (await tp.evaluate(() => { const i = DigitalQuest.visuals.find(x => x && x.angles); return !i || i.playing; })) errors.push('T16A: Animation fehlt oder läuft vor der ersten Bedienung');
     await tp.click('.visual-meterwork [data-mwp="0"]'); await tp.waitForTimeout(100);
     if (!/Nicht ganz/.test(await tp.textContent('.visual-meterwork .mw-expl')) || await tp.$eval('.visual-meterwork .mw', e => e.hidden)) errors.push('Messwerk: Vorhersage-Antwort schaltet das Widget nicht frei');
     const ang = async () => tp.$$eval('.visual-meterwork .mw-needle', l => l.map(n => parseFloat(n.getAttribute('transform').slice(7))));
-    await tp.selectOption('.visual-meterwork [data-mw="signal"]', 'dc'); await tp.$eval('.visual-meterwork [data-mw="amp"]', e => { e.value = '1'; e.dispatchEvent(new Event('input')); }); await tp.waitForTimeout(2500);
-    const a1 = await ang();
-    await tp.$eval('.visual-meterwork [data-mw="amp"]', e => { e.value = '0.5'; e.dispatchEvent(new Event('input')); }); await tp.waitForTimeout(2500);
-    const a2 = await ang();
+    // Phase 5: kein Autostart, Zusatzbloecke zu, nur zwei Bilder sichtbar, „Bild einblenden“, Tempo wirkt messbar, Pause haelt an
+    if (await tp.$$eval('.lesson details.zusatz', l => l.length) !== 2 || await tp.$$eval('.lesson details.zusatz[open]', l => l.length)) errors.push('T16A: zwei geschlossene Zusatzblöcke erwartet');
+    await tp.click('.lesson details.zusatz summary'); if (!await tp.$('.lesson details.zusatz[open]') || !/Aufgabe 16\.5/.test(await tp.textContent('.lesson details.zusatz[open]'))) errors.push('T16A: Zusatzblock klappt nicht auf');
+    if (await tp.$$eval('.visual:not(.collapsed)', l => l.length) > 2 || await tp.$$eval('.visual.collapsed .visual-show', l => l.length) !== 3) errors.push('T16A: mehr als zwei sichtbare Bilder oder Einblenden-Knöpfe fehlen (' + await tp.$$eval('.visual:not(.collapsed)', l => l.length) + '/' + await tp.$$eval('.visual.collapsed .visual-show', l => l.length) + ')');
+    await tp.click('.visual.collapsed .visual-show'); if (!await tp.$('.visual-block:not(.collapsed) svg')) errors.push('T16A: „Bild einblenden“ zeigt das Bild nicht');
+    const tAt = () => tp.evaluate(() => DigitalQuest.visuals.find(x => x && x.angles).state.t);
+    const playing = () => tp.evaluate(() => DigitalQuest.visuals.find(x => x && x.angles).playing);
+    await tp.selectOption('.visual-meterwork [data-pb="speed"]', '0.25'); if (!await playing()) await tp.click('.visual-meterwork [data-pb="play"]'); await tp.waitForTimeout(600); const t1 = await tAt(); await tp.waitForTimeout(600); const slow = (await tAt()) - t1;
+    await tp.selectOption('.visual-meterwork [data-pb="speed"]', '1'); await tp.waitForTimeout(600); const t2 = await tAt(); await tp.waitForTimeout(600); const fast = (await tAt()) - t2;
+    if (!(fast > slow * 2.5)) errors.push('T16A: Tempo-Regler wirkt nicht messbar (0,25×: ' + slow.toFixed(2) + ' s, 1×: ' + fast.toFixed(2) + ' s)');
+    await tp.click('.visual-meterwork [data-pb="play"]'); const tp1 = await tAt(); await tp.waitForTimeout(500); if (Math.abs((await tAt()) - tp1) > 1e-9) errors.push('T16A: Pause hält die Animation nicht an');
+    await tp.click('.visual-meterwork [data-pb="step"]'); if (!((await tAt()) > tp1 + 0.2)) errors.push('T16A: Einzelschritt bewegt die Zeit nicht');
+    if (await tp.evaluate(() => DigitalQuest.state.settings.animSpeed) !== 1) errors.push('T16A: Tempo wird nicht in den Einstellungen gemerkt');
+    const settled = async () => { for (let k = 0; k < 40; k++) { const p = await ang(); await tp.waitForTimeout(200); const q = await ang(); if (Math.abs(p[0] - q[0]) < 0.3 && Math.abs(p[1] - q[1]) < 0.3 && k > 4) return q; } return ang(); };
+    await tp.selectOption('.visual-meterwork [data-mw="signal"]', 'dc'); await tp.$eval('.visual-meterwork [data-mw="amp"]', e => { e.value = '1'; e.dispatchEvent(new Event('input')); });
+    const a1 = await settled();
+    await tp.$eval('.visual-meterwork [data-mw="amp"]', e => { e.value = '0.5'; e.dispatchEvent(new Event('input')); });
+    const a2 = await settled();
     if (!(a1[0] > 35 && a1[1] > 35)) errors.push('Messwerk: Vollausschlag nicht erreicht: ' + a1.join('/'));
     if (!(a2[0] < a1[0] - 30 && a2[1] < a2[0] - 10)) errors.push('Messwerk: halber Strom – Drehspul sollte halb, Dreheisen ein Viertel zeigen: ' + a2.join('/'));
     const mat = await tp.evaluate(() => [...document.querySelectorAll('.visual-meterwork .mw-face')].map(svg => {
@@ -520,6 +548,81 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await np.screenshot({ path: shots + '/26_scope_gross.png' });
     await np.click('#scopeBig .sb-back', { position: { x: 5, y: 5 } }); if (await np.isVisible('#scopeBig .sb-box')) errors.push('Oszilloskop gross: Klick daneben schliesst nicht');
     await np.close();
+  }
+
+  // Phase 4: konkrete Mess-Hilfen, Einstellungs-Box, Schalterstellung, Bildbreite je Aufgabe, Ziehen auch im Altbestand
+  {
+    const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('Phase4: ' + e.message));
+    await tp.goto(url, { waitUntil: 'domcontentloaded' });
+    const warn = () => tp.textContent('#mmWarn');
+    // 16.2: Einstellungs-Box mit Messart, Spitzen, Bereich; Schalterstellung im Label
+    await tp.evaluate(() => { delete DigitalQuest.state.drafts['16.2']; DigitalQuest.openItem('16.2'); DigitalQuest.setView('schema'); });
+    const setup = await tp.textContent('#taskInfo .setup');
+    if (!/V⎓/.test(setup) || !/A⎓/.test(setup) || !/Bereich 20 ?V/.test(setup) || !/S1 zu, S2 offen/.test(setup) || !/Rechenwert/.test(setup)) errors.push('Phase4: Einstellungs-Box 16.2 unvollständig: ' + setup.slice(0, 200));
+    if (!/S1\s*·?\s*offen/.test(await tp.textContent('#board [data-part="S1"]'))) errors.push('Phase4: Schalterstellung fehlt im Label');
+    await tp.evaluate(() => { DigitalQuest.core.part('S1').props.closed = true; DigitalQuest.core.changed('toggle'); }); await tp.waitForTimeout(100);
+    if (!/S1\s*·?\s*zu/.test(await tp.textContent('#board [data-part="S1"]'))) errors.push('Phase4: Schalterstellung „zu“ fehlt im Label');
+    // Meldungen: nur eine Spitze, Spitzen vertauscht, Ω unter Spannung, V~ an Gleichspannung, OL mit Vorschlag, Bereich zu gross
+    await tp.click('[data-mm="V"]'); await tp.evaluate(() => DigitalQuest.core.clickPin('R1.a'));
+    if (!/schwarze \(COM\) Spitze/.test(await warn())) errors.push('Phase4: Hinweis „zweite Spitze“ fehlt: ' + await warn());
+    await tp.evaluate(() => { DigitalQuest.core.clickPin('R1.b'); });
+    await tp.evaluate(() => { const c = DigitalQuest.core; c.probes = { a: 'R1.b', b: 'R1.a' }; c.redraw(); }); await tp.evaluate(() => DigitalQuest.setProbe && 0);
+    await tp.click('[data-mm="OFF"]'); await tp.click('[data-mm="V"]'); await tp.evaluate(() => DigitalQuest.core.clickPin('R1.b')); await tp.evaluate(() => DigitalQuest.core.clickPin('R1.a'));
+    if (!/vertauscht/.test(await warn())) errors.push('Phase4: Hinweis „Spitzen vertauscht“ fehlt: ' + await warn() + ' / ' + await tp.textContent('#lcd'));
+    await tp.click('[data-mm="VAC"]'); if (!/Wähle V⎓/.test(await warn())) errors.push('Phase4: Hinweis „V~ an Gleichspannung“ fehlt: ' + await warn());
+    await tp.click('[data-mm="R"]'); if (!/spannungsfrei/.test(await warn()) || !/Leitung löschen|Schalter öffnen/.test(await warn())) errors.push('Phase4: Ω-Hinweis nicht konkret: ' + await warn());
+    await tp.click('[data-mm="V"]'); await tp.click('#mmRange [data-rg="2"]'); if (!/Bereich zu klein/.test(await warn()) || !/nimm 20 ?V/.test(await warn())) errors.push('Phase4: OL-Hinweis ohne Vorschlag: ' + await warn());
+    await tp.click('#mmRange [data-rg="600"]'); if (!/Bereich zu gross/.test(await warn()) || !/nimm 20 ?V/.test(await warn())) errors.push('Phase4: Hinweis „Bereich zu gross“ fehlt: ' + await warn());
+    // Sicherung: A⎓ parallel zur Quelle
+    await tp.click('[data-mm="A"]'); await tp.click('#mmRange [data-rg="AUTO"]'); await tp.evaluate(() => { DigitalQuest.core.clickPin('B1.p'); DigitalQuest.core.clickPin('B1.n'); }); await tp.waitForTimeout(100);
+    if (!/in Reihe/.test(await warn()) || !/Leitung löschen/.test(await warn())) errors.push('Phase4: FUSE-Hinweis nicht konkret: ' + await warn());
+    // V⎓ an reiner Wechselspannung (W1)
+    await tp.evaluate(() => DigitalQuest.openItem('W1')); await tp.click('[data-mm="V"]'); await tp.evaluate(() => { DigitalQuest.core.clickPin('R2.a'); DigitalQuest.core.clickPin('R2.b'); }); await tp.waitForTimeout(100);
+    if (!/Wechselspannung/.test(await warn()) || !/V~/.test(await warn())) errors.push('Phase4: Hinweis „V⎓ an Wechselspannung“ fehlt: ' + await warn());
+    // Bildbreite je Aufgabe: W1 (50 Hz) → 50 ms, 11.2 (Ladekurve) → längster Ausschnitt
+    if (await tp.$eval('#tb', s => s.value) !== '0.05') errors.push('Phase4: Bildbreite für 50 Hz nicht 50 ms: ' + await tp.$eval('#tb', s => s.value));
+    await tp.evaluate(() => DigitalQuest.openItem('11.2')); if (await tp.$eval('#tb', s => +s.value) < 1) errors.push('Phase4: Bildbreite für die Ladekurve zu kurz');
+    // Oszilloskop ohne Tastkopf: konkreter Hinweis; Altbestand (1.5) auf der Werkbank: Spitzen ziehbar, keine Bereichstasten
+    await tp.evaluate(() => DigitalQuest.openItem('1.5')); await tp.evaluate(() => DigitalQuest.setView('bench')); await tp.waitForTimeout(150);
+    if (!await tp.$('#bench [data-probe="a"]') || await tp.$('#bench [data-range]') || !await tp.$eval('#mmRange', e => e.hidden)) errors.push('Phase4: Altbestand – Spitzen nicht ziehbar oder Bereichstasten sichtbar');
+    await tp.click('#btnScope'); if (!/Erdungsclip an Masse/.test(await tp.textContent('#scopeInfo'))) errors.push('Phase4: Tastkopf-Hinweis nicht konkret: ' + await tp.textContent('#scopeInfo'));
+    await tp.screenshot({ path: shots + '/29_einstellungsbox.png' });
+    await tp.close();
+  }
+
+  // Phase 6: Vorführ-Modus – läuft vollständig durch, Entwurf bleibt unverändert, Pause hält die Spitze an, Abbrechen stellt alles wieder her, zählt wie ein Tipp
+  {
+    const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('Phase6: ' + e.message));
+    await tp.goto(url, { waitUntil: 'domcontentloaded' });
+    await tp.evaluate(() => { delete DigitalQuest.state.drafts['1.4']; DigitalQuest.openItem('1.4'); DigitalQuest.setView('bench'); }); await tp.waitForTimeout(150);
+    if (!await tp.$('#btnDemo')) errors.push('Phase6: Knopf „Vorführen“ fehlt');
+    await tp.fill('[data-ans="uq"]', '9'); await tp.waitForTimeout(50);
+    const draft0 = await tp.evaluate(() => JSON.stringify(DigitalQuest.state.drafts['1.4']));
+    await tp.click('#btnDemo'); await tp.waitForTimeout(100);
+    if (!await tp.evaluate(() => !!DigitalQuest.demo)) errors.push('Phase6: Vorführung startet nicht');
+    // Pause: Spitze bleibt stehen
+    await tp.selectOption('#demoBar [data-pb="speed"]', '0.25'); await tp.waitForTimeout(400);
+    await tp.click('#demoBar [data-pb="play"]'); await tp.waitForTimeout(100);
+    const px = await tp.evaluate(() => JSON.stringify([DigitalQuest.demo.i, DigitalQuest.demo.p, DigitalQuest.core.dragProbe && DigitalQuest.core.dragProbe.x]));
+    await tp.waitForTimeout(400);
+    if (px !== await tp.evaluate(() => JSON.stringify([DigitalQuest.demo.i, DigitalQuest.demo.p, DigitalQuest.core.dragProbe && DigitalQuest.core.dragProbe.x]))) errors.push('Phase6: Pause hält die Vorführung nicht an');
+    await tp.click('#demoBar [data-pb="step"]'); if (await tp.evaluate(() => DigitalQuest.demo.i) < 1) errors.push('Phase6: Einzelschritt geht nicht weiter');
+    // Abbrechen: alles zurueck
+    await tp.click('#demoStop'); await tp.waitForTimeout(100);
+    if (await tp.evaluate(() => !!DigitalQuest.demo) || await tp.evaluate(() => DigitalQuest.core.probes.a) || await tp.$eval('#lcd', e => e.textContent.trim()) !== 'OFF') errors.push('Phase6: Abbrechen stellt Spitzen/Messgerät nicht zurück');
+    if (draft0 !== await tp.evaluate(() => JSON.stringify(DigitalQuest.state.drafts['1.4']))) errors.push('Phase6: Entwurf nach Abbruch verändert');
+    // vollstaendiger Durchlauf mit Tempo 1×
+    await tp.click('#btnDemo'); await tp.selectOption('#demoBar [data-pb="speed"]', '1');
+    let sawValue = false, sawRw = false;
+    for (let k = 0; k < 120; k++) { await tp.waitForTimeout(250); const st = await tp.evaluate(() => ({ on: !!DigitalQuest.demo, lcd: document.getElementById('lcd').textContent, txt: (document.getElementById('demoText') || {}).textContent || '', rw: (document.getElementById('demoRw') || {}).textContent || '' })); if (/\d/.test(st.lcd) && st.lcd !== 'OFF') sawValue = true; if (/Rechenweg|Sollwert/.test(st.txt) && st.rw.length > 3) sawRw = true; if (!st.on) break; }
+    if (await tp.evaluate(() => !!DigitalQuest.demo)) errors.push('Phase6: Vorführung endet nicht');
+    if (!sawValue || !sawRw) errors.push('Phase6: Anzeige (' + sawValue + ') oder Rechenweg (' + sawRw + ') nicht gezeigt');
+    if (draft0 !== await tp.evaluate(() => JSON.stringify(DigitalQuest.state.drafts['1.4']))) errors.push('Phase6: Entwurf nach der Vorführung verändert');
+    if (!/zählt wie ein Tipp/.test(await tp.textContent('#demoBox'))) errors.push('Phase6: Hinweis „zählt wie ein Tipp“ fehlt');
+    const evs = await tp.evaluate(() => DigitalQuest.state.events.filter(e => /^demo_/.test(e.type)).map(e => e.type).join(','));
+    if (!/demo_view/.test(evs) || !/demo_done/.test(evs)) errors.push('Phase6: Ereignisse fehlen: ' + evs);
+    await tp.screenshot({ path: shots + '/30_vorfuehren.png' });
+    await tp.close();
   }
 
   // Phase 3: Teilwertung pro Messwert, Sollwert aufdecken nach 2 Fehlversuchen, Lösungsansicht nach 2 gescheiterten Prüfungen, 1 Stern

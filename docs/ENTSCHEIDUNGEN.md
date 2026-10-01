@@ -101,6 +101,19 @@ Der Punkt "Klassen und Personen" (oben) und die bewusste Zurueckstellung der Pla
 - **Fading-Beispiele mit 2 % Toleranz und Loesung nach zwei Fehlversuchen**: genug Spielraum fuer Rundung (0,12 V gegen 0,1225 V), aber ein falscher Rechenweg faellt durch. Der Validator erzwingt die Fading-Reihenfolge (Eingaben je Beispiel steigen).
 - **T16C hat sechs Fragen** (Grenzfall unteres Skalenende ergaenzt statt eine Frage zu streichen): 80 % bleibt, also 5 von 6 – der Validator warnt nur.
 
+## Feedback 01.10.2026 (Auftrag 6) – Entscheide
+- **Echte Umlaute** (Steven): Schweizer Schreibweise heisst ä/ö/ü und ss statt ß – nicht ae/oe/ue. Umgesetzt über eine Wortliste (`dev/umlaut_woerter.json`) mit positionsgenauen Regeln statt blindem Ersetzen; Bezeichner, Tags, Routen, Schlüssel und Farbschlüssel bleiben ASCII. Der Validator meldet Rückfälle als Fehler.
+- **Lösung mit Rechenweg nach 2 Fehlversuchen** (Steven): Ansehen schaltet nichts frei, Station danach höchstens 1 Stern; kein «Lösung übernehmen». Rechenwege von Hand nur für Kapitel 16 und Rechenwerte, sonst automatisch minimal – kein Handschreiben von 160 Texten.
+- **Teilwertung pro Messwert** (Steven): richtige Werte bleiben stehen, nach zwei falschen Eingaben lässt sich der Sollwert aufdecken (zählt als erledigt, 1 Stern). Schaltungsbau und Tests bleiben Pflicht. Alte Spielstände verlieren keine Sterne (neue Felder optional).
+- **Ziehen der Messspitzen als Standard für alle Aufgaben** (Steven), aber **Messbereich von Hand nur in Kapitel 16/Sandbox/Tutorial**: zwei Flags (`measureUX`, `rangeUX`) statt eines, damit die Grundstufe nicht schwerer wird.
+- **Mausrad scrollt die Seite, Zoom nur mit Strg/⌘** auf der Werkbank (wie Kartenanwendungen) – Ursache der Meldung «Werkbank rauf und runter».
+- **Oszilloskop zeigt den eingeschwungenen Zustand** mit Abtastung nach der schnellsten Quelle; Bildbreite je Aufgabe vorbelegt. Die Wertung hing nie vom Gerätezustand ab – das Problem war die Anzeige.
+- **Einstellungs-Box automatisch** aus `measure[]`, Handtext nur per `setup`: kein Pflegeaufwand je Aufgabe. Aufgabentexte unverändert.
+- **T16A gekürzt statt gesplittet**: Haupttext ≈ 40 %, Zusatzwissen in ausklappbaren Blöcken, höchstens zwei sichtbare Bilder, Animation ohne Autostart mit Tempo-Regler. Validator-Schwelle für lange Lektionen bei 2600 Zeichen (nicht 1800), damit T16B/T16C nicht dauerhaft warnen.
+- **Vorführ-Modus nur für Parallelmessungen** (V, V~, Ω, Oszilloskop): Strommessung in Reihe müsste den Aufbau ändern – das widerspricht «Entwurf bleibt unverändert». Zählt wie ein Tipp, nicht in Prüfung/Live.
+- **Festo-LX-Übersicht**: verworfen (Steven).
+- **T16C hat 6 Fragen** (Grenzfall unteres Skalenende), 80 % = 5 von 6; Impressum/Datenschutz bleiben Vorlagen bis Steven die Betreiberangaben liefert.
+
 ## Technik
 - Offline-Einzeldatei + PWA, keine externen Bibliotheken noetig (Google Fonts optional).
 - Leitfarbe Bernstein `#ffb000`, Token-Namen wie SCL Quest.

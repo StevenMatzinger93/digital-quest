@@ -45,6 +45,8 @@
     var d = E.PARTS[p.type], q = p.props || {}, v = p.value !== undefined ? p.value : (q.value !== undefined ? q.value : d.props.value);
     switch (p.type) {
       case 'battery': return fmtVal(v) + ' V';
+      case 'switch': return q.closed ? 'zu' : 'offen'; // Stellung ausschreiben (Feedback 01.10.2026: „bei Schaltern kommt nur Strom, wenn sie unbetätigt sind“)
+      case 'button': return q.closed ? 'gedrückt' : '';
       case 'acsource': return 'Û ' + fmtVal(v) + ' V ' + ({ square: '⊓', triangle: '△' }[q.shape] || '∿') + ' ' + fmtVal(q.freq || d.props.freq) + ' Hz';
       case 'resistor': case 'pot': case 'lamp': return fmtVal(v) + ' Ω';
       case 'capacitor': return fmtVal(v) + 'F';
