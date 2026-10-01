@@ -361,16 +361,16 @@
       (t.learn ? '<div class="learn"><b>Lernziel</b> ' + t.learn + '</div>' : '') +
       '<div class="hints"><button class="btn small" id="hint1">Tipp 1</button><button class="btn small" id="hint2">Tipp 2</button></div><div id="hintBox"></div>';
     if (t.measure.length) {
-      h += '<div class="protocol"><h3>Messprotokoll <button class="btn small calc-ctx" data-calc title="Taschenrechner öffnen">🖩 Rechner</button></h3>' +
+      h += '<div class="protocol"><h3>Messprotokoll <span class="proto-count" id="protoCount"></span><button class="btn small calc-ctx" data-calc title="Taschenrechner öffnen">🖩 Rechner</button></h3>' +
         '<p class="proto-note dim small">Gib den Wert so an, wie dein Gerät ihn anzeigt bzw. wie du ihn berechnest. Innerhalb der Toleranz ist er richtig – auf eine sinnvolle Stellenzahl runden (Komma oder Punkt).</p>';
       t.measure.forEach(function (m) {
         var v = draft && draft.answers && draft.answers[m.id] !== undefined ? draft.answers[m.id] : '';
-        h += '<label><span>' + esc(m.ask) + '</span><input inputmode="decimal" data-ans="' + m.id + '" value="' + esc(v) + '" placeholder="' + (m.value !== undefined ? 'Rechenwert' : 'Messwert') + '"><em>' + esc(m.unit || '') + '</em>' +
-          '<small class="tol">' + tolText(m) + '</small></label>';
+        h += '<label data-mid="' + m.id + '"><span><i class="mst" data-mst="' + m.id + '" title="offen">○</i> ' + esc(m.ask) + '</span><input inputmode="decimal" data-ans="' + m.id + '" value="' + esc(v) + '" placeholder="' + (m.value !== undefined ? 'Rechenwert' : 'Messwert') + '"><em>' + esc(m.unit || '') + '</em>' +
+          '<small class="tol">' + tolText(m) + '</small><div class="reveal" data-rv="' + m.id + '" hidden></div></label>';
       });
       h += '</div>';
     }
-    h += '<button class="btn primary big" id="btnCheck">Prüfen</button><div id="results"></div>';
+    h += '<button class="btn primary big" id="btnCheck">Prüfen</button><div id="results"></div><div id="solBox"></div>';
     if (t.measureUX === 'drag') h += '<p class="tut-link"><b>Neu:</b> Messspitzen ziehen, Messbereich wählen, Tastkopf anschliessen – <a href="#" data-go="tutorial">Anleitung ansehen</a></p>';
     $('#taskInfo').innerHTML = h;
     var tl = $('#taskInfo [data-go="tutorial"]'); if (tl) tl.onclick = function (ev) { ev.preventDefault(); renderTutorial(); show('tutorial'); };
@@ -379,8 +379,77 @@
     $('#hint2').onclick = function () { if (current.hints < 2 && LIVE) LIVE.hint(); current.hints = 2; $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div><div class="hint">' + t.hint2 + '</div>'; };
     $$('[data-ans]').forEach(function (inp) { inp.oninput = persistDraft; });
     $('#btnCheck').onclick = check;
+    renderMeasState(t);
     renderPalette(t);
     void ch;
+  }
+  /* ---------- Teilwertung pro Messwert (Feedback 01.10.2026) ----------
+   * Jeder Messwert gilt als richtig, offen oder aufgedeckt. Nach zwei falschen Eingaben an einem Wert erscheint „Sollwert aufdecken“:
+   * Sollwert und Rechenweg nur für diesen Wert, er zählt dann als erledigt (höchstens 1 Stern). Die Station ist abgeschlossen, sobald
+   * alle Schaltungstests bestehen und jeder Messwert richtig oder aufgedeckt ist. Nicht in Prüfung und Live-Challenge. */
+  function measState(t, d) { var n = 0, ok = 0, rv = 0; (t.measure || []).forEach(function (m) { n++; var s = d.meas[m.id]; if (s && s.ok) ok++; else if (s && s.revealed) rv++; }); return { n: n, ok: ok, revealed: rv, done: ok + rv === n }; }
+  function renderMeasState(t) {
+    if (!t.measure || !t.measure.length || current.exam || current.live) return;
+    var d = draftOf(t), st = measState(t, d);
+    var pc = $('#protoCount'); if (pc) pc.textContent = st.n ? (st.ok + (st.revealed ? ' + ' + st.revealed + ' aufgedeckt' : '') + ' von ' + st.n + ' Werten richtig') : '';
+    t.measure.forEach(function (m) {
+      var s = d.meas[m.id] || {}, i = $('[data-mst="' + m.id + '"]'), lab = $('[data-mid="' + m.id + '"]'), rv = $('[data-rv="' + m.id + '"]');
+      if (!i) return;
+      lab.classList.remove('m-ok', 'm-bad', 'm-rv');
+      if (s.ok) { i.textContent = '✓'; i.title = 'richtig'; lab.classList.add('m-ok'); }
+      else if (s.revealed) { i.textContent = '⟳'; i.title = 'aufgedeckt'; lab.classList.add('m-rv'); }
+      else if (s.tries) { i.textContent = '✗'; i.title = s.tries + ' falsche Eingabe(n)'; lab.classList.add('m-bad'); }
+      else { i.textContent = '○'; i.title = 'offen'; }
+      if (rv) { if (s.revealed) { rv.hidden = false; rv.innerHTML = revealHtml(t, m); } else if (s.tries >= 2 && !s.ok) { rv.hidden = false; rv.innerHTML = '<button class="btn small" data-reveal="' + m.id + '">Sollwert aufdecken</button> <span class="dim small">zählt als erledigt, höchstens 1 Stern</span>'; } else { rv.hidden = true; rv.innerHTML = ''; } }
+    });
+    $$('[data-reveal]').forEach(function (b) { b.onclick = function () { revealValue(t, b.dataset.reveal); }; });
+    renderSolBox(t);
+  }
+  /* Sollwerte wie der Validator: aus der Referenzschaltung; wenn die eigene Schaltung alle Tests besteht, aus dieser (Messwerte hängen davon ab) */
+  function sollOf(t, layout) {
+    var lay = t.ref; if (layout) { try { var r = E.runTask(t, layout, {}); if (r.results.filter(function (x) { return !(x.info && x.info.mid); }).every(function (x) { return x.ok; })) lay = layout; } catch (e) { /* Referenz */ } }
+    try { return E.expectedAnswers(t, lay); } catch (e) { try { return E.expectedAnswers(t, t.ref); } catch (e2) { return {}; } }
+  }
+  function fmtSoll(v, unit) { if (v === undefined || v === null || isNaN(v)) return '–'; var a = Math.abs(v), s = a >= 100 ? v.toFixed(a >= 1000 ? 0 : 1) : a >= 10 ? v.toFixed(2) : a >= 1 ? v.toFixed(3) : (+v.toPrecision(3)).toString(); return s.replace('.', ',') + (unit ? ' ' + unit : ''); }
+  /* Rechenweg: aus defTask.rechenweg (HTML oder Schritte) oder automatisch minimal aus measure */
+  function rechenwegHtml(t, m, soll) {
+    var rw = t.rechenweg && t.rechenweg[m.id];
+    if (Array.isArray(rw)) return '<ol class="rw">' + rw.map(function (s) { return '<li>' + (s.text ? '<p>' + s.text + '</p>' : '') + (s.label || s.expr || s.value !== undefined ? '<div class="wk-row"><span class="wk-lbl">' + esc(s.label || '') + '</span>' + (s.expr ? '<span class="mono wk-expr">' + esc(s.expr) + '</span>' : '') + (s.value !== undefined ? '<span class="mono wk-val">= ' + fmtSoll(s.value, s.unit) + '</span>' : '') + '</div>' : '') + '</li>'; }).join('') + '</ol>';
+    if (typeof rw === 'string') return '<div class="rw">' + rw + '</div>';
+    var how = m.value !== undefined ? 'Rechenwert aus den Angaben der Aufgabe.' :
+      m.truth ? 'Aus der Simulation: ' + (m.truth.q === 'i' ? 'Strom durch ' : m.truth.q === 'v' ? 'Spannung an ' : m.truth.q + ' von ') + esc(m.truth.sel) + '.' :
+      'Messung ' + (m.mode === 'A' ? 'A⎓ in Reihe' : m.mode === 'R' ? 'Ω spannungsfrei' : m.mode === 'VAC' ? 'V~ (' + (m.meterType || 'TRMS').toUpperCase() + ')' : m.mode === 'AC' ? 'Oszilloskop (' + (m.q || 'dc') + ')' : 'V⎓') + (m.a ? ' zwischen ' + esc(m.a) + ' und ' + esc(m.b || 'Masse') : '') + '.';
+    return '<div class="rw"><p>' + how + ' Sollwert <b>' + fmtSoll(soll, m.unit) + '</b> (Toleranz ±' + Math.round((m.tol || 0.03) * 100) + ' %).</p></div>';
+  }
+  function revealHtml(t, m) { var soll = sollOf(t, ed && ed.layout)[m.id]; return '<div class="rv-box"><b>Aufgedeckt – Sollwert ' + fmtSoll(soll, m.unit) + '</b>' + rechenwegHtml(t, m, soll) + '</div>'; }
+  function revealValue(t, mid) {
+    var d = draftOf(t), s = d.meas[mid] = d.meas[mid] || { tries: 0 }; if (s.ok || s.revealed) return;
+    s.revealed = true; save(); log('value_reveal', { id: t.id, mid: mid, tries: s.tries || 0 });
+    var inp = $('[data-ans="' + mid + '"]'); if (inp) { inp.disabled = true; var sv = sollOf(t, ed && ed.layout)[mid]; if (sv !== undefined && !isNaN(sv)) inp.value = String(+(+sv).toPrecision(4)); }
+    renderMeasState(t);
+    if (measState(t, d).done) toast('Alle Werte erledigt – jetzt „Prüfen“ drücken.');
+  }
+  /* ---------- Lösungsansicht nach zwei Fehlversuchen ---------- */
+  function renderSolBox(t) {
+    var box = $('#solBox'); if (!box || current.exam || current.live) return;
+    var d = draftOf(t);
+    if (!(d.fails >= 2) && !d.sol) { box.innerHTML = ''; return; }
+    if (!$('#solView')) box.innerHTML = '<button class="btn" id="btnSol">Lösung ansehen</button> <span class="dim small">Referenzschaltung, Sollwerte und Rechenweg – die Station zählt danach mit höchstens 1 Stern und gilt erst als gelöst, wenn du selbst richtig baust und misst.</span><div id="solView" hidden></div>';
+    $('#btnSol').onclick = function () { showSolution(t); };
+  }
+  var solMini = null;
+  function showSolution(t) {
+    var d = draftOf(t), v = $('#solView'); if (!v) return;
+    if (!d.sol) { d.sol = true; save(); log('solution_view', { id: t.id, fails: d.fails || 0, tries: current.tries }); }
+    var soll = sollOf(t, null), rows = (t.measure || []).map(function (m) { return '<tr><td>' + esc(m.ask) + '</td><td class="mono num">' + fmtSoll(soll[m.id], m.unit) + '</td></tr>'; }).join('');
+    v.hidden = false;
+    v.innerHTML = '<h3>Lösung</h3><p class="dim small">Referenzschaltung (' + (viewMode === 'bench' ? 'Werkbank' : 'Schaltplan') + ') – zum Vergleich, nicht zum Übernehmen:</p><div id="solCircuit"></div>' +
+      (rows ? '<h4>Sollwerte</h4><table class="tt sol-tab">' + rows + '</table>' : '') +
+      (t.measure && t.measure.length ? '<h4>Rechenweg</h4>' + t.measure.map(function (m) { return '<div class="rw-item"><b>' + esc(m.ask) + '</b>' + rechenwegHtml(t, m, soll[m.id]) + '</div>'; }).join('') : '') +
+      (t.take ? '<p class="dim small">' + t.take + '</p>' : '') + '<button class="btn small" id="solClose">Lösung einklappen</button>';
+    $('#btnSol').hidden = true;
+    if (root.DQMini) { try { if (solMini && solMini.destroy) solMini.destroy(); solMini = root.DQMini.mount($('#solCircuit'), { layout: t.ref, bench: t.bench, view: viewMode, height: 240 }); } catch (e) { $('#solCircuit').innerHTML = '<p class="dim small">(' + esc(e.message) + ')</p>'; } }
+    $('#solClose').onclick = function () { v.hidden = true; $('#btnSol').hidden = false; };
   }
   /* Toleranz-Hinweis je Protokollzeile: Prozent aus tol (Standard 3 %), bei Rechenwerten Einheit und Stellenzahl */
   function tolText(m) {
@@ -496,8 +565,10 @@
   function persistDraft() {
     if (!current.task || !ed || current.live) return;
     if (current.exam) { if (EXAM) EXAM.draft(current.exam.item, ed.layout, answers()); return; }
-    S.drafts[current.task.id] = { layout: ed.layout, answers: answers(), t: Date.now() }; save();
+    var d = S.drafts[current.task.id] || {}; d.layout = ed.layout; d.answers = answers(); d.t = Date.now(); S.drafts[current.task.id] = d; save();
   }
+  /* Teilwertung und Lösung: Zustand je Aufgabe im Entwurf – meas[id] = {ok, tries, revealed}, fails (gescheiterte Prüfungen), sol (Lösung angesehen) */
+  function draftOf(t) { var d = S.drafts[t.id] || (S.drafts[t.id] = { layout: ed ? ed.layout : t.start, answers: {}, t: Date.now() }); d.meas = d.meas || {}; return d; }
 
   function rebuild() {
     closeReplay(true);
@@ -875,11 +946,32 @@
       if (r.pass) modal('<h2 class="win">Gelöst!</h2><p>' + t.take + '</p><p class="dim" id="livePts">Punkte werden berechnet …</p>', [{ label: 'Rangliste', primary: true, action: function () { if (LIVE) LIVE.board(); } }]);
       return;
     }
-    log(r.pass ? 'task_done' : 'task_try', { id: t.id, tries: current.tries, hints: current.hints, dur: Math.round((Date.now() - current.started) / 1000), tags: t.tags });
-    if (r.pass) {
-      var first = !S.done[t.id], st = starsFor(current.tries, current.hints), di = S.doneInfo[t.id];
+    // Teilwertung: Messwerte einzeln (richtig / offen / aufgedeckt), Schaltungstests bleiben Pflicht
+    var d = draftOf(t), measRes = r.results.filter(function (x) { return x.info && x.info.mid; });
+    measRes.forEach(function (x) {
+      var s = d.meas[x.info.mid] = d.meas[x.info.mid] || { tries: 0 };
+      if (s.revealed) return;
+      if (x.ok) s.ok = true; else { s.ok = false; if (!x.info.empty) s.tries = (s.tries || 0) + 1; }
+    });
+    var testsOk = r.results.filter(function (x) { return !(x.info && x.info.mid); }).every(function (x) { return x.ok; });
+    var ms = measState(t, d), pass = testsOk && ms.done;
+    if (!pass) d.fails = (d.fails || 0) + 1;
+    save();
+    $('#results').innerHTML = '<ul class="res">' + r.results.map(function (x) {
+      var mid = x.info && x.info.mid, s = mid ? d.meas[mid] : null, extra = '';
+      if (s && s.revealed) return '<li class="rv">⟳ ' + esc(x.text.split(':')[0]) + ': aufgedeckt</li>';
+      if (!x.ok && x.info && typeof x.info.got === 'number') extra = ' <span class="dim">(ist: ' + E.fmt(Math.abs(x.info.got), '') + ')</span>';
+      return '<li class="' + (x.ok ? 'ok' : 'bad') + '">' + (x.ok ? '✔' : '✘') + ' ' + esc(x.text) + extra + '</li>';
+    }).join('') + '</ul>' + (an.faults.length ? diagnose(an.faults).map(function (dg) { return '<div class="st err">' + esc(dg.text) + '</div>'; }).join('') : '') +
+      (!pass && ms.n && !ms.done ? '<p class="dim small">' + ms.ok + ' von ' + ms.n + ' Werten richtig – richtige Werte bleiben stehen, nur die offenen musst du noch korrigieren.</p>' : '');
+    renderMeasState(t);
+    log(pass ? 'task_done' : 'task_try', { id: t.id, tries: current.tries, hints: current.hints, dur: Math.round((Date.now() - current.started) / 1000), tags: t.tags, revealed: ms.revealed, sol: !!d.sol });
+    if (pass) {
+      var low = !!d.sol || ms.revealed > 0;
+      var first = !S.done[t.id], st = low ? 1 : starsFor(current.tries, current.hints), di = S.doneInfo[t.id];
       S.done[t.id] = true;
-      if (!di || st > (di.stars || 0)) S.doneInfo[t.id] = { at: di && di.at ? di.at : Date.now(), tries: current.tries, hints: current.hints, stars: st };
+      if (!di || st > (di.stars || 0)) S.doneInfo[t.id] = { at: di && di.at ? di.at : Date.now(), tries: current.tries, hints: current.hints, stars: st, revealed: ms.revealed || undefined, solution: d.sol || undefined };
+      else if (di) { if (d.sol) di.solution = true; if (ms.revealed) di.revealed = Math.max(di.revealed || 0, ms.revealed); }
       save();
       var nx = nextOf(t.id), aw = null;
       Object.keys(DQ.awards || {}).forEach(function (k) { if (DQ.awards[k].boss === t.id) aw = DQ.awards[k]; });

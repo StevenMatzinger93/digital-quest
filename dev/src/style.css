@@ -438,6 +438,17 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .visual-cap { margin: 6px 2px 0; font-size: 13px; color: var(--text-dim); }
 /* numberSteps: Zahlen-Schritt-Widget */
 .ns { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-secondary); padding: 12px 14px; }
+/* Teilwertung und Lösungsansicht */
+.protocol .mst { display: inline-block; width: 16px; color: var(--text-faint); font-style: normal; } .protocol label.m-ok .mst { color: var(--accent-green); } .protocol label.m-bad .mst { color: var(--accent-red); } .protocol label.m-rv .mst { color: var(--accent-lead); }
+.protocol label.m-ok input { border-color: var(--accent-green); } .protocol label.m-rv input { border-color: var(--accent-lead); opacity: .7; }
+.proto-count { font-size: 11px; color: var(--accent-cyan); letter-spacing: 0; text-transform: none; margin-left: 6px; }
+.protocol .reveal { grid-column: 1 / -1; font-size: 13px; } .rv-box { background: rgba(255,176,0,.08); border-left: 3px solid var(--accent-lead); border-radius: 0 8px 8px 0; padding: 6px 10px; margin: 2px 0 6px; } .rv-box b { color: var(--accent-lead); }
+.rw p { margin: 4px 0; } .rw .wk-row { margin: 2px 0 6px; } ol.rw { margin: 4px 0; padding-left: 20px; }
+.res .rv { color: var(--accent-lead); }
+#solBox { margin-top: 10px; } #solView { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; } #solView h4 { margin: 10px 0 4px; font-size: 13px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+.sol-tab td { padding: 3px 6px; } .sol-tab .num { text-align: right; color: var(--accent-lead); } .rw-item { margin: 6px 0 10px; } .rw-item > b { font-size: 13px; }
+#solCircuit .mini-stage { border-radius: 10px; overflow: hidden; }
+
 /* Fusszeile im Labor, Zurueck-Knopf, Toleranz-Hinweis */
 .lab-foot { display: flex; gap: 18px; justify-content: center; padding: 18px 16px 24px; font-size: 12px; color: var(--text-faint); } .lab-foot a { color: var(--text-dim); }
 .brand { text-decoration: none; } .brand:focus-visible { outline: 2px solid var(--accent-lead); outline-offset: 4px; border-radius: 6px; }

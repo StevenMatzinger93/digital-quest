@@ -449,6 +449,17 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .visual-cap { margin: 6px 2px 0; font-size: 13px; color: var(--text-dim); }
 /* numberSteps: Zahlen-Schritt-Widget */
 .ns { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-secondary); padding: 12px 14px; }
+/* Teilwertung und Lösungsansicht */
+.protocol .mst { display: inline-block; width: 16px; color: var(--text-faint); font-style: normal; } .protocol label.m-ok .mst { color: var(--accent-green); } .protocol label.m-bad .mst { color: var(--accent-red); } .protocol label.m-rv .mst { color: var(--accent-lead); }
+.protocol label.m-ok input { border-color: var(--accent-green); } .protocol label.m-rv input { border-color: var(--accent-lead); opacity: .7; }
+.proto-count { font-size: 11px; color: var(--accent-cyan); letter-spacing: 0; text-transform: none; margin-left: 6px; }
+.protocol .reveal { grid-column: 1 / -1; font-size: 13px; } .rv-box { background: rgba(255,176,0,.08); border-left: 3px solid var(--accent-lead); border-radius: 0 8px 8px 0; padding: 6px 10px; margin: 2px 0 6px; } .rv-box b { color: var(--accent-lead); }
+.rw p { margin: 4px 0; } .rw .wk-row { margin: 2px 0 6px; } ol.rw { margin: 4px 0; padding-left: 20px; }
+.res .rv { color: var(--accent-lead); }
+#solBox { margin-top: 10px; } #solView { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; } #solView h4 { margin: 10px 0 4px; font-size: 13px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+.sol-tab td { padding: 3px 6px; } .sol-tab .num { text-align: right; color: var(--accent-lead); } .rw-item { margin: 6px 0 10px; } .rw-item > b { font-size: 13px; }
+#solCircuit .mini-stage { border-radius: 10px; overflow: hidden; }
+
 /* Fusszeile im Labor, Zurueck-Knopf, Toleranz-Hinweis */
 .lab-foot { display: flex; gap: 18px; justify-content: center; padding: 18px 16px 24px; font-size: 12px; color: var(--text-faint); } .lab-foot a { color: var(--text-dim); }
 .brand { text-decoration: none; } .brand:focus-visible { outline: 2px solid var(--accent-lead); outline-offset: 4px; border-radius: 6px; }
@@ -1350,10 +1361,10 @@ body.has-exam-bar .top { padding-top: 50px; }
       try { truth = truthOf(m, ml); } catch (e) { push(false, m.ask + ': ' + e.message); return; }
       var ans = answers ? answers[m.id] : undefined;
       if (typeof ans === 'string') ans = ans.replace(',', '.');
-      if (ans === undefined || ans === '' || isNaN(+ans)) { push(false, m.ask + ': Messwert fehlt', { expected: truth.value }); return; }
+      if (ans === undefined || ans === '' || isNaN(+ans)) { push(false, m.ask + ': Messwert fehlt', { expected: truth.value, mid: m.id, empty: true }); return; }
       var scale = UNIT_SCALE[m.unit] || 1;
       var tol = m.tol || 0.03, val = truth.value, ok = Math.abs(+ans * scale - val) <= Math.max(Math.abs(val) * tol, m.abs || 1e-9);
-      push(ok, m.ask + ': ' + ans + ' ' + (m.unit || truth.unit), { expected: val });
+      push(ok, m.ask + ': ' + ans + ' ' + (m.unit || truth.unit), { expected: val, mid: m.id }); // mid: Teilwertung pro Messwert in der App
     });
     return { pass: allPass && results.length > 0, results: results };
   }
@@ -1411,6 +1422,10 @@ body.has-exam-bar .top { padding-top: 50px; }
     t.kind = 'task';
     t.palette = t.palette || [];
     t.tests = t.tests || []; t.measure = t.measure || []; t.wrong = t.wrong || []; t.tags = t.tags || [];
+    t.measureUX = t.measureUX || 'legacy';
+    // rechenweg (optional): { messwertId: HTML | [{text, label?, expr?, value?, unit?}] } – erscheint in der Lösungsansicht und beim Aufdecken
+    // eines Messwerts; fehlt er, erzeugt die App einen minimalen Rechenweg aus measure (Sollwert, Messart, Anschlüsse).
+    if (t.rechenweg) Object.keys(t.rechenweg).forEach(function (k) { if (!(t.measure || []).some(function (m) { return m.id === k; })) throw new Error('defTask ' + t.id + ': rechenweg für unbekannten Messwert „' + k + '“'); });
     t.measureUX = t.measureUX || 'legacy';
     if (t.measureUX !== 'legacy' && t.measureUX !== 'drag') throw new Error('defTask ' + t.id + ': measureUX muss legacy oder drag sein');
     DQ.tasks.push(t); DQ.byId[t.id] = t; return t;
@@ -5729,6 +5744,113 @@ body.has-exam-bar .top { padding-top: 50px; }
   });
 })();
 
+/* ==== content/zz_rechenwege.js ==== */
+/* Digital Quest – Rechenwege für die Lösungsansicht und das Aufdecken einzelner Messwerte (Feedback 01.10.2026, Phase 3).
+ * Pflicht (Validator-Warnung) für Kapitel 16 (jeder Messwert) und für jeden Rechenwert (measure.value) der übrigen Kapitel;
+ * alle anderen Messwerte bekommen in der App einen automatischen Mindest-Rechenweg (Sollwert, Messart, Anschlüsse).
+ * Format wie der Baustein „worked“: Schritte {text, label, expr, value, unit}. Zahlen sind gerundete Sollwerte der Engine. */
+(function (root) {
+  var DQ = root.DQ;
+  function set(id, rw) { var t = DQ.byId[id]; if (!t) throw new Error('Rechenweg: Aufgabe ' + id + ' fehlt'); t.rechenweg = rw; }
+  var S = function (text, label, expr, value, unit) { return { text: text, label: label, expr: expr, value: value, unit: unit }; };
+
+  /* ---------- Kapitel 16 ---------- */
+  set('16.1', {
+    u: [S('V⎓, Bereich 600 V von Hand, rote Spitze an R1.a, schwarze an R1.b. Die Quelle hat 0,05 Ω Innenwiderstand, darum knapp unter 230 V.', 'U an R1', '230 V · 10 Ω / (10 Ω + 0,05 Ω)', 229.8, 'V')],
+    i: [S('Ohmsches Gesetz mit Datenblattwert R1 = 10 Ω.', 'I = U / R', '229,8 V / 10 Ω', 22.98, 'A')],
+    p: [S('Leistung aus Spannung und Strom.', 'P = U · I', '229,8 V · 22,98 A', 5279, 'W')],
+    ed: [S('Digital: Prozent vom Anzeigewert plus Digit (im 600-V-Bereich ist 1 Digit 0,1 V).', 'Prozentanteil', '0,5 % · 230 V', 1.15, 'V'), S('', 'Digitanteil', '1 · 0,1 V', 0.1, 'V'), S('Beide Anteile addieren.', 'Fehler gesamt', '1,15 V + 0,1 V', 1.25, 'V')],
+    ea: [S('Analog: Klasse mal Skalenendwert – unabhängig vom Zeigerstand.', 'Fehler', '1,5 % · 300 V', 4.5, 'V')]
+  });
+  set('16.2', {
+    u1: [S('S1 zu, V⎓ an R1. Der Innenwiderstand der Quelle (0,05 Ω) nimmt etwas Spannung weg.', 'U1', '9 V · 10 Ω / 10,05 Ω', 8.954, 'V')],
+    i1: [S('A⎓ in Reihe (Leitung auftrennen). Der Shunt des Amperemeters (0,1 Ω) kommt zum Kreis dazu – der Strom sinkt um rund 1 % gegenüber dem Rechenwert.', 'I1 gemessen', '9 V / (10 Ω + 0,05 Ω + 0,1 Ω)', 886, 'mA'), S('Die Prüfung nimmt den Strom aus der Simulation deiner Schaltung (mit oder ohne Amperemeter).', 'Sollwert (Simulation)', '', 895.4, 'mA')],
+    i1c: [S('Ohne Messgerät, nur Quelle und R1.', 'I = U / R', '9 V / (10 Ω + 0,05 Ω)', 895.5, 'mA')],
+    u2: [S('Das Voltmeter (10 MΩ) liegt parallel zu R2 (10 MΩ): zusammen 5 MΩ. Der Teiler wird 10 MΩ : 5 MΩ.', 'U2 angezeigt', '9 V · 5 MΩ / (10 MΩ + 5 MΩ)', 3, 'V')],
+    u2c: [S('Unbelasteter Teiler aus zwei gleichen Widerständen: die Hälfte.', 'U2 ohne Messgerät', '9 V · 10 MΩ / 20 MΩ', 4.5, 'V')],
+    dev: [S('Abweichung bezogen auf den wahren Wert.', 'Fehler', '(4,5 V − 3 V) / 4,5 V · 100 %', 33.3, '%')]
+  });
+  set('16.3', {
+    s_avg: [S('AVG-Gerät: Gleichrichtwert × 1,11. Beim Sinus ist 2Û/π · 1,11 genau der Effektivwert.', 'Anzeige', '2 · 10 V / π · 1,11', 7.07, 'V')],
+    s_rms: [S('TRMS misst den echten Effektivwert.', 'U_eff', '10 V / √2', 7.07, 'V')],
+    s_pk: [S('Das Oszilloskop zeigt den Scheitelwert direkt.', 'Û', '', 10, 'V')],
+    q_avg: [S('Rechteck: Gleichrichtwert = Û, das AVG-Gerät multipliziert trotzdem mit 1,11 – zu viel.', 'Anzeige', '10 V · 1,11', 11.1, 'V')],
+    q_rms: [S('Beim Rechteck ist der Effektivwert gleich dem Scheitelwert.', 'U_eff', '', 10, 'V')],
+    q_pk: [S('', 'Û', '', 10, 'V')],
+    t_avg: [S('Dreieck: Gleichrichtwert = Û/2, mal 1,11 – zu wenig.', 'Anzeige', '10 V / 2 · 1,11', 5.55, 'V')],
+    t_rms: [S('Effektivwert des Dreiecks.', 'U_eff', '10 V / √3', 5.77, 'V')],
+    t_pk: [S('', 'Û', '', 10, 'V')]
+  });
+  set('16.4', {
+    udc: [S('V⎓ zeigt den Gleichanteil, also den Offset des Generators.', 'U_DC', '', 3, 'V')],
+    avg: [S('V~ ist AC-gekoppelt und sieht nur den Sinus mit Û = 5 V. Beim Sinus stimmt die AVG-Korrektur.', 'U_AC', '5 V / √2', 3.54, 'V')],
+    rms: [S('TRMS: Effektivwert des Wechselanteils.', 'U_AC', '5 V / √2', 3.54, 'V')],
+    pk: [S('Höchster Momentanwert = Offset + Scheitelwert.', 'u_max', '3 V + 5 V', 8, 'V')],
+    ges: [S('Gleich- und Wechselanteil geometrisch addieren.', 'U_eff', '√(3² + 3,54²)', 4.64, 'V')],
+    q_rms: [S('Rechteck mit Û = 5 V: Effektivwert des Wechselanteils = Û.', 'U_AC', '', 5, 'V')]
+  });
+  set('16.5', {
+    f50: [S('Grenzfrequenz des RC-Glieds, dann die Tiefpass-Formel mit U_e = 10 V/√2 = 7,07 V.', 'f_g', '1 / (2π · 10 kΩ · 100 nF)', 159, 'Hz'), S('', 'U_a (50 Hz)', '7,07 V / √(1 + (50/159)²)', 6.74, 'V')],
+    f159: [S('Bei f = f_g fällt die Spannung auf 70,7 %.', 'U_a (159 Hz)', '7,07 V / √2', 5.0, 'V')],
+    f1k: [S('', 'U_a (1 kHz)', '7,07 V / √(1 + (1000/159)²)', 1.11, 'V')],
+    f10k: [S('Weit über f_g: pro Dekade ein Zehntel.', 'U_a (10 kHz)', '7,07 V / √(1 + (10000/159)²)', 0.112, 'V')],
+    pk1k: [S('Scheitelwert aus dem Effektivwert (Sinus).', 'Û (1 kHz)', '1,11 V · √2', 1.57, 'V')],
+    dc: [S('Ein Sinus ohne Offset hat keinen Gleichanteil – V⎓ zeigt praktisch 0.', 'U_DC', '', 0, 'V')]
+  });
+  set('16.6', {
+    dc: [S('Einweggleichrichter: nur die positive Halbwelle, Scheitel um die Diodenspannung kleiner. Mittelwert ≈ Û_R/π (Simulation mit Diodenkennlinie etwas kleiner).', 'U_DC', '≈ 9,3 V / π', 2.84, 'V')],
+    avg: [S('Wechselanteil mit AVG-Gerät (Gleichrichtwert × 1,11) – die Kurve ist kein Sinus, der Faktor stimmt nicht genau.', 'U_AC (AVG)', '', 3.58, 'V')],
+    rms: [S('Wechselanteil als echter Effektivwert.', 'U_AC (TRMS)', '', 3.56, 'V')],
+    pk: [S('Scheitel an R1 = Û minus Flussspannung der Diode.', 'Û_R', '10 V − 0,71 V', 9.29, 'V')],
+    ges: [S('Gleich- und Wechselanteil geometrisch addieren.', 'U_eff', '√(2,84² + 3,56²)', 4.55, 'V')]
+  });
+  set('16.7', {
+    dc0: [S('Brücke ohne C: beide Halbwellen, Scheitel um zwei Diodenspannungen kleiner, Mittelwert ≈ 2Û_R/π (Simulation etwas kleiner).', 'U_DC', '≈ 2 · 8,6 V / π', 5.02, 'V')],
+    ac0: [S('Restwelligkeit ohne Glättung – gross.', 'U_AC (TRMS)', '', 2.96, 'V')],
+    pk0: [S('', 'Û_R', '10 V − 2 · 0,71 V', 8.58, 'V')],
+    dc1: [S('Mit Ladekondensator hält C die Spannung zwischen den Scheiteln – der Mittelwert steigt.', 'U_DC', '', 6.65, 'V')],
+    ac1: [S('Die Restwelligkeit sinkt deutlich.', 'U_AC (TRMS)', '', 1.30, 'V')],
+    pk1: [S('Der Scheitel bleibt gleich.', 'Û_R', '', 8.58, 'V')]
+  });
+  set('16.8', {
+    udc: [S('V⎓ am Shunt R2 = 10 Ω, Bereich 200 mV.', 'U_DC am Shunt', '', 49.7, 'mV')],
+    idc: [S('Strom aus der Shunt-Spannung.', 'I_DC = U / R', '49,7 mV / 10 Ω', 4.97, 'mA')],
+    uac: [S('V~ TRMS am Shunt.', 'U_AC am Shunt', '', 29.3, 'mV')],
+    ipk: [S('Scheitelwert am Shunt (Oszilloskop ≈ 85 mV) durch 10 Ω.', 'I_pk', '85 mV / 10 Ω', 8.5, 'mA')],
+    sys: [S('Der Shunt liegt in Reihe zur Last 1 kΩ und verkleinert den Strom.', 'Fehler', '10 Ω / (1000 Ω + 10 Ω) · 100 %', 0.99, '%')]
+  });
+
+  /* ---------- Rechenwerte der übrigen Kapitel ---------- */
+  set('2.10', { ri: [S('Laststrom aus der Klemmenspannung, dann Innenwiderstand aus dem Spannungsabfall.', 'I_L', '9,09 V / 1 kΩ', 9.09, 'mA'), S('', 'R_i = (U₀ − U_L) / I_L', '(10 V − 9,09 V) / 9,09 mA', 100, 'Ω')] });
+  set('3.6', { p: [S('Leistung aus dem Effektivwert.', 'P = U² / R', '7,07² V² / 1 kΩ', 50, 'mW')] });
+  set('3.10', { uges: [S('Gleich- und Wechselanteil geometrisch addieren.', 'U = √(U_DC² + U_AC²)', '√(5² + 7,07²)', 8.66, 'V')] });
+  set('4.6', { u0: [S('Unbelasteter Teiler aus zwei gleichen Widerständen.', 'U2', '10 V · 10 MΩ / 20 MΩ', 5, 'V')] });
+  set('4.7', { i0: [S('Ohne Voltmeter fliesst nur der Strom durch den 10-MΩ-Widerstand.', 'I', '10 V / 10 MΩ', 1, 'µA')], i1: [S('Das Voltmeter (10 MΩ) liegt parallel: sein Strom (1 µA) fliesst zusätzlich durch A1.', 'I', '1 µA + 1 µA', 2, 'µA')] });
+  set('4.8', { rin: [S('In der Schaltung liegt R1 parallel zu einem zweiten 1-kΩ-Widerstand – das Ohmmeter misst die Parallelschaltung.', 'R_parallel', '1 kΩ ∥ 1 kΩ', 500, 'Ω')], rtrue: [S('Einseitig herausgetrennt misst das Ohmmeter R1 allein.', 'R1', '', 1000, 'Ω')] });
+  set('4.9', { uges: [S('Gleichanteil (V⎓) und echter Wechselanteil (TRMS) geometrisch addieren.', 'U_eff', '√(3² + 5,77²)', 6.51, 'V')] });
+  set('4.10', { ud: [S('An der unterbrochenen Lampe fliesst kein Strom; an den intakten Lampen fällt nichts ab – die volle Quellenspannung liegt an der defekten.', 'U_defekt', '', 9, 'V')] });
+  set('5.2', { dez: [S('Wertigkeiten 8 · 4 · 2 · 1 der leuchtenden Anzeigen addieren.', '1011₂', '8 + 0 + 2 + 1', 11, '')] });
+  set('5.6', { dez: [S('Hex-Ziffern A = 10, B = 11, C = 12 …', 'C₁₆', '', 12, '')] });
+  set('5.7', { dez: [S('Obere Ziffer mal 16 plus untere Ziffer.', '2D₁₆', '2 · 16 + 13', 45, '')] });
+  set('5.9', { dez: [S('Wertigkeiten der gesetzten Bits addieren.', '1011 0110₂', '128 + 32 + 16 + 4 + 2', 182, '')], hi: [S('Obere vier Bits 1011₂ = B₁₆.', 'B₁₆', '8 + 2 + 1', 11, '')] });
+  set('6.4', { a00: [S('E2 = 0, E1 = 0 einstellen und L1 ablesen.', 'L1', '', 0, '')], a01: [S('E2 = 0, E1 = 1: nur hier leuchtet L1.', 'L1', '', 1, '')], a10: [S('E2 = 1, E1 = 0.', 'L1', '', 0, '')], a11: [S('E2 = 1, E1 = 1.', 'L1', '', 0, '')] });
+  set('8.4', { n: [S('Alle acht Kombinationen E3 E2 E1 von 000 bis 111 schalten und zählen, wann L1 leuchtet.', 'Anzahl Zeilen mit A = 1', '', 5, '')], s: [S('Zeilennummer = Dezimalwert von E3 E2 E1; die Nummern der leuchtenden Zeilen addieren.', 'Summe', '', 22, '')] });
+  set('11.1', { tau: [S('Zeitkonstante des RC-Glieds.', 'τ = R · C', '10 kΩ · 100 µF', 1, 's')], imax: [S('Im Einschaltmoment ist C leer – der ganze Spannungsfall liegt an R.', 'I_max = U / R', '5 V / 10 kΩ', 0.5, 'mA')] });
+  set('11.2', { tau: [S('Zeit bis 63 % der Endspannung; rechnerisch R · C, der Innenwiderstand der Quelle verlängert minimal.', 'τ', '≈ 10 kΩ · 100 µF', 1.03, 's')], u: [S('Nach einer Zeitkonstante sind 63,2 % erreicht.', 'u(τ)', '0,632 · 5 V', 3.16, 'V')] });
+  set('11.5', { t: [S('Periodendauer ist der Kehrwert der Frequenz.', 'T = 1 / f', '1 / 5 Hz', 200, 'ms')] });
+  set('13.9', { beta: [S('Stromverstärkung aus Kollektor- und Basisstrom.', 'β = I_C / I_B', '1,766 mA / 17,66 µA', 100, '')] });
+  set('14.2', { fg: [S('Bei der Grenzfrequenz ist U_a = 70,7 % von U_e; rechnerisch aus R und C der Schaltung.', 'f_g = 1 / (2π · R · C)', '', 153.9, 'Hz')] });
+  set('14.4', { v: [S('Verhältnis von Ausgang zu Eingang.', 'U_a / U_e', '0,703 V / 7,07 V', 0.0995, ''), S('Kontrolle: bei 10 · f_g fällt ein Tiefpass 1. Ordnung auf etwa 1/10.', '', '', 0.1, '')], db: [S('Spannungsverstärkung in Dezibel.', 'v = 20 · log(U_a/U_e)', '20 · log(0,0995)', -20.0, 'dB')] });
+  set('15.1', { p: [S('Leistung aus gemessener Spannung und Strom.', 'P = U · I', '5,985 V · 0,2992 A', 1.79, 'W')] });
+  set('15.5', { pm: [S('Motorleistung.', 'P_M = U_M · I', '5,511 V · 0,2755 A', 1.52, 'W')], pv: [S('Verlustleistung am Transistor aus U_CE und demselben Strom.', 'P_V = U_CE · I', '0,4755 V · 0,2755 A', 0.131, 'W')] });
+  set('15.8', { n: [S('Anzeige nach 0,5 s Torzeit ablesen.', 'Impulse', '', 5, ''), ], rpm: [S('Impulse pro Sekunde, dann mal 60.', 'n', '5 / 0,5 s · 60', 600, '1/min')] });
+  /* Übungswerkstatt */
+  set('W4', { t: [S('Bildbreite 10 ms, zwei volle Perioden auf dem Schirm.', 'T', '10 ms / 2', 5, 'ms')], f: [S('Frequenz ist der Kehrwert der Periodendauer.', 'f = 1 / T', '1 / 5 ms', 200, 'Hz')] });
+  set('W6', { v: [S('Bei der Grenzfrequenz ist die Ausgangsspannung auf 1/√2 gefallen.', 'U_a / U_e', '1 / √2', 0.707, '')] });
+  set('W10', { t: [S('Bildbreite 5 ms, Perioden zählen; T ist der Kehrwert der Taktfrequenz.', 'T = 1 / f', '1 / 500 Hz', 2, 'ms')] });
+  set('15.9', { ud: [S('Spannung Block für Block messen: Am unterbrochenen Basiswiderstand liegt die Steuerspannung an, dahinter (U_BE) 0 V.', 'U am defekten R1', '', 4.3, 'V')] });
+})(typeof window !== 'undefined' ? window : globalThis);
+
 /* ==== content/manual.js ==== */
 /* Handbuch – Seiten {id, title, html}. Wird mit den Themen erweitert. */
 (function (root) {
@@ -5748,7 +5870,9 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p>Ein <b>Konto ist freiwillig</b>. Ohne Konto spielst du ganz normal, der Fortschritt bleibt auf diesem Gerät (auch offline). Angemeldet wird im <b>Portal</b> (Startseite): mit Benutzername und Passwort oder – beim ersten Mal – mit dem <b>Klassencode</b> deiner Lehrperson. Oben rechts im Labor zeigt der <b>Konto-Knopf</b>, wer angemeldet ist; ein Klick führt ins Portal.</p>' +
       '<p>Mit Konto wird dein Spielstand im Konto gespeichert und ist auf jedem Gerät da. Warst du auf einem anderen Gerät schon weiter, gilt der weitere Stand. An einem geteilten PC werden die Stände verschiedener Konten nie gemischt. Verwende ein <b>Pseudonym</b> – dein echter Name bleibt auf dem Gerät.</p>' +
       '<p>Oben auf der Karte stehen die <b>Vorgaben vom Dozent</b>, mit Frist; ist die Frist vorbei und noch etwas offen, wird sie rot. Gesperrt wird nichts – vorgegebene Stationen sind immer offen.</p>' +
-      '<p><b>Sterne:</b> Jede gelöste Aufgabe gibt 1 bis 3 Sterne – 3 ohne Fehlversuch und ohne Tipp, 2 mit höchstens zwei Fehlversuchen und einem Tipp. Wer eine Aufgabe nochmals sauber löst, verbessert seine Sterne.</p>' +
+      '<p><b>Sterne:</b> Jede gelöste Aufgabe gibt 1 bis 3 Sterne – 3 ohne Fehlversuch und ohne Tipp, 2 mit höchstens zwei Fehlversuchen und einem Tipp, 1 sobald du einen Sollwert aufgedeckt oder die Lösung angesehen hast. Wer eine Aufgabe nochmals sauber löst, verbessert seine Sterne.</p>' +
+      '<p><b>Messwerte einzeln:</b> Im Messprotokoll wird jeder Wert für sich geprüft (✓ richtig, ✗ falsch, ○ offen). Richtige Werte bleiben stehen. Nach zwei falschen Eingaben an einem Wert kannst du seinen <b>Sollwert aufdecken</b> (mit Rechenweg) – er zählt dann als erledigt. Die Aufgabe ist gelöst, sobald die Schaltung alle Tests besteht und jeder Wert richtig oder aufgedeckt ist.</p>' +
+      '<p><b>Lösung ansehen:</b> Nach zwei gescheiterten Prüfungen erscheint der Knopf „Lösung ansehen“: Referenzschaltung, alle Sollwerte und der Rechenweg. Ansehen schaltet nichts frei – bauen und messen musst du selbst; die Station zählt dann mit höchstens 1 Stern. In Prüfung und Live-Challenge gibt es keine Lösung.</p>' +
       '<p><b>Für Lehrpersonen:</b> Das Dozenten-Konto legt der Admin an. Im Portal unter <b>Leitstand</b>: Klassen anlegen, Klassencode weitergeben oder Konten erzeugen (Zugangszettel drucken), Passwörter zurücksetzen, Fortschritt und Schaltungen der Lernenden ansehen und <b>Vorgaben</b> machen. Wer mit einem Dozenten-Konto angemeldet ist, hat im Labor automatisch den <b>Dozentenmodus</b>: alle Stationen offen, Sprungliste auf der Karte, Freie Werkbank mit allen Bauteilen.</p>' },
     { id: 'live', title: 'Live-Challenge', html:
       '<p>Die Lehrperson startet im Portal eine <b>Live-Challenge</b> und zeigt den vierstelligen Code am Beamer. Du trittst im Portal unter <b>Live-Challenge</b> bei; die Aufgabe erscheint bei allen gleichzeitig, sobald die Lehrperson startet.</p>' +
@@ -8885,16 +9009,16 @@ body.has-exam-bar .top { padding-top: 50px; }
       (t.learn ? '<div class="learn"><b>Lernziel</b> ' + t.learn + '</div>' : '') +
       '<div class="hints"><button class="btn small" id="hint1">Tipp 1</button><button class="btn small" id="hint2">Tipp 2</button></div><div id="hintBox"></div>';
     if (t.measure.length) {
-      h += '<div class="protocol"><h3>Messprotokoll <button class="btn small calc-ctx" data-calc title="Taschenrechner öffnen">🖩 Rechner</button></h3>' +
+      h += '<div class="protocol"><h3>Messprotokoll <span class="proto-count" id="protoCount"></span><button class="btn small calc-ctx" data-calc title="Taschenrechner öffnen">🖩 Rechner</button></h3>' +
         '<p class="proto-note dim small">Gib den Wert so an, wie dein Gerät ihn anzeigt bzw. wie du ihn berechnest. Innerhalb der Toleranz ist er richtig – auf eine sinnvolle Stellenzahl runden (Komma oder Punkt).</p>';
       t.measure.forEach(function (m) {
         var v = draft && draft.answers && draft.answers[m.id] !== undefined ? draft.answers[m.id] : '';
-        h += '<label><span>' + esc(m.ask) + '</span><input inputmode="decimal" data-ans="' + m.id + '" value="' + esc(v) + '" placeholder="' + (m.value !== undefined ? 'Rechenwert' : 'Messwert') + '"><em>' + esc(m.unit || '') + '</em>' +
-          '<small class="tol">' + tolText(m) + '</small></label>';
+        h += '<label data-mid="' + m.id + '"><span><i class="mst" data-mst="' + m.id + '" title="offen">○</i> ' + esc(m.ask) + '</span><input inputmode="decimal" data-ans="' + m.id + '" value="' + esc(v) + '" placeholder="' + (m.value !== undefined ? 'Rechenwert' : 'Messwert') + '"><em>' + esc(m.unit || '') + '</em>' +
+          '<small class="tol">' + tolText(m) + '</small><div class="reveal" data-rv="' + m.id + '" hidden></div></label>';
       });
       h += '</div>';
     }
-    h += '<button class="btn primary big" id="btnCheck">Prüfen</button><div id="results"></div>';
+    h += '<button class="btn primary big" id="btnCheck">Prüfen</button><div id="results"></div><div id="solBox"></div>';
     if (t.measureUX === 'drag') h += '<p class="tut-link"><b>Neu:</b> Messspitzen ziehen, Messbereich wählen, Tastkopf anschliessen – <a href="#" data-go="tutorial">Anleitung ansehen</a></p>';
     $('#taskInfo').innerHTML = h;
     var tl = $('#taskInfo [data-go="tutorial"]'); if (tl) tl.onclick = function (ev) { ev.preventDefault(); renderTutorial(); show('tutorial'); };
@@ -8903,8 +9027,77 @@ body.has-exam-bar .top { padding-top: 50px; }
     $('#hint2').onclick = function () { if (current.hints < 2 && LIVE) LIVE.hint(); current.hints = 2; $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div><div class="hint">' + t.hint2 + '</div>'; };
     $$('[data-ans]').forEach(function (inp) { inp.oninput = persistDraft; });
     $('#btnCheck').onclick = check;
+    renderMeasState(t);
     renderPalette(t);
     void ch;
+  }
+  /* ---------- Teilwertung pro Messwert (Feedback 01.10.2026) ----------
+   * Jeder Messwert gilt als richtig, offen oder aufgedeckt. Nach zwei falschen Eingaben an einem Wert erscheint „Sollwert aufdecken“:
+   * Sollwert und Rechenweg nur für diesen Wert, er zählt dann als erledigt (höchstens 1 Stern). Die Station ist abgeschlossen, sobald
+   * alle Schaltungstests bestehen und jeder Messwert richtig oder aufgedeckt ist. Nicht in Prüfung und Live-Challenge. */
+  function measState(t, d) { var n = 0, ok = 0, rv = 0; (t.measure || []).forEach(function (m) { n++; var s = d.meas[m.id]; if (s && s.ok) ok++; else if (s && s.revealed) rv++; }); return { n: n, ok: ok, revealed: rv, done: ok + rv === n }; }
+  function renderMeasState(t) {
+    if (!t.measure || !t.measure.length || current.exam || current.live) return;
+    var d = draftOf(t), st = measState(t, d);
+    var pc = $('#protoCount'); if (pc) pc.textContent = st.n ? (st.ok + (st.revealed ? ' + ' + st.revealed + ' aufgedeckt' : '') + ' von ' + st.n + ' Werten richtig') : '';
+    t.measure.forEach(function (m) {
+      var s = d.meas[m.id] || {}, i = $('[data-mst="' + m.id + '"]'), lab = $('[data-mid="' + m.id + '"]'), rv = $('[data-rv="' + m.id + '"]');
+      if (!i) return;
+      lab.classList.remove('m-ok', 'm-bad', 'm-rv');
+      if (s.ok) { i.textContent = '✓'; i.title = 'richtig'; lab.classList.add('m-ok'); }
+      else if (s.revealed) { i.textContent = '⟳'; i.title = 'aufgedeckt'; lab.classList.add('m-rv'); }
+      else if (s.tries) { i.textContent = '✗'; i.title = s.tries + ' falsche Eingabe(n)'; lab.classList.add('m-bad'); }
+      else { i.textContent = '○'; i.title = 'offen'; }
+      if (rv) { if (s.revealed) { rv.hidden = false; rv.innerHTML = revealHtml(t, m); } else if (s.tries >= 2 && !s.ok) { rv.hidden = false; rv.innerHTML = '<button class="btn small" data-reveal="' + m.id + '">Sollwert aufdecken</button> <span class="dim small">zählt als erledigt, höchstens 1 Stern</span>'; } else { rv.hidden = true; rv.innerHTML = ''; } }
+    });
+    $$('[data-reveal]').forEach(function (b) { b.onclick = function () { revealValue(t, b.dataset.reveal); }; });
+    renderSolBox(t);
+  }
+  /* Sollwerte wie der Validator: aus der Referenzschaltung; wenn die eigene Schaltung alle Tests besteht, aus dieser (Messwerte hängen davon ab) */
+  function sollOf(t, layout) {
+    var lay = t.ref; if (layout) { try { var r = E.runTask(t, layout, {}); if (r.results.filter(function (x) { return !(x.info && x.info.mid); }).every(function (x) { return x.ok; })) lay = layout; } catch (e) { /* Referenz */ } }
+    try { return E.expectedAnswers(t, lay); } catch (e) { try { return E.expectedAnswers(t, t.ref); } catch (e2) { return {}; } }
+  }
+  function fmtSoll(v, unit) { if (v === undefined || v === null || isNaN(v)) return '–'; var a = Math.abs(v), s = a >= 100 ? v.toFixed(a >= 1000 ? 0 : 1) : a >= 10 ? v.toFixed(2) : a >= 1 ? v.toFixed(3) : (+v.toPrecision(3)).toString(); return s.replace('.', ',') + (unit ? ' ' + unit : ''); }
+  /* Rechenweg: aus defTask.rechenweg (HTML oder Schritte) oder automatisch minimal aus measure */
+  function rechenwegHtml(t, m, soll) {
+    var rw = t.rechenweg && t.rechenweg[m.id];
+    if (Array.isArray(rw)) return '<ol class="rw">' + rw.map(function (s) { return '<li>' + (s.text ? '<p>' + s.text + '</p>' : '') + (s.label || s.expr || s.value !== undefined ? '<div class="wk-row"><span class="wk-lbl">' + esc(s.label || '') + '</span>' + (s.expr ? '<span class="mono wk-expr">' + esc(s.expr) + '</span>' : '') + (s.value !== undefined ? '<span class="mono wk-val">= ' + fmtSoll(s.value, s.unit) + '</span>' : '') + '</div>' : '') + '</li>'; }).join('') + '</ol>';
+    if (typeof rw === 'string') return '<div class="rw">' + rw + '</div>';
+    var how = m.value !== undefined ? 'Rechenwert aus den Angaben der Aufgabe.' :
+      m.truth ? 'Aus der Simulation: ' + (m.truth.q === 'i' ? 'Strom durch ' : m.truth.q === 'v' ? 'Spannung an ' : m.truth.q + ' von ') + esc(m.truth.sel) + '.' :
+      'Messung ' + (m.mode === 'A' ? 'A⎓ in Reihe' : m.mode === 'R' ? 'Ω spannungsfrei' : m.mode === 'VAC' ? 'V~ (' + (m.meterType || 'TRMS').toUpperCase() + ')' : m.mode === 'AC' ? 'Oszilloskop (' + (m.q || 'dc') + ')' : 'V⎓') + (m.a ? ' zwischen ' + esc(m.a) + ' und ' + esc(m.b || 'Masse') : '') + '.';
+    return '<div class="rw"><p>' + how + ' Sollwert <b>' + fmtSoll(soll, m.unit) + '</b> (Toleranz ±' + Math.round((m.tol || 0.03) * 100) + ' %).</p></div>';
+  }
+  function revealHtml(t, m) { var soll = sollOf(t, ed && ed.layout)[m.id]; return '<div class="rv-box"><b>Aufgedeckt – Sollwert ' + fmtSoll(soll, m.unit) + '</b>' + rechenwegHtml(t, m, soll) + '</div>'; }
+  function revealValue(t, mid) {
+    var d = draftOf(t), s = d.meas[mid] = d.meas[mid] || { tries: 0 }; if (s.ok || s.revealed) return;
+    s.revealed = true; save(); log('value_reveal', { id: t.id, mid: mid, tries: s.tries || 0 });
+    var inp = $('[data-ans="' + mid + '"]'); if (inp) { inp.disabled = true; var sv = sollOf(t, ed && ed.layout)[mid]; if (sv !== undefined && !isNaN(sv)) inp.value = String(+(+sv).toPrecision(4)); }
+    renderMeasState(t);
+    if (measState(t, d).done) toast('Alle Werte erledigt – jetzt „Prüfen“ drücken.');
+  }
+  /* ---------- Lösungsansicht nach zwei Fehlversuchen ---------- */
+  function renderSolBox(t) {
+    var box = $('#solBox'); if (!box || current.exam || current.live) return;
+    var d = draftOf(t);
+    if (!(d.fails >= 2) && !d.sol) { box.innerHTML = ''; return; }
+    if (!$('#solView')) box.innerHTML = '<button class="btn" id="btnSol">Lösung ansehen</button> <span class="dim small">Referenzschaltung, Sollwerte und Rechenweg – die Station zählt danach mit höchstens 1 Stern und gilt erst als gelöst, wenn du selbst richtig baust und misst.</span><div id="solView" hidden></div>';
+    $('#btnSol').onclick = function () { showSolution(t); };
+  }
+  var solMini = null;
+  function showSolution(t) {
+    var d = draftOf(t), v = $('#solView'); if (!v) return;
+    if (!d.sol) { d.sol = true; save(); log('solution_view', { id: t.id, fails: d.fails || 0, tries: current.tries }); }
+    var soll = sollOf(t, null), rows = (t.measure || []).map(function (m) { return '<tr><td>' + esc(m.ask) + '</td><td class="mono num">' + fmtSoll(soll[m.id], m.unit) + '</td></tr>'; }).join('');
+    v.hidden = false;
+    v.innerHTML = '<h3>Lösung</h3><p class="dim small">Referenzschaltung (' + (viewMode === 'bench' ? 'Werkbank' : 'Schaltplan') + ') – zum Vergleich, nicht zum Übernehmen:</p><div id="solCircuit"></div>' +
+      (rows ? '<h4>Sollwerte</h4><table class="tt sol-tab">' + rows + '</table>' : '') +
+      (t.measure && t.measure.length ? '<h4>Rechenweg</h4>' + t.measure.map(function (m) { return '<div class="rw-item"><b>' + esc(m.ask) + '</b>' + rechenwegHtml(t, m, soll[m.id]) + '</div>'; }).join('') : '') +
+      (t.take ? '<p class="dim small">' + t.take + '</p>' : '') + '<button class="btn small" id="solClose">Lösung einklappen</button>';
+    $('#btnSol').hidden = true;
+    if (root.DQMini) { try { if (solMini && solMini.destroy) solMini.destroy(); solMini = root.DQMini.mount($('#solCircuit'), { layout: t.ref, bench: t.bench, view: viewMode, height: 240 }); } catch (e) { $('#solCircuit').innerHTML = '<p class="dim small">(' + esc(e.message) + ')</p>'; } }
+    $('#solClose').onclick = function () { v.hidden = true; $('#btnSol').hidden = false; };
   }
   /* Toleranz-Hinweis je Protokollzeile: Prozent aus tol (Standard 3 %), bei Rechenwerten Einheit und Stellenzahl */
   function tolText(m) {
@@ -9020,8 +9213,10 @@ body.has-exam-bar .top { padding-top: 50px; }
   function persistDraft() {
     if (!current.task || !ed || current.live) return;
     if (current.exam) { if (EXAM) EXAM.draft(current.exam.item, ed.layout, answers()); return; }
-    S.drafts[current.task.id] = { layout: ed.layout, answers: answers(), t: Date.now() }; save();
+    var d = S.drafts[current.task.id] || {}; d.layout = ed.layout; d.answers = answers(); d.t = Date.now(); S.drafts[current.task.id] = d; save();
   }
+  /* Teilwertung und Lösung: Zustand je Aufgabe im Entwurf – meas[id] = {ok, tries, revealed}, fails (gescheiterte Prüfungen), sol (Lösung angesehen) */
+  function draftOf(t) { var d = S.drafts[t.id] || (S.drafts[t.id] = { layout: ed ? ed.layout : t.start, answers: {}, t: Date.now() }); d.meas = d.meas || {}; return d; }
 
   function rebuild() {
     closeReplay(true);
@@ -9399,11 +9594,32 @@ body.has-exam-bar .top { padding-top: 50px; }
       if (r.pass) modal('<h2 class="win">Gelöst!</h2><p>' + t.take + '</p><p class="dim" id="livePts">Punkte werden berechnet …</p>', [{ label: 'Rangliste', primary: true, action: function () { if (LIVE) LIVE.board(); } }]);
       return;
     }
-    log(r.pass ? 'task_done' : 'task_try', { id: t.id, tries: current.tries, hints: current.hints, dur: Math.round((Date.now() - current.started) / 1000), tags: t.tags });
-    if (r.pass) {
-      var first = !S.done[t.id], st = starsFor(current.tries, current.hints), di = S.doneInfo[t.id];
+    // Teilwertung: Messwerte einzeln (richtig / offen / aufgedeckt), Schaltungstests bleiben Pflicht
+    var d = draftOf(t), measRes = r.results.filter(function (x) { return x.info && x.info.mid; });
+    measRes.forEach(function (x) {
+      var s = d.meas[x.info.mid] = d.meas[x.info.mid] || { tries: 0 };
+      if (s.revealed) return;
+      if (x.ok) s.ok = true; else { s.ok = false; if (!x.info.empty) s.tries = (s.tries || 0) + 1; }
+    });
+    var testsOk = r.results.filter(function (x) { return !(x.info && x.info.mid); }).every(function (x) { return x.ok; });
+    var ms = measState(t, d), pass = testsOk && ms.done;
+    if (!pass) d.fails = (d.fails || 0) + 1;
+    save();
+    $('#results').innerHTML = '<ul class="res">' + r.results.map(function (x) {
+      var mid = x.info && x.info.mid, s = mid ? d.meas[mid] : null, extra = '';
+      if (s && s.revealed) return '<li class="rv">⟳ ' + esc(x.text.split(':')[0]) + ': aufgedeckt</li>';
+      if (!x.ok && x.info && typeof x.info.got === 'number') extra = ' <span class="dim">(ist: ' + E.fmt(Math.abs(x.info.got), '') + ')</span>';
+      return '<li class="' + (x.ok ? 'ok' : 'bad') + '">' + (x.ok ? '✔' : '✘') + ' ' + esc(x.text) + extra + '</li>';
+    }).join('') + '</ul>' + (an.faults.length ? diagnose(an.faults).map(function (dg) { return '<div class="st err">' + esc(dg.text) + '</div>'; }).join('') : '') +
+      (!pass && ms.n && !ms.done ? '<p class="dim small">' + ms.ok + ' von ' + ms.n + ' Werten richtig – richtige Werte bleiben stehen, nur die offenen musst du noch korrigieren.</p>' : '');
+    renderMeasState(t);
+    log(pass ? 'task_done' : 'task_try', { id: t.id, tries: current.tries, hints: current.hints, dur: Math.round((Date.now() - current.started) / 1000), tags: t.tags, revealed: ms.revealed, sol: !!d.sol });
+    if (pass) {
+      var low = !!d.sol || ms.revealed > 0;
+      var first = !S.done[t.id], st = low ? 1 : starsFor(current.tries, current.hints), di = S.doneInfo[t.id];
       S.done[t.id] = true;
-      if (!di || st > (di.stars || 0)) S.doneInfo[t.id] = { at: di && di.at ? di.at : Date.now(), tries: current.tries, hints: current.hints, stars: st };
+      if (!di || st > (di.stars || 0)) S.doneInfo[t.id] = { at: di && di.at ? di.at : Date.now(), tries: current.tries, hints: current.hints, stars: st, revealed: ms.revealed || undefined, solution: d.sol || undefined };
+      else if (di) { if (d.sol) di.solution = true; if (ms.revealed) di.revealed = Math.max(di.revealed || 0, ms.revealed); }
       save();
       var nx = nextOf(t.id), aw = null;
       Object.keys(DQ.awards || {}).forEach(function (k) { if (DQ.awards[k].boss === t.id) aw = DQ.awards[k]; });

@@ -522,6 +522,42 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await np.close();
   }
 
+  // Phase 3: Teilwertung pro Messwert, Sollwert aufdecken nach 2 Fehlversuchen, Lösungsansicht nach 2 gescheiterten Prüfungen, 1 Stern
+  {
+    const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('Phase3: ' + e.message));
+    await tp.goto(url, { waitUntil: 'domcontentloaded' }); await tp.evaluate(() => DigitalQuest.openItem('1.4')); await tp.waitForTimeout(100);
+    const soll = await tp.evaluate(() => { const t = DigitalQuest.state && DigitalQuest.engine ? null : null; const E = DigitalQuest.engine, tk = Object.values(DigitalQuest).find(x => x && x.byId) ; return null; });
+    const ex = await tp.evaluate(() => { const E = DigitalQuest.engine, t = window.DQ.byId['1.4']; return E.expectedAnswers(t, t.ref); });
+    const ids = Object.keys(ex); if (ids.length < 2) errors.push('Phase3: 1.4 hat zu wenige Messwerte');
+    if (await tp.$$eval('#taskInfo .protocol .mst', l => l.length) !== ids.length) errors.push('Phase3: Statuszeichen je Messwert fehlen');
+    // erster Wert richtig, zweiter zweimal falsch → ✓ bleibt stehen, ✗ zählt, nach 2 Fehlern „Sollwert aufdecken“
+    await tp.fill('[data-ans="' + ids[0] + '"]', String(ex[ids[0]])); await tp.fill('[data-ans="' + ids[1] + '"]', '99.9');
+    await tp.click('#btnCheck'); await tp.waitForTimeout(100);
+    if (!/1 von/.test(await tp.textContent('#protoCount'))) errors.push('Phase3: Zähler nach erster Prüfung: ' + await tp.textContent('#protoCount'));
+    if (!await tp.$('#taskInfo label.m-ok') || !await tp.$('#taskInfo label.m-bad')) errors.push('Phase3: Status ✓/✗ nicht gesetzt');
+    if (await tp.$('[data-reveal]')) errors.push('Phase3: Aufdecken schon nach einem Fehlversuch');
+    if (await tp.$('#btnSol')) errors.push('Phase3: Lösung schon nach einer gescheiterten Prüfung');
+    await tp.fill('[data-ans="' + ids[1] + '"]', '88.8'); await tp.click('#btnCheck'); await tp.waitForTimeout(100);
+    if (!await tp.$('[data-reveal="' + ids[1] + '"]')) errors.push('Phase3: „Sollwert aufdecken“ fehlt nach zwei Fehlversuchen');
+    if (!await tp.$('#btnSol')) errors.push('Phase3: „Lösung ansehen“ fehlt nach zwei gescheiterten Prüfungen');
+    await tp.click('#btnSol'); await tp.waitForTimeout(300);
+    if (!await tp.isVisible('#solView') || !await tp.$('#solCircuit .mini-stage svg') || !/Sollwerte/.test(await tp.textContent('#solView')) || !/Rechenweg/.test(await tp.textContent('#solView'))) errors.push('Phase3: Lösungsansicht unvollständig');
+    if (!await tp.isVisible('#scr-task.active') || await tp.evaluate(() => !!DigitalQuest.state.done['1.4'])) errors.push('Phase3: Lösung ansehen hat die Station freigeschaltet');
+    await tp.screenshot({ path: shots + '/27_loesung.png' });
+    await tp.click('[data-reveal="' + ids[1] + '"]'); await tp.waitForTimeout(100);
+    if (!/Aufgedeckt/.test(await tp.textContent('[data-rv="' + ids[1] + '"]')) || !await tp.$eval('[data-ans="' + ids[1] + '"]', i => i.disabled)) errors.push('Phase3: Aufdecken zeigt Sollwert nicht oder sperrt das Feld nicht');
+    for (const id of ids.slice(2)) await tp.fill('[data-ans="' + id + '"]', String(ex[id]));
+    await tp.click('#btnCheck'); await tp.waitForTimeout(200);
+    if (!await tp.evaluate(() => !!DigitalQuest.state.done['1.4'])) errors.push('Phase3: Station mit aufgedecktem Wert nicht abgeschlossen');
+    const di = await tp.evaluate(() => DigitalQuest.state.doneInfo['1.4']);
+    if (!di || di.stars !== 1 || !di.solution || di.revealed !== 1) errors.push('Phase3: doneInfo falsch: ' + JSON.stringify(di));
+    if (await tp.$$eval('#modal .stars-win .star.on', l => l.length) !== 1) errors.push('Phase3: Erfolgsmeldung zeigt nicht genau 1 Stern');
+    const ev = await tp.evaluate(() => DigitalQuest.state.events.filter(e => e.type === 'solution_view' || e.type === 'value_reveal').map(e => e.type));
+    if (ev.indexOf('solution_view') < 0 || ev.indexOf('value_reveal') < 0) errors.push('Phase3: Ereignisse solution_view/value_reveal fehlen');
+    await tp.screenshot({ path: shots + '/28_teilwertung.png' });
+    await tp.close();
+  }
+
   // Handy
   const m =await browser.newPage({ viewport: { width: 390, height: 844 } });
   m.on('pageerror', e => errors.push('mobil: ' + e.message));

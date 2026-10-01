@@ -25,6 +25,10 @@
     t.palette = t.palette || [];
     t.tests = t.tests || []; t.measure = t.measure || []; t.wrong = t.wrong || []; t.tags = t.tags || [];
     t.measureUX = t.measureUX || 'legacy';
+    // rechenweg (optional): { messwertId: HTML | [{text, label?, expr?, value?, unit?}] } – erscheint in der Lösungsansicht und beim Aufdecken
+    // eines Messwerts; fehlt er, erzeugt die App einen minimalen Rechenweg aus measure (Sollwert, Messart, Anschlüsse).
+    if (t.rechenweg) Object.keys(t.rechenweg).forEach(function (k) { if (!(t.measure || []).some(function (m) { return m.id === k; })) throw new Error('defTask ' + t.id + ': rechenweg für unbekannten Messwert „' + k + '“'); });
+    t.measureUX = t.measureUX || 'legacy';
     if (t.measureUX !== 'legacy' && t.measureUX !== 'drag') throw new Error('defTask ' + t.id + ': measureUX muss legacy oder drag sein');
     DQ.tasks.push(t); DQ.byId[t.id] = t; return t;
   };

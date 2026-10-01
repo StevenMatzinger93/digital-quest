@@ -1390,10 +1390,10 @@ body.beamer-mode main{ min-height:100vh; }
       try { truth = truthOf(m, ml); } catch (e) { push(false, m.ask + ': ' + e.message); return; }
       var ans = answers ? answers[m.id] : undefined;
       if (typeof ans === 'string') ans = ans.replace(',', '.');
-      if (ans === undefined || ans === '' || isNaN(+ans)) { push(false, m.ask + ': Messwert fehlt', { expected: truth.value }); return; }
+      if (ans === undefined || ans === '' || isNaN(+ans)) { push(false, m.ask + ': Messwert fehlt', { expected: truth.value, mid: m.id, empty: true }); return; }
       var scale = UNIT_SCALE[m.unit] || 1;
       var tol = m.tol || 0.03, val = truth.value, ok = Math.abs(+ans * scale - val) <= Math.max(Math.abs(val) * tol, m.abs || 1e-9);
-      push(ok, m.ask + ': ' + ans + ' ' + (m.unit || truth.unit), { expected: val });
+      push(ok, m.ask + ': ' + ans + ' ' + (m.unit || truth.unit), { expected: val, mid: m.id }); // mid: Teilwertung pro Messwert in der App
     });
     return { pass: allPass && results.length > 0, results: results };
   }
@@ -3500,7 +3500,7 @@ async function viewStudent(id){
     const x = b.dataset.task, t = itemOf(meta, x), d = done[x] ? (info[x] || {}) : null, draft = dr[x];
     const ans = draft && draft.answers ? Object.keys(draft.answers).filter(k => draft.answers[k] !== '') : [];
     dialog(x + ': ' + t.title,
-      '<p class="muted small">' + (d ? 'gelöst' + (d.at ? ' ' + fmtDate(d.at) : '') + ' · ' + (d.stars || 1) + '★ · ' + Math.max(0, (d.tries || 1) - 1) + ' Fehlversuche · ' + (d.hints || 0) + ' Tipps' : draft ? 'noch nicht gelöst · Entwurf' : 'noch nicht begonnen') + '</p>' +
+      '<p class="muted small">' + (d ? 'gelöst' + (d.at ? ' ' + fmtDate(d.at) : '') + ' · ' + (d.stars || 1) + '★ · ' + Math.max(0, (d.tries || 1) - 1) + ' Fehlversuche · ' + (d.hints || 0) + ' Tipps' + (d.solution ? ' · <b>Lösung angesehen</b>' : '') + (d.revealed ? ' · <b>' + d.revealed + ' Wert(e) aufgedeckt</b>' : '') : draft ? 'noch nicht gelöst · Entwurf' : 'noch nicht begonnen') + '</p>' +
       '<div id="stCircuit"></div>' +
       (ans.length ? '<h4 style="margin:12px 0 4px">Messprotokoll</h4><table class="tbl"><tbody>' + ans.map(k => '<tr><td class="muted">' + esc(k) + '</td><td class="num">' + esc(draft.answers[k]) + '</td></tr>').join('') + '</tbody></table>' : ''),
       [{ label:'Schliessen', value:true, cls:'pri' }], { wide:true, onOpen: () => circuitView($('stCircuit'), draft && draft.layout), onClose: () => { if(MINI){ try{ MINI.destroy(); }catch(e){} MINI = null; } } });

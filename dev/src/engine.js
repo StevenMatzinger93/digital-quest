@@ -665,10 +665,10 @@
       try { truth = truthOf(m, ml); } catch (e) { push(false, m.ask + ': ' + e.message); return; }
       var ans = answers ? answers[m.id] : undefined;
       if (typeof ans === 'string') ans = ans.replace(',', '.');
-      if (ans === undefined || ans === '' || isNaN(+ans)) { push(false, m.ask + ': Messwert fehlt', { expected: truth.value }); return; }
+      if (ans === undefined || ans === '' || isNaN(+ans)) { push(false, m.ask + ': Messwert fehlt', { expected: truth.value, mid: m.id, empty: true }); return; }
       var scale = UNIT_SCALE[m.unit] || 1;
       var tol = m.tol || 0.03, val = truth.value, ok = Math.abs(+ans * scale - val) <= Math.max(Math.abs(val) * tol, m.abs || 1e-9);
-      push(ok, m.ask + ': ' + ans + ' ' + (m.unit || truth.unit), { expected: val });
+      push(ok, m.ask + ': ' + ans + ' ' + (m.unit || truth.unit), { expected: val, mid: m.id }); // mid: Teilwertung pro Messwert in der App
     });
     return { pass: allPass && results.length > 0, results: results };
   }

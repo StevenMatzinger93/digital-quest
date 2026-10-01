@@ -83,6 +83,9 @@ DQ.chapters.forEach(c => {
 
 // Aufgaben
 DQ.tasks.forEach(t => {
+  // Rechenweg (Lösungsansicht): Pflicht für Kapitel 16 (jeder Messwert) und für jeden Rechenwert (measure.value)
+  (t.measure || []).forEach(m => { if ((t.ch === 16 || m.value !== undefined) && !(t.rechenweg && t.rechenweg[m.id])) warn(t.id, 'rechenweg fehlt für Messwert „' + m.id + '“'); });
+  Object.keys(t.rechenweg || {}).forEach(k => { if (!(t.measure || []).some(m => m.id === k)) err(t.id, 'rechenweg für unbekannten Messwert „' + k + '“'); });
   if (!t.tags.length) warn(t.id, 'keine Kompetenz-Tags');
   ['story', 'learn', 'take', 'hint', 'hint2'].forEach(k => { if (!t[k]) warn(t.id, k + ' fehlt'); });
   if (!t.tests.length && !t.measure.length) err(t.id, 'weder tests noch measure');
