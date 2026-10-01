@@ -346,6 +346,20 @@ async function route(){
 }
 window.addEventListener('hashchange', route);
 
+/* Passwort ein-/ausblenden: Auge-Knopf hinter jedem Passwortfeld (Terminal, Passwort aendern, Konto loeschen). Standard verdeckt,
+ * Zustand wird nicht gespeichert, das Feld behaelt den Fokus. Haengt sich per MutationObserver an alle spaeter gerenderten Felder. */
+function addEyes(root){
+  (root.querySelectorAll ? root.querySelectorAll('input[type="password"]:not([data-eye])') : []).forEach(inp => {
+    inp.dataset.eye = '1';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pw-eye'; b.setAttribute('aria-label', 'Passwort anzeigen'); b.setAttribute('aria-pressed', 'false'); b.title = 'Passwort anzeigen'; b.textContent = '👁';
+    b.addEventListener('mousedown', e => e.preventDefault()); // Fokus bleibt im Feld
+    b.addEventListener('click', () => { const show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; b.setAttribute('aria-pressed', String(show)); b.setAttribute('aria-label', show ? 'Passwort verbergen' : 'Passwort anzeigen'); b.title = b.getAttribute('aria-label'); b.classList.toggle('on', show); inp.focus(); });
+    inp.insertAdjacentElement('afterend', b);
+  });
+}
+addEyes(document);
+new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => { if(n.nodeType === 1) addEyes(n); }))).observe(document.body, { childList:true, subtree:true });
+
 /* ---------- Staub in der Halle ---------- */
 (function dust(){
   const cv = $('dust'), ctx = cv.getContext('2d');

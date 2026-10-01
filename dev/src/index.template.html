@@ -13,7 +13,7 @@
 </head>
 <body>
 <header class="top">
-  <div class="brand"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 4 12 2-6h8"/></svg><span>DIGITAL<b>QUEST</b></span></div>
+  <a class="brand" id="brand" href="#/karte" title="Zur Startseite"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 4 12 2-6h8"/></svg><span>DIGITAL<b>QUEST</b></span></a>
   <span id="modeTag" class="mode-tag" hidden title="Dozentenmodus: mit einem Dozenten-Konto angemeldet – alle Stationen offen">DOZENT</span>
   <nav><button data-go="map">Karte</button><button data-go="manual">Handbuch</button><button data-go="tutorial" title="Bedienung der Messgeraete auf der Werkbank ueben"><span class="long">Werkbank-</span>Tutorial</button><button data-go="settings">Einstellungen</button></nav>
   <button class="calc-btn" id="btnCalc" title="Taschenrechner (Strg+Alt+R)" aria-label="Taschenrechner"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h2M8 16h2M12 16h2M16 16v1"/></svg></button>
@@ -56,7 +56,7 @@
       <h3>Oszilloskop</h3>
       <div class="scopebox">
         <canvas id="scope"></canvas>
-        <div class="scope-ctl"><select id="tb" aria-label="Zeitbasis (ganze Bildbreite)"><option value="0.005">5 ms</option><option value="0.01">10 ms</option><option value="0.02">20 ms</option><option value="0.05">50 ms</option><option value="0.1">100 ms</option><option value="1" selected>1 s</option><option value="5">5 s</option></select><button class="btn small" id="btnScope">Aufnahme</button></div>
+        <div class="scope-ctl"><button class="btn small" id="btnScopeBig" title="Oszilloskop gross anzeigen" aria-label="Oszilloskop vergrössern">⤢</button><select id="tb" aria-label="Zeitbasis (ganze Bildbreite)"><option value="0.005">5 ms</option><option value="0.01">10 ms</option><option value="0.02">20 ms</option><option value="0.05">50 ms</option><option value="0.1">100 ms</option><option value="1" selected>1 s</option><option value="5">5 s</option></select><button class="btn small" id="btnScope">Aufnahme</button></div>
         <div id="scopeInfo">Kanal 1 = Messspitzen des Multimeters (neue Messtechnik-Aufgaben: eigener Tastkopf auf der Werkbank). Aufnahme mit „Aufnahme“ bzw. RUN.</div>
       </div>
     </aside>
@@ -67,6 +67,7 @@
   <section id="scr-settings" class="screen"></section>
   <section id="scr-award" class="screen"></section>
 </main>
+<footer class="lab-foot"><a id="footImp" href="../impressum.html">Impressum</a><a id="footDs" href="../datenschutz.html">Datenschutz</a></footer>
 <div id="modal"></div>
 <script>/*JS*/</script>
 </body>

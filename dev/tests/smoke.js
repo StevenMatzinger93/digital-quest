@@ -488,6 +488,40 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     }
   }
 
+  // Phase 1 (Feedback 01.10.2026): Logo-Link, Zurueck-Navigation per Adresse, Zurueck-Knopf, Toleranz-Hinweis, Oszilloskop gross, Fusszeile
+  {
+    const np = await browser.newPage({ viewport: { width: 1440, height: 900 } }); np.on('pageerror', e => errors.push('Phase1: ' + e.message));
+    await np.goto(url, { waitUntil: 'domcontentloaded' });
+    if (await np.$eval('#brand', a => a.tagName) !== 'A') errors.push('Logo ist kein Link');
+    await np.evaluate(() => DigitalQuest.openItem('1.1')); await np.waitForTimeout(100);
+    if (await np.evaluate(() => location.hash) !== '#/aufgabe/1.1') errors.push('Adresse nach Aufgabe: ' + await np.evaluate(() => location.hash));
+    if (!await np.$('#taskInfo [data-back]')) errors.push('Zurueck-Knopf in der Aufgabe fehlt');
+    await np.goBack(); await np.waitForTimeout(150);
+    if (!await np.isVisible('#scr-map.active')) errors.push('Browser-Zurueck fuehrt nicht zur Karte');
+    await np.evaluate(() => DigitalQuest.openItem('T1A')); await np.waitForTimeout(100);
+    if (await np.evaluate(() => location.hash) !== '#/theorie/T1A' || !await np.$('#scr-theory [data-back]')) errors.push('Theorie: Adresse oder Zurueck-Knopf fehlt');
+    await np.click('#scr-theory [data-back]'); if (!await np.isVisible('#scr-map.active')) errors.push('Zurueck-Knopf der Theorie wirkt nicht');
+    await np.evaluate(() => DigitalQuest.openItem('16.4')); await np.click('#brand'); if (!await np.isVisible('#scr-map.active')) errors.push('Logo-Klick fuehrt nicht zur Karte');
+    await np.goto(url + '#/aufgabe/1.8', { waitUntil: 'domcontentloaded' }); await np.waitForTimeout(200);
+    if (!await np.isVisible('#scr-task.active') || !/1\.8/.test(await np.textContent('#taskInfo .crumb'))) errors.push('Start-Adresse #/aufgabe/1.8 oeffnet die Aufgabe nicht');
+    if (await np.$$eval('#taskInfo .protocol .tol', l => l.length) < 1 || !/Toleranz ±\d+ %/.test(await np.textContent('#taskInfo .protocol'))) errors.push('Toleranz-Hinweis im Protokoll fehlt');
+    if (!/Stellenzahl/.test(await np.textContent('#taskInfo .proto-note'))) errors.push('Rundungshinweis im Protokollkopf fehlt');
+    if (await np.$$eval('.lab-foot a', l => l.map(a => a.textContent).join()) !== 'Impressum,Datenschutz') errors.push('Fusszeile im Labor fehlt');
+    // Rechner: Zurueck schliesst zuerst den Rechner, der Bildschirm bleibt
+    await np.click('#btnCalc'); await np.waitForTimeout(50); await np.goBack(); await np.waitForTimeout(150);
+    if (await np.isVisible('#calc .calc-box') || !await np.isVisible('#scr-task.active')) errors.push('Zurueck bei offenem Rechner: Rechner sollte zugehen, Aufgabe bleiben');
+    // Oszilloskop gross: ohne Aufnahme Hinweis, mit Aufnahme Kurve + Kennwerte
+    await np.click('#btnScopeBig'); if (!await np.isVisible('#scopeBig .sb-box') || !/Noch keine Aufnahme/.test(await np.textContent('#scopeBig'))) errors.push('Oszilloskop gross ohne Aufnahme: Hinweis fehlt');
+    await np.keyboard.press('Escape'); if (await np.isVisible('#scopeBig .sb-box')) errors.push('Oszilloskop gross: Esc schliesst nicht');
+    await np.evaluate(() => DigitalQuest.openItem('W1')); await np.evaluate(() => DigitalQuest.setView('schema')); await np.waitForTimeout(100);
+    await np.click('[data-mm="V"]'); await np.evaluate(() => { const c = DigitalQuest.core; c.clickPin('R2.a'); c.clickPin('R2.b'); }); await np.click('#btnScope'); await np.waitForTimeout(200);
+    await np.click('#btnScopeBig'); await np.waitForTimeout(100);
+    if (!await np.$('#sbCanvas') || !/Uss/.test(await np.textContent('#scopeBig')) || !/Quelle f/.test(await np.textContent('#scopeBig'))) errors.push('Oszilloskop gross: Kurve oder Kennwerte fehlen');
+    await np.screenshot({ path: shots + '/26_scope_gross.png' });
+    await np.click('#scopeBig .sb-back', { position: { x: 5, y: 5 } }); if (await np.isVisible('#scopeBig .sb-box')) errors.push('Oszilloskop gross: Klick daneben schliesst nicht');
+    await np.close();
+  }
+
   // Handy
   const m =await browser.newPage({ viewport: { width: 390, height: 844 } });
   m.on('pageerror', e => errors.push('mobil: ' + e.message));

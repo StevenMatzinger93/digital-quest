@@ -10,7 +10,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   const { Exam, QUEST_TASKS } = await import(pathToFileURL(path.join(__dirname, '../../worker/gen/exam_bundle.js')));
   const browser = await chromium.launch(), errors = [];
   const watch = (pg, tag) => { pg.on('pageerror', e => errors.push(tag + ': ' + e.message)); pg.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|net::ERR_/.test(m.text())) errors.push(tag + ' (Konsole): ' + m.text()); }); };
-  const loginUi = async (pg, u, pw) => { await pg.goto(SITE + '/'); await pg.waitForSelector('#loginBtn:visible'); await pg.click('#loginBtn'); await pg.fill('#lgUser', u); await pg.fill('#lgPw', pw); await pg.click('#loginForm button'); await pg.waitForSelector('#userBtn:visible'); };
+  const loginUi = async (pg, u, pw) => { await pg.goto(SITE + '/'); await pg.waitForSelector('#loginBtn:visible'); await pg.click('#loginBtn'); await pg.fill('#lgUser', u); await pg.fill('#lgPw', pw); await pg.click('#loginForm .term-go'); await pg.waitForSelector('#userBtn:visible'); };
 
   /* ================= A: Portal-Rundgang ================= */
   {
@@ -19,11 +19,16 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await p.goto(SITE + '/'); await p.waitForSelector('.gates'); await p.waitForTimeout(600); await p.screenshot({ path: shots + '/p1_halle.png' });
     if (await p.$$eval('.gates .gate, .gates a', l => l.length) < 3) errors.push('Halle: drei Tore erwartet');
     await p.click('#loginBtn'); await p.waitForSelector('#lgUser'); await p.screenshot({ path: shots + '/p2_terminal.png' });
-    await p.fill('#lgUser', 'chef'); await p.fill('#lgPw', 'admin-test'); await p.click('#loginForm button'); await p.waitForSelector('#newT');
+    // Passwort-Auge: Feld bleibt verdeckt, Klick zeigt den Text, zweiter Klick verbirgt wieder; Fusszeile mit Impressum/Datenschutz im Terminal
+    await p.fill('#lgPw', 'geheim'); if (await p.$eval('#lgPw', i => i.type) !== 'password' || !await p.$('#lgPw + .pw-eye')) errors.push('Terminal: Passwort-Auge fehlt oder Feld nicht verdeckt');
+    await p.click('#lgPw + .pw-eye'); if (await p.$eval('#lgPw', i => i.type) !== 'text' || await p.evaluate(() => document.activeElement && document.activeElement.id) !== 'lgPw') errors.push('Terminal: Auge zeigt das Passwort nicht oder Fokus verloren');
+    await p.click('#lgPw + .pw-eye'); if (await p.$eval('#lgPw', i => i.type) !== 'password') errors.push('Terminal: zweiter Klick verbirgt nicht'); await p.fill('#lgPw', '');
+    if (await p.$$eval('.term-foot a', l => l.map(a => a.textContent).join()) !== 'Impressum,Datenschutz') errors.push('Terminal: Fusszeile Impressum/Datenschutz fehlt');
+    await p.fill('#lgUser', 'chef'); await p.fill('#lgPw', 'admin-test'); await p.click('#loginForm .term-go'); await p.waitForSelector('#newT');
     await p.fill('#ntName', 'frau.keller'); await p.click('#newT button'); await p.waitForSelector('.creds'); const pw = await p.textContent('.creds b'); await p.screenshot({ path: shots + '/p3_admin.png' }); await p.click('#dlgActions .pri');
     await p.waitForSelector('#xaPanel'); if (!/Zertifikate/.test(await p.textContent('#xaPanel'))) errors.push('Administration: Zertifikate fehlen');
     await p.click('#userBtn'); await p.click('#logoutBtn'); await p.waitForSelector('#loginBtn:visible');
-    await p.click('#loginBtn'); await p.fill('#lgUser', 'frau.keller'); await p.fill('#lgPw', pw); await p.click('#loginForm button'); await p.waitForSelector('#fpNew');
+    await p.click('#loginBtn'); await p.fill('#lgUser', 'frau.keller'); await p.fill('#lgPw', pw); await p.click('#loginForm .term-go'); await p.waitForSelector('#fpNew');
     await p.fill('#fpNew', 'lehrerin-neu'); await p.fill('#fpNew2', 'lehrerin-neu'); await p.click('#dlgActions .pri'); await p.waitForSelector('#newClass');
     await p.waitForSelector('#examPanel'); await p.screenshot({ path: shots + '/p4_leitstand.png', fullPage: true });
     await p.fill('#ncName', 'AT1A'); await p.click('#newClass button'); await p.waitForSelector('#genForm');

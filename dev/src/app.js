@@ -86,8 +86,35 @@
     if (name !== 'task') stopLoop();
     if (typeof hideSheet === 'function') hideSheet(true);
     window.scrollTo(0, 0);
+    if (name !== 'task' && name !== 'theory') syncHash(name);
   }
   var current = { screen: 'map' };
+  /* ---------- Zurueck-Navigation: jeder Bildschirm hat eine Adresse (#/karte, #/aufgabe/1.1, #/theorie/T1A …), damit die
+   * Zurueck-Taste des Browsers (und die Geste am Handy) zur Karte fuehrt statt die App zu verlassen. Hash statt Pfad, damit
+   * die Offline-Einzeldatei (file://) weiter funktioniert. Pruefung und Live-Challenge schreiben keine Adressen. */
+  var ROUTE = { map: 'karte', task: 'aufgabe', theory: 'theorie', manual: 'handbuch', tutorial: 'tutorial', settings: 'einstellungen', award: 'auszeichnung' };
+  var routing = { silent: false };
+  function hashFor(name) {
+    var id = name === 'task' && current.task ? (current.task.sandbox ? 'sandbox' : current.task.id) : name === 'theory' && current.theory ? current.theory.id : '';
+    return '#/' + (ROUTE[name] || name) + (id ? '/' + id : '');
+  }
+  function syncHash(name) {
+    if (routing.silent || current.exam || current.live || !ROUTE[name]) return;
+    var h = hashFor(name); if (location.hash === h) return;
+    try { history.pushState({ dq: name }, '', h); } catch (e) { location.hash = h; }
+  }
+  function routeHash() {
+    var m = /^#\/([a-z]+)(?:\/(.+))?$/.exec(location.hash || ''); if (!m) return false;
+    var name = Object.keys(ROUTE).filter(function (k) { return ROUTE[k] === m[1]; })[0]; if (!name) return false;
+    routing.silent = true;
+    try {
+      if (name === 'task' || name === 'theory') { var id = decodeURIComponent(m[2] || ''); if (id === 'sandbox' || DQ.byId[id]) openItem(id); else { renderMap(); show('map'); } }
+      else if (name === 'tutorial') renderTutorial();
+      else { if (name === 'map' || name === 'award') { renderMap(); name = 'map'; } if (name === 'manual') renderManual(); if (name === 'settings') renderSettings(); show(name); }
+    } finally { routing.silent = false; }
+    return true;
+  }
+  function goMap() { renderMap(); show('map'); }
 
   /* ================= Modal ================= */
   function modal(html, buttons) {
@@ -285,6 +312,7 @@
     opt = opt || {};
     show('task');
     current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0; current.live = opt.live || null; current.exam = opt.exam || null;
+    syncHash('task');
     var draft = opt.live || opt.exam ? (opt.layout ? { layout: E.clone(opt.layout), answers: opt.answers || {} } : null) : S.drafts[t.id];
     var layout = draft && draft.layout ? draft.layout : t.start;
     var lockedIds = t.start.parts.map(function (p) { return p.id; });
@@ -326,17 +354,19 @@
     if (current.exam) { renderExamPanels(t, draft); return; }
     var lv = current.live;
     var h = (lv ? '<div class="live-note"><b>' + (lv.bug ? 'STOERUNGSMELDUNG' : 'LIVE-CHALLENGE · SPRINT') + '</b>' + (lv.bug ? '<p>' + esc(lv.bug.symptom || 'Die Schaltung arbeitet nicht wie verlangt.') + '</p><p class="dim small">Auf dem Tisch liegt der fehlerhafte Aufbau. Finde die Ursache, behebe sie und lass pruefen.</p>' : '<p class="dim small">Loese die Aufgabe so schnell und sauber wie moeglich. Fehlversuche und Tipps kosten Punkte.</p>') + '</div>' : '') +
-      '<div class="crumb">' + (t.ch === 'W' ? 'Uebungswerkstatt · Messaufgabe ' : 'Kapitel ' + t.ch + ' · Aufgabe ') + t.id + (t.boss ? ' · <b class="boss-tag">BOSS</b>' : '') + '</div>' +
+      '<div class="crumb">' + (lv ? '' : '<button class="btn small back" data-back title="Zurück zur Laborkarte">← Karte</button>') + (t.ch === 'W' ? 'Uebungswerkstatt · Messaufgabe ' : 'Kapitel ' + t.ch + ' · Aufgabe ') + t.id + (t.boss ? ' · <b class="boss-tag">BOSS</b>' : '') + '</div>' +
       '<h2>' + esc(t.title) + '</h2>' +
       (t.story ? '<p class="story">' + t.story + '</p>' : '') +
       '<div class="brief">' + t.brief + (t.limit && t.brief.indexOf('class="limit"') < 0 ? limitText(t.limit) : '') + '</div>' +
       (t.learn ? '<div class="learn"><b>Lernziel</b> ' + t.learn + '</div>' : '') +
       '<div class="hints"><button class="btn small" id="hint1">Tipp 1</button><button class="btn small" id="hint2">Tipp 2</button></div><div id="hintBox"></div>';
     if (t.measure.length) {
-      h += '<div class="protocol"><h3>Messprotokoll <button class="btn small calc-ctx" data-calc title="Taschenrechner oeffnen">🖩 Rechner</button></h3>';
+      h += '<div class="protocol"><h3>Messprotokoll <button class="btn small calc-ctx" data-calc title="Taschenrechner oeffnen">🖩 Rechner</button></h3>' +
+        '<p class="proto-note dim small">Gib den Wert so an, wie dein Gerät ihn anzeigt bzw. wie du ihn berechnest. Innerhalb der Toleranz ist er richtig – auf eine sinnvolle Stellenzahl runden (Komma oder Punkt).</p>';
       t.measure.forEach(function (m) {
         var v = draft && draft.answers && draft.answers[m.id] !== undefined ? draft.answers[m.id] : '';
-        h += '<label><span>' + esc(m.ask) + '</span><input inputmode="decimal" data-ans="' + m.id + '" value="' + esc(v) + '" placeholder="Messwert"><em>' + esc(m.unit || '') + '</em></label>';
+        h += '<label><span>' + esc(m.ask) + '</span><input inputmode="decimal" data-ans="' + m.id + '" value="' + esc(v) + '" placeholder="' + (m.value !== undefined ? 'Rechenwert' : 'Messwert') + '"><em>' + esc(m.unit || '') + '</em>' +
+          '<small class="tol">' + tolText(m) + '</small></label>';
       });
       h += '</div>';
     }
@@ -344,12 +374,19 @@
     if (t.measureUX === 'drag') h += '<p class="tut-link"><b>Neu:</b> Messspitzen ziehen, Messbereich waehlen, Tastkopf anschliessen – <a href="#" data-go="tutorial">Anleitung ansehen</a></p>';
     $('#taskInfo').innerHTML = h;
     var tl = $('#taskInfo [data-go="tutorial"]'); if (tl) tl.onclick = function (ev) { ev.preventDefault(); renderTutorial(); show('tutorial'); };
+    var bk = $('#taskInfo [data-back]'); if (bk) bk.onclick = goMap;
     $('#hint1').onclick = function () { if (current.hints < 1 && LIVE) LIVE.hint(); current.hints = Math.max(current.hints, 1); $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div>'; };
     $('#hint2').onclick = function () { if (current.hints < 2 && LIVE) LIVE.hint(); current.hints = 2; $('#hintBox').innerHTML = '<div class="hint">' + t.hint + '</div><div class="hint">' + t.hint2 + '</div>'; };
     $$('[data-ans]').forEach(function (inp) { inp.oninput = persistDraft; });
     $('#btnCheck').onclick = check;
     renderPalette(t);
     void ch;
+  }
+  /* Toleranz-Hinweis je Protokollzeile: Prozent aus tol (Standard 3 %), bei Rechenwerten Einheit und Stellenzahl */
+  function tolText(m) {
+    var pct = Math.round((m.tol || 0.03) * 100), t = 'Toleranz ±' + pct + ' %';
+    if (m.value !== undefined) t += ' · berechnet in ' + (m.unit || '–') + (pct <= 2 ? ', 3 geltende Stellen' : ', 2–3 geltende Stellen');
+    return t;
   }
   /* Pruefung: Auftrag, Messprotokoll, „Testen“ (sichtbare Tests im Browser) und „Abgeben“ (Bewertung auf dem Server). Keine Tipps. */
   function renderExamPanels(t, draft) {
@@ -772,13 +809,49 @@
     var c;
     try { c = scopeCurve(ed.layout, sp, T, $('#tb').selectedOptions[0].textContent); }
     catch (e) { $('#scopeInfo').textContent = e.message; return; }
-    ctx.strokeStyle = '#ffb000'; ctx.lineWidth = 2 * (window.devicePixelRatio || 1); ctx.shadowColor = '#ffb000'; ctx.shadowBlur = 6; ctx.beginPath();
-    c.samples.forEach(function (x, k) { var px = x.t / T * w, py = h - (x.ch0 - c.bot) / (c.top - c.bot) * h; if (k) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
-    ctx.stroke(); ctx.shadowBlur = 0;
+    drawTrace(ctx, c, T, w, h);
+    lastScope = { c: c, T: T, layout: ed.layout, label: $('#tb').selectedOptions[0].textContent, sp: sp };
     $('#scopeInfo').textContent = c.text;
     bench.scope = { pts: c.pts, info: c.info };
     bench.render();
     log('scope', { id: current.task && current.task.id, T: T });
+  }
+
+  function drawTrace(ctx, c, T, w, h) {
+    ctx.strokeStyle = '#ffb000'; ctx.lineWidth = 2 * (window.devicePixelRatio || 1); ctx.shadowColor = '#ffb000'; ctx.shadowBlur = 6; ctx.beginPath();
+    c.samples.forEach(function (x, k) { var px = x.t / T * w, py = h - (x.ch0 - c.bot) / (c.top - c.bot) * h; if (k) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
+    ctx.stroke(); ctx.shadowBlur = 0;
+  }
+  /* Oszilloskop gross: Overlay mit dem Schirm in voller Breite und den Kennwerten (Û+, Û−, Uss, Bildbreite, Frequenz/Periode der
+   * langsamsten Wechselquelle). Esc oder Klick daneben schliesst; der Aufbau bleibt unveraendert. Wird von Aufgabe und Tutorial genutzt. */
+  var lastScope = null;
+  function scopeBig(sc) {
+    sc = sc || lastScope;
+    var el = $('#scopeBig');
+    if (!el) { el = document.createElement('div'); el.id = 'scopeBig'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Oszilloskop gross'); document.body.appendChild(el); }
+    if (!sc) { el.innerHTML = '<div class="sb-back"></div><div class="sb-box"><div class="sb-head"><b>Oszilloskop</b><button class="sb-x" aria-label="Schliessen">×</button></div><p class="dim">Noch keine Aufnahme: zuerst Tastkopf bzw. Messspitzen setzen und RUN / „Aufnahme“ druecken.</p></div>'; }
+    else {
+      var c = sc.c, src = (sc.layout.parts || []).filter(function (p) { return p.type === 'acsource' || p.type === 'clock'; }), f = src.length ? Math.min.apply(null, src.map(function (p) { return (p.props && p.props.freq) || E.PARTS[p.type].props.freq || 50; })) : 0;
+      var stat = [['Û+ (max)', E.fmt(c.mx, 'V')], ['Û− (min)', E.fmt(c.mn, 'V')], ['Uss', E.fmt(c.mx - c.mn, 'V')], ['Bildbreite', sc.label], ['Raster', E.fmt(sc.T / 10, 's') + ' / Div']];
+      if (f) stat.push(['Quelle f', E.fmt(f, 'Hz')], ['Periode T', E.fmt(1 / f, 's')]);
+      el.innerHTML = '<div class="sb-back"></div><div class="sb-box"><div class="sb-head"><b>Oszilloskop</b><span class="dim small">' + esc(c.info) + '</span><button class="sb-x" aria-label="Schliessen">×</button></div>' +
+        '<canvas id="sbCanvas"></canvas><div class="sb-stats">' + stat.map(function (s) { return '<div><span>' + s[0] + '</span><b class="mono">' + esc(s[1]) + '</b></div>'; }).join('') + '</div>' +
+        '<p class="dim small">Esc oder Klick daneben schliesst. Deine Schaltung und die Messspitzen bleiben, wie sie sind.</p></div>';
+      el.hidden = false; // erst sichtbar machen, dann messen – sonst ist die Leinwand 0 × 0
+      var cv = $('#sbCanvas'), ctx = cv.getContext('2d'), dpr = window.devicePixelRatio || 1;
+      var w = cv.width = cv.clientWidth * dpr, h = cv.height = cv.clientHeight * dpr;
+      ctx.fillStyle = '#07090a'; ctx.fillRect(0, 0, w, h); ctx.strokeStyle = 'rgba(255,176,0,0.15)'; ctx.lineWidth = 1;
+      for (var i = 1; i < 10; i++) { ctx.beginPath(); ctx.moveTo(w * i / 10, 0); ctx.lineTo(w * i / 10, h); ctx.stroke(); }
+      for (i = 1; i < 8; i++) { ctx.beginPath(); ctx.moveTo(0, h * i / 8); ctx.lineTo(w, h * i / 8); ctx.stroke(); }
+      ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = (12 * dpr) + 'px ' + 'monospace'; ctx.fillText(c.top + ' V', 6 * dpr, 14 * dpr); ctx.fillText(c.bot + ' V', 6 * dpr, h - 6 * dpr);
+      drawTrace(ctx, c, sc.T, w, h);
+    }
+    el.hidden = false; document.body.classList.add('sb-open');
+    var close = function () { el.hidden = true; document.body.classList.remove('sb-open'); document.removeEventListener('keydown', esc1); };
+    var esc1 = function (ev) { if (ev.key === 'Escape') { ev.preventDefault(); close(); } };
+    $('.sb-back', el).onclick = close; $('.sb-x', el).onclick = close; document.addEventListener('keydown', esc1);
+    $('.sb-x', el).focus();
+    log('scope_big', { id: current.task && current.task.id });
   }
 
   /* ---------- Pruefen ---------- */
@@ -821,9 +894,9 @@
 
   /* ================= Theorie ================= */
   function openTheory(th) {
-    show('theory'); current.theory = th; current.started = Date.now();
+    show('theory'); current.theory = th; current.started = Date.now(); syncHash('theory');
     var V = root.DQVisuals, vis = V ? V.listOf(th.visual) : []; // Bild/Animation (visual) an {{visual}} bzw. nach dem ersten Absatz
-    var h = '<div class="theory"><div class="crumb">Kapitel ' + th.ch + ' · Theorie ' + th.id.slice(1) + '</div><div class="th-head"><h2>' + esc(th.title) + '</h2>' +
+    var h = '<div class="theory"><div class="crumb"><button class="btn small back" data-back title="Zurück zur Laborkarte">← Karte</button>Kapitel ' + th.ch + ' · Theorie ' + th.id.slice(1) + '</div><div class="th-head"><h2>' + esc(th.title) + '</h2>' +
       (speech.ok() ? '<button class="btn small" id="thRead" title="Lektion vorlesen (Stimme des Systems, offline)">🔊 Vorlesen</button>' : '') + '</div>' +
       '<article class="lesson">' + (V ? V.lessonHtml(th.lesson, vis) : th.lesson) + '</article>' +
       (th.merksatz ? '<aside class="merksatz"><h3>Das Wichtigste in Kuerze</h3><p>' + esc(th.merksatz) + '</p></aside>' : '') +
@@ -831,6 +904,7 @@
     $('#scr-theory').innerHTML = h;
     if ($('#thRead')) $('#thRead').onclick = function () { speech.toggle($('#scr-theory .lesson'), th.merksatz, $('#thRead')); };
     current.visuals = V && vis.length ? V.mountAll($('#scr-theory .lesson'), vis) : []; // Instanzen (fuer Tests: DigitalQuest.visuals)
+    var bkT = $('#scr-theory [data-back]'); if (bkT) bkT.onclick = goMap;
     $('#toQuiz').onclick = function () { this.hidden = true; renderQuiz(th); };
     log('theory_open', { id: th.id });
   }
@@ -914,11 +988,13 @@
       '<div class="tut-bench"><svg id="tbench" tabindex="0" aria-label="Uebungs-Werkbank"></svg>' +
       '<div class="tut-panel"><span class="lcd small" id="tutLcd">OFF</span><span id="tutSub" class="dim small"></span><span class="tut-probes" id="tutProbes"></span>' +
       '<label class="fld"><span>Bildbreite Oszilloskop</span><select id="tutTb"><option value="0.01">10 ms</option><option value="0.04" selected>40 ms</option><option value="0.2">200 ms</option></select></label>' +
+      '<button class="btn small" id="tutScopeBig" title="Oszilloskop gross anzeigen">⤢ Oszilloskop gross</button>' +
       '<button class="btn small" id="tutFuse" hidden>Sicherung ersetzen</button><p id="tutWarn" class="small"></p><p id="tutScope" class="small dim"></p></div></div></div>';
     tutStart();
     $('#tutReset').onclick = function () { tutStop(); tutStart(); };
     $('#tutMap').onclick = function () { renderMap(); show('map'); };
     $('#tutTb').onchange = function () { if (tut && tut.bench.scope) tutScope(); };
+    $('#tutScopeBig').onclick = function () { scopeBig(tut && tut.lastScope); };
     $('#tutFuse').onclick = function () { if (tut) { tut.state.fuse = false; tutTick(0); } };
     log('tutorial_open', {});
   }
@@ -965,7 +1041,7 @@
     if (!tut) return;
     var sp = { a: tut.core.scopeProbes.tip, b: tut.core.scopeProbes.gnd }, T = +$('#tutTb').value;
     if (!sp.a) { tut.bench.scope = { pts: [], info: 'Tastkopf anschliessen' }; $('#tutScope').textContent = 'Oszilloskop: zuerst den gelben Tastkopf an einen Anschluss ziehen.'; tut.bench.render(); return; }
-    try { var c = scopeCurve(tut.core.layout, sp, T, $('#tutTb').selectedOptions[0].textContent); tut.bench.scope = { pts: c.pts, info: c.info }; $('#tutScope').textContent = 'Oszilloskop – ' + c.text; if (sp.a === 'R2.a') tutDone('run'); }
+    try { var c = scopeCurve(tut.core.layout, sp, T, $('#tutTb').selectedOptions[0].textContent); tut.bench.scope = { pts: c.pts, info: c.info }; tut.lastScope = { c: c, T: T, layout: tut.core.layout, label: $('#tutTb').selectedOptions[0].textContent, sp: sp }; $('#tutScope').textContent = 'Oszilloskop – ' + c.text; if (sp.a === 'R2.a') tutDone('run'); }
     catch (e) { $('#tutScope').textContent = e.message; }
     tut.bench.render();
   }
@@ -1052,11 +1128,24 @@
         show(g);
       };
     });
+    // Logo: im Portal zur Halle (eine Ebene hoeher), in der Einzeldatei zur Karte. Fusszeile: Impressum/Datenschutz (Einzeldatei: Live-Seite)
+    var brand = $('#brand');
+    if (root.DQ_PORTAL) brand.href = '../';
+    else brand.onclick = function (ev) { ev.preventDefault(); if (EXAM) { EXAM.back(); return; } goMap(); };
+    if (!root.DQ_PORTAL) { $('#footImp').href = 'https://digital-quest.steven-matzinger93.workers.dev/impressum.html'; $('#footDs').href = 'https://digital-quest.steven-matzinger93.workers.dev/datenschutz.html'; $$('.lab-foot a').forEach(function (a) { a.target = '_blank'; a.rel = 'noopener'; }); }
+    $('#btnScopeBig').onclick = function () { scopeBig(); };
+    window.addEventListener('popstate', function () {
+      if (root.DQCalc && root.DQCalc.isOpen) { root.DQCalc.close(); return; } // Zurueck schliesst zuerst den Rechner
+      if ($('#scopeBig') && !$('#scopeBig').hidden) { $('#scopeBig .sb-x').click(); return; }
+      if (EXAM || current.live) return;
+      if (!routeHash()) goMap();
+    });
     if (root.DQCalc) {
       root.DQCalc.onLog = log;
-      $('#btnCalc').onclick = function () { root.DQCalc.toggle(); };
-      document.addEventListener('click', function (ev) { var b = ev.target.closest && ev.target.closest('[data-calc]'); if (b) { ev.preventDefault(); root.DQCalc.open(); } });
-      document.addEventListener('keydown', function (ev) { if (ev.ctrlKey && ev.altKey && (ev.key === 'r' || ev.key === 'R')) { ev.preventDefault(); root.DQCalc.toggle(); } });
+      var calcHist = function () { if (root.DQCalc.isOpen) { try { history.pushState({ dq: 'calc' }, '', location.href); } catch (e) { /* file:// ohne History */ } } };
+      $('#btnCalc').onclick = function () { root.DQCalc.toggle(); calcHist(); };
+      document.addEventListener('click', function (ev) { var b = ev.target.closest && ev.target.closest('[data-calc]'); if (b) { ev.preventDefault(); root.DQCalc.open(); calcHist(); } });
+      document.addEventListener('keydown', function (ev) { if (ev.ctrlKey && ev.altKey && (ev.key === 'r' || ev.key === 'R')) { ev.preventDefault(); root.DQCalc.toggle(); calcHist(); } });
     }
     $('#btnRot').onclick = function () { view().rotateSelected(); };
     $('#btnFit').onclick = function () { view().fit(); };
@@ -1093,6 +1182,9 @@
     });
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
     renderMap(); show('map');
+    // Adresse beim Laden (#/aufgabe/1.1 …) oeffnen – nicht bei Sonderstarts aus dem Portal
+    var q0 = new URLSearchParams(location.search);
+    if (location.hash && !q0.get('live') && !q0.get('exam') && !q0.get('frei') && !q0.get('werkstatt')) setTimeout(routeHash, 0);
     /* Einstieg aus dem Portal: ?frei=1 Freie Werkbank, ?werkstatt=1 Uebungswerkstatt, ?live=ID Live-Challenge */
     var qs = new URLSearchParams(location.search);
     LIVE = root.DQLive ? root.DQLive.create({ modal: modal, esc: esc, acct: ACCT, byId: DQ.byId,

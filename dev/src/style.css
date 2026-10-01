@@ -438,6 +438,19 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .visual-cap { margin: 6px 2px 0; font-size: 13px; color: var(--text-dim); }
 /* numberSteps: Zahlen-Schritt-Widget */
 .ns { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-secondary); padding: 12px 14px; }
+/* Fusszeile im Labor, Zurueck-Knopf, Toleranz-Hinweis */
+.lab-foot { display: flex; gap: 18px; justify-content: center; padding: 18px 16px 24px; font-size: 12px; color: var(--text-faint); } .lab-foot a { color: var(--text-dim); }
+.brand { text-decoration: none; } .brand:focus-visible { outline: 2px solid var(--accent-lead); outline-offset: 4px; border-radius: 6px; }
+.crumb .back { margin-right: 10px; vertical-align: middle; font-family: var(--font-ui); letter-spacing: 0; }
+.protocol .tol { display: block; flex-basis: 100%; color: var(--text-faint); font-size: 11px; margin-top: -2px; } .proto-note { margin: 0 0 8px; }
+/* Oszilloskop gross */
+#scopeBig { position: fixed; inset: 0; z-index: 610; } #scopeBig[hidden] { display: none; } .sb-back { position: absolute; inset: 0; background: rgba(0,0,0,.6); }
+.sb-box { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(960px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; background: #15171a; color: #e0e0e0; border: 1px solid #8a6000; border-radius: 14px; padding: 14px 16px; box-shadow: 0 18px 50px rgba(0,0,0,.6); display: grid; gap: 10px; }
+.sb-head { display: flex; align-items: center; gap: 10px; } .sb-head b { color: #ffb000; } .sb-head .small { flex: 1; } .sb-x { background: none; border: 0; color: #8a8a8a; font-size: 24px; line-height: 1; cursor: pointer; } .sb-x:hover { color: #fff; }
+#sbCanvas { width: 100%; aspect-ratio: 2 / 1; display: block; border-radius: 8px; border: 1px solid #333; }
+.sb-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; } .sb-stats div { background: #0e1012; border: 1px solid #2a2a2a; border-radius: 8px; padding: 6px 10px; display: grid; } .sb-stats span { font-size: 11px; color: #8a8a8a; } .sb-stats b { font-size: 18px; color: #39ff14; }
+@media (max-width: 640px) { .sb-box { padding: 10px; } .sb-stats b { font-size: 15px; } }
+
 /* Musterbeispiele mit Fading (worked) */
 .wk-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; } .wk-tabs .btn.on { border-color: var(--accent-cyan); color: var(--accent-cyan); }
 .wk-given { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; margin-bottom: 8px; padding: 8px 10px; background: rgba(255,255,255,.04); border-radius: 8px; }

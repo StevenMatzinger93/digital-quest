@@ -78,6 +78,9 @@ button{ font-family:inherit; }
 main{ position:relative; z-index:5; min-height:calc(100vh - 120px); outline:none; }
 .foot{ position:relative; z-index:5; display:flex; gap:18px; justify-content:center; flex-wrap:wrap; padding:22px 16px 28px; color:var(--faint); font-size:12.5px; }
 .foot a{ color:var(--dim); }
+.term-foot{ margin:14px 0 0; font-size:11.5px; color:var(--faint); text-align:center; } .term-foot a{ color:var(--dim); }
+.pw-eye{ background:none; border:1px solid rgba(255,176,0,.35); color:var(--dim); border-radius:6px; padding:2px 7px; margin-left:6px; cursor:pointer; font-size:13px; line-height:1.4; vertical-align:middle; }
+.pw-eye:hover, .pw-eye.on{ color:var(--term); border-color:var(--term); } .pw-eye:focus-visible{ outline:2px solid var(--term); }
 
 /* ---------- Startseite ---------- */
 .hero{ text-align:center; padding:52px 16px 8px; }
