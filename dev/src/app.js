@@ -758,8 +758,8 @@
     if (mode !== meter.mode) meter.range = 'AUTO';
     meter.mode = mode; renderRangeRow();
     $$('[data-mm]').forEach(function (b) { b.classList.toggle('on', b.dataset.mm === mode); });
-    // dragUX: die Spitzen bleiben stecken, auch wenn das Geraet aus ist (wie am echten Geraet); sonst raeumt OFF die Spitzen weg
-    if (ed) { ed.tool = mode === 'OFF' ? 'wire' : 'probe'; if (mode === 'OFF' && !dragUX()) { ed.probes = { a: null, b: null }; meter.a = meter.b = null; meter.next = 'a'; } core.redraw(); }
+    // Werkbank (Ziehen): die Spitzen bleiben stecken, auch wenn das Gerät aus ist (wie am echten Gerät); im Schaltplan (Klick) räumt OFF die Spitzen weg – sonst bleibt beim nächsten A⎓ ein Parallelzweig zur Quelle (FUSE)
+    if (ed) { ed.tool = mode === 'OFF' ? 'wire' : 'probe'; if (mode === 'OFF' && !(dragUX() && viewMode === 'bench')) { ed.probes = { a: null, b: null }; meter.a = meter.b = null; meter.next = 'a'; } core.redraw(); }
     log('meter_mode', { id: current.task && current.task.id, mode: mode });
     $('#mmHelp').textContent = dragUX() && viewMode === 'bench' ? 'Werkbank: Messspitzen mit der Maus an die Buchsen ziehen (rot = +, schwarz = COM). Klick auf Buchsen verbindet Leitungen.' :
       mode === 'OFF' ? 'Messgerät aus. Klick auf Anschlüsse verbindet Leitungen.' :

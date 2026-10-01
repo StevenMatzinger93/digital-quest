@@ -370,10 +370,11 @@
     var x = tip[0], y = tip[1];
     return '<g class="bprobe' + (park ? ' parked' : '') + (grab ? ' grab' : '') + '"' + (which ? ' data-probe="' + which + '"' : '') + '>' +
       (grab ? '<circle class="bprobehit" cx="' + (x + 22) + '" cy="' + (y - 44) + '" r="30"/>' : '') +
+      '<g pointer-events="none">' + // nur der Griff (bprobehit) ist greifbar – der Spitzenkoerper darf keine Buchsen verdecken
       '<path d="M' + x + ' ' + y + 'l17 -32" stroke="#d0d4d6" stroke-width="2.6" stroke-linecap="round"/>' +
       '<path d="M' + (x + 12) + ' ' + (y - 27) + 'l10 -5" stroke="' + col + '" stroke-width="5" stroke-linecap="round"/>' +
       '<path d="M' + (x + 16) + ' ' + (y - 30) + 'l22 -40" stroke="' + col + '" stroke-width="11" stroke-linecap="round"/>' +
-      '<path d="M' + (x + 15) + ' ' + (y - 33) + 'l20 -36" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round"/></g>';
+      '<path d="M' + (x + 15) + ' ' + (y - 33) + 'l20 -36" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round"/></g></g>';
   }
 
   /* Farbverlaeufe, Muster und Filter der Werkbank – gemeinsam fuer den Renderer und die freistehenden Bilder (icon) */

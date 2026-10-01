@@ -130,8 +130,8 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
       const dial = async mode => { if (view === 'bench') await atomicClick(page, `#bench [data-dial="${mode}"] .bdialhit`, 'data-dial'); else await page.click(`[data-mm="${mode}"]`); };
       const drag = view === 'bench' && t.measureUX === 'drag'; // Werkbank: Spitzen ziehen (Standard fuer alle Aufgaben seit 01.10.2026)
       const readMeter = async (m, mode, a, b) => {
-        await dial(mode);
-        if (drag) { await atomicDrag(page, 'a', a); await atomicDrag(page, 'b', b); } else { await pin(a); await pin(b); }
+        // Werkbank: erst die Spitzen setzen, dann die Messart – wie am echten Gerät (Spitzen bleiben nach OFF stecken; A⎓ mit Spitzen parallel zur Quelle wuerde die Sicherung auslösen)
+        if (drag) { await atomicDrag(page, 'a', a); await atomicDrag(page, 'b', b); await dial(mode); } else { await dial(mode); await pin(a); await pin(b); }
         const both = await page.evaluate(() => [document.getElementById('lcd').textContent, (document.querySelector('#bench .bmlcd') || {}).textContent]); // gleiches Bild
         const lcd = both[0], base = lcdValue(lcd);
         if (view === 'bench' && both[1] !== lcd) fail(m.id + ': Werkbank-Multimeter zeigt anderen Wert als das Panel (' + both[1] + ' / ' + lcd + ')');
