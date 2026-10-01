@@ -13,7 +13,7 @@ const divider = { parts: [
 let r = E.analyze(divider);
 near(r.parts.R2.v, 8, 0.001, 'Teiler U_R2 = 8 V');
 near(r.parts.R1.i, 0.004, 0.001, 'Teiler I = 4 mA');
-ok(r.faults.length === 0, 'Teiler ohne Stoerung', r.faults);
+ok(r.faults.length === 0, 'Teiler ohne Störung', r.faults);
 
 // 2 Schwebende Schaltung ohne Masse funktioniert (Gmin)
 const noGnd = E.clone(divider); noGnd.parts.pop(); noGnd.wires.pop();
@@ -100,14 +100,14 @@ function latch() {
   net.byId.TS.props.closed = false; x = E.step(net, st);
   ok(x.parts.U1.out === true && x.converged, 'RS: Speichern -> Q bleibt 1');
   net.byId.TR.props.closed = true; x = E.step(net, st);
-  ok(x.parts.U1.out === false, 'RS: Ruecksetzen -> Q=0');
+  ok(x.parts.U1.out === false, 'RS: Rücksetzen -> Q=0');
   net.byId.TR.props.closed = false; x = E.step(net, st);
   ok(x.parts.U1.out === false, 'RS: Speichern -> Q bleibt 0');
 }
 
 // 11 Ringoszillator wird als instabil erkannt
 r = E.analyze({ parts: [{ id: 'U1', type: 'not' }, { id: 'GND1', type: 'ground' }], wires: [W('U1.out', 'U1.in')] });
-ok(r.faults.some(f => f.code === 'UNSTABLE'), 'NICHT rueckgekoppelt: instabil');
+ok(r.faults.some(f => f.code === 'UNSTABLE'), 'NICHT rückgekoppelt: instabil');
 
 // 12 Taktgeber im Oszilloskop
 const clk = { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 10 } }, { id: 'R1', type: 'resistor', value: 1000 }, { id: 'GND1', type: 'ground' }],
@@ -126,7 +126,7 @@ const lay2 = led(470, true);
 tr = E.runTask(task, lay2, { m1: String(9 - 1.8 - 0.15) });
 ok(tr.pass, 'Aufgabe bestanden mit richtigem Messwert', tr.results.filter(x => !x.ok));
 tr = E.runTask(task, lay2, { m1: '9' });
-ok(!tr.pass, 'Falscher Messwert faellt durch');
+ok(!tr.pass, 'Falscher Messwert fällt durch');
 
 // 14 Interaktionskern (circuit-ui.js, ohne DOM)
 const Circuit = require('./src/circuit-ui.js');
@@ -145,22 +145,22 @@ ok(r1.x % 20 === 0 && r1.y % 20 === 0 && kinds[kinds.length - 1] === 'move', 'Zi
 cu.rotateSelected(); ok(r1.rot === 90, 'Drehen um 90°');
 cu.sel = 'B1'; ok(!cu.removeSelected() && msgs.length === 1, 'Gesperrtes Bauteil bleibt');
 cu.probes.a = 'R1.b'; cu.sel = 'R1'; cu.removeSelected();
-ok(!cu.part('R1') && cu.layout.wires.length === 0 && cu.probes.a === null, 'Loeschen entfernt Leitungen und Messspitze');
+ok(!cu.part('R1') && cu.layout.wires.length === 0 && cu.probes.a === null, 'Löschen entfernt Leitungen und Messspitze');
 const s1 = cu.addPart('switch', 600, 300); cu.pressPart('S1', [s1.x, s1.y]); cu.release();
 ok(s1.props.closed === true && kinds[kinds.length - 1] === 'toggle', 'Schalter per Klick umlegen');
-ok(views.n > 0, 'Angehaengte Ansicht wird neu gezeichnet');
+ok(views.n > 0, 'Angehängte Ansicht wird neu gezeichnet');
 
 // 15 Werkbank-Raum im Kern: eigene Lage je Bauteil, Schema bleibt unberuehrt
 const cb = new Circuit({});
 cb.load({ parts: [{ id: 'B1', type: 'battery', value: 9, x: 160, y: 300, rot: 0 }, { id: 'D1', type: 'led', x: 500, y: 300, rot: 90 }], wires: [] }, ['B1'],
   { parts: [{ id: 'B1', x: 300, y: 450 }, { id: 'R1', x: 560, y: 290, rot: 0 }] });
-ok(cb.part('B1').bench.x === 300 && !cb.part('D1').bench, 'bench-Layout wird uebernommen, fehlende Lage bleibt offen');
+ok(cb.part('B1').bench.x === 300 && !cb.part('D1').bench, 'bench-Layout wird übernommen, fehlende Lage bleibt offen');
 const dAuto = cb.pos(cb.part('D1'), 'bench'); ok(dAuto.x % 10 === 0 && dAuto.rot === 90, 'Auto-Anordnung aus Schema-Lage', dAuto);
 cb.pressPart('D1', [dAuto.x, dAuto.y], 'bench'); cb.dragTo([dAuto.x + 33, dAuto.y - 21]); cb.release();
-const d1 = cb.part('D1'); ok(d1.bench && d1.bench.x === dAuto.x + 30 && d1.bench.y === dAuto.y - 20 && d1.x === 500 && d1.y === 300, 'Ziehen auf der Werkbank aendert nur die Werkbank-Lage', d1);
-cb.space = 'bench'; cb.rotateSelected(); ok(d1.bench.rot === 180 && d1.rot === 90, 'Drehen auf der Werkbank aendert nur die Werkbank-Lage', d1);
+const d1 = cb.part('D1'); ok(d1.bench && d1.bench.x === dAuto.x + 30 && d1.bench.y === dAuto.y - 20 && d1.x === 500 && d1.y === 300, 'Ziehen auf der Werkbank ändert nur die Werkbank-Lage', d1);
+cb.space = 'bench'; cb.rotateSelected(); ok(d1.bench.rot === 180 && d1.rot === 90, 'Drehen auf der Werkbank ändert nur die Werkbank-Lage', d1);
 const rb = cb.addPart('resistor', 600, 300, 'bench'); ok(rb.id === 'R1' && rb.bench.x === 560 && rb.bench.y === 290 && rb.x % 20 === 0, 'Neues Bauteil nimmt Werkbank-Lage aus dem bench-Layout', rb);
-const rs = cb.addPart('resistor', 400, 200); ok(rs.id === 'R2' && !rs.bench, 'Im Schema hinzugefuegt: Werkbank-Lage automatisch');
+const rs = cb.addPart('resistor', 400, 200); ok(rs.id === 'R2' && !rs.bench, 'Im Schema hinzugefügt: Werkbank-Lage automatisch');
 
 // 16 Wechselspannungsquelle, V~ mit TRMS und AVG (Mittelwert-Gleichrichter, sinusskaliert)
 const ac = shape => ({ parts: [{ id: 'G1', type: 'acsource', value: 10, props: { freq: 50, shape } }, { id: 'R1', type: 'resistor', value: 1000 }],
@@ -168,10 +168,10 @@ const ac = shape => ({ parts: [{ id: 'G1', type: 'acsource', value: 10, props: {
 let am = E.acMeasure(ac('sine'), { a: 'R1.a', b: 'R1.b' });
 near(am.rms, 10 / Math.SQRT2, 0.01, 'Sinus: TRMS = Û/√2'); near(am.avg, 10 / Math.SQRT2, 0.01, 'Sinus: AVG-Anzeige = TRMS'); ok(Math.abs(am.dc) < 0.05, 'Sinus: Gleichanteil 0', am.dc);
 am = E.acMeasure(ac('square'), { a: 'R1.a', b: 'R1.b' });
-near(am.rms, 10, 0.01, 'Rechteck: TRMS = Û'); near(am.avg, 11.107, 0.01, 'Rechteck: AVG-Geraet zeigt 11 % zu viel');
+near(am.rms, 10, 0.01, 'Rechteck: TRMS = Û'); near(am.avg, 11.107, 0.01, 'Rechteck: AVG-Gerät zeigt 11 % zu viel');
 am = E.acMeasure(ac('triangle'), { a: 'R1.a', b: 'R1.b' });
-near(am.rms, 10 / Math.sqrt(3), 0.01, 'Dreieck: TRMS = Û/√3'); near(am.avg, 5.554, 0.01, 'Dreieck: AVG-Geraet zeigt 4 % zu wenig');
-near(E.measure(ac('square'), { mode: 'VAC', a: 'R1.a', b: 'R1.b', meterType: 'avg' }).value, 11.107, 0.01, 'measure VAC mit AVG-Geraet');
+near(am.rms, 10 / Math.sqrt(3), 0.01, 'Dreieck: TRMS = Û/√3'); near(am.avg, 5.554, 0.01, 'Dreieck: AVG-Gerät zeigt 4 % zu wenig');
+near(E.measure(ac('square'), { mode: 'VAC', a: 'R1.a', b: 'R1.b', meterType: 'avg' }).value, 11.107, 0.01, 'measure VAC mit AVG-Gerät');
 ok(E.acMeasure(divider, { a: 'R2.a', b: 'R2.b' }).static, 'Ohne Wechselquelle: statisch');
 const halfwave = { parts: [{ id: 'G1', type: 'acsource', value: 10, props: { freq: 50 } }, { id: 'V1', type: 'diode' }, { id: 'R1', type: 'resistor', value: 1000 }],
   wires: [W('G1.p', 'V1.a'), W('V1.k', 'R1.a'), W('R1.b', 'G1.n')] };
@@ -184,7 +184,7 @@ ok(E.dmm(1.95, 'V', 0).text === '1.954 V', 'DMM 1,95 V im 6-V-Bereich (+0,2 %)',
 ok(E.dmm(0.004, 'A', 0).text === '4.008 mA', 'DMM 4 mA', E.dmm(0.004, 'A', 0));
 ok(E.dmm(8, 'V', 0).text === '8.02 V', 'DMM 8 V im 60-V-Bereich', E.dmm(8, 'V', 0));
 ok(E.dmm(0, 'V', 0).text === '0.0 mV', 'DMM 0 V', E.dmm(0, 'V', 0));
-ok(E.dmm(1e9, 'Ω', 0).text === 'OL' && E.dmm(Infinity, 'Ω').text === 'OL', 'DMM Ueberlauf OL');
+ok(E.dmm(1e9, 'Ω', 0).text === 'OL' && E.dmm(Infinity, 'Ω').text === 'OL', 'DMM Überlauf OL');
 const flick = new Set(); for (let k = 0; k < 40; k++) flick.add(E.dmm(1.95, 'V').text);
 ok(flick.size >= 2 && flick.size <= 3, 'Letzte Stelle flackert um ±1 Digit', [...flick]);
 ok(E.fmt(0, 'V') === '0.000 V' && E.fmt(1e-12, 'A') === '0.000 A', 'fmt: 0 ohne µ');
@@ -204,7 +204,7 @@ ok(tr0.length >= 2 && tr0[0].kind === 'diode' && tr0[0].changed[0].id === 'D1' &
 const rsl = { parts: [{ id: 'U1', type: 'nor' }, { id: 'U2', type: 'nor' }, { id: 'GND1', type: 'ground' }],
   wires: [W('U1.out', 'U2.in1'), W('U2.out', 'U1.in2'), W('U1.in1', 'GND1.g'), W('U2.in2', 'GND1.g')] };
 const trRS = E.step(E.buildNetlist(rsl), E.newState(), { trace: true }).trace;
-ok(trRS.some(x => x.kind === 'gate'), 'Zeitlupe: Gatter-Schritte der Rueckkopplung', trRS.map(x => x.kind));
+ok(trRS.some(x => x.kind === 'gate'), 'Zeitlupe: Gatter-Schritte der Rückkopplung', trRS.map(x => x.kind));
 ok(trRS.length <= E.TRACE_MAX, 'Verlauf begrenzt');
 
 // 19 Verdeckte Unterbrechung (props.defect) fuer Fehlersuche
@@ -229,15 +229,15 @@ const ctr = { parts: [G0, { id: 'E1', type: 'logicin' }, { id: 'E2', type: 'logi
   wires: [W('E2.out', 'FF1.T'), W('E2.out', 'FF2.T'), W('E1.out', 'FF1.C'), W('FF1.Qn', 'FF2.C')] };
 const pulse = n => { const s = []; for (let k = 0; k < n; k++) s.push({ set: { E1: { closed: true } } }, { set: { E1: { closed: false } } }); return s; };
 const cnt = n => { const st = pulse(n); st[st.length - 1].expect = [{ sel: 'FF1', out: !!(n & 1) }, { sel: 'FF2', out: !!(n >> 1 & 1) }]; return { tests: [{ name: n + ' Takte', steps: st }] }; };
-ok([1, 2, 3, 4].every(n => E.runTask(cnt(n), ctr, {}).pass), 'Asynchroner 2-Bit-Zaehler zaehlt 1, 2, 3, 0', [1, 2, 3, 4].map(n => E.runTask(cnt(n), ctr, {}).results.filter(r => !r.ok).map(r => r.text)));
+ok([1, 2, 3, 4].every(n => E.runTask(cnt(n), ctr, {}).pass), 'Asynchroner 2-Bit-Zähler zählt 1, 2, 3, 0', [1, 2, 3, 4].map(n => E.runTask(cnt(n), ctr, {}).results.filter(r => !r.ok).map(r => r.text)));
 const dff = { parts: [G0, { id: 'E1', type: 'logicin' }, { id: 'E2', type: 'logicin' }, { id: 'FF1', type: 'dff' }], wires: [W('E1.out', 'FF1.D'), W('E2.out', 'FF1.C')] };
-ok(E.runTask({ tests: [{ steps: [{ set: { E1: { closed: true } } }, { set: { E2: { closed: true } } }, { set: { E1: { closed: false } }, expect: [{ sel: 'FF1', out: true }] }] }] }, dff, {}).pass, 'D-Flipflop speichert bei Flanke, nicht bei D-Aenderung');
+ok(E.runTask({ tests: [{ steps: [{ set: { E1: { closed: true } } }, { set: { E2: { closed: true } } }, { set: { E1: { closed: false } }, expect: [{ sel: 'FF1', out: true }] }] }] }, dff, {}).pass, 'D-Flipflop speichert bei Flanke, nicht bei D-Änderung');
 
 // 22 NPN als Schalter und im aktiven Bereich, Z-Diode
 const npn = rb => ({ parts: [{ id: 'B1', type: 'battery', value: 5 }, { id: 'R1', type: 'resistor', value: rb }, { id: 'Q1', type: 'npn' }, { id: 'R2', type: 'resistor', value: 1000 }],
   wires: [W('B1.p', 'R1.a'), W('R1.b', 'Q1.b'), W('B1.p', 'R2.a'), W('R2.b', 'Q1.c'), W('Q1.e', 'B1.n')] });
 const qs = E.analyze(npn(10000)).parts.Q1, qa = E.analyze(npn(1e6)).parts.Q1;
-ok(qs.state === 'sat' && qs.v < 0.3 && qs.i > 4.5e-3, 'NPN mit 10 kΩ Basiswiderstand schaltet durch (Saettigung)', qs);
+ok(qs.state === 'sat' && qs.v < 0.3 && qs.i > 4.5e-3, 'NPN mit 10 kΩ Basiswiderstand schaltet durch (Sättigung)', qs);
 ok(qa.state === 'on' && Math.abs(qa.i - 100 * qa.ib) < 1e-6 && qa.v > 1, 'NPN mit 1 MΩ: aktiv, Ic = β·Ib', qa);
 ok(E.analyze(npn(1e12)).parts.Q1.state === 'off' || Math.abs(E.analyze(npn(1e12)).parts.Q1.i) < 1e-6, 'NPN ohne Basisstrom sperrt');
 const zd = { parts: [{ id: 'B1', type: 'battery', value: 12 }, { id: 'R1', type: 'resistor', value: 470 }, { id: 'Z1', type: 'zener' }, { id: 'R2', type: 'resistor', value: 2200 }],
@@ -251,12 +251,12 @@ function kcl(layout) {
   net.parts.forEach(p => Object.keys(r.parts[p.id].pin || {}).forEach(pin => { const n = net.pinNode[p.id + '.' + pin]; sum[n] = (sum[n] || 0) + r.parts[p.id].pin[pin]; }));
   return Object.keys(sum).filter(n => n !== '0').every(n => Math.abs(sum[n]) < 1e-6);
 }
-ok(kcl(divider) && kcl(npn(10000)) && kcl(zd) && kcl(led(470, true)), 'Anschlussstroeme erfuellen die Knotenregel');
+ok(kcl(divider) && kcl(npn(10000)) && kcl(zd) && kcl(led(470, true)), 'Anschlussströme erfüllen die Knotenregel');
 
 // 24 Ausgang gegen Ausgang, Gatter-Limit
 const clash = (a, b) => ({ parts: [G0, { id: 'E1', type: 'logicin', props: { closed: a } }, { id: 'E2', type: 'logicin', props: { closed: b } }, { id: 'L1', type: 'logicled' }], wires: [W('E1.out', 'L1.in'), W('E2.out', 'L1.in')] });
-ok(E.analyze(clash(true, false)).faults.some(f => f.code === 'OUTPUT_CLASH') && !E.analyze(clash(true, true)).faults.length, 'Zwei Ausgaenge mit unterschiedlichem Pegel: OUTPUT_CLASH');
-ok(!E.runTask({ limit: { gates: 0 }, tests: [{ expect: [{ noFault: true }] }] }, xn(true, true), {}).pass, 'Gatter-Limit wird geprueft');
+ok(E.analyze(clash(true, false)).faults.some(f => f.code === 'OUTPUT_CLASH') && !E.analyze(clash(true, true)).faults.length, 'Zwei Ausgänge mit unterschiedlichem Pegel: OUTPUT_CLASH');
+ok(!E.runTask({ limit: { gates: 0 }, tests: [{ expect: [{ noFault: true }] }] }, xn(true, true), {}).pass, 'Gatter-Limit wird geprüft');
 
 // 25 Wechselgroessen mit Einschwingen (τ ≫ T) und kurzen Nadeln (τ ≪ T)
 const rcClock = { parts: [{ id: 'CLK1', type: 'clock', props: { freq: 1000 } }, { id: 'GND1', type: 'ground' }, { id: 'R1', type: 'resistor', value: 10000 }, { id: 'C1', type: 'capacitor', value: 10e-6 }], wires: [W('CLK1.out', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'GND1.g')] };
@@ -268,18 +268,18 @@ ok(am.pp > 34 && am.pp < 41, 'Differenzierglied: Nadeln fein genug abgetastet (�
 // 26 Theorie-Bilder (visuals.js): reine Rechenfunktionen
 globalThis.DQEngine = E; require('./src/visuals.js'); const VIS = globalThis.DQVisuals;
 const cells = ps => ps.map(p => p.cells.slice().sort((a, b) => a - b).join(',')).sort();
-ok(cells(VIS.minimize(3, [1, 3, 5, 7])).join('|') === '1,3,5,7', 'KV: Summe m(1,3,5,7) = ein Paeckchen e1');
+ok(cells(VIS.minimize(3, [1, 3, 5, 7])).join('|') === '1,3,5,7', 'KV: Summe m(1,3,5,7) = ein Päckchen e1');
 ok(cells(VIS.minimize(4, [0, 2, 8, 10])).join('|') === '0,2,8,10', 'KV: vier Ecken sind benachbart');
-ok(VIS.minimize(3, [1, 2, 4, 7]).length === 4, 'KV: XOR aus drei Variablen laesst sich nicht vereinfachen');
-ok(VIS.minimize(3, [1], [3, 5, 7]).length === 1 && VIS.minimize(3, [1], [3, 5, 7])[0].cells.length === 4, 'KV: X vergroessern das Paeckchen');
+ok(VIS.minimize(3, [1, 2, 4, 7]).length === 4, 'KV: XOR aus drei Variablen lässt sich nicht vereinfachen');
+ok(VIS.minimize(3, [1], [3, 5, 7]).length === 1 && VIS.minimize(3, [1], [3, 5, 7])[0].cells.length === 4, 'KV: X vergrössern das Päckchen');
 const gs = VIS.gen.gray({ bits: 3 });
-ok(gs.length === 9 && gs.slice(1).every(s => s.rows[2].hl.length === 1), 'Gray: jeder Schritt aendert genau ein Bit (auch 7 → 0)');
+ok(gs.length === 9 && gs.slice(1).every(s => s.rows[2].hl.length === 1), 'Gray: jeder Schritt ändert genau ein Bit (auch 7 → 0)');
 ok(/101011/.test(VIS.gen.divide({ value: 43, base: 2 }).slice(-1)[0].text), 'Division: 43 = 101011 (dual)');
 ok(VIS.gen.bases({ value: 173 }).slice(-1)[0].rows[1].cells[0] === 173, 'Horner: AD (hex) = 173');
 const h = VIS.transfer([{ kind: 'lp', r: 1000, c: 1e-6 }], 1 / (2 * Math.PI * 1e-3));
 ok(Math.abs(Math.hypot(h.re, h.im) - Math.SQRT1_2) < 1e-6, 'Frequenzgang: Tiefpass bei f_g = 1/√2');
 // 27 Messbereich von Hand (E.dmm mit range, Messtechnik-Erweiterung Teil A)
-ok(E.dmm(15, 'V', 0, 20).text === '15.03 V' && E.dmm(15, 'V', 0, 600).text === '15.0 V', 'Fester Bereich: Aufloesung 2000 Schritte, Kalibrierfehler wie AUTO');
+ok(E.dmm(15, 'V', 0, 20).text === '15.03 V' && E.dmm(15, 'V', 0, 600).text === '15.0 V', 'Fester Bereich: Auflösung 2000 Schritte, Kalibrierfehler wie AUTO');
 ok(E.dmm(15, 'V', 0, 2).text === 'OL' && E.dmm(15, 'V', 0, 2).ol === true, 'Zu kleiner Bereich zeigt OL');
 ok(E.dmm(0.15, 'V', 0, 0.2).text === '150.3 mV' && E.dmm(0.0123, 'A', 0, 20e-3).text === '12.32 mA' && E.dmm(4700, 'Ω', 0, 20e3).text === '4.71 kΩ', 'Einheit und Vorsatz folgen dem Bereich');
 ok(E.dmm(15, 'V', 0).text === E.dmm(15, 'V', 0, undefined).text && E.rangeLabel(200e-6, 'A') === '200µA' && E.DMM_MANUAL.V.length === 5, 'Ohne Bereich bleibt die automatische Wahl; Bereichsbeschriftungen');
@@ -288,9 +288,9 @@ const CALC = require('./src/calc.js');
 const cv = s => CALC.evaluate(s), nearC = (a, b) => Math.abs(a - b) < 1e-9 * Math.max(1, Math.abs(b));
 ok(cv('2+3*4') === 14 && cv('(2+3)*4') === 20 && cv('2^3^2') === 512 && cv('-2^2') === -4, 'Rechner: Vorrang, Klammern, Potenz rechtsassoziativ, Vorzeichen');
 ok(nearC(cv('15 · 0,5 % + 0,1'), 0.175) && nearC(cv('√(3² + 3,54²)'), Math.sqrt(9 + 3.54 * 3.54)) && nearC(cv('10/√2'), 10 / Math.SQRT2), 'Rechner: Prozent, Wurzel, Quadrat, Komma (T16C / TRMS)');
-ok(nearC(cv('4k7'), 4700) && nearC(cv('100n*10k'), 1e-3) && nearC(cv('2.2M'), 2.2e6) && nearC(cv('47µ'), 47e-6) && nearC(cv('2π'), 2 * Math.PI) && nearC(cv('sin(30)'), 0.5) && nearC(cv('log(1000)'), 3), 'Rechner: SI-Vorsaetze, implizite Multiplikation, Winkel in Grad, log');
+ok(nearC(cv('4k7'), 4700) && nearC(cv('100n*10k'), 1e-3) && nearC(cv('2.2M'), 2.2e6) && nearC(cv('47µ'), 47e-6) && nearC(cv('2π'), 2 * Math.PI) && nearC(cv('sin(30)'), 0.5) && nearC(cv('log(1000)'), 3), 'Rechner: SI-Vorsätze, implizite Multiplikation, Winkel in Grad, log');
 const bad = s => { try { cv(s); return null; } catch (e) { return e.calc ? e.message : 'Absturz: ' + e.message; } };
-ok(/Division durch 0/.test(bad('5/0')) && /Klammer/.test(bad('(2+3')) && /Klammer/.test(bad('2+3)')) && /Unbekannt/.test(bad('2 $ 3')) && /unvollstaendig|Operator/.test(bad('2+')) && /Nichts/.test(bad('')), 'Rechner: Fehler werden sauber gemeldet');
+ok(/Division durch 0/.test(bad('5/0')) && /Klammer/.test(bad('(2+3')) && /Klammer/.test(bad('2+3)')) && /Unbekannt/.test(bad('2 $ 3')) && /unvollständig|Operator/.test(bad('2+')) && /Nichts/.test(bad('')), 'Rechner: Fehler werden sauber gemeldet');
 ok(CALC.fmt(0.1 + 0.2) === '0.3' && CALC.fmt(1e-9) === '1.0000e-9' && CALC.fmt(1234567) === '1234567', 'Rechner: Anzeige rundet Gleitkommarauschen weg');
 console.log(`Engine-Tests: ${pass} ok, ${fail} Fehler`);
 process.exit(fail ? 1 : 0);

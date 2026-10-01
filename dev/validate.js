@@ -26,11 +26,11 @@ if (DQ.workshop) DQ.workshop.sequence.forEach(id => {
   const t = DQ.byId[id];
   if (!t) { err('Werkstatt', 'Sequenz verweist auf fehlendes ' + id); return; }
   if (seen.has(id)) err('Werkstatt', 'doppelt: ' + id); seen.add(id);
-  if (!t.messOnly) err(id, 'Werkstatt-Stationen muessen Mess-Aufgaben sein (defMessaufgabe)');
+  if (!t.messOnly) err(id, 'Werkstatt-Stationen müssen Mess-Aufgaben sein (defMessaufgabe)');
   if (t.ch !== DQ.workshop.id) err(id, 'ch muss ' + DQ.workshop.id + ' sein');
 });
 DQ.tasks.filter(t => t.messOnly).forEach(t => {
-  if (t.palette.length || t.ref !== t.start) err(t.id, 'Mess-Aufgabe: keine Palette, Loesung = Startaufbau');
+  if (t.palette.length || t.ref !== t.start) err(t.id, 'Mess-Aufgabe: keine Palette, Lösung = Startaufbau');
   try { const ex = E.expectedAnswers(t, t.ref); t.measure.forEach(m => { if (!isFinite(ex[m.id])) err(t.id, 'Messung ' + m.id + ' ohne Sollwert'); }); } catch (e) { err(t.id, 'Sollwerte: ' + e.message); }
 });
 [...DQ.tasks, ...DQ.theories].forEach(x => { if (!seen.has(x.id)) warn(x.id, 'in keiner Kapitel-Sequenz'); });
@@ -106,21 +106,21 @@ DQ.tasks.forEach(t => {
   if (!r.pass) err(t.id, 'Referenz besteht nicht: ' + r.results.filter(x => !x.ok).map(x => x.text + ' ' + JSON.stringify(x.info || '')).join(' | '));
   if (E.runTask(t, t.start, {}).pass) err(t.id, 'Startzustand besteht bereits');
   t.wrong.forEach(w => {
-    try { if (E.runTask(t, w, ans).pass) err(t.id, 'Fehlloesung besteht: ' + w.name); }
-    catch (e) { err(t.id, 'Fehlloesung ' + w.name + ': ' + e.message); }
+    try { if (E.runTask(t, w, ans).pass) err(t.id, 'Fehllösung besteht: ' + w.name); }
+    catch (e) { err(t.id, 'Fehllösung ' + w.name + ': ' + e.message); }
   });
 });
 
 // Theorien
 DQ.theories.forEach(th => {
   if (th.questions.length !== 5) warn(th.id, th.questions.length + ' statt 5 Fragen');
-  if (!th.merksatz) warn(th.id, 'merksatz fehlt (Empfehlung: ein bis zwei Saetze „Das Wichtigste in Kuerze“)');
-  else if (th.merksatz.length > 400) warn(th.id, 'merksatz ist lang (' + th.merksatz.length + ' Zeichen) – gedacht sind ein bis zwei Saetze');
+  if (!th.merksatz) warn(th.id, 'merksatz fehlt (Empfehlung: ein bis zwei Sätze „Das Wichtigste in Kürze“)');
+  else if (th.merksatz.length > 400) warn(th.id, 'merksatz ist lang (' + th.merksatz.length + ' Zeichen) – gedacht sind ein bis zwei Sätze');
   th.questions.forEach((q, i) => {
     const id = th.id + ' F' + (i + 1);
     if (!(q.correct >= 0 && q.correct < q.options.length)) err(id, 'correct ausserhalb');
     if (new Set(q.options).size !== q.options.length) err(id, 'doppelte Antwort');
-    if (!q.explain) warn(id, 'Erklaerung fehlt');
+    if (!q.explain) warn(id, 'Erklärung fehlt');
     let want;
     if (q.verify) want = E.measure(q.verify.layout, q.verify).value;
     if (q.verifyTruth) want = Math.abs(E.analyze(q.verifyTruth.layout).parts[q.verifyTruth.sel][q.verifyTruth.q]);
@@ -132,8 +132,41 @@ DQ.theories.forEach(th => {
   });
 });
 
+/* ---------- Schreibweise: echte Umlaute ä/ö/ü, keine ae/oe/ue-Umschreibung in sichtbaren Texten (Feedback 01.10.2026) ----------
+ * Grundlage ist die Wortliste dev/umlaut_woerter.json (status "umwandeln"); legitime Folgen (Quelle, neue, aktuell, zuerst …) stehen
+ * dort als "bleibt". Geprueft werden String-Literale und HTML-Text der Quellen, nicht Kommentare und nicht Bezeichner-Positionen
+ * (nach . # _ /, vor _ ( =, Objektschluessel, nackte Kleinbuchstaben-Strings wie 'gruen'). ß gibt es nicht (Schweizer Schreibweise). */
+(function umlaute() {
+  let liste; try { liste = JSON.parse(fs.readFileSync(path.join(__dirname, 'umlaut_woerter.json'), 'utf8')).woerter; } catch (e) { warn('Umlaute', 'umlaut_woerter.json fehlt – Schreibweise nicht geprueft'); return; }
+  const conv = new Set(Object.keys(liste).filter(w => liste[w].status === 'umwandeln'));
+  const files = [];
+  const walk = d => fs.readdirSync(d).forEach(f => { const p = path.join(d, f); if (fs.statSync(p).isDirectory()) { if (!/gen$/.test(p)) walk(p); } else if (/\.(js|html)$/.test(f)) files.push(p); });
+  walk(path.join(__dirname, 'src')); walk(path.join(__dirname, 'portal')); walk(path.join(__dirname, '..', 'worker'));
+  const RE = /[A-Za-zÄÖÜäöü]*(?:ae|oe|ue|Ae|Oe|Ue|AE|OE|UE)[A-Za-zÄÖÜäöü]*/g, hits = [];
+  files.forEach(f => {
+    const rel = path.relative(path.join(__dirname, '..'), f).replace(/\\/g, '/');
+    fs.readFileSync(f, 'utf8').split(/\r?\n/).forEach((line, i) => {
+      if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
+      const t = line.replace(/\/\*.*?\*\//g, '').replace(/(^|[\s;])\/\/.*$/, '');
+      if (/ß/.test(t)) hits.push(rel + ':' + (i + 1) + ' ß → ss');
+      let m; RE.lastIndex = 0;
+      while ((m = RE.exec(t))) {
+        const w = m[0]; if (!conv.has(w)) continue;
+        const prev = t[m.index - 1] || ' ', post = t[m.index + w.length] || ' ', lower = w === w.toLowerCase();
+        if (/[.#_/\\|]/.test(prev) || /[_(=|]/.test(post)) continue;                       // Tags, Routen, Schluessel, Regex-Alternativen
+        if (post === ')' && /\/\^/.test(t)) continue;                                        // Regex-Literal mit Tag-Gruppen
+        if (lower && post === ':' && /(^|[{,])\s*$/.test(t.slice(0, m.index))) continue;      // Objektschluessel (auch am Zeilenanfang)
+        if (lower && /['"`]/.test(prev) && /['"`]/.test(post)) continue;
+        hits.push(rel + ':' + (i + 1) + ' „' + w + '“ → ' + liste[w].zu);
+      }
+    });
+  });
+  if (hits.length) err('Umlaute', hits.length + ' Umschreibung(en) statt Umlaut in sichtbaren Texten: ' + hits.slice(0, 8).join('; ') + (hits.length > 8 ? ' …' : ''));
+})();
+
 warnings.forEach(w => console.log('Warnung', w));
 errors.forEach(e => console.log('FEHLER ', e));
+
 console.log(`${DQ.chapters.length} Kapitel, ${DQ.tasks.length} Aufgaben, ${DQ.theories.length} Theorien`);
 console.log(errors.length ? `${errors.length} Fehler, ${warnings.length} Warnungen` : `OK — keine Fehler (${warnings.length} Warnungen)`);
 process.exit(errors.length ? 1 : 0);

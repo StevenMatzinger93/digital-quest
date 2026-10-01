@@ -21,24 +21,24 @@
   };
   defTheory({
     id: 'T1A', ch: 1, title: 'Der Stromkreis', tags: ['elektro.stromkreis', 'elektro.grundgroessen', 'messen.multimeter'],
-    merksatz: 'Strom fliesst nur im geschlossenen Kreis – Spannung liegt zwischen zwei Punkten, Strom ist ueberall in der Reihe gleich; zwei Schalter in Reihe wirken als UND, parallel als ODER.',
+    merksatz: 'Strom fliesst nur im geschlossenen Kreis – Spannung liegt zwischen zwei Punkten, Strom ist überall in der Reihe gleich; zwei Schalter in Reihe wirken als UND, parallel als ODER.',
     visual: { type: 'circuit', caption: 'Schalter S1 anklicken: Der Kreis schliesst sich, die Punkte zeigen den Strom (technische Richtung + → −), die Lampe leuchtet. Offen fliesst nirgends Strom.',
       layout: { parts: [{ id: 'B1', type: 'battery', value: 9, x: 160, y: 300 }, { id: 'S1', type: 'switch', x: 320, y: 200 }, { id: 'H1', type: 'lamp', x: 480, y: 300, rot: 90 }], wires: [W('B1.p', 'S1.a'), W('S1.b', 'H1.a'), W('H1.b', 'B1.n')] },
       bench: { parts: [{ id: 'B1', x: 240, y: 460 }, { id: 'S1', x: 480, y: 290 }, { id: 'H1', x: 740, y: 460, rot: 90 }] },
       readouts: [{ label: 'Strom I', sel: 'H1', q: 'i' }, { label: 'Leistung P', sel: 'H1', q: 'p' }] },
     lesson:
-      '<p>Ein <b>Stromkreis</b> besteht mindestens aus einer <b>Quelle</b> (Batterie, Netzgeraet), einem <b>Verbraucher</b> (Lampe, Widerstand, LED) und einem <b>geschlossenen Leiterweg</b> hin und zurueck. Ein <b>Schalter</b> oeffnet oder schliesst diesen Weg.</p>' +
-      '<p><b>Spannung U</b> (Volt, V) ist der Antrieb fuer die Ladungen. Sie liegt immer <i>zwischen zwei Punkten</i> an – zum Beispiel zwischen Plus- und Minuspol der Batterie.</p>' +
+      '<p>Ein <b>Stromkreis</b> besteht mindestens aus einer <b>Quelle</b> (Batterie, Netzgerät), einem <b>Verbraucher</b> (Lampe, Widerstand, LED) und einem <b>geschlossenen Leiterweg</b> hin und zurück. Ein <b>Schalter</b> öffnet oder schliesst diesen Weg.</p>' +
+      '<p><b>Spannung U</b> (Volt, V) ist der Antrieb für die Ladungen. Sie liegt immer <i>zwischen zwei Punkten</i> an – zum Beispiel zwischen Plus- und Minuspol der Batterie.</p>' +
       '<p><b>Strom I</b> (Ampere, A) ist die Ladung, die pro Sekunde durch den Leiter fliesst. Er fliesst nur, wenn der Kreis <i>geschlossen</i> ist – und dann durch jedes Bauteil einer Reihe gleich stark.</p>' +
-      '<p>Zwei Schalter <b>in Reihe</b>: Die Lampe leuchtet nur, wenn <i>beide</i> geschlossen sind (UND). Zwei Schalter <b>parallel</b>: Es genuegt <i>einer</i> (ODER).</p>' +
-      '<p><b>Messen:</b> Das Voltmeter kommt <i>parallel</i> an die zwei Punkte, zwischen denen du die Spannung wissen willst. Das Amperemeter kommt <i>in Reihe</i> – dazu wird der Kreis aufgetrennt und das Messgeraet in die Luecke gesetzt.</p>',
+      '<p>Zwei Schalter <b>in Reihe</b>: Die Lampe leuchtet nur, wenn <i>beide</i> geschlossen sind (UND). Zwei Schalter <b>parallel</b>: Es genügt <i>einer</i> (ODER).</p>' +
+      '<p><b>Messen:</b> Das Voltmeter kommt <i>parallel</i> an die zwei Punkte, zwischen denen du die Spannung wissen willst. Das Amperemeter kommt <i>in Reihe</i> – dazu wird der Kreis aufgetrennt und das Messgerät in die Lücke gesetzt.</p>',
     questions: [
-      { q: 'Was braucht ein Stromkreis mindestens?', options: ['Eine Quelle und einen Schalter', 'Eine Quelle, einen Verbraucher und einen geschlossenen Leiterweg', 'Einen Verbraucher und ein Messgeraet', 'Zwei Leitungen und einen Schalter'], correct: 1, explain: 'Ohne Quelle kein Antrieb, ohne Verbraucher nichts, das die Energie nutzt, ohne geschlossenen Weg kein Strom.' },
+      { q: 'Was braucht ein Stromkreis mindestens?', options: ['Eine Quelle und einen Schalter', 'Eine Quelle, einen Verbraucher und einen geschlossenen Leiterweg', 'Einen Verbraucher und ein Messgerät', 'Zwei Leitungen und einen Schalter'], correct: 1, explain: 'Ohne Quelle kein Antrieb, ohne Verbraucher nichts, das die Energie nutzt, ohne geschlossenen Weg kein Strom.' },
       { q: 'Zwei Schalter liegen in Reihe mit einer Lampe. Wann leuchtet die Lampe?', options: ['Wenn mindestens ein Schalter zu ist', 'Nur wenn beide Schalter zu sind', 'Immer', 'Nur wenn beide offen sind'], correct: 1, explain: 'In Reihe muss der Strom durch beide Schalter – jeder offene Schalter unterbricht den Kreis (UND-Funktion).' },
-      { q: 'Batterie 9 V, Schalter offen, Lampe. Welche Spannung misst du ueber dem offenen Schalter?', options: ['0 V', '4,5 V', '9 V', '18 V'], correct: 2,
-        explain: 'Es fliesst kein Strom, an der Lampe faellt nichts ab – die ganze Quellenspannung liegt ueber der Unterbrechung.', verify: { layout: lampCircuit(false), mode: 'V', a: 'S1.a', b: 'S1.b' } },
-      { q: 'Wie schliesst du ein Amperemeter an?', options: ['Parallel zum Verbraucher', 'In Reihe: Kreis auftrennen, Messgeraet in die Luecke', 'Direkt an die Batteriepole', 'Gar nicht – Strom kann man nur rechnen'], correct: 1, explain: 'Der Strom muss durch das Messgeraet fliessen. Direkt an die Batterie waere ein Kurzschluss.' },
-      { q: 'Die Lampe (60 Ω) haengt ueber den geschlossenen Schalter an 9 V. Welcher Strom fliesst?', options: ['15 mA', '150 mA', '540 mA', '1,5 A'], correct: 1,
+      { q: 'Batterie 9 V, Schalter offen, Lampe. Welche Spannung misst du über dem offenen Schalter?', options: ['0 V', '4,5 V', '9 V', '18 V'], correct: 2,
+        explain: 'Es fliesst kein Strom, an der Lampe fällt nichts ab – die ganze Quellenspannung liegt über der Unterbrechung.', verify: { layout: lampCircuit(false), mode: 'V', a: 'S1.a', b: 'S1.b' } },
+      { q: 'Wie schliesst du ein Amperemeter an?', options: ['Parallel zum Verbraucher', 'In Reihe: Kreis auftrennen, Messgerät in die Lücke', 'Direkt an die Batteriepole', 'Gar nicht – Strom kann man nur rechnen'], correct: 1, explain: 'Der Strom muss durch das Messgerät fliessen. Direkt an die Batterie wäre ein Kurzschluss.' },
+      { q: 'Die Lampe (60 Ω) hängt über den geschlossenen Schalter an 9 V. Welcher Strom fliesst?', options: ['15 mA', '150 mA', '540 mA', '1,5 A'], correct: 1,
         explain: 'I = U / R = 9 V / 60 Ω = 0,15 A = 150 mA.', verifyTruth: { layout: lampCircuit(true), sel: 'H1', q: 'i' } }
     ]
   });
@@ -50,7 +50,7 @@
     brief: 'Baue einen geschlossenen Stromkreis aus Batterie, <b>Schalter</b> und <b>Lampe</b>. Die Lampe soll nur leuchten, wenn der Schalter geschlossen ist.',
     learn: 'Strom fliesst nur in einem geschlossenen Kreis.',
     take: 'Ein Schalter unterbricht den Stromkreis – offen heisst: kein Strom.',
-    hint: 'Verbinde + der Batterie mit dem Schalter, den Schalter mit der Lampe und die Lampe zurueck mit –.',
+    hint: 'Verbinde + der Batterie mit dem Schalter, den Schalter mit der Lampe und die Lampe zurück mit –.',
     hint2: 'Reihenfolge: B1.+ → S1 → H1 → B1.–',
     palette: ['switch', 'lamp'], need: { switch: 1, lamp: 1 },
     start: { parts: [bat9], wires: [] },
@@ -76,9 +76,9 @@
 
   defTask({
     id: '1.2', ch: 1, title: 'Sicherheitsschaltung', tags: ['elektro.stromkreis', 'elektro.schalter', 'elektro.reihenschaltung', 'digital.und'],
-    story: 'Die Presse im Nachbarraum darf nur anlaufen, wenn die Schutztuer zu ist <i>und</i> jemand den Startschalter betaetigt.',
-    brief: 'Baue eine Schaltung mit <b>zwei Schaltern</b> und einer Lampe (als Anzeige „Presse laeuft“). Die Lampe darf nur leuchten, wenn <b>S1 und S2</b> geschlossen sind.',
-    learn: 'Schalter in Reihe wirken wie eine UND-Verknuepfung.',
+    story: 'Die Presse im Nachbarraum darf nur anlaufen, wenn die Schutztür zu ist <i>und</i> jemand den Startschalter betätigt.',
+    brief: 'Baue eine Schaltung mit <b>zwei Schaltern</b> und einer Lampe (als Anzeige „Presse läuft“). Die Lampe darf nur leuchten, wenn <b>S1 und S2</b> geschlossen sind.',
+    learn: 'Schalter in Reihe wirken wie eine UND-Verknüpfung.',
     take: 'In Reihe muss der Strom durch jeden Schalter – ein einziger offener Schalter unterbricht alles.',
     hint: 'Der Strom soll erst durch S1, dann durch S2 und dann durch die Lampe fliessen.',
     hint2: 'B1.+ → S1 → S2 → H1 → B1.–',
@@ -96,10 +96,10 @@
 
   defTask({
     id: '1.3', ch: 1, title: 'Zwei Lichtschalter', tags: ['elektro.stromkreis', 'elektro.schalter', 'elektro.parallelschaltung', 'digital.oder'],
-    story: 'Der Gang hat zwei Eingaenge. Das Licht soll von jedem Eingang aus eingeschaltet werden koennen.',
+    story: 'Der Gang hat zwei Eingänge. Das Licht soll von jedem Eingang aus eingeschaltet werden können.',
     brief: 'Baue die Schaltung so, dass die Lampe leuchtet, wenn <b>S1 oder S2</b> (oder beide) geschlossen sind.',
-    learn: 'Parallele Schalter wirken wie eine ODER-Verknuepfung.',
-    take: 'Parallel gibt es mehrere Wege – ein geschlossener Weg genuegt.',
+    learn: 'Parallele Schalter wirken wie eine ODER-Verknüpfung.',
+    take: 'Parallel gibt es mehrere Wege – ein geschlossener Weg genügt.',
     hint: 'Beide Schalter bekommen denselben Anfang (B1.+) und dasselbe Ende (Lampe).',
     hint2: 'B1.+ → S1.a und S2.a; S1.b und S2.b → H1.a; H1.b → B1.–',
     palette: ['switch', 'lamp'], need: { switch: 2, lamp: 1 },
@@ -121,7 +121,7 @@
     story: 'Die Werkmeisterin will wissen, ob du Spannung richtig misst: „Rot auf Plus, Schwarz auf Minus – und immer parallel.“',
     brief: 'Die Lampe leuchtet. Miss mit dem Multimeter (V⎓) die Spannung an der <b>Batterie</b>, an der <b>Lampe</b> und am <b>geschlossenen Schalter</b>. Trage die Werte ins Protokoll ein.',
     learn: 'Spannung misst man parallel zwischen zwei Punkten.',
-    take: 'Am geschlossenen Schalter liegt praktisch keine Spannung – die ganze Quellenspannung faellt am Verbraucher ab.',
+    take: 'Am geschlossenen Schalter liegt praktisch keine Spannung – die ganze Quellenspannung fällt am Verbraucher ab.',
     hint: 'Multimeter auf V⎓, rote Spitze an den einen Anschluss, schwarze an den anderen.',
     hint2: 'Batterie: B1.+ und B1.–; Lampe: H1.a und H1.b; Schalter: S1.a und S1.b.',
     palette: [], start: lampOn, ref: lampOn,
@@ -139,11 +139,11 @@
   defTask({
     id: '1.5', ch: 1, title: 'Strom messen', tags: ['messen.strom', 'elektro.reihenschaltung'],
     story: 'Die Kontrolllampe glimmt nur schwach. Wie viel Strom fliesst eigentlich?',
-    brief: 'Miss den <b>Strom</b> im Kreis. Dazu musst du den Kreis <b>auftrennen</b> (eine Leitung anklicken und loeschen) und das Multimeter im Bereich A⎓ in die Luecke setzen. Miss ausserdem die Spannung am Widerstand R1.',
+    brief: 'Miss den <b>Strom</b> im Kreis. Dazu musst du den Kreis <b>auftrennen</b> (eine Leitung anklicken und löschen) und das Multimeter im Bereich A⎓ in die Lücke setzen. Miss ausserdem die Spannung am Widerstand R1.',
     learn: 'Strom misst man in Reihe – der Kreis wird aufgetrennt.',
-    take: 'In einer Reihe fliesst ueberall derselbe Strom – egal, wo du den Kreis auftrennst.',
-    hint: 'Leitung anklicken, Entf druecken. Dann A⎓ waehlen und die Spitzen an die beiden freien Anschluesse setzen.',
-    hint2: 'Nach dem Messen die Luecke wieder mit einer Leitung schliessen.',
+    take: 'In einer Reihe fliesst überall derselbe Strom – egal, wo du den Kreis auftrennst.',
+    hint: 'Leitung anklicken, Entf drücken. Dann A⎓ wählen und die Spitzen an die beiden freien Anschlüsse setzen.',
+    hint2: 'Nach dem Messen die Lücke wieder mit einer Leitung schliessen.',
     palette: [], start: rLamp, ref: rLamp,
     bench: { parts: [bB1, { id: 'R1', x: 520, y: 290, rot: 0 }, { id: 'H1', x: 780, y: 460, rot: 0 }] },
     tests: [{ name: 'Anlage geschlossen', expect: [{ sel: 'H1', i: [0.02, 0.05] }, { noFault: true }] }],
@@ -164,19 +164,19 @@
       sliders: [{ part: 'R1', prop: 'value', label: 'Vorwiderstand R1', min: 150, max: 4700, log: true, unit: 'Ω', round: 2 }],
       readouts: [{ label: 'I', sel: 'D1', q: 'i' }, { label: 'U an R1', sel: 'R1', q: 'v' }, { label: 'Helligkeit', sel: 'D1', q: 'brightness' }] },
     lesson:
-      '<p>Der <b>Widerstand R</b> (Ohm, Ω) bremst den Strom. Spannung, Strom und Widerstand haengen fest zusammen – das <b>Ohmsche Gesetz</b>:</p>' +
+      '<p>Der <b>Widerstand R</b> (Ohm, Ω) bremst den Strom. Spannung, Strom und Widerstand hängen fest zusammen – das <b>Ohmsche Gesetz</b>:</p>' +
       '<div class="formula">U = R · I &nbsp;&nbsp; I = U / R &nbsp;&nbsp; R = U / I</div>' +
       '<p>Doppelte Spannung am gleichen Widerstand → doppelter Strom. Doppelter Widerstand bei gleicher Spannung → halber Strom.</p>' +
-      '<p><b>Leistung:</b> P = U · I (Watt, W). Ein Widerstand wird warm; ueberschreitet P seine Belastbarkeit (hier 0,25 W), wird er zu heiss.</p>' +
-      '<p><b>LED und Vorwiderstand:</b> Eine LED leitet ab ihrer Flussspannung U<sub>F</sub> (rot ≈ 1,8 V, gruen ≈ 2,1 V, blau ≈ 3 V) und begrenzt den Strom selbst kaum. Deshalb braucht sie einen <b>Vorwiderstand</b>, der die restliche Spannung „aufnimmt“:</p>' +
+      '<p><b>Leistung:</b> P = U · I (Watt, W). Ein Widerstand wird warm; überschreitet P seine Belastbarkeit (hier 0,25 W), wird er zu heiss.</p>' +
+      '<p><b>LED und Vorwiderstand:</b> Eine LED leitet ab ihrer Flussspannung U<sub>F</sub> (rot ≈ 1,8 V, grün ≈ 2,1 V, blau ≈ 3 V) und begrenzt den Strom selbst kaum. Deshalb braucht sie einen <b>Vorwiderstand</b>, der die restliche Spannung „aufnimmt“:</p>' +
       '<div class="formula">R<sub>V</sub> = (U<sub>B</sub> − U<sub>F</sub>) / I<sub>LED</sub></div>' +
-      '<p>Ueblich sind 10–20 mA. Die LED hat eine Richtung: Strom nur von der <b>Anode</b> (+, langes Bein) zur <b>Kathode</b> (−, abgeflachte Seite).</p>',
+      '<p>Üblich sind 10–20 mA. Die LED hat eine Richtung: Strom nur von der <b>Anode</b> (+, langes Bein) zur <b>Kathode</b> (−, abgeflachte Seite).</p>',
     questions: [
       { q: 'An 10 V liegt ein Widerstand von 470 Ω. Welcher Strom fliesst?', options: ['2,13 mA', '21,3 mA', '47 mA', '4,7 A'], correct: 1,
         explain: 'I = 10 V / 470 Ω ≈ 0,0213 A = 21,3 mA.', verifyTruth: { layout: ohm(10, 470), sel: 'R1', q: 'i' } },
       { q: 'Bei 10 V sollen genau 10 mA fliessen. Wie gross muss R sein?', options: ['100 Ω', '1 kΩ', '10 kΩ', '0,1 Ω'], correct: 1, explain: 'R = U / I = 10 V / 0,01 A = 1000 Ω.' },
-      { q: 'Rote LED (U_F = 1,8 V) an 9 V, gewuenscht 20 mA. Welcher Vorwiderstand?', options: ['90 Ω', '360 Ω', '450 Ω', '1,8 kΩ'], correct: 1, explain: 'R = (9 V − 1,8 V) / 0,02 A = 360 Ω.' },
-      { q: 'Was passiert, wenn du eine LED ohne Vorwiderstand direkt an 9 V anschliesst?', options: ['Sie leuchtet besonders schoen', 'Nichts, sie sperrt', 'Der Strom wird sehr gross – sie brennt durch', 'Die Batterie laedt sich auf'], correct: 2, explain: 'Oberhalb von U_F begrenzt fast nur der kleine Bahnwiderstand den Strom.' },
+      { q: 'Rote LED (U_F = 1,8 V) an 9 V, gewünscht 20 mA. Welcher Vorwiderstand?', options: ['90 Ω', '360 Ω', '450 Ω', '1,8 kΩ'], correct: 1, explain: 'R = (9 V − 1,8 V) / 0,02 A = 360 Ω.' },
+      { q: 'Was passiert, wenn du eine LED ohne Vorwiderstand direkt an 9 V anschliesst?', options: ['Sie leuchtet besonders schön', 'Nichts, sie sperrt', 'Der Strom wird sehr gross – sie brennt durch', 'Die Batterie lädt sich auf'], correct: 2, explain: 'Oberhalb von U_F begrenzt fast nur der kleine Bahnwiderstand den Strom.' },
       { q: 'Welche Leistung setzt ein 1-kΩ-Widerstand an 10 V um?', options: ['0,01 W', '0,1 W', '1 W', '10 W'], correct: 1, explain: 'P = U² / R = 100 V² / 1000 Ω = 0,1 W.' }
     ]
   });
@@ -188,10 +188,10 @@
     id: '1.6', ch: 1, title: 'Das Ohmsche Gesetz nachmessen', tags: ['elektro.ohm', 'messen.strom'],
     story: 'Im Laborbuch steht: „10 V an 470 Ω ergibt 21,28 mA.“ Stimmt das auch in echt?',
     brief: 'Schliesse einen <b>Widerstand von 470 Ω</b> an die 10-V-Quelle an. Miss den Strom mit dem Multimeter und trage ihn ein.',
-    learn: 'I = U / R – und die Messung bestaetigt die Rechnung.',
-    take: 'Messwert und Rechnung duerfen nur wenig auseinanderliegen – sonst stimmt etwas mit dem Aufbau oder der Messung nicht.',
+    learn: 'I = U / R – und die Messung bestätigt die Rechnung.',
+    take: 'Messwert und Rechnung dürfen nur wenig auseinanderliegen – sonst stimmt etwas mit dem Aufbau oder der Messung nicht.',
     hint: 'Widerstand aus der Palette holen, Wert im Feld „Widerstand“ auf 470 setzen.',
-    hint2: 'Fuer die Strommessung eine Leitung loesen und das Multimeter (A⎓) in die Luecke setzen – oder einen Strommesser in Reihe einbauen.',
+    hint2: 'Für die Strommessung eine Leitung lösen und das Multimeter (A⎓) in die Lücke setzen – oder einen Strommesser in Reihe einbauen.',
     palette: ['resistor', 'ammeter'], need: { resistor: 1 },
     start: { parts: [bat10], wires: [] }, ref: rOnly(470),
     bench: { parts: [bB1, { id: 'R1', x: 620, y: 380, rot: 90 }] },
@@ -203,7 +203,7 @@
   defTask({
     id: '1.7', ch: 1, title: 'Genau 10 mA', tags: ['elektro.ohm', 'elektro.dimensionieren'],
     story: 'Ein Sensor verlangt einen Messstrom von genau 10 mA. Die Quelle liefert 10 V.',
-    brief: 'Waehle einen Widerstand so, dass <b>10 mA (±5 %)</b> fliessen. Miss den Strom zur Kontrolle.',
+    brief: 'Wähle einen Widerstand so, dass <b>10 mA (±5 %)</b> fliessen. Miss den Strom zur Kontrolle.',
     learn: 'R = U / I – das Ohmsche Gesetz umgestellt.',
     take: 'Mit dem Ohmschen Gesetz dimensionierst du Bauteile, bevor du sie einbaust.',
     hint: 'Rechne R = U / I mit I = 0,01 A.',
@@ -223,13 +223,13 @@
   };
   var ledWrong = function (name, r, rev) { var l = ledRef(r, rev); l.name = name; return l; };
   defTask({
-    id: '1.8', ch: 1, title: 'Die LED ueberlebt', tags: ['elektro.ohm', 'bauteil.led', 'messen.spannung'],
+    id: '1.8', ch: 1, title: 'Die LED überlebt', tags: ['elektro.ohm', 'bauteil.led', 'messen.spannung'],
     story: 'Der Werkstattleiter hat drei LEDs verbraucht. „Die gehen einfach kaputt!“, schimpft er.',
-    brief: 'Schliesse die rote LED an die 9-V-Batterie an. Waehle einen <b>Vorwiderstand</b>, sodass 10–20 mA fliessen. Miss danach die Spannung an der LED.',
+    brief: 'Schliesse die rote LED an die 9-V-Batterie an. Wähle einen <b>Vorwiderstand</b>, sodass 10–20 mA fliessen. Miss danach die Spannung an der LED.',
     learn: 'Eine LED braucht einen Vorwiderstand: R = (U<sub>B</sub> − U<sub>F</sub>) / I.',
     take: 'Ohne Vorwiderstand ist der Strom nur durch die Leitungen begrenzt – die LED brennt durch.',
     hint: 'Rote LED: U<sub>F</sub> ≈ 1,8 V. Am Widerstand bleiben 9 V − 1,8 V = 7,2 V.',
-    hint2: 'Fuer 15 mA: R = 7,2 V / 0,015 A = 480 Ω → naechster Normwert 470 Ω.',
+    hint2: 'Für 15 mA: R = 7,2 V / 0,015 A = 480 Ω → nächster Normwert 470 Ω.',
     palette: ['resistor'], need: { resistor: 1 },
     start: { parts: [bat9, led], wires: [] }, ref: ledRef(470),
     bench: { parts: [bB1, { id: 'R1', x: 520, y: 290, rot: 0 }, { id: 'D1', x: 780, y: 460, rot: 0 }] },
@@ -245,12 +245,12 @@
   };
   defTask({
     id: '1.9', ch: 1, title: 'Nur spannungsfrei!', tags: ['messen.widerstand', 'messen.sicherheit'],
-    story: '„Widerstand messen? Zuerst freischalten!“ – das steht gross ueber jedem Messplatz.',
-    brief: 'Miss den <b>Widerstand von R1</b> mit dem Ohmmeter (Ω). Die Anlage laeuft noch – schalte sie zuerst <b>spannungsfrei</b> (Schalter oeffnen).',
+    story: '„Widerstand messen? Zuerst freischalten!“ – das steht gross über jedem Messplatz.',
+    brief: 'Miss den <b>Widerstand von R1</b> mit dem Ohmmeter (Ω). Die Anlage läuft noch – schalte sie zuerst <b>spannungsfrei</b> (Schalter öffnen).',
     learn: 'Widerstand misst man nur im spannungsfreien Zustand.',
-    take: 'Das Ohmmeter schickt selbst einen Pruefstrom. Eine fremde Spannung verfaelscht das Ergebnis oder beschaedigt das Geraet.',
+    take: 'Das Ohmmeter schickt selbst einen Prüfstrom. Eine fremde Spannung verfälscht das Ergebnis oder beschädigt das Gerät.',
     hint: 'Versuch es ruhig zuerst mit geschlossenem Schalter – das Multimeter meldet einen Fehler.',
-    hint2: 'Schalter S1 anklicken (oeffnen), dann Ω waehlen und die Spitzen an R1.a und R1.b setzen.',
+    hint2: 'Schalter S1 anklicken (öffnen), dann Ω wählen und die Spitzen an R1.a und R1.b setzen.',
     palette: [], start: rMeas(true), ref: rMeas(false),
     bench: { parts: [bB1, { id: 'S1', x: 460, y: 290, rot: 0 }, { id: 'R1', x: 660, y: 290, rot: 0 }, { id: 'H1', x: 800, y: 470, rot: 0 }] },
     tests: [{ name: 'Anlage spannungsfrei', expect: [{ sel: 'H1', i: [0, 1e-6] }] }],
@@ -259,12 +259,12 @@
 
   defTask({
     id: '1.10', ch: 1, title: 'Die LED bleibt dunkel', tags: ['bauteil.led', 'elektro.fehlersuche'],
-    story: 'Ein Kollege hat die Anzeige-LED eingebaut – sie leuchtet nicht. „Kaputt“, sagt er. Die Werkmeisterin sagt: „Pruefen, nicht raten.“',
-    brief: 'Finde den Fehler und behebe ihn, sodass die LED mit 10–20 mA leuchtet. Die Bauteile bleiben, nur die <b>Verdrahtung</b> darfst du aendern.',
+    story: 'Ein Kollege hat die Anzeige-LED eingebaut – sie leuchtet nicht. „Kaputt“, sagt er. Die Werkmeisterin sagt: „Prüfen, nicht raten.“',
+    brief: 'Finde den Fehler und behebe ihn, sodass die LED mit 10–20 mA leuchtet. Die Bauteile bleiben, nur die <b>Verdrahtung</b> darfst du ändern.',
     learn: 'Eine LED leitet nur in eine Richtung: von der Anode (+) zur Kathode (−).',
     take: 'Erst messen, dann tauschen: Liegt an der LED eine negative Spannung, ist sie verpolt – nicht defekt.',
     hint: 'Miss die Spannung an der LED (rot an D1.a, schwarz an D1.k). Was bedeutet ein negativer Wert?',
-    hint2: 'Anode D1.a muss Richtung Pluspol (ueber R1), Kathode D1.k zum Minuspol.',
+    hint2: 'Anode D1.a muss Richtung Pluspol (über R1), Kathode D1.k zum Minuspol.',
     palette: [], start: ledRef(470, true), ref: ledRef(470),
     bench: { parts: [bB1, { id: 'R1', x: 520, y: 290, rot: 0 }, { id: 'D1', x: 780, y: 460, rot: 0 }] },
     wrong: [ledWrong('weiterhin verpolt', 470, true)],

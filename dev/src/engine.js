@@ -18,7 +18,7 @@
 
   var LED_COLORS = {
     rot: { vf: 1.8, rgb: '#ff3b30' }, gelb: { vf: 2.0, rgb: '#ffd60a' },
-    gruen: { vf: 2.1, rgb: '#32d74b' }, blau: { vf: 3.0, rgb: '#0a84ff' }, weiss: { vf: 3.1, rgb: '#f5f5f7' }
+    gruen: { vf: 2.1, rgb: '#32d74b', label: 'grün' }, blau: { vf: 3.0, rgb: '#0a84ff' }, weiss: { vf: 3.1, rgb: '#f5f5f7' } // Schlüssel bleiben ASCII (Spielstand), label nur für die Anzeige
   };
 
   /* Bauteilkatalog: Pins, Standardwerte, Namenspraefix. Geometrie liegt im Editor. */
@@ -240,7 +240,7 @@
     for (iter = 0; iter < 400; iter++) {
       var sys = build();
       var x = solveLinear(sys.A, sys.z);
-      if (!x) throw new Error('Gleichungssystem nicht loesbar');
+      if (!x) throw new Error('Gleichungssystem nicht lösbar');
       V = x;
       var changed = [];
       net.parts.forEach(function (p) {
@@ -510,7 +510,7 @@
     }
     if (mode === 'A') {
       var ra = step(net, state, { meter: { mode: 'A', a: a, b: b } });
-      if (state.fuse) return { ok: false, mode: 'A', value: NaN, unit: 'A', display: 'FUSE', error: 'Sicherung im Messgeraet durchgebrannt – Strom wird in Reihe gemessen, nie parallel zu einer Quelle!', res: ra };
+      if (state.fuse) return { ok: false, mode: 'A', value: NaN, unit: 'A', display: 'FUSE', error: 'Sicherung im Messgerät durchgebrannt – Strom wird in Reihe gemessen, nie parallel zu einer Quelle!', res: ra };
       var i = (ra.nodeV[a] - ra.nodeV[b]) / METER.rA;
       return { ok: true, mode: 'A', value: i, unit: 'A', display: fmt(i, 'A'), res: ra };
     }
@@ -609,7 +609,7 @@
     /* limit: hoechstens so viele Bauteile eines Typs; Schluessel 'gates' zaehlt alle Logikgatter zusammen */
     Object.keys(task.limit || {}).forEach(function (type) {
       var c = net.parts.filter(function (p) { return type === 'gates' ? GATES[p.type] : p.type === type; }).length;
-      push(c <= task.limit[type], (type === 'gates' ? 'Logikgatter' : def(type).label) + ': hoechstens ' + task.limit[type], { have: c });
+      push(c <= task.limit[type], (type === 'gates' ? 'Logikgatter' : def(type).label) + ': höchstens ' + task.limit[type], { have: c });
     });
     Object.keys(task.need || {}).forEach(function (type) {
       var c = net.parts.filter(function (p) { return p.type === type; }).length;
@@ -633,8 +633,8 @@
     });
     function checkAll(expects, r, label) {
       expects.forEach(function (e) {
-        if (e.noFault) { push(r.faults.length === 0, label + 'keine Stoerung', { faults: r.faults }); return; }
-        if (e.fault) { push(r.faults.some(function (f) { return f.code === e.fault; }), label + 'Stoerung ' + e.fault); return; }
+        if (e.noFault) { push(r.faults.length === 0, label + 'keine Störung', { faults: r.faults }); return; }
+        if (e.fault) { push(r.faults.some(function (f) { return f.code === e.fault; }), label + 'Störung ' + e.fault); return; }
         if (e.a && e.ac) {
           var acr = acMeasure(lay2, { a: e.a, b: e.b }), av = acr.ok ? acr[e.ac] : NaN;
           push(acr.ok && inRange(av, e.range), label + ({ dc: 'Gleichanteil', rms: 'Effektivwert', avg: 'AVG-Anzeige', peak: 'Scheitelwert', pp: 'Spitze-Spitze' }[e.ac] || e.ac) + ' ' + e.a + '→' + e.b + ' im Bereich ' + fmt(e.range[0], 'V') + '…' + fmt(e.range[1], 'V'), { got: av });
@@ -654,7 +654,7 @@
           if (e.v) push(inRange(Math.abs(pr.v), e.v), label + 'Spannung ' + p.id + ' ' + fmt(e.v[0], 'V') + '…' + fmt(e.v[1], 'V'), { got: pr.v });
           if (e.out !== undefined) push(pr.out === e.out, label + p.id + ' Ausgang ' + (e.out ? '1' : '0'), { got: pr.out });
           if (e.brightness) push(inRange(pr.brightness || 0, e.brightness), label + p.id + ' Helligkeit', { got: pr.brightness });
-          if (e.state !== undefined) push(pr.state === e.state, label + p.id + ' Arbeitsbereich ' + ({ off: 'gesperrt', on: 'aktiv', sat: 'Saettigung' }[e.state] || e.state), { got: pr.state });
+          if (e.state !== undefined) push(pr.state === e.state, label + p.id + ' Arbeitsbereich ' + ({ off: 'gesperrt', on: 'aktiv', sat: 'Sättigung' }[e.state] || e.state), { got: pr.state });
           if (e.digit !== undefined) push(!!pr.seg && pr.seg.map(function (x) { return x ? '1' : '0'; }).join('') === (SEG7[e.digit] || '0000000'), label + p.id + ' zeigt ' + e.digit, { got: pr.seg });
         });
       });

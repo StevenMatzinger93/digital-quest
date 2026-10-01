@@ -31,13 +31,13 @@
     }
     function bar() {
       var b = $('#examBar');
-      if (!b) { b = document.createElement('div'); b.id = 'examBar'; b.className = 'exam-bar'; b.setAttribute('role', 'navigation'); b.setAttribute('aria-label', 'Pruefung'); document.body.appendChild(b); document.body.classList.add('has-exam-bar'); }
+      if (!b) { b = document.createElement('div'); b.id = 'examBar'; b.className = 'exam-bar'; b.setAttribute('role', 'navigation'); b.setAttribute('aria-label', 'Prüfung'); document.body.appendChild(b); document.body.classList.add('has-exam-bar'); }
       var l = left(), nq = questions.filter(function (q) { return answers[q.id] !== undefined; }).length;
-      b.innerHTML = '<span class="eb-tag">PRUEFUNG</span><span class="eb-mode">' + LEVEL[ex.level] + (ex.proctored ? ' · unter Aufsicht' : '') + '</span>' +
+      b.innerHTML = '<span class="eb-tag">PRÜFUNG</span><span class="eb-mode">' + LEVEL[ex.level] + (ex.proctored ? ' · unter Aufsicht' : '') + '</span>' +
         '<span class="eb-time' + (l < 300 ? ' low' : '') + '" id="ebTime" title="Restzeit">' + fmt(l) + '</span><span class="eb-nav">' +
         tasks.map(function (t, i) { return '<button class="eb-item' + (i === cur ? ' cur' : '') + stateOf(t) + '" data-eb="' + i + '" title="Aufgabe ' + (i + 1) + ': ' + esc(t.title) + '">' + (i + 1) + '</button>'; }).join('') +
         '<button class="eb-item' + (cur === 'q' ? ' cur' : '') + (nq === questions.length ? ' st-sent' : '') + '" data-eb="q" title="Theoriefragen">Theorie ' + nq + '/' + questions.length + '</button></span>' +
-        '<button class="btn small eb-finish" id="ebFinish">Pruefung beenden</button>';
+        '<button class="btn small eb-finish" id="ebFinish">Prüfung beenden</button>';
       Array.prototype.forEach.call(b.querySelectorAll('[data-eb]'), function (x) { x.onclick = function () { if (x.dataset.eb === 'q') openTheory(); else openTask(+x.dataset.eb); }; });
       $('#ebFinish').onclick = askFinish;
     }
@@ -66,10 +66,10 @@
     function resultHtml(r) {
       if (!r) return '';
       if (r.error) return '<div class="exam-result bad"><b>Abgabe nicht bewertbar</b><p>' + esc(r.error) + '</p></div>';
-      return '<div class="exam-result ' + (r.ok ? 'ok' : 'part') + '"><b>' + (r.ok ? 'Abgabe bestanden' : 'Abgabe gespeichert – noch nicht alles erfuellt') + '</b> <span class="mono">' + r.passed + ' / ' + r.total + ' Pruefpunkte</span>' +
+      return '<div class="exam-result ' + (r.ok ? 'ok' : 'part') + '"><b>' + (r.ok ? 'Abgabe bestanden' : 'Abgabe gespeichert – noch nicht alles erfüllt') + '</b> <span class="mono">' + r.passed + ' / ' + r.total + ' Prüfpunkte</span>' +
         '<ul class="res">' + (r.checks || []).map(function (c) { return '<li class="' + (c.ok ? 'ok' : 'bad') + '">' + (c.ok ? '✔ ' : '✘ ') + esc(c.text) + '</li>'; }).join('') +
         (r.hidden && r.hidden.total ? '<li class="' + (r.hidden.passed === r.hidden.total ? 'ok' : 'bad') + '">' + (r.hidden.passed === r.hidden.total ? '✔ ' : '✘ ') + 'Verdeckte Tests: ' + r.hidden.passed + ' von ' + r.hidden.total + '</li>' : '') + '</ul>' +
-        '<p class="dim small">Du kannst weiterarbeiten und erneut abgeben – es zaehlt die letzte Abgabe.</p></div>';
+        '<p class="dim small">Du kannst weiterarbeiten und erneut abgeben – es zählt die letzte Abgabe.</p></div>';
     }
     function showResult(item) { var el = $('#examRes'); if (el) el.innerHTML = resultHtml(results[item]); }
     function send() {
@@ -79,7 +79,7 @@
       api('POST', 'exams/' + id + '/answer', { item: t.id, answer: a }).then(function (r) {
         if (r.status === 200) { results[t.id] = r.data.result; answers[t.id] = a; drafts[t.id] = { layout: a.layout, answers: a.answers, dirty: false }; store(); showResult(t.id); bar(); }
         else if (r.status === 409) refresh();
-        else ctx.modal('<h2>Abgabe nicht moeglich</h2><p>' + esc(r.data.error || 'Fehler ' + r.status) + '</p>');
+        else ctx.modal('<h2>Abgabe nicht möglich</h2><p>' + esc(r.data.error || 'Fehler ' + r.status) + '</p>');
       }).catch(function () { ctx.modal('<h2>Keine Verbindung</h2><p>Die Abgabe kam nicht an. Dein Aufbau bleibt erhalten – bitte gleich nochmals abgeben.</p>'); })
         .then(function () { busy = false; var b2 = $('#btnSend'); if (b2) { b2.disabled = false; b2.textContent = 'Abgeben'; } });
     }
@@ -88,7 +88,7 @@
     function openTheory() {
       if (!running()) return;
       cur = 'q'; hideOverlay(); ctx.show('theory');
-      $('#scr-theory').innerHTML = '<div class="theory exam-theory"><div class="crumb">Pruefung · Theorie</div><h2>Theoriefragen</h2><p class="dim">Je Frage ist genau eine Antwort richtig. Jede Auswahl wird sofort gespeichert; die Aufloesung gibt es erst nach dem Abschluss.</p>' +
+      $('#scr-theory').innerHTML = '<div class="theory exam-theory"><div class="crumb">Prüfung · Theorie</div><h2>Theoriefragen</h2><p class="dim">Je Frage ist genau eine Antwort richtig. Jede Auswahl wird sofort gespeichert; die Auflösung gibt es erst nach dem Abschluss.</p>' +
         questions.map(function (q, i) {
           return '<fieldset class="q" data-qid="' + esc(q.id) + '"><legend>' + (i + 1) + '. ' + q.q + '</legend>' + q.options.map(function (o, j) {
             return '<label><input type="radio" name="xq' + i + '" value="' + j + '"' + (answers[q.id] === j ? ' checked' : '') + '> ' + o + '</label>'; }).join('') + '<div class="expl dim small"></div></fieldset>';
@@ -100,7 +100,7 @@
           api('POST', 'exams/' + id + '/answer', { item: qid, answer: v }).then(function (r) {
             if (r.status === 200) { answers[qid] = v; note.textContent = 'gespeichert'; bar(); }
             else { note.textContent = r.data.error || 'nicht gespeichert'; if (r.status === 409) refresh(); }
-          }).catch(function () { note.textContent = 'keine Verbindung – bitte nochmals waehlen'; });
+          }).catch(function () { note.textContent = 'keine Verbindung – bitte nochmals wählen'; });
         };
       });
       bar();
@@ -111,33 +111,33 @@
       if (!running()) return;
       var open = tasks.filter(function (t) { return !results[t.id]; }).length, dirty = tasks.filter(function (t) { return drafts[t.id] && drafts[t.id].dirty; }).length;
       var nq = questions.filter(function (q) { return answers[q.id] === undefined; }).length;
-      ctx.modal('<h2>Pruefung beenden?</h2><p>Danach ist keine Abgabe mehr moeglich.</p><ul>' +
-        (open ? '<li><b>' + open + '</b> Aufgabe(n) ohne Abgabe</li>' : '') + (dirty ? '<li><b>' + dirty + '</b> Aufgabe(n) mit Aenderungen seit der letzten Abgabe – sie zaehlen nur, wenn du sie abgibst</li>' : '') +
+      ctx.modal('<h2>Prüfung beenden?</h2><p>Danach ist keine Abgabe mehr möglich.</p><ul>' +
+        (open ? '<li><b>' + open + '</b> Aufgabe(n) ohne Abgabe</li>' : '') + (dirty ? '<li><b>' + dirty + '</b> Aufgabe(n) mit Änderungen seit der letzten Abgabe – sie zählen nur, wenn du sie abgibst</li>' : '') +
         (nq ? '<li><b>' + nq + '</b> Theoriefrage(n) offen</li>' : '') + (!open && !dirty && !nq ? '<li>Alles abgegeben.</li>' : '') + '</ul>',
         [{ label: 'Weiterarbeiten' }, { label: 'Jetzt beenden', primary: true, action: function () { finish(0); } }]);
     }
     function finish(n) {
       if (finishing && !n) return; finishing = true;
-      overlay('<h2>Pruefung wird ausgewertet</h2><p class="live-big"><span class="live-pulse"></span> Einen Moment …</p>');
+      overlay('<h2>Prüfung wird ausgewertet</h2><p class="live-big"><span class="live-pulse"></span> Einen Moment …</p>');
       api('POST', 'exams/' + id + '/submit', {}).then(function (r) {
         if (r.status === 409 && n < 8) { setTimeout(function () { finish(n + 1); }, 1500); return; }
-        if (r.status !== 200) { finishing = false; overlay('<h2>Abschluss nicht moeglich</h2><p>' + esc(r.data.error || 'Fehler') + '</p><div class="live-actions"><button class="btn" id="exBack">Zurueck</button></div>'); $('#exBack').onclick = hideOverlay; return; }
+        if (r.status !== 200) { finishing = false; overlay('<h2>Abschluss nicht möglich</h2><p>' + esc(r.data.error || 'Fehler') + '</p><div class="live-actions"><button class="btn" id="exBack">Zurück</button></div>'); $('#exBack').onclick = hideOverlay; return; }
         take(r.data); done();
-      }).catch(function () { finishing = false; overlay('<h2>Keine Verbindung</h2><p>Die Pruefung laeuft auf dem Server weiter. Bitte nochmals versuchen.</p><div class="live-actions"><button class="btn primary" id="exAgain">Nochmals</button></div>'); $('#exAgain').onclick = function () { finish(0); }; });
+      }).catch(function () { finishing = false; overlay('<h2>Keine Verbindung</h2><p>Die Prüfung läuft auf dem Server weiter. Bitte nochmals versuchen.</p><div class="live-actions"><button class="btn primary" id="exAgain">Nochmals</button></div>'); $('#exAgain').onclick = function () { finish(0); }; });
     }
     function done() {
       clearInterval(tick);
       var b = $('#examBar'); if (b) { b.remove(); document.body.classList.remove('has-exam-bar'); }
       try { localStorage.removeItem(KEY); } catch (e) { /* egal */ }
       var r = ex.result || {}, pct = Math.round((r.score || 0) * 100);
-      var head = ex.state === 'voided' ? 'Pruefung annulliert' : r.passed ? (r.distinction ? 'Bestanden – mit Auszeichnung!' : 'Bestanden!') : 'Nicht bestanden';
-      overlay('<div class="live-eyebrow exam-eyebrow">PRUEFUNG · ' + LEVEL[ex.level].toUpperCase() + '</div><h2>' + head + '</h2>' +
+      var head = ex.state === 'voided' ? 'Prüfung annulliert' : r.passed ? (r.distinction ? 'Bestanden – mit Auszeichnung!' : 'Bestanden!') : 'Nicht bestanden';
+      overlay('<div class="live-eyebrow exam-eyebrow">PRÜFUNG · ' + LEVEL[ex.level].toUpperCase() + '</div><h2>' + head + '</h2>' +
         (ex.state === 'voided' ? '<p>' + esc(ex.voidReason || '') + '</p>' : '<p class="live-big"><b>' + pct + ' %</b> <span class="dim small">(bestanden ab 70 %, Auszeichnung ab 90 %)</span></p>' +
           (ex.state === 'expired' ? '<p class="dim small">Die Zeit ist abgelaufen – bewertet wurde der Stand der Abgaben.</p>' : '') +
           '<table class="exam-table"><tr><th>Aufgaben (70 %)</th><td class="mono">' + Math.round((r.tasks || 0) * 100) + ' %</td></tr>' +
           (r.perTask || []).map(function (t, i) { return '<tr class="sub"><th>' + (i + 1) + '. ' + esc(t.title) + '</th><td class="mono">' + Math.round(t.points * 100) + ' %</td></tr>'; }).join('') +
           '<tr><th>Theorie (30 %)</th><td class="mono">' + (r.theoryRight || 0) + ' / ' + (r.theoryTotal || 0) + '</td></tr></table>' +
-          (!r.passed && r.weakChapters && r.weakChapters.length ? '<p class="dim small">Zum Wiederholen: Kapitel ' + r.weakChapters.join(', ') + '. Der naechste Versuch ist fruehestens in 24 Stunden moeglich.</p>' : '')) +
+          (!r.passed && r.weakChapters && r.weakChapters.length ? '<p class="dim small">Zum Wiederholen: Kapitel ' + r.weakChapters.join(', ') + '. Der nächste Versuch ist frühestens in 24 Stunden möglich.</p>' : '')) +
         '<div class="live-actions">' + (r.passed && ex.state !== 'voided' ? '<a class="btn primary" href="../#/zertifikate/ausstellen/' + id + '">Zertifikat ausstellen</a>' : '') + '<a class="btn" href="../#/zertifikate">Zum Portal</a><a class="btn" href="./">Zum Labor</a></div>');
     }
 
@@ -150,8 +150,8 @@
     }
     function refresh() {
       return api('GET', 'exams/' + id).then(function (r) {
-        if (r.status === 401) { overlay('<h2>Nicht angemeldet</h2><p>Fuer die Pruefung brauchst du dein Konto.</p><div class="live-actions"><a class="btn primary" href="../#/login">Anmelden</a></div>'); return false; }
-        if (r.status !== 200) { overlay('<h2>Pruefung</h2><p>' + esc(r.data.error || 'Fehler') + '</p><div class="live-actions"><a class="btn primary" href="../#/zertifikate">Zu den Zertifikaten</a></div>'); return false; }
+        if (r.status === 401) { overlay('<h2>Nicht angemeldet</h2><p>Für die Prüfung brauchst du dein Konto.</p><div class="live-actions"><a class="btn primary" href="../#/login">Anmelden</a></div>'); return false; }
+        if (r.status !== 200) { overlay('<h2>Prüfung</h2><p>' + esc(r.data.error || 'Fehler') + '</p><div class="live-actions"><a class="btn primary" href="../#/zertifikate">Zu den Zertifikaten</a></div>'); return false; }
         take(r.data);
         if (ex.state !== 'running') { done(); return false; }
         return true;
@@ -160,7 +160,7 @@
     function start() {
       if (!id) return Promise.resolve();
       document.body.classList.add('exam-mode'); load();
-      overlay('<h2>Pruefung</h2><p class="live-big"><span class="live-pulse"></span> Wird geladen …</p>');
+      overlay('<h2>Prüfung</h2><p class="live-big"><span class="live-pulse"></span> Wird geladen …</p>');
       return refresh().then(function (okay) {
         if (!okay) return;
         var first = 0; tasks.some(function (t, i) { if (!results[t.id]) { first = i; return true; } return false; });
@@ -170,7 +170,7 @@
         document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') lost(); });
         root.addEventListener('blur', lost);
         root.addEventListener('beforeunload', function (ev) { if (running() && tasks.some(function (t) { return drafts[t.id] && drafts[t.id].dirty; })) { ev.preventDefault(); ev.returnValue = ''; } });
-      }).catch(function () { overlay('<h2>Keine Verbindung</h2><p>Die Pruefung konnte nicht geladen werden. Die Zeit laeuft auf dem Server weiter.</p><div class="live-actions"><button class="btn primary" id="exRetry">Nochmals versuchen</button></div>'); $('#exRetry').onclick = function () { start(); }; });
+      }).catch(function () { overlay('<h2>Keine Verbindung</h2><p>Die Prüfung konnte nicht geladen werden. Die Zeit läuft auf dem Server weiter.</p><div class="live-actions"><button class="btn primary" id="exRetry">Nochmals versuchen</button></div>'); $('#exRetry').onclick = function () { start(); }; });
     }
     return { id: id, start: start, send: send, draft: draft, reset: reset, back: function () { if (cur === 'q') openTheory(); else openTask(cur < 0 ? 0 : cur); },
       get exam() { return ex; }, get tasks() { return tasks; }, get questions() { return questions; }, get results() { return results; }, get current() { return cur; } };

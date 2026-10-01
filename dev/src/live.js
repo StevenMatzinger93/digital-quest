@@ -14,7 +14,7 @@
     }
     function fmt(sec) { sec = Math.max(0, Math.round(sec)); return Math.floor(sec / 60) + ':' + ('0' + sec % 60).slice(-2); }
     function left() { return ch && ch.state === 'running' ? (ch.endsAt - (Date.now() + offset)) / 1000 : 0; }
-    function modeName() { return ch && ch.mode === 'bug' ? 'Stoerungsjagd' : 'Sprint'; }
+    function modeName() { return ch && ch.mode === 'bug' ? 'Störungsjagd' : 'Sprint'; }
     function overlay(html) {
       var o = $('#liveOverlay');
       if (!o) { o = document.createElement('div'); o.id = 'liveOverlay'; o.className = 'live-overlay'; o.setAttribute('role', 'dialog'); document.body.appendChild(o); }
@@ -26,18 +26,18 @@
       if (!b) { b = document.createElement('div'); b.id = 'liveBar'; b.className = 'live-bar'; b.setAttribute('role', 'status'); document.body.appendChild(b); document.body.classList.add('has-live-bar'); }
       var l = left();
       b.innerHTML = '<span class="lb-live"><i></i>LIVE</span><span class="lb-mode">' + modeName() + '</span><span class="lb-time' + (l < 60 ? ' low' : '') + '">' + fmt(l) + '</span>' +
-        '<span>' + (me && me.solved ? '<b class="lb-ok">✔ geloest · ' + me.points + ' P' + (me.rank ? ' · Rang ' + me.rank : '') + '</b>' : 'Versuche ' + (me ? me.attempts : 0) + ' · Tipps ' + (me ? me.hints : 0)) + '</span>' +
-        '<span class="lb-count">' + (info.solved || 0) + '/' + (info.players || 0) + ' geloest</span>';
+        '<span>' + (me && me.solved ? '<b class="lb-ok">✔ gelöst · ' + me.points + ' P' + (me.rank ? ' · Rang ' + me.rank : '') + '</b>' : 'Versuche ' + (me ? me.attempts : 0) + ' · Tipps ' + (me ? me.hints : 0)) + '</span>' +
+        '<span class="lb-count">' + (info.solved || 0) + '/' + (info.players || 0) + ' gelöst</span>';
     }
     function board() {
       if (!ch) return;
       ctx.closeModal();
       var pod = top.slice(0, 3);
       overlay('<div class="live-eyebrow">LIVE-CHALLENGE · ' + modeName().toUpperCase() + '</div><h2>' + (ch.state === 'ended' ? 'Challenge beendet' : 'Rangliste') + '</h2>' +
-        (me && me.solved ? '<p class="live-big">Rang <b>' + (me.rank || '–') + '</b> · ' + me.points + ' Punkte</p>' : '<p class="live-big">' + (ch.state === 'ended' ? 'Diesmal nicht geloest – beim naechsten Mal!' : 'Noch nicht geloest') + '</p>') +
+        (me && me.solved ? '<p class="live-big">Rang <b>' + (me.rank || '–') + '</b> · ' + me.points + ' Punkte</p>' : '<p class="live-big">' + (ch.state === 'ended' ? 'Diesmal nicht gelöst – beim nächsten Mal!' : 'Noch nicht gelöst') + '</p>') +
         (pod.length ? '<div class="podium">' + [1, 0, 2].filter(function (i) { return pod[i]; }).map(function (i) { return '<div class="pod p' + (i + 1) + '"><div class="pod-name">' + esc(pod[i].username) + '</div><div class="pod-pts">' + pod[i].points + ' P</div><div class="pod-step">' + (i + 1) + '</div></div>'; }).join('') + '</div>' : '') +
         (top.length > 3 ? '<ol class="live-list" start="4">' + top.slice(3).map(function (p) { return '<li>' + esc(p.username) + ' <span>' + p.points + ' P</span></li>'; }).join('') + '</ol>' : '') +
-        '<div class="live-actions">' + (ch.state === 'running' ? '<button class="btn" id="liveBack">Zurueck zur Aufgabe</button>' : '') + '<a class="btn primary" href="../#/live">Zum Portal</a></div>');
+        '<div class="live-actions">' + (ch.state === 'running' ? '<button class="btn" id="liveBack">Zurück zur Aufgabe</button>' : '') + '<a class="btn primary" href="../#/live">Zum Portal</a></div>');
       var bk = $('#liveBack'); if (bk) bk.onclick = hideOverlay;
     }
     function loadBugs() {
@@ -59,7 +59,7 @@
     function stop() { clearInterval(timer); clearInterval(tick); }
     function refresh() {
       return api('GET', 'live/' + id).then(function (r) {
-        if (r.status === 401) { overlay('<h2>Nicht angemeldet</h2><p>Fuer die Live-Challenge brauchst du dein Konto.</p><div class="live-actions"><a class="btn primary" href="../#/login">Anmelden</a></div>'); stop(); return; }
+        if (r.status === 401) { overlay('<h2>Nicht angemeldet</h2><p>Für die Live-Challenge brauchst du dein Konto.</p><div class="live-actions"><a class="btn primary" href="../#/login">Anmelden</a></div>'); stop(); return; }
         if (r.status !== 200) { overlay('<h2>Live-Challenge</h2><p>' + esc(r.data.error || 'Fehler') + '</p><div class="live-actions"><a class="btn primary" href="../#/live">Code eingeben</a></div>'); stop(); return; }
         ch = r.data.challenge; me = r.data.me; top = r.data.top || []; info = { players: r.data.players, solved: r.data.solved };
         offset = ch.serverTime - Date.now();

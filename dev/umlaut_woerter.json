@@ -1,0 +1,1486 @@
+{
+ "_hinweis": "Umlaut-Umstellung 01.10.2026 (Feedback Phase 2). status umwandeln = in sichtbaren Texten ersetzt, der Validator meldet Rueckfaelle; bleibt = legitime Buchstabenfolge (que, aue, eue, uell, zuerst), Bezeichner, englisches Wort oder Handentscheid. Nie umgewandelt werden Bezeichner-Positionen: nach . # _ / (Tags, Routen), vor _ ( =, Objektschluessel, nackte Kleinbuchstaben-Strings wie 'gruen' oder 'rueck'. Neu erzeugen: siehe docs/STAND.md (Feedback Phase 2).",
+ "hand": {
+  "Kontoerstellung": null,
+  "Segoe": null,
+  "altschueler": null,
+  "schueler": null,
+  "pruefungen": null,
+  "fae": null
+ },
+ "woerter": {
+  "ae": {
+   "zu": "ae",
+   "status": "bleibt",
+   "grund": "Kuerzel",
+   "n": 1,
+   "wo": [
+    "dev/src/visuals.js"
+   ]
+  },
+  "aktuellen": {
+   "zu": "aktuellen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/portal/portal_anleitung.js"
+   ]
+  },
+  "altschueler": {
+   "zu": "altschueler",
+   "status": "bleibt",
+   "grund": "Handentscheid",
+   "n": 1,
+   "wo": [
+    "dev/test_api.js"
+   ]
+  },
+  "ansteuern": {
+   "zu": "ansteuern",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch13.js"
+   ]
+  },
+  "Ansteuertabelle": {
+   "zu": "Ansteuertabelle",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch12.js"
+   ]
+  },
+  "Ansteuerung": {
+   "zu": "Ansteuerung",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch10.js",
+    "dev/src/content/ch12.js"
+   ]
+  },
+  "aufbauen": {
+   "zu": "aufbauen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch06.js",
+    "dev/src/content/ch07.js"
+   ]
+  },
+  "Aufbauen": {
+   "zu": "Aufbauen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch10.js"
+   ]
+  },
+  "baue": {
+   "zu": "baue",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 7,
+   "wo": [
+    "dev/src/content/ch02.js",
+    "dev/src/content/ch07.js",
+    "dev/src/content/ch08.js"
+   ]
+  },
+  "Baue": {
+   "zu": "Baue",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 67,
+   "wo": [
+    "dev/src/app.js",
+    "dev/src/content/ch01.js",
+    "dev/src/content/ch02.js"
+   ]
+  },
+  "bauen": {
+   "zu": "bauen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 16,
+   "wo": [
+    "dev/src/app.js",
+    "dev/src/content/ch06.js",
+    "dev/src/content/ch08.js"
+   ]
+  },
+  "Bauen": {
+   "zu": "Bauen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 3,
+   "wo": [
+    "dev/src/content/manual.js",
+    "dev/tests/tasks.js"
+   ]
+  },
+  "binaer": {
+   "zu": "binär",
+   "status": "umwandeln",
+   "n": 12,
+   "wo": [
+    "dev/src/content/ch05.js",
+    "dev/src/content/ch09.js",
+    "dev/src/content_exam/pool.js"
+   ]
+  },
+  "blaue": {
+   "zu": "blaue",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content_exam/pool.js"
+   ]
+  },
+  "Blue": {
+   "zu": "Blue",
+   "status": "bleibt",
+   "grund": "englisch",
+   "n": 2,
+   "wo": [
+    "dev/src/visuals.js"
+   ]
+  },
+  "darueber": {
+   "zu": "darüber",
+   "status": "umwandeln",
+   "n": 2,
+   "wo": [
+    "dev/src/content/datasheets.js"
+   ]
+  },
+  "datenblaetter": {
+   "zu": "datenblätter",
+   "status": "umwandeln",
+   "n": 4,
+   "wo": [
+    "dev/src/app.js",
+    "dev/tests/smoke.js"
+   ]
+  },
+  "Dauer": {
+   "zu": "Dauer",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/portal/portal_anleitung.js"
+   ]
+  },
+  "Dauermagnet": {
+   "zu": "Dauermagnet",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 4,
+   "wo": [
+    "dev/src/content/ch16.js",
+    "dev/src/visuals.js"
+   ]
+  },
+  "Dauermagneten": {
+   "zu": "Dauermagneten",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch16.js"
+   ]
+  },
+  "dauernd": {
+   "zu": "dauernd",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch04.js",
+    "dev/src/content/ch15.js"
+   ]
+  },
+  "defExamQuestion": {
+   "zu": "defExamQuestion",
+   "status": "bleibt",
+   "grund": "Bezeichner",
+   "n": 2,
+   "wo": [
+    "dev/src/exam_core.js",
+    "dev/build.js"
+   ]
+  },
+  "digitalquest": {
+   "zu": "digitalquest",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 7,
+   "wo": [
+    "dev/src/account.js",
+    "dev/src/app.js",
+    "dev/portal/portal.js"
+   ]
+  },
+  "dquest": {
+   "zu": "dquest",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 16,
+   "wo": [
+    "dev/src/account.js",
+    "dev/src/exam.js",
+    "dev/src/live.js"
+   ]
+  },
+  "druecken": {
+   "zu": "drücken",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/src/app.js"
+   ]
+  },
+  "due": {
+   "zu": "due",
+   "status": "bleibt",
+   "grund": "englisch",
+   "n": 9,
+   "wo": [
+    "dev/portal/portal_leitstand.js",
+    "worker/assign.js",
+    "worker/db.js"
+   ]
+  },
+  "einbauen": {
+   "zu": "einbauen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch01.js"
+   ]
+  },
+  "fae": {
+   "zu": "fae",
+   "status": "bleibt",
+   "grund": "Handentscheid",
+   "n": 2,
+   "wo": [
+    "dev/src/app.js"
+   ]
+  },
+  "Fehlerquellen": {
+   "zu": "Fehlerquellen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch10.js"
+   ]
+  },
+  "flankengesteuert": {
+   "zu": "flankengesteuert",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch12.js"
+   ]
+  },
+  "Flankengesteuert": {
+   "zu": "Flankengesteuert",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch12.js"
+   ]
+  },
+  "flankengesteuertes": {
+   "zu": "flankengesteuertes",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch12.js"
+   ]
+  },
+  "Flankensteuerung": {
+   "zu": "Flankensteuerung",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch12.js"
+   ]
+  },
+  "frequenz": {
+   "zu": "frequenz",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 4,
+   "wo": [
+    "dev/src/content/ch03.js",
+    "dev/src/content/ch11.js",
+    "dev/src/content/ch16.js"
+   ]
+  },
+  "Frequenz": {
+   "zu": "Frequenz",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 41,
+   "wo": [
+    "dev/src/app.js",
+    "dev/src/content/ch03.js",
+    "dev/src/content/ch11.js"
+   ]
+  },
+  "Frequenzachse": {
+   "zu": "Frequenzachse",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch14.js"
+   ]
+  },
+  "Frequenzbereich": {
+   "zu": "Frequenzbereich",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch14.js",
+    "dev/src/content/ch16.js"
+   ]
+  },
+  "Frequenzen": {
+   "zu": "Frequenzen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 10,
+   "wo": [
+    "dev/src/content/ch11.js",
+    "dev/src/content/ch14.js"
+   ]
+  },
+  "frequenzgang": {
+   "zu": "frequenzgang",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 4,
+   "wo": [
+    "dev/src/content/ch14.js"
+   ]
+  },
+  "Frequenzgang": {
+   "zu": "Frequenzgang",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 10,
+   "wo": [
+    "dev/src/content/ch14.js",
+    "dev/src/content/ch16.js",
+    "dev/test_engine.js"
+   ]
+  },
+  "Frequenzgrenzen": {
+   "zu": "Frequenzgrenzen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch16.js"
+   ]
+  },
+  "Frequenzteiler": {
+   "zu": "Frequenzteiler",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 3,
+   "wo": [
+    "dev/src/content/ch12.js"
+   ]
+  },
+  "Frequenzumrichter": {
+   "zu": "Frequenzumrichter",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch14.js"
+   ]
+  },
+  "Frequenzzähler": {
+   "zu": "Frequenzzähler",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch15.js"
+   ]
+  },
+  "geglaettet": {
+   "zu": "geglättet",
+   "status": "umwandeln",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch11.js",
+    "dev/src/content/ch14.js"
+   ]
+  },
+  "genaue": {
+   "zu": "genaue",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch16.js"
+   ]
+  },
+  "Generatorfrequenz": {
+   "zu": "Generatorfrequenz",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch14.js"
+   ]
+  },
+  "geprueft": {
+   "zu": "geprüft",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch10.js"
+   ]
+  },
+  "geraete": {
+   "zu": "geräte",
+   "status": "umwandeln",
+   "n": 5,
+   "wo": [
+    "dev/src/content/ch04.js",
+    "dev/src/content/ch16.js"
+   ]
+  },
+  "Gleichspannungsquelle": {
+   "zu": "Gleichspannungsquelle",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch03.js"
+   ]
+  },
+  "graues": {
+   "zu": "graues",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch16.js"
+   ]
+  },
+  "grenzfrequenz": {
+   "zu": "grenzfrequenz",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 4,
+   "wo": [
+    "dev/src/content/ch14.js",
+    "dev/src/content/werkstatt.js",
+    "dev/src/content_exam/pool.js"
+   ]
+  },
+  "Grenzfrequenz": {
+   "zu": "Grenzfrequenz",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 19,
+   "wo": [
+    "dev/src/content/ch11.js",
+    "dev/src/content/ch14.js",
+    "dev/src/content/werkstatt.js"
+   ]
+  },
+  "Grenzfrequenzen": {
+   "zu": "Grenzfrequenzen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch14.js"
+   ]
+  },
+  "gruen": {
+   "zu": "grün",
+   "status": "umwandeln",
+   "n": 10,
+   "wo": [
+    "dev/src/content/ch10.js",
+    "dev/src/content/ch11.js",
+    "dev/src/content/ch13.js"
+   ]
+  },
+  "gruene": {
+   "zu": "grüne",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/src/content_exam/pool.js"
+   ]
+  },
+  "grundgroessen": {
+   "zu": "grundgrössen",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch01.js"
+   ]
+  },
+  "hinzufuegen": {
+   "zu": "hinzufügen",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/src/content/manual.js"
+   ]
+  },
+  "hinzugefuegt": {
+   "zu": "hinzugefügt",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/test_engine.js"
+   ]
+  },
+  "issued": {
+   "zu": "issued",
+   "status": "bleibt",
+   "grund": "englisch",
+   "n": 8,
+   "wo": [
+    "worker/cert.js",
+    "worker/db.js",
+    "worker/exam.js"
+   ]
+  },
+  "issueMonth": {
+   "zu": "issueMonth",
+   "status": "bleibt",
+   "grund": "Bezeichner",
+   "n": 1,
+   "wo": [
+    "dev/portal/portal_zertifikate.js"
+   ]
+  },
+  "issueYear": {
+   "zu": "issueYear",
+   "status": "bleibt",
+   "grund": "Bezeichner",
+   "n": 1,
+   "wo": [
+    "dev/portal/portal_zertifikate.js"
+   ]
+  },
+  "klaeren": {
+   "zu": "klären",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch10.js"
+   ]
+  },
+  "Kontoerstellung": {
+   "zu": "Kontoerstellung",
+   "status": "bleibt",
+   "grund": "Handentscheid",
+   "n": 1,
+   "wo": [
+    "dev/portal/datenschutz.html"
+   ]
+  },
+  "Kreisfrequenz": {
+   "zu": "Kreisfrequenz",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch03.js"
+   ]
+  },
+  "lauert": {
+   "zu": "lauert",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch04.js"
+   ]
+  },
+  "Mittenfrequenz": {
+   "zu": "Mittenfrequenz",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch14.js"
+   ]
+  },
+  "nBlauerKolben": {
+   "zu": "nBlauerKolben",
+   "status": "bleibt",
+   "grund": "Bezeichner",
+   "n": 1,
+   "wo": [
+    "dev/portal/portal_leitstand.js"
+   ]
+  },
+  "Netzfrequenz": {
+   "zu": "Netzfrequenz",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch16.js"
+   ]
+  },
+  "neue": {
+   "zu": "neue",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 5,
+   "wo": [
+    "dev/src/content/ch01.js",
+    "dev/src/content/ch04.js",
+    "dev/src/content/ch12.js"
+   ]
+  },
+  "Neue": {
+   "zu": "Neue",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 11,
+   "wo": [
+    "dev/src/content/ch04.js",
+    "dev/src/content/manual.js",
+    "dev/portal/portal.js"
+   ]
+  },
+  "neuen": {
+   "zu": "neuen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 4,
+   "wo": [
+    "dev/src/app.js",
+    "dev/src/content/ch11.js",
+    "dev/src/content/ch12.js"
+   ]
+  },
+  "Neuen": {
+   "zu": "Neuen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 3,
+   "wo": [
+    "dev/portal/portal_anleitung.js",
+    "dev/portal/portal_leitstand.js"
+   ]
+  },
+  "neuer": {
+   "zu": "neuer",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 5,
+   "wo": [
+    "dev/src/content/ch15.js",
+    "dev/src/visuals.js"
+   ]
+  },
+  "Neuer": {
+   "zu": "Neuer",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 5,
+   "wo": [
+    "dev/src/content/ch15.js",
+    "dev/portal/portal.js",
+    "dev/portal/portal_anleitung.js"
+   ]
+  },
+  "neues": {
+   "zu": "neues",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 11,
+   "wo": [
+    "dev/src/content/ch10.js",
+    "dev/src/content/ch15.js",
+    "dev/portal/portal.js"
+   ]
+  },
+  "Neues": {
+   "zu": "Neues",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 9,
+   "wo": [
+    "dev/src/content/ch03.js",
+    "dev/portal/portal.js",
+    "dev/portal/portal_leitstand.js"
+   ]
+  },
+  "neueste": {
+   "zu": "neueste",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/portal/portal_meldungen.js"
+   ]
+  },
+  "paritaet": {
+   "zu": "parität",
+   "status": "umwandeln",
+   "n": 3,
+   "wo": [
+    "dev/src/content/ch09.js"
+   ]
+  },
+  "Periodendauer": {
+   "zu": "Periodendauer",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 16,
+   "wo": [
+    "dev/src/content/ch03.js",
+    "dev/src/content/ch11.js",
+    "dev/src/content/ch14.js"
+   ]
+  },
+  "Pruefpunkt": {
+   "zu": "Prüfpunkt",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/validate_exam.js"
+   ]
+  },
+  "pruefseite": {
+   "zu": "prüfseite",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/tests/portal.js"
+   ]
+  },
+  "pruefung": {
+   "zu": "prüfung",
+   "status": "umwandeln",
+   "n": 3,
+   "wo": [
+    "dev/src/content/manual.js",
+    "dev/portal/portal_pruefung.js"
+   ]
+  },
+  "pruefungen": {
+   "zu": "pruefungen",
+   "status": "bleibt",
+   "grund": "Handentscheid",
+   "n": 1,
+   "wo": [
+    "worker/db.js"
+   ]
+  },
+  "Prüfquelle": {
+   "zu": "Prüfquelle",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch02.js"
+   ]
+  },
+  "Prüfungsdauer": {
+   "zu": "Prüfungsdauer",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/test_exam_api.js"
+   ]
+  },
+  "Quelldateien": {
+   "zu": "Quelldateien",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/build.js"
+   ]
+  },
+  "quelle": {
+   "zu": "quelle",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 3,
+   "wo": [
+    "dev/src/content/ch02.js",
+    "dev/src/tiles.js"
+   ]
+  },
+  "Quelle": {
+   "zu": "Quelle",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 39,
+   "wo": [
+    "dev/src/app.js",
+    "dev/src/content/ch01.js",
+    "dev/src/content/ch02.js"
+   ]
+  },
+  "Quellenspannung": {
+   "zu": "Quellenspannung",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 8,
+   "wo": [
+    "dev/src/content/ch01.js",
+    "dev/src/content/ch02.js",
+    "dev/src/content/ch04.js"
+   ]
+  },
+  "quer": {
+   "zu": "quer",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/manual.js"
+   ]
+  },
+  "quest": {
+   "zu": "quest",
+   "status": "bleibt",
+   "grund": "englisch",
+   "n": 52,
+   "wo": [
+    "dev/src/app.js",
+    "dev/portal/portal_anleitung.js",
+    "dev/portal/portal_meldungen.js"
+   ]
+  },
+  "Quest": {
+   "zu": "Quest",
+   "status": "bleibt",
+   "grund": "englisch",
+   "n": 41,
+   "wo": [
+    "dev/src/app.js",
+    "dev/src/content/_parts.js",
+    "dev/src/index.template.html"
+   ]
+  },
+  "QUEST": {
+   "zu": "QUEST",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 13,
+   "wo": [
+    "dev/src/app.js",
+    "dev/src/bench.js",
+    "dev/src/index.template.html"
+   ]
+  },
+  "questions": {
+   "zu": "questions",
+   "status": "bleibt",
+   "grund": "englisch",
+   "n": 2,
+   "wo": [
+    "dev/src/content/_helpers.js",
+    "dev/test_exam_api.js"
+   ]
+  },
+  "questübergreifende": {
+   "zu": "questübergreifende",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/app.js"
+   ]
+  },
+  "request": {
+   "zu": "request",
+   "status": "bleibt",
+   "grund": "englisch",
+   "n": 5,
+   "wo": [
+    "dev/build.js"
+   ]
+  },
+  "rpQuest": {
+   "zu": "rpQuest",
+   "status": "bleibt",
+   "grund": "Bezeichner",
+   "n": 3,
+   "wo": [
+    "dev/portal/portal_meldungen.js"
+   ]
+  },
+  "rtrue": {
+   "zu": "rtrue",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch04.js"
+   ]
+  },
+  "rueck": {
+   "zu": "rück",
+   "status": "umwandeln",
+   "n": 2,
+   "wo": [
+    "dev/src/content_exam/pool.js"
+   ]
+  },
+  "rueckgekoppelt": {
+   "zu": "rückgekoppelt",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/test_engine.js"
+   ]
+  },
+  "schueler": {
+   "zu": "schueler",
+   "status": "bleibt",
+   "grund": "Handentscheid",
+   "n": 10,
+   "wo": [
+    "dev/portal/portal_leitstand.js",
+    "dev/portal/portal_pruefung.js",
+    "worker/db.js"
+   ]
+  },
+  "Segoe": {
+   "zu": "Segoe",
+   "status": "bleibt",
+   "grund": "Handentscheid",
+   "n": 2,
+   "wo": [
+    "dev/portal/report.js",
+    "worker/cert.js"
+   ]
+  },
+  "sequence": {
+   "zu": "sequence",
+   "status": "bleibt",
+   "grund": "englisch",
+   "n": 1,
+   "wo": [
+    "dev/src/content/_helpers.js"
+   ]
+  },
+  "Sequenz": {
+   "zu": "Sequenz",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 4,
+   "wo": [
+    "dev/validate.js"
+   ]
+  },
+  "Spannungsquelle": {
+   "zu": "Spannungsquelle",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 4,
+   "wo": [
+    "dev/src/content/ch15.js",
+    "dev/src/content/datasheets.js",
+    "dev/src/content/manual.js"
+   ]
+  },
+  "Speicherdauer": {
+   "zu": "Speicherdauer",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/portal/datenschutz.html"
+   ]
+  },
+  "Steuere": {
+   "zu": "Steuere",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch11.js"
+   ]
+  },
+  "Steuereingang": {
+   "zu": "Steuereingang",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch09.js",
+    "dev/src/content/datasheets.js"
+   ]
+  },
+  "Steuereingänge": {
+   "zu": "Steuereingänge",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch09.js"
+   ]
+  },
+  "Steuerleitungen": {
+   "zu": "Steuerleitungen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch09.js"
+   ]
+  },
+  "Steuersignal": {
+   "zu": "Steuersignal",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch09.js"
+   ]
+  },
+  "Steuerspannung": {
+   "zu": "Steuerspannung",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch13.js"
+   ]
+  },
+  "Steuerströmen": {
+   "zu": "Steuerströmen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch13.js"
+   ]
+  },
+  "steuert": {
+   "zu": "steuert",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 7,
+   "wo": [
+    "dev/src/content/ch13.js",
+    "dev/src/content/ch15.js",
+    "dev/src/content/datasheets.js"
+   ]
+  },
+  "steuerung": {
+   "zu": "steuerung",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 5,
+   "wo": [
+    "dev/src/content/ch15.js",
+    "dev/src/content_exam/pool.js"
+   ]
+  },
+  "Steuerung": {
+   "zu": "Steuerung",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 12,
+   "wo": [
+    "dev/src/content/ch05.js",
+    "dev/src/content/ch08.js",
+    "dev/src/content/ch09.js"
+   ]
+  },
+  "Steuerungen": {
+   "zu": "Steuerungen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch12.js"
+   ]
+  },
+  "steuerungsart": {
+   "zu": "steuerungsart",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch12.js"
+   ]
+  },
+  "Steuerungsarten": {
+   "zu": "Steuerungsarten",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch12.js"
+   ]
+  },
+  "stoerung": {
+   "zu": "störung",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/tests/smoke.js"
+   ]
+  },
+  "Störfrequenz": {
+   "zu": "Störfrequenz",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch14.js"
+   ]
+  },
+  "Taktfrequenz": {
+   "zu": "Taktfrequenz",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch12.js",
+    "dev/src/content/datasheets.js"
+   ]
+  },
+  "true": {
+   "zu": "true",
+   "status": "bleibt",
+   "grund": "englisch",
+   "n": 28,
+   "wo": [
+    "dev/src/app.js",
+    "dev/src/bench.js",
+    "dev/src/content/ch03.js"
+   ]
+  },
+  "übersteuern": {
+   "zu": "übersteuern",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch13.js",
+    "dev/src/content/manual.js"
+   ]
+  },
+  "Übersteuern": {
+   "zu": "Übersteuern",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch13.js"
+   ]
+  },
+  "übersteuert": {
+   "zu": "übersteuert",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch13.js",
+    "dev/src/content/ch15.js"
+   ]
+  },
+  "Übersteuerung": {
+   "zu": "Übersteuerung",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch13.js"
+   ]
+  },
+  "ue": {
+   "zu": "ue",
+   "status": "bleibt",
+   "grund": "Kuerzel",
+   "n": 1,
+   "wo": [
+    "dev/src/content/werkstatt.js"
+   ]
+  },
+  "uebernommen": {
+   "zu": "übernommen",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/tests/smoke.js"
+   ]
+  },
+  "uebersicht": {
+   "zu": "übersicht",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/tests/portal.js"
+   ]
+  },
+  "ueff": {
+   "zu": "üff",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch03.js"
+   ]
+  },
+  "ungueltig": {
+   "zu": "ungültig",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/src/visuals.js"
+   ]
+  },
+  "UNIQUE": {
+   "zu": "UNIQUE",
+   "status": "bleibt",
+   "grund": "englisch",
+   "n": 3,
+   "wo": [
+    "worker/db.js"
+   ]
+  },
+  "unvollstaendig": {
+   "zu": "unvollständig",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/tests/portal.js"
+   ]
+  },
+  "value": {
+   "zu": "value",
+   "status": "bleibt",
+   "grund": "englisch",
+   "n": 103,
+   "wo": [
+    "dev/src/app.js",
+    "dev/src/content/ch01.js",
+    "dev/src/content/ch02.js"
+   ]
+  },
+  "values": {
+   "zu": "values",
+   "status": "bleibt",
+   "grund": "englisch",
+   "n": 4,
+   "wo": [
+    "dev/portal/portal.js"
+   ]
+  },
+  "VALUES": {
+   "zu": "VALUES",
+   "status": "bleibt",
+   "grund": "englisch",
+   "n": 34,
+   "wo": [
+    "worker/assign.js",
+    "worker/cert.js",
+    "worker/challenge.js"
+   ]
+  },
+  "vdue": {
+   "zu": "vdue",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/portal/portal_leitstand.js"
+   ]
+  },
+  "verstaerker": {
+   "zu": "verstärker",
+   "status": "umwandeln",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch13.js",
+    "dev/src/tiles.js"
+   ]
+  },
+  "vgDue": {
+   "zu": "vgDue",
+   "status": "bleibt",
+   "grund": "Bezeichner",
+   "n": 4,
+   "wo": [
+    "dev/portal/portal_leitstand.js",
+    "dev/tests/portal.js"
+   ]
+  },
+  "waechst": {
+   "zu": "wächst",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch16.js"
+   ]
+  },
+  "wechselgroessen": {
+   "zu": "wechselgrössen",
+   "status": "umwandeln",
+   "n": 5,
+   "wo": [
+    "dev/src/content/ch03.js"
+   ]
+  },
+  "Wechselquelle": {
+   "zu": "Wechselquelle",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/app.js",
+    "dev/test_engine.js"
+   ]
+  },
+  "Wechselquellen": {
+   "zu": "Wechselquellen",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/app.js"
+   ]
+  },
+  "Wechselspannungsquelle": {
+   "zu": "Wechselspannungsquelle",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/content/manual.js",
+    "dev/src/engine.js"
+   ]
+  },
+  "xcIssue": {
+   "zu": "xcIssue",
+   "status": "bleibt",
+   "grund": "Bezeichner",
+   "n": 4,
+   "wo": [
+    "dev/portal/portal_zertifikate.js",
+    "dev/tests/portal.js"
+   ]
+  },
+  "xzQuests": {
+   "zu": "xzQuests",
+   "status": "bleibt",
+   "grund": "Bezeichner",
+   "n": 4,
+   "wo": [
+    "dev/portal/portal_zertifikate.js",
+    "dev/tests/portal.js"
+   ]
+  },
+  "zaehlen": {
+   "zu": "zählen",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/src/content/werkstatt.js"
+   ]
+  },
+  "zaehler": {
+   "zu": "zähler",
+   "status": "umwandeln",
+   "n": 10,
+   "wo": [
+    "dev/src/content/ch12.js",
+    "dev/src/content/ch15.js",
+    "dev/src/content_exam/pool.js"
+   ]
+  },
+  "zuerst": {
+   "zu": "zuerst",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 16,
+   "wo": [
+    "dev/src/app.js",
+    "dev/src/content/ch01.js",
+    "dev/src/content/ch02.js"
+   ]
+  },
+  "Zuerst": {
+   "zu": "Zuerst",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 6,
+   "wo": [
+    "dev/src/app.js",
+    "dev/src/content/ch01.js",
+    "dev/src/content/ch09.js"
+   ]
+  },
+  "zurueck": {
+   "zu": "zurück",
+   "status": "umwandeln",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch05.js"
+   ]
+  },
+  "zustandsgesteuert": {
+   "zu": "zustandsgesteuert",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch12.js"
+   ]
+  },
+  "Zustandsgesteuert": {
+   "zu": "Zustandsgesteuert",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 2,
+   "wo": [
+    "dev/src/content/ch12.js"
+   ]
+  },
+  "zustandsgesteuertes": {
+   "zu": "zustandsgesteuertes",
+   "status": "bleibt",
+   "grund": "legitime Folge",
+   "n": 1,
+   "wo": [
+    "dev/src/content/ch12.js"
+   ]
+  }
+ }
+}

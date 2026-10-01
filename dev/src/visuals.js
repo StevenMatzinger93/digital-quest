@@ -20,7 +20,7 @@
 
   function mount(el, v) {
     var t = TYPES[v.type];
-    if (!t || !t.mount) { el.innerHTML = '<p class="dim small">Bild „' + v.type + '“ ist noch nicht verfuegbar.</p>'; return null; }
+    if (!t || !t.mount) { el.innerHTML = '<p class="dim small">Bild „' + v.type + '“ ist noch nicht verfügbar.</p>'; return null; }
     el.classList.add('visual', 'visual-' + v.type);
     var body = document.createElement('div'); body.className = 'visual-body'; el.appendChild(body);
     if (v.caption) { var cap = document.createElement('p'); cap.className = 'visual-cap'; cap.innerHTML = v.caption; el.appendChild(cap); }
@@ -30,7 +30,7 @@
     if (!v || typeof v !== 'object') return ['visual ist kein Objekt'];
     var t = TYPES[v.type];
     if (!t) return ['unbekannter visual.type „' + v.type + '“ (erlaubt: ' + Object.keys(TYPES).join(', ') + ')'];
-    try { return t.check ? t.check(v, E) : []; } catch (e) { return ['Fehler beim Pruefen: ' + e.message]; }
+    try { return t.check ? t.check(v, E) : []; } catch (e) { return ['Fehler beim Prüfen: ' + e.message]; }
   }
   /* Lektion + Bilder: HTML mit Platzhaltern, danach mountAll(container, list) */
   function lessonHtml(lesson, list) {
@@ -59,16 +59,16 @@
     check: function (v, E) {
       var err = [], L = v.layout;
       if (!L || !Array.isArray(L.parts) || !Array.isArray(L.wires)) return ['circuit: layout {parts, wires} fehlt'];
-      try { E.buildNetlist(L); } catch (e) { err.push('circuit: Layout ungueltig: ' + e.message); }
+      try { E.buildNetlist(L); } catch (e) { err.push('circuit: Layout ungültig: ' + e.message); }
       var ids = {}; L.parts.forEach(function (p) { ids[p.id] = p; });
       ((v.bench && v.bench.parts) || []).forEach(function (b) { if (!ids[b.id]) err.push('circuit: bench-id ' + b.id + ' nicht im Layout'); });
       (v.sliders || []).forEach(function (s) {
-        var p = ids[s.part]; if (!p) { err.push('circuit: Regler fuer unbekanntes Bauteil ' + s.part); return; }
+        var p = ids[s.part]; if (!p) { err.push('circuit: Regler für unbekanntes Bauteil ' + s.part); return; }
         if (s.prop !== 'value' && !(s.prop in (E.PARTS[p.type].props || {}))) err.push('circuit: ' + p.type + ' hat keine Eigenschaft ' + s.prop);
         if (s.choices) { if (!s.choices.length) err.push('circuit: Auswahl ' + s.part + ' ohne choices'); return; }
-        if (!(s.max > s.min) || (s.log && !(s.min > 0))) err.push('circuit: Regler ' + s.part + ' mit ungueltigem Bereich');
+        if (!(s.max > s.min) || (s.log && !(s.min > 0))) err.push('circuit: Regler ' + s.part + ' mit ungültigem Bereich');
       });
-      (v.readouts || []).forEach(function (x) { if (x.ac && ['rms', 'avg', 'dc', 'pp', 'peak'].indexOf(x.ac) < 0) err.push('circuit: ac muss rms|avg|dc|pp|peak sein'); if (x.sel && !ids[x.sel]) err.push('circuit: Anzeige fuer unbekanntes Bauteil ' + x.sel); if (x.a && !ids[x.a.split('.')[0]]) err.push('circuit: Anzeige an unbekanntem Anschluss ' + x.a); });
+      (v.readouts || []).forEach(function (x) { if (x.ac && ['rms', 'avg', 'dc', 'pp', 'peak'].indexOf(x.ac) < 0) err.push('circuit: ac muss rms|avg|dc|pp|peak sein'); if (x.sel && !ids[x.sel]) err.push('circuit: Anzeige für unbekanntes Bauteil ' + x.sel); if (x.a && !ids[x.a.split('.')[0]]) err.push('circuit: Anzeige an unbekanntem Anschluss ' + x.a); });
       if (v.scope && (!v.scope.a || !ids[v.scope.a.split('.')[0]])) err.push('circuit: Oszilloskop-Anschluss fehlt/unbekannt');
       return err;
     }
@@ -95,14 +95,14 @@
       for (var k = 0; k <= N; k++) {
         var n = k % N, p = (k + N - 1) % N, b = bitsOf(n, w), g = bitsOf(n ^ (n >> 1), w), bp = bitsOf(p, w), gp = bitsOf(p ^ (p >> 1), w);
         var hb = [], hg = []; b.forEach(function (x, i) { if (k && x !== bp[i]) hb.push(i); }); g.forEach(function (x, i) { if (k && x !== gp[i]) hg.push(i); });
-        var rows = [{ label: 'Dezimal', cells: [n] }, { label: 'Binaer B', cells: b, hl: hb, note: k ? hb.length + ' Bit' + (hb.length > 1 ? 's' : '') + ' geaendert' : '' },
-          { label: 'Gray G', cells: g, hl: hg, note: k ? '1 Bit geaendert' : '' }];
+        var rows = [{ label: 'Dezimal', cells: [n] }, { label: 'Binär B', cells: b, hl: hb, note: k ? hb.length + ' Bit' + (hb.length > 1 ? 's' : '') + ' geändert' : '' },
+          { label: 'Gray G', cells: g, hl: hg, note: k ? '1 Bit geändert' : '' }];
         if (v.parity !== false) {
           var chain = [], acc = 0; g.forEach(function (x, i) { acc ^= x; chain.push(acc); });
           rows.push({ label: 'XOR-Kette', cells: chain, hl: [chain.length - 1], note: 'P = ' + names.map(function (i) { return 'G' + i; }).join(' ⊕ ') + ' = ' + acc });
         }
-        out.push({ rows: rows, text: k === 0 ? 'Start bei 0. Mit ▶ zaehlst du weiter.' : k === N ? 'Von ' + p + ' zurueck auf 0: auch dieser Uebergang aendert im Gray-Code nur ein Bit – der Code ist zyklisch.'
-          : 'Von ' + p + ' auf ' + n + ': binaer kippen <b>' + hb.length + '</b> Bit' + (hb.length > 1 ? 's' : '') + ', im Gray-Code nur <b>eines</b> (G' + names[hg[0]] + ').' + (v.parity !== false ? ' Das Paritaetsbit wechselt deshalb bei jedem Schritt.' : '') });
+        out.push({ rows: rows, text: k === 0 ? 'Start bei 0. Mit ▶ zählst du weiter.' : k === N ? 'Von ' + p + ' zurück auf 0: auch dieser Übergang ändert im Gray-Code nur ein Bit – der Code ist zyklisch.'
+          : 'Von ' + p + ' auf ' + n + ': binär kippen <b>' + hb.length + '</b> Bit' + (hb.length > 1 ? 's' : '') + ', im Gray-Code nur <b>eines</b> (G' + names[hg[0]] + ').' + (v.parity !== false ? ' Das Paritätsbit wechselt deshalb bei jedem Schritt.' : '') });
       }
       return out;
     }
@@ -111,7 +111,7 @@
   var HEX = '0123456789ABCDEF';
   GEN.divide = function (v) {
     var b = v.base || 2, q = v.value, rest = [], out = [], sub = b === 2 ? '₂' : '₁₆';
-    out.push({ rows: [{ label: 'Zahl', cells: [q] }, { label: 'Reste', cells: ['·'] }], text: 'Die Dezimalzahl ' + q + ' wird so lange durch ' + b + ' geteilt, bis 0 uebrig bleibt. Die Reste sind die Ziffern.' });
+    out.push({ rows: [{ label: 'Zahl', cells: [q] }, { label: 'Reste', cells: ['·'] }], text: 'Die Dezimalzahl ' + q + ' wird so lange durch ' + b + ' geteilt, bis 0 übrig bleibt. Die Reste sind die Ziffern.' });
     while (q > 0) {
       var r = q % b, nq = Math.floor(q / b); rest.unshift(HEX[r]);
       out.push({ rows: [{ label: 'Zahl', cells: [nq] }, { label: 'Reste', cells: rest.slice(), hl: [0], note: 'neuer Rest links' }], text: q + ' : ' + b + ' = ' + nq + ' Rest <b>' + HEX[r] + '</b>' });
@@ -146,14 +146,14 @@
     var chars = function (t) { return t.replace(/\s.*$/, '').split(''); };
     rs.forEach(function (r, k) {
       var t = (x / r[1] * (1 + cal)).toFixed(r[3]), lsd = Math.pow(10, -r[3]) * r[1];
-      out.push({ rows: [{ label: 'Wahrer Wert', cells: [String(x)] }, { label: 'Anzeige', cells: chars(t).concat([r[2]]), hl: [t.length - 1] }, { label: 'Aufloesung', cells: [E.fmt(lsd, unit).replace(/\.?0+ /, ' ')] }],
-        text: (k === 0 ? 'Automatische Bereichswahl: kleinster passender Bereich (bis ' + E.fmt(r[0], unit).replace(/\.?0+ /, ' ') + ') – die meisten Stellen.' : 'Bereich bis ' + E.fmt(r[0], unit).replace(/\.?0+ /, ' ') + ': eine Stelle weniger, die Aufloesung wird zehnmal groeber.') });
+      out.push({ rows: [{ label: 'Wahrer Wert', cells: [String(x)] }, { label: 'Anzeige', cells: chars(t).concat([r[2]]), hl: [t.length - 1] }, { label: 'Auflösung', cells: [E.fmt(lsd, unit).replace(/\.?0+ /, ' ')] }],
+        text: (k === 0 ? 'Automatische Bereichswahl: kleinster passender Bereich (bis ' + E.fmt(r[0], unit).replace(/\.?0+ /, ' ') + ') – die meisten Stellen.' : 'Bereich bis ' + E.fmt(r[0], unit).replace(/\.?0+ /, ' ') + ': eine Stelle weniger, die Auflösung wird zehnmal gröber.') });
     });
     var r0 = rs[0];
     [0.1, 0.5, 0.9].forEach(function (u) {
       var d = E.dmm(x, unit, function () { return u; });
       out.push({ rows: [{ label: 'Wahrer Wert', cells: [String(x)] }, { label: 'Anzeige', cells: chars(d.text).concat([r0[2]]), hl: [chars(d.text).length - 1] }],
-        text: 'Mehrmals abgelesen: Die letzte Stelle schwankt um ±1 Digit, dazu kommt der Kalibrierfehler von +' + (cal * 100).toFixed(1).replace('.', ',') + ' %. Deshalb nie mehr Stellen notieren, als das Geraet sicher liefert.' });
+        text: 'Mehrmals abgelesen: Die letzte Stelle schwankt um ±1 Digit, dazu kommt der Kalibrierfehler von +' + (cal * 100).toFixed(1).replace('.', ',') + ' %. Deshalb nie mehr Stellen notieren, als das Gerät sicher liefert.' });
     });
     return out;
   };
@@ -161,7 +161,7 @@
   register('numberSteps', {
     mount: function (el, v) {
       var steps = stepsOf(v), i = 0, timer = 0;
-      el.innerHTML = '<div class="ns"><div class="ns-grid"></div><p class="ns-text"></p><div class="ns-bar"><button class="btn small" data-ns="-1" aria-label="Zurueck">◀</button><span class="ns-pos mono"></span><button class="btn small" data-ns="1" aria-label="Weiter">▶</button><button class="btn small" data-ns="play">▶ Abspielen</button></div></div>';
+      el.innerHTML = '<div class="ns"><div class="ns-grid"></div><p class="ns-text"></p><div class="ns-bar"><button class="btn small" data-ns="-1" aria-label="Zurück">◀</button><span class="ns-pos mono"></span><button class="btn small" data-ns="1" aria-label="Weiter">▶</button><button class="btn small" data-ns="play">▶ Abspielen</button></div></div>';
       var grid = el.querySelector('.ns-grid'), text = el.querySelector('.ns-text'), pos = el.querySelector('.ns-pos'), play = el.querySelector('[data-ns="play"]');
       function draw() {
         var s = steps[i];
@@ -188,7 +188,7 @@
     check: function (v) {
       if (v.mode && !GEN[v.mode]) return ['numberSteps: unbekannter mode „' + v.mode + '“ (erlaubt: ' + Object.keys(GEN).join(', ') + ')'];
       var s = stepsOf(v);
-      if (!Array.isArray(s) || !s.length) return ['numberSteps: steps oder mode noetig'];
+      if (!Array.isArray(s) || !s.length) return ['numberSteps: steps oder mode nötig'];
       var err = [];
       s.forEach(function (st, k) { if (!st.rows || !st.rows.length) err.push('numberSteps: Schritt ' + (k + 1) + ' ohne rows'); });
       return err;
@@ -208,14 +208,14 @@
       function show(k) {
         cur = k; el.querySelectorAll('[data-wk-tab]').forEach(function (b, i) { b.classList.toggle('on', i === k); });
         var e = ex[k], shown = 0;
-        body.innerHTML = '<div class="wk-given">' + (e.given || []).map(function (g) { return '<span><span class="dim">' + esc(g.label) + '</span> <b class="mono">' + esc(g.value) + '</b></span>'; }).join('') + '</div><ol class="wk-steps"></ol><div class="wk-bar"><button class="btn small primary" data-wk="next">Naechster Schritt</button><span class="wk-done dim small"></span></div>';
+        body.innerHTML = '<div class="wk-given">' + (e.given || []).map(function (g) { return '<span><span class="dim">' + esc(g.label) + '</span> <b class="mono">' + esc(g.value) + '</b></span>'; }).join('') + '</div><ol class="wk-steps"></ol><div class="wk-bar"><button class="btn small primary" data-wk="next">Nächster Schritt</button><span class="wk-done dim small"></span></div>';
         var ol = body.querySelector('.wk-steps'), next = body.querySelector('[data-wk="next"]'), done = body.querySelector('.wk-done');
         function reveal() {
           if (shown >= e.steps.length) return;
           var s = e.steps[shown], li = document.createElement('li'), idx = shown; shown++;
           li.className = 'wk-step' + (s.input ? ' input' : '');
           li.innerHTML = '<p>' + s.text + '</p><div class="wk-row"><span class="wk-lbl">' + esc(s.label) + '</span>' + (s.expr ? '<span class="mono wk-expr">' + esc(s.expr) + '</span>' : '') +
-            (s.input ? '<span class="wk-in"><input type="text" inputmode="decimal" class="mono" placeholder="?" aria-label="' + esc(s.label) + '"> <span class="wk-unit">' + esc(s.unit || '') + '</span> <button class="btn small" data-wk="check">Pruefen</button></span><span class="wk-fb"></span>'
+            (s.input ? '<span class="wk-in"><input type="text" inputmode="decimal" class="mono" placeholder="?" aria-label="' + esc(s.label) + '"> <span class="wk-unit">' + esc(s.unit || '') + '</span> <button class="btn small" data-wk="check">Prüfen</button></span><span class="wk-fb"></span>'
               : '<span class="mono wk-val">= ' + wkFmt(s.value, s.digits) + ' ' + esc(s.unit || '') + '</span>') + '</div>';
           ol.appendChild(li);
           if (s.input) {
@@ -226,8 +226,8 @@
               var tol = s.tol === undefined ? 0.02 : s.tol, ok = Math.abs(x - s.value) <= Math.max(Math.abs(s.value) * tol, 1e-9);
               tries++;
               if (ok) { fb.textContent = '✔ Richtig: ' + wkFmt(s.value, s.digits) + ' ' + (s.unit || ''); fb.className = 'wk-fb ok'; inp.disabled = true; li.querySelector('[data-wk="check"]').disabled = true; li.classList.add('solved'); next.disabled = false; if (idx === e.steps.length - 1) finish(); }
-              else { fb.innerHTML = '✘ Das stimmt noch nicht' + (Math.abs(x) > Math.abs(s.value) ? ' (zu gross).' : ' (zu klein).') + (tries >= 2 ? ' <button class="btn small" data-wk="solve">Loesung zeigen</button>' : ' Noch einmal – ' + (s.help || 'Formel oben anwenden.')); fb.className = 'wk-fb bad';
-                var sv = fb.querySelector('[data-wk="solve"]'); if (sv) sv.onclick = function () { inp.value = wkFmt(s.value, s.digits); inp.disabled = true; li.querySelector('[data-wk="check"]').disabled = true; fb.textContent = 'Loesung: ' + wkFmt(s.value, s.digits) + ' ' + (s.unit || '') + (s.solution ? ' – ' + s.solution : ''); fb.className = 'wk-fb shown'; next.disabled = false; if (idx === e.steps.length - 1) finish(); }; }
+              else { fb.innerHTML = '✘ Das stimmt noch nicht' + (Math.abs(x) > Math.abs(s.value) ? ' (zu gross).' : ' (zu klein).') + (tries >= 2 ? ' <button class="btn small" data-wk="solve">Lösung zeigen</button>' : ' Noch einmal – ' + (s.help || 'Formel oben anwenden.')); fb.className = 'wk-fb bad';
+                var sv = fb.querySelector('[data-wk="solve"]'); if (sv) sv.onclick = function () { inp.value = wkFmt(s.value, s.digits); inp.disabled = true; li.querySelector('[data-wk="check"]').disabled = true; fb.textContent = 'Lösung: ' + wkFmt(s.value, s.digits) + ' ' + (s.unit || '') + (s.solution ? ' – ' + s.solution : ''); fb.className = 'wk-fb shown'; next.disabled = false; if (idx === e.steps.length - 1) finish(); }; }
             }
             li.querySelector('[data-wk="check"]').onclick = check; inp.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); check(); } }); inp.focus();
           } else if (shown >= e.steps.length) finish();
@@ -320,7 +320,7 @@
           '<g class="mw-plate"><rect x="' + (cx + 8) + '" y="174" width="10" height="34" rx="1.5" fill="url(#' + n + 'Iron)" stroke="#2f3438" stroke-width=".9"/><path d="M' + (cx + 10.5) + ' 176v30" stroke="rgba(255,255,255,.5)" stroke-width="1"/></g>' +
         '</g>' +
         '<path class="mw-force" d="M' + (cx - 11) + ' 191h16m-4-4l4 4-4 4" fill="none" stroke="#ff8c00" stroke-width="2" stroke-linecap="round"/>' +
-        '<text x="' + cx + '" y="232" class="mw-lbl">feste Spule · zwei Eisenplaettchen</text>';
+        '<text x="' + cx + '" y="232" class="mw-lbl">feste Spule · zwei Eisenplättchen</text>';
     var needle = '<g class="mw-needle" transform="rotate(-45 ' + cx + ' ' + cy + ')">' +
       '<path d="M' + (cx - 2) + ' ' + (cy + 16) + 'L' + (cx + 2) + ' ' + (cy + 16) + 'L' + (cx + 0.6) + ' ' + (cy - r + 4) + 'L' + (cx - 0.6) + ' ' + (cy - r + 4) + 'Z" transform="translate(2.2 3)" fill="rgba(0,0,0,.35)" filter="url(#' + n + 'Soft)"/>' +
       '<path d="M' + (cx - 2) + ' ' + (cy + 16) + 'L' + (cx + 2) + ' ' + (cy + 16) + 'L' + (cx + 0.6) + ' ' + (cy - r + 4) + 'L' + (cx - 0.6) + ' ' + (cy - r + 4) + 'Z" fill="url(#' + n + 'Needle)" stroke="#7a0f0f" stroke-width=".4"/>' +
@@ -352,7 +352,7 @@
         '<div class="mw-faces"><div><h4>Drehspulmesswerk <span class="dim">M = k₁ · I · (mit Gleichrichter)</span></h4>' + mwFace('coil', w) + '</div><div><h4>Dreheisenmesswerk <span class="dim">M = k₂ · I²</span></h4>' + mwFace('iron', w) + '</div></div>' +
         '<div class="mw-ctl"><label><span>Strom I</span><input type="range" min="0" max="1" step="0.01" value="' + state.amp + '" data-mw="amp"><b class="mono mw-i"></b></label>' +
         '<label><span>Eingang</span><select data-mw="signal">' + [['dc', 'Gleichstrom'], ['sine', 'Sinus'], ['triangle', 'Dreieck'], ['square', 'Rechteck']].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === state.signal ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>' +
-        '<label><span>Daempfung</span><select data-mw="damp"><option value="1"' + (state.damp ? ' selected' : '') + '>mit (Wirbelstrom / Luftkammer)</option><option value="0"' + (state.damp ? '' : ' selected') + '>ohne – Zeiger schwingt ueber</option></select></label>' +
+        '<label><span>Dämpfung</span><select data-mw="damp"><option value="1"' + (state.damp ? ' selected' : '') + '>mit (Wirbelstrom / Luftkammer)</option><option value="0"' + (state.damp ? '' : ' selected') + '>ohne – Zeiger schwingt über</option></select></label>' +
         '<button class="btn small" data-mw="kick" title="Strom kurz wegnehmen und wieder anlegen">Sprung</button></div>' +
         '<p class="mw-note dim small"></p></div>';
       var box = el.querySelector('.mw'), faces = el.querySelectorAll('.mw-face'), needles = el.querySelectorAll('.mw-needle'), reads = el.querySelectorAll('.mw-read'), coil = el.querySelector('.mw-coil'), plate = el.querySelector('.mw-plate'), force = el.querySelector('.mw-force');
@@ -477,7 +477,7 @@
         return out;
       }
       el.innerHTML = '<div class="kvw"><div class="kv-svg"></div><div class="kv-side"><p class="dim small">' + (v.edit !== false ? 'Feld anklicken: 0 → 1 → X → 0' : '') + '</p>' +
-        '<button class="btn small primary" data-kv="g">Paeckchen bilden</button> <button class="btn small" data-kv="c">Leeren</button><div class="kv-term"></div></div></div>';
+        '<button class="btn small primary" data-kv="g">Päckchen bilden</button> <button class="btn small" data-kv="c">Leeren</button><div class="kv-term"></div></div></div>';
       var box = el.querySelector('.kv-svg'), term = el.querySelector('.kv-term');
       function draw() {
         box.innerHTML = svg();
@@ -489,7 +489,7 @@
         var ones = [], dc = []; Object.keys(st).forEach(function (m) { if (st[m] === 1) ones.push(+m); else dc.push(+m); });
         groups = minimize(n, ones, dc); draw();
         term.innerHTML = '<b>' + esc(v.out || 'A') + ' = </b>' + (groups.length ? groups.map(function (p, gi) { return '<span style="color:' + LOOP[gi % LOOP.length] + '">' + termHtml(n, p, names) + '</span>'; }).join(' ∨ ') : '0') +
-          '<p class="dim small">' + (groups.length ? groups.length + ' Paeckchen – je Paeckchen fallen die Variablen weg, die sich darin aendern.' : 'Keine Einsen – der Ausgang ist immer 0.') + '</p>';
+          '<p class="dim small">' + (groups.length ? groups.length + ' Päckchen – je Päckchen fallen die Variablen weg, die sich darin ändern.' : 'Keine Einsen – der Ausgang ist immer 0.') + '</p>';
       };
       el.querySelector('[data-kv="c"]').onclick = function () { st = {}; groups = null; term.innerHTML = ''; draw(); };
       draw();
@@ -555,7 +555,7 @@
       function upd() {
         var f = Math.pow(10, +inp.value), m = transfer(v.stages, f), a = Math.hypot(m.re, m.im), g = 20 * Math.log10(a), ph = Math.atan2(m.im, m.re) * 180 / Math.PI;
         out.textContent = fmtF(f); cl.setAttribute('x1', X(f)); cl.setAttribute('x2', X(f)); cd.setAttribute('cx', X(f)); cd.setAttribute('cy', Y(g));
-        ro.innerHTML = '<span><b>U<sub>a</sub> / U<sub>e</sub></b> <span class="mono">' + (a * 100).toFixed(1) + ' %</span></span><span><b>Verstaerkung</b> <span class="mono">' + g.toFixed(1) + ' dB</span></span><span><b>Phase</b> <span class="mono">' + ph.toFixed(0) + '°</span></span>';
+        ro.innerHTML = '<span><b>U<sub>a</sub> / U<sub>e</sub></b> <span class="mono">' + (a * 100).toFixed(1) + ' %</span></span><span><b>Verstärkung</b> <span class="mono">' + g.toFixed(1) + ' dB</span></span><span><b>Phase</b> <span class="mono">' + ph.toFixed(0) + '°</span></span>';
         void cur;
       }
       inp.oninput = upd; upd();

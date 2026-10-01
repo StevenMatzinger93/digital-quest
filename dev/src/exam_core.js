@@ -128,24 +128,24 @@
     var ids = {}, parts = [], bad = null;
     layout.parts.forEach(function (p) {
       if (bad) return;
-      if (!p || typeof p.id !== 'string' || !/^[A-Za-z][A-Za-z0-9_]{0,11}$/.test(p.id) || !E.PARTS[p.type] || ids[p.id]) { bad = 'Ungueltiges Bauteil in der Abgabe.'; return; }
+      if (!p || typeof p.id !== 'string' || !/^[A-Za-z][A-Za-z0-9_]{0,11}$/.test(p.id) || !E.PARTS[p.type] || ids[p.id]) { bad = 'Ungültiges Bauteil in der Abgabe.'; return; }
       ids[p.id] = 1;
       var q = { id: p.id, type: p.type, x: +p.x || 0, y: +p.y || 0, rot: +p.rot || 0, props: cleanProps(p.props) };
-      if (p.value !== undefined) { if (!(+p.value > 0) || !isFinite(+p.value)) { bad = 'Ungueltiger Wert bei ' + p.id + '.'; return; } q.value = +p.value; }
+      if (p.value !== undefined) { if (!(+p.value > 0) || !isFinite(+p.value)) { bad = 'Ungültiger Wert bei ' + p.id + '.'; return; } q.value = +p.value; }
       parts.push(q);
     });
     if (bad) return { error: bad };
     var wires = [];
     layout.wires.forEach(function (w) {
       if (bad) return;
-      if (!w || typeof w.from !== 'string' || typeof w.to !== 'string' || w.from.length > 24 || w.to.length > 24) { bad = 'Ungueltige Leitung in der Abgabe.'; return; }
+      if (!w || typeof w.from !== 'string' || typeof w.to !== 'string' || w.from.length > 24 || w.to.length > 24) { bad = 'Ungültige Leitung in der Abgabe.'; return; }
       wires.push({ from: w.from, to: w.to });
     });
     if (bad) return { error: bad };
     // vorgegebene Bauteile unveraendert, neue nur aus der Palette
     var by = {}; parts.forEach(function (p) { by[p.id] = p; });
     var missing = it.start.parts.filter(function (s) { var p = by[s.id]; return !p || p.type !== s.type; }).map(function (s) { return s.id; });
-    if (missing.length) return { error: 'Vorgegebene Bauteile fehlen: ' + missing.join(', ') + '. Bitte die Aufgabe zuruecksetzen.' };
+    if (missing.length) return { error: 'Vorgegebene Bauteile fehlen: ' + missing.join(', ') + '. Bitte die Aufgabe zurücksetzen.' };
     // Werte der vorgegebenen Bauteile gelten wie gestellt (am Generator darf zum Messen gedreht werden – bewertet wird mit dem Aufgabenwert)
     it.start.parts.forEach(function (s) {
       var p = by[s.id], free = {};
@@ -159,7 +159,7 @@
     // vorgegebene Leitungen bleiben
     var has = {}; wires.forEach(function (w) { has[w.from + '|' + w.to] = has[w.to + '|' + w.from] = 1; });
     var cut = (it.start.wires || []).filter(function (w) { return !has[w.from + '|' + w.to]; });
-    if (cut.length && !it.rewire) return { error: 'Vorgegebene Leitungen wurden entfernt. Bitte die Aufgabe zuruecksetzen.' };
+    if (cut.length && !it.rewire) return { error: 'Vorgegebene Leitungen wurden entfernt. Bitte die Aufgabe zurücksetzen.' };
     return { layout: { parts: parts, wires: wires } };
   }
   function cleanAnswers(it, a) {
@@ -176,7 +176,7 @@
     var c = cleanLayout(it, answer && answer.layout);
     if (c.error) return Object.assign(none, { error: c.error });
     var ans = cleanAnswers(it, answer && answer.answers), rv, rh;
-    try { rv = E.runTask(toTask(it, 'visible'), c.layout, ans); } catch (e) { return Object.assign(none, { error: 'Die Schaltung laesst sich nicht berechnen: ' + String(e.message || e).slice(0, 160) }); }
+    try { rv = E.runTask(toTask(it, 'visible'), c.layout, ans); } catch (e) { return Object.assign(none, { error: 'Die Schaltung lässt sich nicht berechnen: ' + String(e.message || e).slice(0, 160) }); }
     try { rh = it.hidden.length ? E.runTask(toTask(it, 'hidden'), c.layout, {}) : { results: [] }; } catch (e) { rh = { results: it.hidden.map(function () { return { ok: false }; }) }; }
     var all = rv.results.concat(rh.results), passed = all.filter(function (x) { return x.ok; }).length, points = score(passed, all.length);
     return { points: points, passed: passed, total: all.length, ok: points === 1, error: null,

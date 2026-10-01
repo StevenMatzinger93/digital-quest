@@ -6,7 +6,7 @@
 
   defChapter({
     id: 2, title: 'Reihen- und Parallelschaltung',
-    intro: 'Mehrere Widerstaende – wie teilen sich Strom und Spannung auf? Du baust Reihen- und Parallelschaltungen, Spannungsteiler und entlarvst eine Quelle, die nicht haelt, was sie verspricht.',
+    intro: 'Mehrere Widerstände – wie teilen sich Strom und Spannung auf? Du baust Reihen- und Parallelschaltungen, Spannungsteiler und entlarvst eine Quelle, die nicht hält, was sie verspricht.',
     sequence: ['T2A', '2.1', '2.2', '2.3', '2.4', '2.5', 'T2B', '2.6', '2.7', '2.8', '2.9', '2.10']
   });
 
@@ -40,39 +40,39 @@
   /* ================= Theorie A ================= */
   defTheory({
     id: 'T2A', ch: 2, title: 'Die Reihenschaltung', tags: ['elektro.reihenschaltung', 'elektro.kirchhoff'],
-    merksatz: 'In der Reihenschaltung ist der Strom ueberall gleich, die Widerstaende und die Teilspannungen addieren sich – am groesseren Widerstand liegt die groessere Spannung.',
-    visual: { type: 'circuit', volt: true, caption: 'Drei Widerstaende in Reihe: ueberall derselbe Strom, die Spannung teilt sich im Verhaeltnis der Widerstaende (Farben = Potential). Zieh an R2 – die Summe der Teilspannungen bleibt 12 V.',
+    merksatz: 'In der Reihenschaltung ist der Strom überall gleich, die Widerstände und die Teilspannungen addieren sich – am grösseren Widerstand liegt die grössere Spannung.',
+    visual: { type: 'circuit', volt: true, caption: 'Drei Widerstände in Reihe: überall derselbe Strom, die Spannung teilt sich im Verhältnis der Widerstände (Farben = Potential). Zieh an R2 – die Summe der Teilspannungen bleibt 12 V.',
       layout: { parts: [{ id: 'B1', type: 'battery', value: 12, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 1000, x: 320, y: 200 }, { id: 'R2', type: 'resistor', value: 2000, x: 480, y: 200 }, { id: 'R3', type: 'resistor', value: 3000, x: 620, y: 300, rot: 90 }],
         wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'R3.a'), W('R3.b', 'B1.n')] },
       bench: { parts: [{ id: 'B1', x: 220, y: 480 }, { id: 'R1', x: 420, y: 290 }, { id: 'R2', x: 620, y: 290 }, { id: 'R3', x: 800, y: 480, rot: 90 }] },
       sliders: [{ part: 'R2', prop: 'value', label: 'R2', min: 100, max: 10000, log: true, unit: 'Ω', round: 2 }],
       readouts: [{ label: 'I', sel: 'R1', q: 'i' }, { label: 'U1', sel: 'R1', q: 'v' }, { label: 'U2', sel: 'R2', q: 'v' }, { label: 'U3', sel: 'R3', q: 'v' }] },
     lesson:
-      '<p>In der <b>Reihenschaltung</b> liegen die Bauteile hintereinander – es gibt nur <i>einen</i> Weg fuer den Strom.</p>' +
-      '<ul><li>Der <b>Strom ist ueberall gleich gross</b>: I = I<sub>1</sub> = I<sub>2</sub> = …</li>' +
-      '<li>Die Widerstaende addieren sich: <b>R<sub>ges</sub> = R<sub>1</sub> + R<sub>2</sub> + …</b></li>' +
+      '<p>In der <b>Reihenschaltung</b> liegen die Bauteile hintereinander – es gibt nur <i>einen</i> Weg für den Strom.</p>' +
+      '<ul><li>Der <b>Strom ist überall gleich gross</b>: I = I<sub>1</sub> = I<sub>2</sub> = …</li>' +
+      '<li>Die Widerstände addieren sich: <b>R<sub>ges</sub> = R<sub>1</sub> + R<sub>2</sub> + …</b></li>' +
       '<li>Die Spannungen addieren sich zur Quellenspannung (<b>Maschenregel</b>, 2. Kirchhoffsches Gesetz): U = U<sub>1</sub> + U<sub>2</sub> + …</li>' +
-      '<li>Die Spannung teilt sich <b>im Verhaeltnis der Widerstaende</b> auf: Am groesseren Widerstand liegt die groessere Spannung.</li></ul>' +
+      '<li>Die Spannung teilt sich <b>im Verhältnis der Widerstände</b> auf: Am grösseren Widerstand liegt die grössere Spannung.</li></ul>' +
       '<div class="formula">U<sub>1</sub> = U · R<sub>1</sub> / R<sub>ges</sub></div>' +
-      '<p>Faellt ein Bauteil der Reihe aus (Unterbrechung), fliesst <i>nirgends</i> mehr Strom – wie bei einer alten Lichterkette.</p>',
+      '<p>Fällt ein Bauteil der Reihe aus (Unterbrechung), fliesst <i>nirgends</i> mehr Strom – wie bei einer alten Lichterkette.</p>',
     questions: [
-      { q: 'Wie verhaelt sich der Strom in einer Reihenschaltung?', options: ['Er ist an jeder Stelle gleich gross', 'Er wird nach jedem Widerstand kleiner', 'Er teilt sich auf die Widerstaende auf', 'Er ist am groessten Widerstand am groessten'], correct: 0, explain: 'Es gibt nur einen Weg – was hineinfliesst, fliesst auch wieder hinaus.' },
+      { q: 'Wie verhält sich der Strom in einer Reihenschaltung?', options: ['Er ist an jeder Stelle gleich gross', 'Er wird nach jedem Widerstand kleiner', 'Er teilt sich auf die Widerstände auf', 'Er ist am grössten Widerstand am grössten'], correct: 0, explain: 'Es gibt nur einen Weg – was hineinfliesst, fliesst auch wieder hinaus.' },
       { q: '1 kΩ, 100 Ω, 220 Ω und 470 Ω liegen in Reihe. Wie gross ist der Gesamtwiderstand?', options: ['79 Ω', '790 Ω', '1,79 kΩ', '17,9 kΩ'], correct: 2,
         explain: 'R_ges = 1000 + 100 + 220 + 470 = 1790 Ω.', verify: { layout: chain(10, [1000, 100, 220, 470], false), mode: 'R', a: 'R1.a', b: 'R4.b' } },
       { q: 'Diese Reihe liegt an 10 V. Welche Spannung liegt am 1-kΩ-Widerstand?', options: ['1 V', '2,5 V', '5,59 V', '10 V'], correct: 2,
         explain: 'U₁ = 10 V · 1000 Ω / 1790 Ω ≈ 5,59 V.', verify: { layout: chain(10, [1000, 100, 220, 470]), mode: 'V', a: 'R1.a', b: 'R1.b' } },
-      { q: 'Was sagt die Maschenregel?', options: ['Die Summe der Teilstroeme ist null', 'Die Summe der Teilspannungen ergibt die Quellenspannung', 'Alle Spannungen sind gleich', 'Die Spannung ist am Anfang der Reihe am groessten'], correct: 1, explain: 'U = U₁ + U₂ + … – die Quellenspannung verteilt sich auf die Bauteile.' },
+      { q: 'Was sagt die Maschenregel?', options: ['Die Summe der Teilströme ist null', 'Die Summe der Teilspannungen ergibt die Quellenspannung', 'Alle Spannungen sind gleich', 'Die Spannung ist am Anfang der Reihe am grössten'], correct: 1, explain: 'U = U₁ + U₂ + … – die Quellenspannung verteilt sich auf die Bauteile.' },
       { q: 'In einer Lichterkette (Reihe) brennt eine Lampe durch. Was passiert?', options: ['Nur diese Lampe ist dunkel', 'Alle Lampen gehen aus', 'Die anderen leuchten heller', 'Nichts'], correct: 1, explain: 'Die Unterbrechung trennt den einzigen Stromweg.' }
     ]
   });
 
   /* ================= Aufgaben 1–5 ================= */
   defTask({
-    id: '2.1', ch: 2, title: 'Vier gleiche Widerstaende', tags: ['elektro.reihenschaltung', 'messen.spannung'],
+    id: '2.1', ch: 2, title: 'Vier gleiche Widerstände', tags: ['elektro.reihenschaltung', 'messen.spannung'],
     story: 'Aus einer 10-V-Versorgung sollen vier gleich grosse Teilspannungen entstehen.',
-    brief: 'Schalte <b>vier Widerstaende von je 1 kΩ in Reihe</b> an die 10-V-Quelle. Miss die Spannung an R1 und den Strom.',
-    learn: 'Gleiche Widerstaende in Reihe teilen die Spannung gleichmaessig.',
-    take: 'Vier gleiche Widerstaende – vier gleiche Teilspannungen: 10 V / 4 = 2,5 V.',
+    brief: 'Schalte <b>vier Widerstände von je 1 kΩ in Reihe</b> an die 10-V-Quelle. Miss die Spannung an R1 und den Strom.',
+    learn: 'Gleiche Widerstände in Reihe teilen die Spannung gleichmässig.',
+    take: 'Vier gleiche Widerstände – vier gleiche Teilspannungen: 10 V / 4 = 2,5 V.',
     hint: 'Hole viermal einen Widerstand (Standard 1 kΩ) und verbinde sie hintereinander: R1.b mit R2.a usw.',
     hint2: 'B1.+ → R1 → R2 → R3 → R4 → B1.–',
     palette: ['resistor'], need: { resistor: 4 },
@@ -89,11 +89,11 @@
   var mixed = chain(10, [1000, 100, 220, 470]);
   defTask({
     id: '2.2', ch: 2, title: 'Die Spannung teilt sich auf', tags: ['elektro.reihenschaltung', 'messen.spannung', 'elektro.kirchhoff'],
-    story: 'Im Pruefprotokoll fehlen alle Spannungen der Widerstandskette. Ohne Messwerte keine Freigabe.',
-    brief: 'Miss die Spannungen an <b>R1, R2, R3 und R4</b> und den <b>Strom</b>. Pruefe: Ergibt die Summe der Teilspannungen die 10 V der Quelle?',
+    story: 'Im Prüfprotokoll fehlen alle Spannungen der Widerstandskette. Ohne Messwerte keine Freigabe.',
+    brief: 'Miss die Spannungen an <b>R1, R2, R3 und R4</b> und den <b>Strom</b>. Prüfe: Ergibt die Summe der Teilspannungen die 10 V der Quelle?',
     learn: 'Maschenregel: U = U₁ + U₂ + U₃ + U₄.',
-    take: 'Die Spannung teilt sich proportional zu den Widerstaenden auf – am grossen Widerstand liegt viel Spannung.',
-    hint: 'V⎓ waehlen, jeweils rot an .a und schwarz an .b des Widerstands.',
+    take: 'Die Spannung teilt sich proportional zu den Widerständen auf – am grossen Widerstand liegt viel Spannung.',
+    hint: 'V⎓ wählen, jeweils rot an .a und schwarz an .b des Widerstands.',
     hint2: 'Rechnung zur Kontrolle: I = 10 V / 1790 Ω ≈ 5,59 mA; U₁ = 1 kΩ · I ≈ 5,59 V.',
     palette: [], start: mixed, ref: mixed, bench: benchChain(4),
     tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
@@ -109,11 +109,11 @@
   var chainNoBat = chain(0, [1000, 100, 220, 470], false);
   defTask({
     id: '2.3', ch: 2, title: 'Gesamtwiderstand messen', tags: ['elektro.reihenschaltung', 'messen.widerstand'],
-    story: 'Die Widerstandskette liegt ausgebaut auf dem Tisch. Stimmt der Gesamtwert mit der Rechnung ueberein?',
+    story: 'Die Widerstandskette liegt ausgebaut auf dem Tisch. Stimmt der Gesamtwert mit der Rechnung überein?',
     brief: 'Miss mit dem Ohmmeter den <b>Gesamtwiderstand</b> der Kette (von R1.a bis R4.b) und zur Kontrolle den Widerstand von R4.',
-    learn: 'In Reihe addieren sich die Widerstaende.',
+    learn: 'In Reihe addieren sich die Widerstände.',
     take: 'R_ges = R₁ + R₂ + R₃ + R₄ – gemessen ohne Spannung, direkt an den Enden der Kette.',
-    hint: 'Ω waehlen, rote Spitze an R1.a, schwarze an R4.b.',
+    hint: 'Ω wählen, rote Spitze an R1.a, schwarze an R4.b.',
     hint2: 'Erwartet: 1000 + 100 + 220 + 470 = 1790 Ω = 1,79 kΩ.',
     palette: [], start: chainNoBat, ref: chainNoBat, bench: benchChain(4, false),
     tests: [{ name: 'Kette', expect: [{ noFault: true }] }],
@@ -130,10 +130,10 @@
   };
   defTask({
     id: '2.4', ch: 2, title: 'Zwei Lampen in Reihe', tags: ['elektro.reihenschaltung', 'bauteil.lampe'],
-    story: 'Fuer die Nachtbeleuchtung sollen zwei Lampen an der 9-V-Batterie haengen – bewusst gedaempft.',
+    story: 'Für die Nachtbeleuchtung sollen zwei Lampen an der 9-V-Batterie hängen – bewusst gedämpft.',
     brief: 'Schalte eine <b>zweite Lampe H2 in Reihe</b> zu H1. Beobachte die Helligkeit und miss die Spannung an H1.',
     learn: 'Zwei gleiche Verbraucher in Reihe teilen sich die Spannung.',
-    take: 'In Reihe bekommt jede Lampe nur die halbe Spannung – und leuchtet deutlich schwaecher (P = U² / R: ein Viertel).',
+    take: 'In Reihe bekommt jede Lampe nur die halbe Spannung – und leuchtet deutlich schwächer (P = U² / R: ein Viertel).',
     hint: 'Der Strom soll zuerst durch H1, dann durch H2 fliessen.',
     hint2: 'B1.+ → H1 → H2 → B1.–',
     palette: ['lamp'], need: { lamp: 2 },
@@ -147,16 +147,16 @@
   var div15 = function (r1, r2) { return { parts: [bat(15), R('R1', r1, 360, 240, 90), R('R2', r2, 360, 380, 90)], wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'B1.n')] }; };
   defTask({
     id: '2.5', ch: 2, title: 'Spannungsteiler auslegen', tags: ['elektro.spannungsteiler', 'elektro.dimensionieren'],
-    story: 'Ein Sensoreingang vertraegt hoechstens 5 V – die Versorgung liefert aber 15 V.',
-    brief: 'Baue einen <b>Spannungsteiler</b> aus R1 (oben, am Pluspol) und R2 (unten, am Minuspol), sodass an <b>R2 genau 5 V (±2 %)</b> liegen. Beide Widerstaende hoechstens 100 kΩ. Miss U2.',
+    story: 'Ein Sensoreingang verträgt höchstens 5 V – die Versorgung liefert aber 15 V.',
+    brief: 'Baue einen <b>Spannungsteiler</b> aus R1 (oben, am Pluspol) und R2 (unten, am Minuspol), sodass an <b>R2 genau 5 V (±2 %)</b> liegen. Beide Widerstände höchstens 100 kΩ. Miss U2.',
     learn: 'Spannungsteiler: U₂ = U · R₂ / (R₁ + R₂).',
-    take: 'Das Verhaeltnis der Widerstaende bestimmt die Teilspannung – nicht ihr absoluter Wert.',
-    hint: 'Fuer 5 V von 15 V muss R₂ ein Drittel des Gesamtwiderstands sein.',
+    take: 'Das Verhältnis der Widerstände bestimmt die Teilspannung – nicht ihr absoluter Wert.',
+    hint: 'Für 5 V von 15 V muss R₂ ein Drittel des Gesamtwiderstands sein.',
     hint2: 'Zum Beispiel R1 = 2 kΩ und R2 = 1 kΩ (oder 20 kΩ und 10 kΩ).',
     palette: ['resistor'], need: { resistor: 2 },
     start: { parts: [bat(15)], wires: [] }, ref: div15(2000, 1000),
     bench: { parts: [bB1, { id: 'R1', x: 560, y: 300, rot: 90 }, { id: 'R2', x: 720, y: 480, rot: 90 }] },
-    wrong: [named('gleiche Widerstaende (7,5 V)', div15(1000, 1000)), named('R1 und R2 vertauscht (10 V)', div15(1000, 2000))],
+    wrong: [named('gleiche Widerstände (7,5 V)', div15(1000, 1000)), named('R1 und R2 vertauscht (10 V)', div15(1000, 2000))],
     tests: [{ name: 'Teiler', expect: [{ a: 'R2.a', b: 'R2.b', v: [4.9, 5.1] }, { noFault: true }] }],
     measure: [{ id: 'u2', ask: 'Spannung U2 an R2', unit: 'V', mode: 'V', a: 'R2.a', b: 'R2.b', tol: 0.03 }]
   });
@@ -165,8 +165,8 @@
   var par2 = para(0, [1000, 1000], false);
   defTheory({
     id: 'T2B', ch: 2, title: 'Parallelschaltung, Knotenregel, Spannungsteiler', tags: ['elektro.parallelschaltung', 'elektro.kirchhoff', 'elektro.spannungsteiler', 'elektro.quelle'],
-    merksatz: 'In der Parallelschaltung liegt an allen Bauteilen dieselbe Spannung, die Teilstroeme addieren sich, der Gesamtwiderstand ist kleiner als der kleinste Einzelwiderstand; eine Last am Spannungsteiler senkt U₂.',
-    visual: { type: 'circuit', caption: 'Parallelschaltung: An beiden Widerstaenden liegt dieselbe Spannung, der Strom teilt sich am Knoten (Knotenregel: I = I1 + I2). Je kleiner R2, desto mehr Strom nimmt dieser Zweig.',
+    merksatz: 'In der Parallelschaltung liegt an allen Bauteilen dieselbe Spannung, die Teilströme addieren sich, der Gesamtwiderstand ist kleiner als der kleinste Einzelwiderstand; eine Last am Spannungsteiler senkt U₂.',
+    visual: { type: 'circuit', caption: 'Parallelschaltung: An beiden Widerständen liegt dieselbe Spannung, der Strom teilt sich am Knoten (Knotenregel: I = I1 + I2). Je kleiner R2, desto mehr Strom nimmt dieser Zweig.',
       layout: { parts: [{ id: 'B1', type: 'battery', value: 10, x: 160, y: 300 }, { id: 'R1', type: 'resistor', value: 1000, x: 400, y: 300, rot: 90 }, { id: 'R2', type: 'resistor', value: 2200, x: 560, y: 300, rot: 90 }],
         wires: [W('B1.p', 'R1.a'), W('R1.a', 'R2.a'), W('R1.b', 'B1.n'), W('R2.b', 'R1.b')] },
       bench: { parts: [{ id: 'B1', x: 220, y: 460 }, { id: 'R1', x: 520, y: 440, rot: 90 }, { id: 'R2', x: 740, y: 440, rot: 90 }] },
@@ -175,15 +175,15 @@
     lesson:
       '<p>In der <b>Parallelschaltung</b> liegen alle Bauteile an <i>denselben zwei Punkten</i>:</p>' +
       '<ul><li>An allen liegt <b>dieselbe Spannung</b>.</li>' +
-      '<li>Die Teilstroeme addieren sich zum Gesamtstrom (<b>Knotenregel</b>, 1. Kirchhoffsches Gesetz): I = I₁ + I₂ + …</li>' +
-      '<li>Der Strom teilt sich <b>umgekehrt proportional</b> zu den Widerstaenden – durch den kleinen Widerstand fliesst viel.</li>' +
-      '<li>Der Gesamtwiderstand ist <b>kleiner als der kleinste</b> Einzelwiderstand. Fuer zwei: R = R₁ · R₂ / (R₁ + R₂); allgemein ueber die Leitwerte G = 1/R (Siemens): 1/R = 1/R₁ + 1/R₂ + …</li></ul>' +
-      '<p><b>Spannungsteiler:</b> U₂ = U · R₂ / (R₁ + R₂). Haengst du eine Last R<sub>L</sub> parallel zu R₂, wird der untere Teil kleiner (R₂ ∥ R<sub>L</sub>) – U₂ <b>sinkt</b>. Je kleiner R<sub>L</sub>, desto staerker.</p>' +
+      '<li>Die Teilströme addieren sich zum Gesamtstrom (<b>Knotenregel</b>, 1. Kirchhoffsches Gesetz): I = I₁ + I₂ + …</li>' +
+      '<li>Der Strom teilt sich <b>umgekehrt proportional</b> zu den Widerständen – durch den kleinen Widerstand fliesst viel.</li>' +
+      '<li>Der Gesamtwiderstand ist <b>kleiner als der kleinste</b> Einzelwiderstand. Für zwei: R = R₁ · R₂ / (R₁ + R₂); allgemein über die Leitwerte G = 1/R (Siemens): 1/R = 1/R₁ + 1/R₂ + …</li></ul>' +
+      '<p><b>Spannungsteiler:</b> U₂ = U · R₂ / (R₁ + R₂). Hängst du eine Last R<sub>L</sub> parallel zu R₂, wird der untere Teil kleiner (R₂ ∥ R<sub>L</sub>) – U₂ <b>sinkt</b>. Je kleiner R<sub>L</sub>, desto stärker.</p>' +
       '<p><b>Reale Quelle:</b> Jede Quelle hat einen <b>Innenwiderstand R<sub>i</sub></b>. Ohne Last misst du die Leerlaufspannung U₀, unter Last sinkt die Klemmenspannung: R<sub>i</sub> = (U₀ − U<sub>Last</sub>) / I.</p>',
     questions: [
-      { q: 'Zwei Widerstaende von je 1 kΩ sind parallel geschaltet. Gesamtwiderstand?', options: ['250 Ω', '500 Ω', '1 kΩ', '2 kΩ'], correct: 1,
-        explain: 'R = 1 kΩ · 1 kΩ / 2 kΩ = 500 Ω – bei gleichen Widerstaenden die Haelfte.', verify: { layout: par2, mode: 'R', a: 'R1.a', b: 'R1.b' } },
-      { q: 'In einen Knoten fliessen 30 mA hinein, ein Zweig fuehrt 10 mA ab. Wie viel fliesst im zweiten Abzweig?', options: ['10 mA', '20 mA', '30 mA', '40 mA'], correct: 1, explain: 'Knotenregel: Zufluss = Abfluss, also 30 mA − 10 mA = 20 mA.' },
+      { q: 'Zwei Widerstände von je 1 kΩ sind parallel geschaltet. Gesamtwiderstand?', options: ['250 Ω', '500 Ω', '1 kΩ', '2 kΩ'], correct: 1,
+        explain: 'R = 1 kΩ · 1 kΩ / 2 kΩ = 500 Ω – bei gleichen Widerständen die Hälfte.', verify: { layout: par2, mode: 'R', a: 'R1.a', b: 'R1.b' } },
+      { q: 'In einen Knoten fliessen 30 mA hinein, ein Zweig führt 10 mA ab. Wie viel fliesst im zweiten Abzweig?', options: ['10 mA', '20 mA', '30 mA', '40 mA'], correct: 1, explain: 'Knotenregel: Zufluss = Abfluss, also 30 mA − 10 mA = 20 mA.' },
       { q: '15 V, R1 = 2 kΩ oben, R2 = 1 kΩ unten. Welche Spannung liegt an R2?', options: ['3 V', '5 V', '7,5 V', '10 V'], correct: 1,
         explain: 'U₂ = 15 V · 1 kΩ / 3 kΩ = 5 V.', verify: { layout: div15(2000, 1000), mode: 'V', a: 'R2.a', b: 'R2.b' } },
       { q: 'Was passiert mit U₂, wenn eine Last parallel zu R₂ angeschlossen wird?', options: ['U₂ steigt', 'U₂ sinkt', 'U₂ bleibt gleich', 'U₂ wird negativ'], correct: 1, explain: 'R₂ ∥ R_L ist kleiner als R₂ – der untere Teil des Teilers bekommt weniger Spannung.' },
@@ -193,13 +193,13 @@
 
   /* ================= Aufgaben 6–10 ================= */
   defTask({
-    id: '2.6', ch: 2, title: 'Zwei Wege fuer den Strom', tags: ['elektro.parallelschaltung', 'messen.strom', 'elektro.kirchhoff'],
-    story: 'Die Heizung im Pruefstand hat zwei gleiche Heizwiderstaende, die gemeinsam an 10 V haengen.',
-    brief: 'Schalte <b>zwei Widerstaende von 1 kΩ parallel</b> an die 10-V-Quelle. Miss den Strom durch R1 und den <b>Gesamtstrom</b> aus der Quelle.',
-    learn: 'Knotenregel: Die Teilstroeme addieren sich zum Gesamtstrom.',
-    take: 'Parallel liegen alle Zweige an derselben Spannung, die Stroeme addieren sich: 10 mA + 10 mA = 20 mA.',
-    hint: 'Beide Widerstaende bekommen oben dieselbe Verbindung zu B1.+ und unten zu B1.–.',
-    hint2: 'Fuer den Gesamtstrom die Leitung direkt am Pluspol (B1.+) auftrennen und dort messen.',
+    id: '2.6', ch: 2, title: 'Zwei Wege für den Strom', tags: ['elektro.parallelschaltung', 'messen.strom', 'elektro.kirchhoff'],
+    story: 'Die Heizung im Prüfstand hat zwei gleiche Heizwiderstände, die gemeinsam an 10 V hängen.',
+    brief: 'Schalte <b>zwei Widerstände von 1 kΩ parallel</b> an die 10-V-Quelle. Miss den Strom durch R1 und den <b>Gesamtstrom</b> aus der Quelle.',
+    learn: 'Knotenregel: Die Teilströme addieren sich zum Gesamtstrom.',
+    take: 'Parallel liegen alle Zweige an derselben Spannung, die Ströme addieren sich: 10 mA + 10 mA = 20 mA.',
+    hint: 'Beide Widerstände bekommen oben dieselbe Verbindung zu B1.+ und unten zu B1.–.',
+    hint2: 'Für den Gesamtstrom die Leitung direkt am Pluspol (B1.+) auftrennen und dort messen.',
     palette: ['resistor', 'ammeter'], need: { resistor: 2 },
     start: { parts: [bat(10)], wires: [] }, ref: para(10, [1000, 1000]), bench: benchPara(2),
     wrong: [named('in Reihe statt parallel', chain(10, [1000, 1000]))],
@@ -213,11 +213,11 @@
   var p5 = para(5, [10000, 220]);
   defTask({
     id: '2.7', ch: 2, title: 'Wer bekommt den Strom?', tags: ['elektro.parallelschaltung', 'messen.strom'],
-    story: 'Ein hochohmiger Sensor (10 kΩ) und ein Lastwiderstand (220 Ω) haengen parallel an 5 V.',
-    brief: 'Miss die Stroeme durch <b>R1 (10 kΩ)</b> und <b>R2 (220 Ω)</b>, die Spannung an R1 und den Gesamtstrom.',
-    learn: 'Der Strom teilt sich umgekehrt proportional zu den Widerstaenden auf.',
+    story: 'Ein hochohmiger Sensor (10 kΩ) und ein Lastwiderstand (220 Ω) hängen parallel an 5 V.',
+    brief: 'Miss die Ströme durch <b>R1 (10 kΩ)</b> und <b>R2 (220 Ω)</b>, die Spannung an R1 und den Gesamtstrom.',
+    learn: 'Der Strom teilt sich umgekehrt proportional zu den Widerständen auf.',
     take: 'Durch den kleinen Widerstand fliesst fast der ganze Strom – der grosse Widerstand „merkt“ man kaum.',
-    hint: 'Fuer jeden Zweigstrom die Leitung genau in diesem Zweig auftrennen.',
+    hint: 'Für jeden Zweigstrom die Leitung genau in diesem Zweig auftrennen.',
     hint2: 'Kontrolle: I₁ = 5 V / 10 kΩ = 0,5 mA, I₂ = 5 V / 220 Ω ≈ 22,7 mA.',
     palette: ['ammeter'], start: p5, ref: p5, bench: benchPara(2),
     tests: [{ name: 'Anlage', expect: [{ noFault: true }] }],
@@ -232,11 +232,11 @@
   var p4 = para(0, [1000, 220, 100, 10000], false);
   defTask({
     id: '2.8', ch: 2, title: 'Kleiner als der kleinste', tags: ['elektro.parallelschaltung', 'messen.widerstand'],
-    story: 'Vier Widerstaende sind parallel verloetet. Welcher Gesamtwiderstand ergibt sich?',
+    story: 'Vier Widerstände sind parallel verlötet. Welcher Gesamtwiderstand ergibt sich?',
     brief: 'Miss den <b>Gesamtwiderstand</b> der Parallelschaltung (1 kΩ, 220 Ω, 100 Ω, 10 kΩ) und zum Vergleich den kleinsten Einzelwiderstand R3.',
     learn: 'Parallel ist der Gesamtwiderstand kleiner als der kleinste Einzelwiderstand.',
-    take: 'Jeder zusaetzliche Zweig ist ein weiterer Weg – der Gesamtwiderstand sinkt: 1/R = 1/R₁ + 1/R₂ + …',
-    hint: 'Ω waehlen und an die gemeinsamen Anschluesse oben (R1.a) und unten (R1.b) gehen.',
+    take: 'Jeder zusätzliche Zweig ist ein weiterer Weg – der Gesamtwiderstand sinkt: 1/R = 1/R₁ + 1/R₂ + …',
+    hint: 'Ω wählen und an die gemeinsamen Anschlüsse oben (R1.a) und unten (R1.b) gehen.',
     hint2: 'Rechnung: G = 1 mS + 4,55 mS + 10 mS + 0,1 mS = 15,65 mS → R ≈ 63,9 Ω.',
     palette: [], start: p4, ref: p4, bench: benchPara(4, false),
     tests: [{ name: 'Netzwerk', expect: [{ noFault: true }] }],
@@ -255,7 +255,7 @@
   defTask({
     id: '2.9', ch: 2, title: 'Der belastete Spannungsteiler', tags: ['elektro.spannungsteiler', 'messen.spannung'],
     story: 'Der Teiler liefert im Leerlauf saubere 5 V. Kaum ist der Verbraucher angeschlossen, stimmt nichts mehr.',
-    brief: 'Schliesse eine <b>Last R3 = 10 kΩ parallel zu R2</b> an. Miss U2 <b>mit</b> Last. Wie viel ist davon noch uebrig?',
+    brief: 'Schliesse eine <b>Last R3 = 10 kΩ parallel zu R2</b> an. Miss U2 <b>mit</b> Last. Wie viel ist davon noch übrig?',
     learn: 'Eine Last parallel zu R₂ senkt die Teilspannung.',
     take: 'R₂ ∥ R_L = 5 kΩ statt 10 kΩ – aus 5 V werden 3,33 V. Abhilfe: niederohmigerer Teiler oder hochohmigere Last.',
     hint: 'Miss U2 zuerst ohne Last (5 V), dann baue R3 ein: oben an R2.a, unten an R2.b.',
@@ -274,10 +274,10 @@
   };
   defTask({
     id: '2.10', ch: 2, title: 'Die schwache Quelle', tags: ['elektro.quelle', 'messen.spannung', 'elektro.ohm'],
-    story: 'Die Pruefquelle zeigt im Leerlauf 10 V. Unter Last bricht sie ein. Wie gross ist ihr Innenwiderstand?',
+    story: 'Die Prüfquelle zeigt im Leerlauf 10 V. Unter Last bricht sie ein. Wie gross ist ihr Innenwiderstand?',
     brief: 'Miss die <b>Leerlaufspannung</b> (S1 offen) und die <b>Klemmenspannung unter Last</b> (S1 geschlossen, Last 1 kΩ). Berechne daraus den <b>Innenwiderstand</b> der Quelle.',
     learn: 'Jede reale Quelle hat einen Innenwiderstand: R_i = (U₀ − U_Last) / I.',
-    take: 'Je mehr Strom du entnimmst, desto mehr Spannung „bleibt in der Quelle“ haengen – die Klemmenspannung sinkt.',
+    take: 'Je mehr Strom du entnimmst, desto mehr Spannung „bleibt in der Quelle“ hängen – die Klemmenspannung sinkt.',
     hint: 'Miss an B1.+ und B1.– einmal mit offenem und einmal mit geschlossenem Schalter. Der Strom unter Last ist I = U_Last / 1 kΩ.',
     hint2: 'Beispiel: U₀ = 10 V, U_Last = 9,09 V → I = 9,09 mA → R_i = 0,91 V / 9,09 mA ≈ 100 Ω.',
     palette: [], start: realSrc(false), ref: realSrc(false),

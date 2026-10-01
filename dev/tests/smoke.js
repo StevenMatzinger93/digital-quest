@@ -15,7 +15,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
 
   // Theorie T1A – mit Merksatz-Box und Vorlesen-Knopf (Web Speech API in Chromium vorhanden; ohne Stimmen darf kein Fehler entstehen)
   await page.click('[data-open="T1A"]');
-  if (!/Wichtigste in Kuerze/.test(await page.textContent('#scr-theory .merksatz')) || (await page.textContent('#scr-theory .merksatz p')).length < 40) errors.push('T1A: Merksatz-Box fehlt');
+  if (!/Wichtigste in Kürze/.test(await page.textContent('#scr-theory .merksatz')) || (await page.textContent('#scr-theory .merksatz p')).length < 40) errors.push('T1A: Merksatz-Box fehlt');
   if (await page.evaluate(() => 'speechSynthesis' in window)) {
     if (!await page.$('#thRead')) errors.push('T1A: Vorlesen-Knopf fehlt');
     else { await page.click('#thRead'); await page.waitForTimeout(150); await page.click('#thRead'); if (!/Vorlesen/.test(await page.textContent('#thRead'))) errors.push('T1A: Vorlesen stoppt nicht beim zweiten Klick'); }
@@ -112,7 +112,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   await page.evaluate(() => DigitalQuest.openItem('1.1'));
   await bpin('B1.p'); await bpin('B1.n');
   if (!await page.locator('#bench [data-part="B1"] .bsmoke').count()) errors.push('Werkbank: Kurzschluss nicht sichtbar');
-  if (!/zulaessig 3\.000 A/.test(await page.textContent('#statusbar'))) errors.push('Diagnose ohne Werte: ' + await page.textContent('#statusbar'));
+  if (!/zulässig 3\.000 A/.test(await page.textContent('#statusbar'))) errors.push('Diagnose ohne Werte: ' + await page.textContent('#statusbar'));
   await page.screenshot({ path: shots + '/9_werkbank_kurzschluss.png' });
   // Zoom (Mausrad), Verschieben (Ziehen auf leerer Flaeche), Einpassen
   const bb = await page.locator('#bench').boundingBox(), v0 = await page.evaluate(() => DigitalQuest.bench.view.slice());
@@ -127,7 +127,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   // ===== Freie Werkbank (Sandbox): Rechteckspannung, V~ mit TRMS und AVG =====
   await page.evaluate(() => { delete DigitalQuest.state.drafts.sandbox; });
   await page.click('[data-go="map"]'); await page.click('[data-open="sandbox"]');
-  if (!await page.isVisible('#bench') || await page.isVisible('#btnCheck')) errors.push('Sandbox: nicht als freie Werkbank geoeffnet');
+  if (!await page.isVisible('#bench') || await page.isVisible('#btnCheck')) errors.push('Sandbox: nicht als freie Werkbank geöffnet');
   // Wechselquelle laeuft live (60 Bilder/s): Klicks atomar per pointerdown ausloesen
   const bdown = sel => page.dispatchEvent('#bench ' + sel, 'pointerdown');
   await page.click('[data-add="acsource"]');
@@ -147,7 +147,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   // Karte nach Teilen I–IV, Handbuch, Boss mit Auszeichnung (Loesung als Entwurf geladen), Zertifikat/Abzeichen
   await page.click('[data-go="map"]');
   const heads = await page.$$eval('.part-head .part-no', els => els.map(e => e.textContent));
-  if (heads.join('|') !== 'Teil I|Teil II|Teil III|Teil IV|Teil V|Frei ueben') errors.push('Karte: Teile ' + heads.join('|'));
+  if (heads.join('|') !== 'Teil I|Teil II|Teil III|Teil IV|Teil V|Frei üben') errors.push('Karte: Teile ' + heads.join('|'));
   if (await page.$$eval('.award-card', els => els.length) !== 2) errors.push('Karte: 2 Auszeichnungs-Karten erwartet');
   await page.click('[data-go="manual"]');
   for (const id of await page.$$eval('[data-man]', els => els.map(e => e.dataset.man))) {
@@ -156,14 +156,14 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   }
   if (!/Motor/.test(await page.evaluate(() => DQ.manual.map(p => p.html).join(' ')))) errors.push('Handbuch: Motor fehlt');
   await page.evaluate(() => { const t = DQ.byId['15.10']; DigitalQuest.state.drafts['15.10'] = { layout: JSON.parse(JSON.stringify(t.ref)), answers: {} }; DigitalQuest.openItem('15.10'); });
-  if (!/Erlaubt: hoechstens/.test(await page.textContent('#taskInfo'))) errors.push('15.10: Limit-Hinweis fehlt');
+  if (!/Erlaubt: höchstens/.test(await page.textContent('#taskInfo'))) errors.push('15.10: Limit-Hinweis fehlt');
   await page.click('#btnCheck'); await page.waitForTimeout(150);
   if (!await page.isVisible('#modal.open .award-note')) errors.push('15.10: Abzeichen im Erfolgsdialog fehlt: ' + (await page.textContent('#results')).slice(0, 200));
   else {
     await page.click('#modal .modal-btns button:nth-child(2)'); // "Abzeichen anzeigen"
-    if (!await page.isVisible('#scr-award .certificate.profi')) errors.push('Abzeichen-Seite nicht geoeffnet');
+    if (!await page.isVisible('#scr-award .certificate.profi')) errors.push('Abzeichen-Seite nicht geöffnet');
     await page.fill('#awName', 'Alex Muster');
-    if ((await page.textContent('#awNameOut')) !== 'Alex Muster') errors.push('Name auf dem Abzeichen wird nicht uebernommen');
+    if ((await page.textContent('#awNameOut')) !== 'Alex Muster') errors.push('Name auf dem Abzeichen wird nicht übernommen');
     await page.screenshot({ path: shots + '/12_abzeichen.png' });
     await page.click('#awBack');
     if (!await page.isVisible('[data-award="profi"]')) errors.push('Karte: Abzeichen nicht als erhalten markiert');
@@ -178,7 +178,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   const dwell = async sel => { const b = await page.locator(sel).boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.move(b.x + b.width / 2 + 2, b.y + b.height / 2 + 1); await page.waitForTimeout(1000); };
   await page.evaluate(() => { DigitalQuest.openItem('1.8'); DigitalQuest.setView('schema'); });
   await page.hover('[data-add="resistor"]'); await page.waitForTimeout(350);
-  await sheetOk('resistor', 'Palette', 'Hoechstleistung');
+  await sheetOk('resistor', 'Palette', 'Höchstleistung');
   await page.mouse.move(5, 890); await page.waitForTimeout(400);
   if (await page.isVisible('#dsPop')) errors.push('Datenblatt schliesst nach dem Wegfahren nicht');
   await dwell('#board [data-part="D1"]'); await sheetOk('led', 'Schaltplan D1', 'Anode');
@@ -187,12 +187,12 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   await dwell('#bench [data-part="B1"]'); await sheetOk('battery', 'Werkbank B1', 'Kurzschluss');
   await page.mouse.move(5, 890); await page.waitForTimeout(400); await page.evaluate(() => DigitalQuest.setView('schema'));
   await page.click('#board [data-part="D1"] .hit', { force: true }); await page.click('#dsBtn');
-  await sheetOk('led', 'Knopf im Panel', 'Hoechststrom');
+  await sheetOk('led', 'Knopf im Panel', 'Höchststrom');
   await page.keyboard.press('Escape'); if (await page.isVisible('#dsPop')) errors.push('Datenblatt schliesst nicht mit Esc');
   await page.click('[data-go="manual"]'); await page.click('[data-man="datenblaetter"]');
   const cards = await page.$$eval('.ds-card', els => els.map(e => !!e.querySelector('svg.symicon') && !!e.querySelector('svg.benchicon')));
   const nTypes = await page.evaluate(() => Object.keys(DigitalQuest.engine.PARTS).length);
-  if (cards.length !== nTypes || cards.includes(false)) errors.push('Handbuch Datenblaetter: ' + cards.length + ' von ' + nTypes + ' mit beiden Bildern');
+  if (cards.length !== nTypes || cards.includes(false)) errors.push('Handbuch Datenblätter: ' + cards.length + ' von ' + nTypes + ' mit beiden Bildern');
   await page.screenshot({ path: shots + '/14_datenblaetter.png' });
 
   // Einzeldatei ohne Konto: kein Dozentenmodus, keine Code-Eingabe, kein Konto-Chip; Sterne beim Loesen
@@ -202,11 +202,11 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   if (!await tp.isDisabled('[data-open="12.5"]')) errors.push('Einzeldatei: 12.5 sollte gesperrt sein');
   if (await tp.isVisible('#modeTag') || await tp.isVisible('#acctChip') || await tp.isVisible('#jump')) errors.push('Einzeldatei: Dozentenmodus/Konto-Chip sichtbar');
   await tp.click('[data-go="settings"]');
-  if (await tp.$('#tCode')) errors.push('Einzeldatei: Code-Eingabe fuer den Dozentenmodus ist noch da');
+  if (await tp.$('#tCode')) errors.push('Einzeldatei: Code-Eingabe für den Dozentenmodus ist noch da');
   await tp.evaluate(() => { localStorage.setItem('digitalquest_state_v1', JSON.stringify({ version: 1, profile: { id: 'x' }, done: { '1.1': true }, events: [{ t: 5, type: 'task_done', id: '1.1', tries: 2, hints: 0 }], settings: { teacher: true } })); });
   await tp.reload({ waitUntil: 'domcontentloaded' });
   const old = await tp.evaluate(() => ({ di: DigitalQuest.state.doneInfo['1.1'], t: DigitalQuest.state.settings.teacher, dr: typeof DigitalQuest.state.drafts }));
-  if (!old.di || old.di.stars !== 2 || old.di.at !== 5 || old.t || old.dr !== 'object') errors.push('Einzeldatei: alter Spielstand nicht sauber uebernommen: ' + JSON.stringify(old));
+  if (!old.di || old.di.stars !== 2 || old.di.at !== 5 || old.t || old.dr !== 'object') errors.push('Einzeldatei: alter Spielstand nicht sauber übernommen: ' + JSON.stringify(old));
   if (await tp.isVisible('#modeTag')) errors.push('Einzeldatei: alter Dozentenmodus (settings.teacher) wirkt noch');
   await tctx.close();
 
@@ -233,7 +233,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
         }
         const dyn = await page.evaluate(i => DigitalQuest.visuals.filter(x => x && x.core)[i].core.layout.parts.some(p => ['clock', 'capacitor', 'acsource'].includes(p.type)), idx);
         if (dyn) { const t0 = await page.evaluate(i => DigitalQuest.visuals.filter(x => x && x.core)[i].time(), idx); await page.waitForTimeout(600); const t1 = await page.evaluate(i => DigitalQuest.visuals.filter(x => x && x.core)[i].time(), idx);
-          if (!(t1 > t0 + 0.2 && isFinite(t1))) errors.push(tag + ': Zeit laeuft nicht (' + t0 + ' → ' + t1 + ')'); }
+          if (!(t1 > t0 + 0.2 && isFinite(t1))) errors.push(tag + ': Zeit läuft nicht (' + t0 + ' → ' + t1 + ')'); }
 
       } else if (t === 'numberSteps') {
         const a = await vis.$eval('.ns-pos', el => el.textContent); await vis.$eval('[data-ns="1"]', el => el.click()); const b = await vis.$eval('.ns-pos', el => el.textContent);
@@ -277,7 +277,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await ap.click('.map-actions [data-open="sandbox"]');
     const pal = await ap.$$eval('[data-add]', els => els.map(e => e.dataset.add));
     if (!['motor', 'npn', 'dec7', 'acsource', 'jkff'].every(k => pal.includes(k))) errors.push('Dozent: Werkbank ohne alle Bauteile: ' + pal.join(','));
-    await lab(ap, '?frei=1'); if (!/Freie Werkbank/.test(await ap.textContent('#taskInfo h2'))) errors.push('Portal: ?frei=1 oeffnet die Freie Werkbank nicht');
+    await lab(ap, '?frei=1'); if (!/Freie Werkbank/.test(await ap.textContent('#taskInfo h2'))) errors.push('Portal: ?frei=1 öffnet die Freie Werkbank nicht');
     // Vorgaben: Kapitel 2 fuer die Klasse, W3 fuer eine Person
     const v1 = await call(ap, 'POST', 'assignments', { targets: [{ type: 'kapitel', id: '2' }], classId: cid, due: '2099-12-31' });
     const v2 = await call(ap, 'POST', 'assignments', { targets: [{ type: 'aufgabe', id: 'W3' }], studentIds: [sid] });
@@ -290,10 +290,10 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await ap.evaluate(() => { localStorage.removeItem('dquest_sync_dq'); localStorage.setItem('digitalquest_state_v1', JSON.stringify({ version: 1, profile: { id: 'p-1', vorname: 'Bea', nachname: 'Blitz', pseudonym: '' }, done: { '1.1': true }, events: [], settings: { theme: 'dark' } })); });
     await login(ap, 'blitz', 'geheim1');
     await ap.goto(SITE + '/labor/', { waitUntil: 'domcontentloaded' });
-    await ap.waitForSelector('#modal.open'); if (!/ins Konto uebernehmen/.test(await ap.textContent('#modal'))) errors.push('Konto: Frage zum Browser-Spielstand fehlt');
+    await ap.waitForSelector('#modal.open'); if (!/ins Konto übernehmen/.test(await ap.textContent('#modal'))) errors.push('Konto: Frage zum Browser-Spielstand fehlt');
     await ap.click('#modal .modal-btns button:last-child'); await ap.waitForTimeout(500);
     let sv = srv(sid);
-    if (!sv || !sv.state.done['1.1']) errors.push('Konto: uebernommener Stand nicht auf dem Server');
+    if (!sv || !sv.state.done['1.1']) errors.push('Konto: übernommener Stand nicht auf dem Server');
     else if (sv.state.profile.vorname || sv.state.profile.nachname) errors.push('Konto: Name liegt auf dem Server');
     if (await ap.evaluate(() => DigitalQuest.state.profile.vorname) !== 'Bea') errors.push('Konto: Name lokal verloren');
     await ap.waitForSelector('.vg-box');
@@ -317,10 +317,10 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     const st2 = Object.assign({}, sv.state, { done: Object.assign({}, sv.state.done, { T1A: true, '1.2': true }) });
     R.prepare("UPDATE progress SET state = ?, updated_at = updated_at + 5000 WHERE user_id = ?").run(JSON.stringify(st2), sid);
     await lab(ap);
-    if (!await ap.evaluate(() => DigitalQuest.state.done['1.2'] && DigitalQuest.state.done.W3)) errors.push('Konto: weiterer Stand vom Server nicht uebernommen');
+    if (!await ap.evaluate(() => DigitalQuest.state.done['1.2'] && DigitalQuest.state.done.W3)) errors.push('Konto: weiterer Stand vom Server nicht übernommen');
     // Anderes Konto am selben PC: Staende werden nie gemischt
     await login(ap, 'funke', 'geheim2'); await lab(ap);
-    if (await ap.evaluate(() => Object.keys(DigitalQuest.state.done).length)) errors.push('Konto: Stand eines anderen Kontos uebernommen');
+    if (await ap.evaluate(() => Object.keys(DigitalQuest.state.done).length)) errors.push('Konto: Stand eines anderen Kontos übernommen');
     if (await ap.$$eval('.vg-box li', l => l.length) !== 1) errors.push('Konto: funke sollte nur die Klassen-Vorgabe sehen');
 
     // Leitstand: Schuelerdetail zeigt W3 mit 3 Sternen
@@ -333,7 +333,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
 
     // Live-Challenge Stoerungsjagd: Lobby → Start → fehlerhafter Aufbau auf dem Tisch → beheben → Punkte und Rangliste
     const bug = await bp.evaluate(async () => (await (await fetch('/data/dq_live.json')).json()).bugs.filter(b => b.task === '1.8')[0]);
-    if (!bug) errors.push('Live: kein Stoerungsszenario zu 1.8');
+    if (!bug) errors.push('Live: kein Störungsszenario zu 1.8');
     else {
       const c = await call(bp, 'POST', 'challenges', { mode: 'bug', taskId: '1.8', bugId: bug.id, duration: 300, classId: cid, title: 'Test' });
       await login(ap, 'blitz', 'geheim1');
@@ -343,11 +343,11 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
       await ap.screenshot({ path: shots + '/18_live_lobby.png' });
       await call(bp, 'POST', 'challenges/' + c.data.id + '/start', {});
       await ap.waitForSelector('.live-note', { timeout: 8000 });
-      if (!/STOERUNGSMELDUNG/.test(await ap.textContent('.live-note')) || !/Nicht erfüllt/.test(await ap.textContent('.live-note'))) errors.push('Live: Stoerungsmeldung fehlt');
+      if (!/STÖRUNGSMELDUNG/.test(await ap.textContent('.live-note')) || !/Nicht erfüllt/.test(await ap.textContent('.live-note'))) errors.push('Live: Störungsmeldung fehlt');
       const same = await ap.evaluate(() => JSON.stringify(DigitalQuest.editor.layout.wires.length) === JSON.stringify(DQ.byId['1.8'].wrong[0].wires.length));
       if (!same) errors.push('Live: fehlerhafter Aufbau liegt nicht auf dem Tisch');
       await ap.click('#btnCheck'); await ap.waitForTimeout(400);
-      if (await ap.isVisible('#modal.open .win')) errors.push('Live: fehlerhafter Aufbau besteht die Pruefung');
+      if (await ap.isVisible('#modal.open .win')) errors.push('Live: fehlerhafter Aufbau besteht die Prüfung');
       await ap.screenshot({ path: shots + '/19_live_stoerung.png' });
       // beheben: Musterloesung einsetzen (die Bedienung selbst prueft tests/tasks.js), Messwerte eintragen
       await ap.evaluate(() => { const t = DQ.byId['1.8']; DigitalQuest.editor.load(t.ref, t.start.parts.map(p => p.id), t.bench); });
@@ -357,7 +357,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
       await ap.waitForFunction(() => /Punkte/.test((document.querySelector('#livePts') || {}).textContent || '') && /\+\d+/.test(document.querySelector('#livePts').textContent), null, { timeout: 8000 }).catch(() => errors.push('Live: Punkte kommen nicht an'));
       const row = R.prepare('SELECT attempts, points, solved_at, code FROM challenge_players WHERE challenge_id = ? AND user_id = ?').get(c.data.id, sid);
       if (!row || !row.solved_at || row.attempts !== 2 || !(row.points > 0) || !row.code || !JSON.parse(row.code).layout) errors.push('Live: Ergebnis auf dem Server falsch: ' + JSON.stringify(row && { a: row.attempts, p: row.points }));
-      if (await ap.evaluate(() => !!DigitalQuest.state.done['1.8'] || !!DigitalQuest.state.drafts['1.8'])) errors.push('Live: Challenge hat den Spielstand veraendert');
+      if (await ap.evaluate(() => !!DigitalQuest.state.done['1.8'] || !!DigitalQuest.state.drafts['1.8'])) errors.push('Live: Challenge hat den Spielstand verändert');
       await ap.click('#modal .modal-btns button:last-child'); await ap.waitForSelector('#liveOverlay .podium');
       await ap.screenshot({ path: shots + '/20_live_rang.png' });
       // Beamer zeigt die Loesung als Schaltung
@@ -393,7 +393,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
       return { grads: svg.querySelectorAll('defs radialGradient, defs linearGradient').length, refs: ids.size, missing: [...ids].filter(id => !svg.querySelector('#' + id)), dup: [...ids].filter(id => document.querySelectorAll('#' + id).length !== 1),
         windings: (svg.querySelector('.mw-coil path, .mw-plate') ? 1 : 0), shadow: !!svg.querySelector('.mw-needle [filter]') };
     }));
-    mat.forEach((m, k) => { if (m.grads < 8 || m.refs < 8) errors.push('Messwerk ' + k + ': zu wenig Materialien (' + m.grads + ' Verlaeufe, ' + m.refs + ' Referenzen)'); if (m.missing.length || m.dup.length) errors.push('Messwerk ' + k + ': Referenzen fehlen/doppelt: ' + m.missing.concat(m.dup).join(',')); if (!m.windings || !m.shadow) errors.push('Messwerk ' + k + ': Wicklung oder Zeigerschatten fehlt'); });
+    mat.forEach((m, k) => { if (m.grads < 8 || m.refs < 8) errors.push('Messwerk ' + k + ': zu wenig Materialien (' + m.grads + ' Verläufe, ' + m.refs + ' Referenzen)'); if (m.missing.length || m.dup.length) errors.push('Messwerk ' + k + ': Referenzen fehlen/doppelt: ' + m.missing.concat(m.dup).join(',')); if (!m.windings || !m.shadow) errors.push('Messwerk ' + k + ': Wicklung oder Zeigerschatten fehlt'); });
     await tp.evaluate(() => document.querySelector('.visual-meterwork .mw-faces').scrollIntoView()); await tp.waitForTimeout(300);
     await tp.screenshot({ path: shots + '/24_messwerk.png' });
     await tp.close();
@@ -408,7 +408,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     if (!/Weiter zu Beispiel 2/.test(await tp.textContent('.visual-worked .wk-done'))) errors.push('Worked: Beispiel 1 nicht abgeschlossen');
     await tp.click('.visual-worked [data-wk-tab="1"]'); await tp.click('.visual-worked [data-wk="next"]'); await tp.click('.visual-worked [data-wk="next"]');
     if (!await tp.$('.visual-worked .wk-step.input input')) errors.push('Worked: Beispiel 2 zeigt kein Eingabefeld');
-    if (!await tp.$eval('.visual-worked [data-wk="next"]', b => b.disabled)) errors.push('Worked: Weiter-Knopf muesste bis zur richtigen Eingabe gesperrt sein');
+    if (!await tp.$eval('.visual-worked [data-wk="next"]', b => b.disabled)) errors.push('Worked: Weiter-Knopf müsste bis zur richtigen Eingabe gesperrt sein');
     await tp.fill('.visual-worked .wk-step.input input', '0,5'); await tp.click('.visual-worked [data-wk="check"]');
     if (!/stimmt noch nicht/.test(await tp.textContent('.visual-worked .wk-fb'))) errors.push('Worked: falsche Eingabe nicht erkannt');
     await tp.fill('.visual-worked .wk-step.input input', '0,12'); await tp.click('.visual-worked [data-wk="check"]');
@@ -442,29 +442,29 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
       return { n: ids.size, missing, dup, sample: [...ids].slice(0, 3) };
     });
     if (refs.n < 8) errors.push('Tutorial: kaum Verlaufs-Referenzen gefunden (' + refs.n + ')');
-    if (refs.missing.length) errors.push('Tutorial: haengende Verlaufs-Referenzen: ' + refs.missing.join(','));
+    if (refs.missing.length) errors.push('Tutorial: hängende Verlaufs-Referenzen: ' + refs.missing.join(','));
     if (refs.dup.length) errors.push('Tutorial: Verlaufs-IDs mehrfach im Dokument: ' + refs.dup.join(','));
-    await tp.click('#tutMap'); if (!await tp.isVisible('#scr-map.active')) errors.push('Tutorial: Zurueck zur Karte wirkt nicht');
+    await tp.click('#tutMap'); if (!await tp.isVisible('#scr-map.active')) errors.push('Tutorial: Zurück zur Karte wirkt nicht');
     // Hinweis-Link in der ersten drag-Aufgabe
     await tp.evaluate(() => DigitalQuest.openItem('16.1')); if (!await tp.$('#taskInfo .tut-link [data-go="tutorial"]')) errors.push('16.1: Link zum Tutorial fehlt');
-    await tp.click('#taskInfo .tut-link a'); if (!await tp.isVisible('#scr-tutorial.active')) errors.push('16.1: Link oeffnet das Tutorial nicht');
+    await tp.click('#taskInfo .tut-link a'); if (!await tp.isVisible('#scr-tutorial.active')) errors.push('16.1: Link öffnet das Tutorial nicht');
     await tp.close();
   }
 
   // Taschenrechner: Kopfzeile, Tastatur-Eingabe, Ergebnis, Fehleranzeige, Verlauf, schliessen; Kontext-Knopf im Messprotokoll
   {
     await page.evaluate(() => { DigitalQuest.openItem('T1A'); });
-    await page.click('#btnCalc'); if (!await page.isVisible('#calc .calc-box')) errors.push('Rechner: oeffnet nicht ueber die Kopfzeile');
+    await page.click('#btnCalc'); if (!await page.isVisible('#calc .calc-box')) errors.push('Rechner: öffnet nicht über die Kopfzeile');
     await page.keyboard.type('15*0.5%+0.1'); await page.keyboard.press('Enter');
     if ((await page.textContent('#calcOut')).trim() !== '= 0.175') errors.push('Rechner: 15*0.5%+0.1 → ' + await page.textContent('#calcOut'));
     await page.click('#calc [data-k="C"]'); await page.click('#calc [data-k="√"]'); await page.keyboard.type('3²+3.54²)'); await page.click('#calc [data-k="="]');
     if (!/^= 4\.64/.test((await page.textContent('#calcOut')).trim())) errors.push('Rechner: Wurzel per Tasten → ' + await page.textContent('#calcOut'));
     await page.fill('#calcIn', '5/0'); await page.keyboard.press('Enter'); if (!/Division durch 0/.test(await page.textContent('#calcOut'))) errors.push('Rechner: Division durch 0 ohne Meldung');
     await page.fill('#calcIn', '(2+3'); await page.keyboard.press('Enter'); if (!/Klammer/.test(await page.textContent('#calcOut'))) errors.push('Rechner: fehlende Klammer ohne Meldung');
-    if (await page.$$eval('#calc .calc-hist li', l => l.length) !== 2) errors.push('Rechner: Verlauf zeigt nicht die zwei gueltigen Rechnungen');
+    if (await page.$$eval('#calc .calc-hist li', l => l.length) !== 2) errors.push('Rechner: Verlauf zeigt nicht die zwei gültigen Rechnungen');
     await page.keyboard.press('Escape'); if (await page.isVisible('#calc .calc-box')) errors.push('Rechner: Esc schliesst nicht');
     if (!await page.isVisible('#scr-theory.active')) errors.push('Rechner: Bildschirm dahinter wurde gewechselt');
-    await page.evaluate(() => DigitalQuest.openItem('16.1')); await page.click('#taskInfo [data-calc]'); if (!await page.isVisible('#calc .calc-box')) errors.push('Rechner: Knopf im Messprotokoll oeffnet nicht');
+    await page.evaluate(() => DigitalQuest.openItem('16.1')); await page.click('#taskInfo [data-calc]'); if (!await page.isVisible('#calc .calc-box')) errors.push('Rechner: Knopf im Messprotokoll öffnet nicht');
     await page.screenshot({ path: shots + '/23_rechner.png' });
     await page.click('#calc .calc-back'); if (await page.isVisible('#calc .calc-box')) errors.push('Rechner: Klick daneben schliesst nicht');
     // Lesbarkeit in BEIDEN Themes: Tasten, Eingabefeld und Funktionsknoepfe muessen sich vom (festen dunklen) Bedienfeld abheben
@@ -495,21 +495,21 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     if (await np.$eval('#brand', a => a.tagName) !== 'A') errors.push('Logo ist kein Link');
     await np.evaluate(() => DigitalQuest.openItem('1.1')); await np.waitForTimeout(100);
     if (await np.evaluate(() => location.hash) !== '#/aufgabe/1.1') errors.push('Adresse nach Aufgabe: ' + await np.evaluate(() => location.hash));
-    if (!await np.$('#taskInfo [data-back]')) errors.push('Zurueck-Knopf in der Aufgabe fehlt');
+    if (!await np.$('#taskInfo [data-back]')) errors.push('Zurück-Knopf in der Aufgabe fehlt');
     await np.goBack(); await np.waitForTimeout(150);
-    if (!await np.isVisible('#scr-map.active')) errors.push('Browser-Zurueck fuehrt nicht zur Karte');
+    if (!await np.isVisible('#scr-map.active')) errors.push('Browser-Zurück führt nicht zur Karte');
     await np.evaluate(() => DigitalQuest.openItem('T1A')); await np.waitForTimeout(100);
-    if (await np.evaluate(() => location.hash) !== '#/theorie/T1A' || !await np.$('#scr-theory [data-back]')) errors.push('Theorie: Adresse oder Zurueck-Knopf fehlt');
-    await np.click('#scr-theory [data-back]'); if (!await np.isVisible('#scr-map.active')) errors.push('Zurueck-Knopf der Theorie wirkt nicht');
-    await np.evaluate(() => DigitalQuest.openItem('16.4')); await np.click('#brand'); if (!await np.isVisible('#scr-map.active')) errors.push('Logo-Klick fuehrt nicht zur Karte');
+    if (await np.evaluate(() => location.hash) !== '#/theorie/T1A' || !await np.$('#scr-theory [data-back]')) errors.push('Theorie: Adresse oder Zurück-Knopf fehlt');
+    await np.click('#scr-theory [data-back]'); if (!await np.isVisible('#scr-map.active')) errors.push('Zurück-Knopf der Theorie wirkt nicht');
+    await np.evaluate(() => DigitalQuest.openItem('16.4')); await np.click('#brand'); if (!await np.isVisible('#scr-map.active')) errors.push('Logo-Klick führt nicht zur Karte');
     await np.goto(url + '#/aufgabe/1.8', { waitUntil: 'domcontentloaded' }); await np.waitForTimeout(200);
-    if (!await np.isVisible('#scr-task.active') || !/1\.8/.test(await np.textContent('#taskInfo .crumb'))) errors.push('Start-Adresse #/aufgabe/1.8 oeffnet die Aufgabe nicht');
+    if (!await np.isVisible('#scr-task.active') || !/1\.8/.test(await np.textContent('#taskInfo .crumb'))) errors.push('Start-Adresse #/aufgabe/1.8 öffnet die Aufgabe nicht');
     if (await np.$$eval('#taskInfo .protocol .tol', l => l.length) < 1 || !/Toleranz ±\d+ %/.test(await np.textContent('#taskInfo .protocol'))) errors.push('Toleranz-Hinweis im Protokoll fehlt');
     if (!/Stellenzahl/.test(await np.textContent('#taskInfo .proto-note'))) errors.push('Rundungshinweis im Protokollkopf fehlt');
     if (await np.$$eval('.lab-foot a', l => l.map(a => a.textContent).join()) !== 'Impressum,Datenschutz') errors.push('Fusszeile im Labor fehlt');
     // Rechner: Zurueck schliesst zuerst den Rechner, der Bildschirm bleibt
     await np.click('#btnCalc'); await np.waitForTimeout(50); await np.goBack(); await np.waitForTimeout(150);
-    if (await np.isVisible('#calc .calc-box') || !await np.isVisible('#scr-task.active')) errors.push('Zurueck bei offenem Rechner: Rechner sollte zugehen, Aufgabe bleiben');
+    if (await np.isVisible('#calc .calc-box') || !await np.isVisible('#scr-task.active')) errors.push('Zurück bei offenem Rechner: Rechner sollte zugehen, Aufgabe bleiben');
     // Oszilloskop gross: ohne Aufnahme Hinweis, mit Aufnahme Kurve + Kennwerte
     await np.click('#btnScopeBig'); if (!await np.isVisible('#scopeBig .sb-box') || !/Noch keine Aufnahme/.test(await np.textContent('#scopeBig'))) errors.push('Oszilloskop gross ohne Aufnahme: Hinweis fehlt');
     await np.keyboard.press('Escape'); if (await np.isVisible('#scopeBig .sb-box')) errors.push('Oszilloskop gross: Esc schliesst nicht');

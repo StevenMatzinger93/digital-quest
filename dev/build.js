@@ -11,11 +11,11 @@ const fs = require('fs'), path = require('path'), crypto = require('crypto');
 // Zeilenenden vereinheitlichen: Git unter Windows checkt mit CRLF aus
 const src = p => fs.readFileSync(path.join(__dirname, 'src', p), 'utf8').split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
 const P = f => fs.readFileSync(path.join(__dirname, 'portal', f), 'utf8').split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
-const script = (title, code) => { if (/<\/script/i.test(code)) throw new Error(title + ' enthaelt </script>'); return '<script>\n/* ==== ' + title + ' ==== */\n' + code + '\n</script>\n'; };
+const script = (title, code) => { if (/<\/script/i.test(code)) throw new Error(title + ' enthält </script>'); return '<script>\n/* ==== ' + title + ' ==== */\n' + code + '\n</script>\n'; };
 const content = fs.readdirSync(path.join(__dirname, 'src/content')).filter(f => f.endsWith('.js') && f !== '_helpers.js' && f !== 'manual.js').sort();
 const files = ['engine.js', 'content/_helpers.js', ...content.map(f => 'content/' + f), 'content/manual.js', 'circuit-ui.js', 'editor.js', 'bench.js', 'mini.js', 'visuals.js', 'tiles.js', 'calc.js', 'account.js', 'live.js', 'exam.js', 'app.js'].filter(f => fs.existsSync(path.join(__dirname, 'src', f)));
 const js = files.map(f => `/* ==== ${f} ==== */\n` + src(f)).join('\n');
-if (/<\/script/i.test(js)) throw new Error('JS enthaelt </script>');
+if (/<\/script/i.test(js)) throw new Error('JS enthält </script>');
 const tpl = src('index.template.html');
 const fill = (t, pwa) => t.split('/*CSS*/').join(src('style.css')).split('/*JS*/').join(js).split('<!--PWA-->').join(pwa);
 const root = path.join(__dirname, '..'), web = path.join(root, 'web'), lab = path.join(web, 'labor');
@@ -68,7 +68,7 @@ fs.writeFileSync(path.join(web, 'data', 'dq_live.json'), JSON.stringify({ refs, 
 /* ---------- Portal ---------- */
 const circuitCss = src('style.css').split('/*CIRCUIT-START*/').slice(1).map(x => x.split('/*CIRCUIT-END*/')[0]).join('\n');
 if (circuitCss.length < 4000) throw new Error('Schaltungs-Stile (CIRCUIT-START/END in style.css) fehlen');
-const portalCss = P('portal.css') + '\n/* ==== Mini-Schaltung im Portal: Variablen und Stile aus dem Spiel (style.css, CIRCUIT-Bloecke) ==== */\n' +
+const portalCss = P('portal.css') + '\n/* ==== Mini-Schaltung im Portal: Variablen und Stile aus dem Spiel (style.css, CIRCUIT-Blöcke) ==== */\n' +
   ':root { --sym: #d8d8d8; --wire: #d9a441; --accent-lead: #ffb000; --accent-lead-dim: #8a6000; --accent-green: #39ff14; --accent-cyan: #1ec8e0; --accent-red: #ff3333; --accent-orange: #ff8c00;' +
   ' --bg-editor: #0c0d0a; --bg-secondary: #0d1218; --bg-tertiary: #111821; --text-dim: #8b98a6; --text-faint: #5a6774; --font-code: var(--mono); --font-ui: var(--font); }\n' + circuitCss +
   '\n.mini .btn.small { padding: 4px 10px; font-size: 13px; } .mini .mono { font-family: var(--mono); }\n';
@@ -113,14 +113,14 @@ const XP = require('./exam_pool.js');
 const bundleParts = ['engine.js', 'content/_helpers.js', 'content/_logic.js', 'exam_core.js'].concat(XP.POOL_FILES.map(f => 'content_exam/' + f));
 const QUEST_TASKS = { dq: DQ.tasks.filter(t => typeof t.ch === 'number').map(t => ({ id: t.id, ch: t.ch, final: !!t.boss && (t.ch === 10 || t.ch === 15) })) };
 const NL = String.fromCharCode(10);
-const bundle = ['// GENERIERT von dev/build.js – nicht von Hand aendern. Engine, Pruefungskern und Pruefungspool fuer den Worker.']
+const bundle = ['// GENERIERT von dev/build.js – nicht von Hand ändern. Engine, Prüfungskern und Prüfungspool für den Worker.']
   .concat(bundleParts.map(f => '/* ==== ' + f + ' ==== */' + NL + src(f)))
   .concat(['/* ==== Theoriefragen (aus den Lektionen) ==== */', JSON.stringify(XP.questions) + '.forEach(q => globalThis.defExamQuestion(q));',
     'export const Exam = globalThis.DQExam;', 'export const QUEST_TASKS = ' + JSON.stringify(QUEST_TASKS) + ';', '']).join(NL);
 fs.mkdirSync(path.join(root, 'worker', 'gen'), { recursive: true });
 fs.writeFileSync(path.join(root, 'worker', 'gen', 'exam_bundle.js'), bundle);
-for (const f of files) if (/content_exam|exam_core/.test(f)) throw new Error('Pruefungspool darf nicht ins Spiel: ' + f);
-if (/defExamTask|"hidden"/.test(game)) throw new Error('Pruefungspool ist im Spiel gelandet');
+for (const f of files) if (/content_exam|exam_core/.test(f)) throw new Error('Prüfungspool darf nicht ins Spiel: ' + f);
+if (/defExamTask|"hidden"/.test(game)) throw new Error('Prüfungspool ist im Spiel gelandet');
 
 /* ---------- Service Worker (Wurzel): Portal und Spiel offline, /api/ und /z/ nie aus dem Cache ---------- */
 const FILES = ['./', './index.html', './impressum.html', './datenschutz.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png',
@@ -129,8 +129,8 @@ const ver = crypto.createHash('sha1').update(portal + game + JSON.stringify(meta
 fs.writeFileSync(path.join(web, 'sw.js'), `// Service Worker: hält Portal und Labor offline verfügbar (Cache-first, Version ${ver})
 const CACHE = 'dquest-${ver}';
 const FILES = ${JSON.stringify(FILES)};
-// Antworten, die der Browser nach einer Weiterleitung geholt hat (z. B. impressum.html → /impressum), duerfen nicht als „redirected“
-// gespeichert werden – sonst verweigert der Browser sie spaeter fuer eine Seitennavigation („nicht verfuegbar“). Darum frisch verpacken.
+// Antworten, die der Browser nach einer Weiterleitung geholt hat (z. B. impressum.html → /impressum), dürfen nicht als „redirected“
+// gespeichert werden – sonst verweigert der Browser sie später für eine Seitennavigation („nicht verfügbar“). Darum frisch verpacken.
 const fresh = res => res.redirected ? res.blob().then(b => new Response(b, { status: res.status, statusText: res.statusText, headers: res.headers })) : Promise.resolve(res);
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => Promise.all(FILES.map(f => fetch(f).then(fresh).then(r => { if(r.ok) return c.put(f, r); }).catch(() => {})))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
@@ -144,4 +144,4 @@ self.addEventListener('fetch', e => {
 });
 `);
 const kb = f => (fs.statSync(f).size / 1024).toFixed(0) + ' KB';
-console.log(`Build ok: index.html (${kb(path.join(root, 'index.html'))}), web/ Portal (${kb(path.join(web, 'index.html'))}) + labor/ (${kb(path.join(lab, 'index.html'))}), ${bugs.length} Stoerungsszenarien, Worker-Bundle ${(bundle.length / 1024).toFixed(0)} KB (${XP.Exam.X.tasks.length} Pruefungsvorlagen, ${XP.questions.length} Fragen), Cache ${ver}, ${files.length} Quelldateien`);
+console.log(`Build ok: index.html (${kb(path.join(root, 'index.html'))}), web/ Portal (${kb(path.join(web, 'index.html'))}) + labor/ (${kb(path.join(lab, 'index.html'))}), ${bugs.length} Störungsszenarien, Worker-Bundle ${(bundle.length / 1024).toFixed(0)} KB (${XP.Exam.X.tasks.length} Prüfungsvorlagen, ${XP.questions.length} Fragen), Cache ${ver}, ${files.length} Quelldateien`);

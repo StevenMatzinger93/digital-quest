@@ -1,8 +1,8 @@
-// Service Worker: hält Portal und Labor offline verfügbar (Cache-first, Version eea2b48efe)
-const CACHE = 'dquest-eea2b48efe';
+// Service Worker: hält Portal und Labor offline verfügbar (Cache-first, Version 3858ac196a)
+const CACHE = 'dquest-3858ac196a';
 const FILES = ["./","./index.html","./impressum.html","./datenschutz.html","./manifest.webmanifest","./icon.svg","./icon-192.png","./icon-512.png","./data/dq.json","./data/dq_live.json","./labor/","./labor/index.html","./labor/manifest.webmanifest"];
-// Antworten, die der Browser nach einer Weiterleitung geholt hat (z. B. impressum.html → /impressum), duerfen nicht als „redirected“
-// gespeichert werden – sonst verweigert der Browser sie spaeter fuer eine Seitennavigation („nicht verfuegbar“). Darum frisch verpacken.
+// Antworten, die der Browser nach einer Weiterleitung geholt hat (z. B. impressum.html → /impressum), dürfen nicht als „redirected“
+// gespeichert werden – sonst verweigert der Browser sie später für eine Seitennavigation („nicht verfügbar“). Darum frisch verpacken.
 const fresh = res => res.redirected ? res.blob().then(b => new Response(b, { status: res.status, statusText: res.statusText, headers: res.headers })) : Promise.resolve(res);
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => Promise.all(FILES.map(f => fetch(f).then(fresh).then(r => { if(r.ok) return c.put(f, r); }).catch(() => {})))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

@@ -81,7 +81,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
           else {
             const txt = typeof v === 'number' && k !== 'offset' ? await page.evaluate(x => DQEditor.fmtVal(x), v) : String(v);
             await page.fill(sel, txt); await page.dispatchEvent(sel, 'change');
-            if (await page.$eval(sel, el => el.classList.contains('bad'))) fail(pid + ': Eingabe „' + txt + '“ fuer ' + k + ' wird nicht angenommen');
+            if (await page.$eval(sel, el => el.classList.contains('bad'))) fail(pid + ': Eingabe „' + txt + '“ für ' + k + ' wird nicht angenommen');
           }
         }
       };
@@ -197,7 +197,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
       // echtes Ziehen mit der Maus (kein dispatchEvent): rot auf +, dann Fehlwurf mit schwarz
       const a = await box('#bench [data-probe="a"] .bprobehit'), q = await box(`#bench [data-pin="${src.id}.p"] .bpinhit`);
       await page.mouse.move(a[0], a[1]); await page.mouse.down(); await page.mouse.move((a[0] + q[0]) / 2, (a[1] + q[1]) / 2, { steps: 4 });
-      if (!await page.evaluate(() => DigitalQuest.core.dragProbe && DigitalQuest.core.dragProbe.which === 'a')) fail('waehrend des Ziehens haengt die Spitze nicht am Zeiger');
+      if (!await page.evaluate(() => DigitalQuest.core.dragProbe && DigitalQuest.core.dragProbe.which === 'a')) fail('während des Ziehens hängt die Spitze nicht am Zeiger');
       await page.mouse.move(q[0], q[1], { steps: 4 }); await page.mouse.up();
       if (await page.evaluate(() => DigitalQuest.core.probes.a) !== src.id + '.p') fail('rote Spitze liegt nach dem Ziehen nicht an ' + src.id + '.p');
       const bb = await box('#bench [data-probe="b"] .bprobehit');
@@ -263,7 +263,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
     runs++;
   }
   await browser.close();
-  console.log(`${runs} Durchlaeufe (Aufgaben × Schaltplan + Werkbank, Bauteilkatalog × 2)`);
+  console.log(`${runs} Durchläufe (Aufgaben × Schaltplan + Werkbank, Bauteilkatalog × 2)`);
   if (errors.length) { console.log('FEHLER:\n' + errors.join('\n')); process.exit(1); }
-  console.log('Alle Aufgaben in beiden Ansichten loesbar');
+  console.log('Alle Aufgaben in beiden Ansichten lösbar');
 })();

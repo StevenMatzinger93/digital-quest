@@ -20,7 +20,7 @@
       if (c === ' ') { i++; continue; }
       if (/[0-9.]/.test(c)) {
         var m = /^(\d*\.?\d+(?:e[+-]?\d+)?|\d+\.)/i.exec(s.slice(i));
-        if (!m) fail('Zahl unvollstaendig');
+        if (!m) fail('Zahl unvollständig');
         var num = parseFloat(m[1]); i += m[1].length;
         // SI-Vorsatz direkt an der Zahl (4k7 = 4,7k), nicht wenn ein Funktionsname folgt
         var suf = s[i], rest = s.slice(i + 1);
@@ -43,7 +43,7 @@
     if (!String(src).trim()) fail('Nichts eingegeben');
     var t = tokenize(src), p = 0;
     function peek() { return t[p]; }
-    function take(k) { var x = t[p]; if (!x || (k && x.k !== k)) fail(k === ')' ? 'Klammer fehlt: )' : 'Ausdruck unvollstaendig'); p++; return x; }
+    function take(k) { var x = t[p]; if (!x || (k && x.k !== k)) fail(k === ')' ? 'Klammer fehlt: )' : 'Ausdruck unvollständig'); p++; return x; }
     function expr() { var v = term(); while (peek() && (peek().k === '+' || peek().k === '-')) { var op = take().k, r = term(); v = op === '+' ? v + r : v - r; } return v; }
     function term() {
       var v = unary();
@@ -59,7 +59,7 @@
     function power() { var b = postfix(); if (peek() && peek().k === '^') { take(); var e = unary(); b = Math.pow(b, e); } return b; }
     function postfix() { var v = primary(); while (peek() && peek().k === '%') { take(); v = v / 100; } return v; }
     function primary() {
-      var x = peek(); if (!x) fail('Ausdruck unvollstaendig');
+      var x = peek(); if (!x) fail('Ausdruck unvollständig');
       if (x.k === 'n') { take(); return x.v; }
       if (x.k === '(') { take(); var v = expr(); take(')'); return v; }
       if (x.k === 'w') {
@@ -67,13 +67,13 @@
         if (CONST[x.v] !== undefined) return CONST[x.v];
         var f = FN[x.v] || FN[x.v.toLowerCase()]; if (!f) fail('Unbekannt: „' + x.v + '“');
         var arg; if (peek() && peek().k === '(') { take(); arg = expr(); take(')'); } else arg = unary();
-        var r = f(arg); if (!isFinite(r)) fail(x.v + ' nicht definiert fuer ' + fmt(arg)); return r;
+        var r = f(arg); if (!isFinite(r)) fail(x.v + ' nicht definiert für ' + fmt(arg)); return r;
       }
       if (x.k === ')') fail('Klammer fehlt: (');
       fail('Operator ohne Zahl');
     }
     var v = expr();
-    if (p < t.length) fail(t[p].k === ')' ? 'Klammer zu viel: )' : 'Ausdruck unvollstaendig');
+    if (p < t.length) fail(t[p].k === ')' ? 'Klammer zu viel: )' : 'Ausdruck unvollständig');
     if (!isFinite(v)) fail(isNaN(v) ? 'Nicht berechenbar' : 'Ergebnis zu gross');
     return v;
   }
@@ -134,7 +134,7 @@
   }
   function renderHist() {
     var h = el.querySelector('.calc-hist');
-    h.innerHTML = hist.map(function (x) { return '<li><button title="Rechnung uebernehmen">' + esc(x.q) + '</button><b>= ' + esc(x.a) + '</b></li>'; }).join('');
+    h.innerHTML = hist.map(function (x) { return '<li><button title="Rechnung übernehmen">' + esc(x.q) + '</button><b>= ' + esc(x.a) + '</b></li>'; }).join('');
     Array.prototype.forEach.call(h.querySelectorAll('button'), function (b, i) { b.onclick = function () { el.querySelector('#calcIn').value = hist[i].q; el.querySelector('#calcIn').focus(); show('', false); }; });
   }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }

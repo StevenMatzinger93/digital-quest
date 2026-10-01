@@ -55,7 +55,7 @@
       if (r.status === 409) return api('GET', 'progress/' + Q).then(function (g) {
         if (g.status === 200 && g.data.state && count(g.data.state) > count(S())) {
           adopt(g.data.state, g.data.updatedAt);
-          ctx.toast('Spielstand abgeglichen', 'Auf einem anderen Geraet warst du schon weiter – dieser Stand wird jetzt verwendet.');
+          ctx.toast('Spielstand abgeglichen', 'Auf einem anderen Gerät warst du schon weiter – dieser Stand wird jetzt verwendet.');
         } else { busy = false; return push(true); }
       });
       if (r.status === 401) { user = null; chip(); ctx.refresh(); }
@@ -110,9 +110,9 @@
           return;
         }
         if (!localHas(S())) { if (srv) adopt(srv, srvAt); else { setSync({ user: me, base: 0, dirty: true }); return push(true); } return; }
-        if (!srv) return ask('<h2>Spielstand ins Konto uebernehmen?</h2><p>In diesem Browser gibt es schon einen Spielstand (' + count(S()) + ' geloeste Stationen). Soll er in dein Konto <b>' + esc(me) + '</b> uebernommen werden?</p>', 'Uebernehmen', 'Neu beginnen')
+        if (!srv) return ask('<h2>Spielstand ins Konto übernehmen?</h2><p>In diesem Browser gibt es schon einen Spielstand (' + count(S()) + ' gelöste Stationen). Soll er in dein Konto <b>' + esc(me) + '</b> übernommen werden?</p>', 'Übernehmen', 'Neu beginnen')
           .then(function (yes) { if (!yes) { keep('lokal'); adopt(null, 0); } setSync({ user: me, base: 0, dirty: true }); return push(true); });
-        return ask('<h2>Welcher Spielstand soll gelten?</h2><p>Konto <b>' + esc(me) + '</b>: ' + count(srv) + ' geloest · dieser Browser: ' + count(S()) + ' geloest.</p><p class="dim small">Der andere Stand wird ueberschrieben.</p>', 'Browser-Spielstand', 'Konto-Spielstand')
+        return ask('<h2>Welcher Spielstand soll gelten?</h2><p>Konto <b>' + esc(me) + '</b>: ' + count(srv) + ' gelöst · dieser Browser: ' + count(S()) + ' gelöst.</p><p class="dim small">Der andere Stand wird überschrieben.</p>', 'Browser-Spielstand', 'Konto-Spielstand')
           .then(function (useLocal) { if (useLocal) { setSync({ user: me, base: srvAt, dirty: true }); return push(true); } keep('lokal'); adopt(srv, srvAt); });
       });
     }).catch(function () { offline = true; chip(); ctx.refresh(); });

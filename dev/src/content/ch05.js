@@ -7,7 +7,7 @@
 
   defChapter({
     id: 5, title: 'Zahlensysteme',
-    intro: 'Computer kennen nur 0 und 1. Am Experimentierboard stellst du Zahlen mit Pegelschaltern ein, liest Bitmuster an Logikanzeigen ab und bringst eine 7-Segment-Anzeige zum Zaehlen.',
+    intro: 'Computer kennen nur 0 und 1. Am Experimentierboard stellst du Zahlen mit Pegelschaltern ein, liest Bitmuster an Logikanzeigen ab und bringst eine 7-Segment-Anzeige zum Zählen.',
     sequence: ['T5A', '5.1', '5.2', '5.3', '5.4', '5.5', 'T5B', '5.6', '5.7', '5.8', '5.9', '5.10']
   });
 
@@ -48,19 +48,19 @@
   /* ================= Theorie A ================= */
   defTheory({
     id: 'T5A', ch: 5, title: 'Stellenwertsystem und Dualzahlen', tags: ['digital.zahlensysteme', 'digital.binaer'],
-    merksatz: 'Im Stellenwertsystem zaehlt Ziffer mal Basis hoch Stelle; dual gibt es nur 0 und 1, mit n Bit die Zahlen 0 bis 2ⁿ − 1 – dezimal nach dual durch fortgesetztes Halbieren, Reste von unten lesen.',
+    merksatz: 'Im Stellenwertsystem zählt Ziffer mal Basis hoch Stelle; dual gibt es nur 0 und 1, mit n Bit die Zahlen 0 bis 2ⁿ − 1 – dezimal nach dual durch fortgesetztes Halbieren, Reste von unten lesen.',
     visual: { type: 'numberSteps', mode: 'divide', value: 43, base: 2, caption: 'Dezimal → dual: immer durch 2 teilen, die Reste von unten nach oben lesen. Zum Schluss die Probe mit den Wertigkeiten.' },
     lesson:
-      '<p>In einem <b>Stellenwertsystem</b> haengt der Wert einer Ziffer von ihrer Stelle ab: <b>Wert = Ziffer · Basis<sup>Stelle</sup></b>, gelesen von rechts (Stelle 0) nach links. Die Basis bestimmt die Ziffern: dezimal (Basis 10) 0–9, dual/binaer (Basis 2) nur 0 und 1.</p>' +
+      '<p>In einem <b>Stellenwertsystem</b> hängt der Wert einer Ziffer von ihrer Stelle ab: <b>Wert = Ziffer · Basis<sup>Stelle</sup></b>, gelesen von rechts (Stelle 0) nach links. Die Basis bestimmt die Ziffern: dezimal (Basis 10) 0–9, dual/binaer (Basis 2) nur 0 und 1.</p>' +
       '<div class="formula">125₁₀ = 1·10² + 2·10¹ + 5·10⁰</div>' +
-      '<p>Ein <b>Bit</b> ist eine Binaerstelle. Die <b>Bitbreite</b> ist die Anzahl Stellen. Das Bit ganz rechts ist das <b>niederwertigste Bit</b> (LSB, Wert 2⁰ = 1), das ganz links das <b>hoechstwertige</b> (MSB). Mit n Bits lassen sich die Zahlen 0 … 2ⁿ − 1 darstellen (4 Bit: 0 … 15).</p>' +
-      '<p><b>Binaer → dezimal:</b> Stellenwerte der Einsen addieren: 110001₂ = 32 + 16 + 1 = 49.</p>' +
-      '<p><b>Dezimal → binaer:</b> fortlaufend durch 2 teilen, die Reste von unten nach oben lesen: 49 : 2 = 24 R1, 24 : 2 = 12 R0, 12 : 2 = 6 R0, 6 : 2 = 3 R0, 3 : 2 = 1 R1, 1 : 2 = 0 R1 → 110001₂.</p>' +
+      '<p>Ein <b>Bit</b> ist eine Binärstelle. Die <b>Bitbreite</b> ist die Anzahl Stellen. Das Bit ganz rechts ist das <b>niederwertigste Bit</b> (LSB, Wert 2⁰ = 1), das ganz links das <b>höchstwertige</b> (MSB). Mit n Bits lassen sich die Zahlen 0 … 2ⁿ − 1 darstellen (4 Bit: 0 … 15).</p>' +
+      '<p><b>Binär → dezimal:</b> Stellenwerte der Einsen addieren: 110001₂ = 32 + 16 + 1 = 49.</p>' +
+      '<p><b>Dezimal → binär:</b> fortlaufend durch 2 teilen, die Reste von unten nach oben lesen: 49 : 2 = 24 R1, 24 : 2 = 12 R0, 12 : 2 = 6 R0, 6 : 2 = 3 R0, 3 : 2 = 1 R1, 1 : 2 = 0 R1 → 110001₂.</p>' +
       '<p>Im Labor ist ein Bit eine <b>Spannung</b>: 0 V (Low, 0) oder 5 V (High, 1). Ein Pegelschalter erzeugt den Pegel, eine Logikanzeige macht ihn sichtbar.</p>',
     questions: [
       { q: 'Welche Dezimalzahl ist 1010₂?', options: ['5', '10', '12', '20'], correct: 1, explain: '8 + 2 = 10.' },
       { q: 'Wie lautet 49₁₀ im Dualsystem?', options: ['100011', '110001', '101001', '111000'], correct: 1, explain: '32 + 16 + 1 = 49 → 110001₂.' },
-      { q: 'Welche groesste Zahl kann eine 4-Bit-Dualzahl darstellen?', options: ['4', '8', '15', '16'], correct: 2, explain: '2⁴ − 1 = 15 (1111₂).' },
+      { q: 'Welche grösste Zahl kann eine 4-Bit-Dualzahl darstellen?', options: ['4', '8', '15', '16'], correct: 2, explain: '2⁴ − 1 = 15 (1111₂).' },
       { q: 'Welchen Stellenwert hat das MSB einer 8-Bit-Zahl?', options: ['8', '64', '128', '256'], correct: 2, explain: 'Stelle 7 → 2⁷ = 128.' },
       { q: 'Welche Spannung entspricht bei 5-V-Logik einer 1?', options: ['0 V', 'ca. 1 V', 'ca. 2,5 V', 'ca. 5 V'], correct: 3, explain: 'High = nahe der Versorgungsspannung, Low = nahe 0 V; die Schwelle liegt bei 2,5 V.' }
     ]
@@ -69,8 +69,8 @@
   /* ================= Aufgaben 1–5 ================= */
   defTask({
     id: '5.1', ch: 5, title: 'Die erste Dualzahl', tags: ['digital.binaer', 'digital.pegel'],
-    story: 'Das Experimentierboard liegt bereit: vier Pegelschalter, vier Logikanzeigen. Die Laborassistenz sagt: „Zeig mir die Fuenf.“',
-    brief: 'Stelle mit den Pegelschaltern die Zahl <b>5</b> ein. E1 ist das niederwertigste Bit (ganz rechts, Wert 1), E4 das hoechstwertige (Wert 8).',
+    story: 'Das Experimentierboard liegt bereit: vier Pegelschalter, vier Logikanzeigen. Die Laborassistenz sagt: „Zeig mir die Fünf.“',
+    brief: 'Stelle mit den Pegelschaltern die Zahl <b>5</b> ein. E1 ist das niederwertigste Bit (ganz rechts, Wert 1), E4 das höchstwertige (Wert 8).',
     learn: 'Jedes Bit hat einen Stellenwert: 8 – 4 – 2 – 1.',
     take: '5 = 4 + 1 → 0101₂: E3 und E1 auf 1.',
     hint: 'Welche Stellenwerte (8, 4, 2, 1) ergeben zusammen 5?',
@@ -82,9 +82,9 @@
 
   defTask({
     id: '5.2', ch: 5, title: 'Bitmuster lesen', tags: ['digital.binaer', 'digital.zahlensysteme'],
-    story: 'Ein Sensor meldet seinen Zaehlerstand als Bitmuster auf vier Anzeigen.',
-    brief: 'Lies das Bitmuster an den Logikanzeigen ab und trage die <b>Dezimalzahl</b> ein. Miss zur Kontrolle den <b>Pegel</b> am hoechstwertigen Bit (E4 gegen Masse).',
-    learn: 'Binaer → dezimal: Stellenwerte der Einsen addieren.',
+    story: 'Ein Sensor meldet seinen Zählerstand als Bitmuster auf vier Anzeigen.',
+    brief: 'Lies das Bitmuster an den Logikanzeigen ab und trage die <b>Dezimalzahl</b> ein. Miss zur Kontrolle den <b>Pegel</b> am höchstwertigen Bit (E4 gegen Masse).',
+    learn: 'Binär → dezimal: Stellenwerte der Einsen addieren.',
     take: '1011₂ = 8 + 2 + 1 = 11. Eine 1 ist im Labor eine Spannung von ca. 5 V.',
     hint: 'Leuchtet eine Anzeige, ist das Bit 1. Von rechts: 1, 2, 4, 8.',
     hint2: 'V⎓, rote Spitze an E4.out, schwarze an GND1.',
@@ -98,9 +98,9 @@
 
   defTask({
     id: '5.3', ch: 5, title: 'Division mit Rest', tags: ['digital.binaer', 'digital.zahlensysteme'],
-    story: 'Die Maschine soll 13 Teile zaehlen. Die Steuerung braucht die Zahl als Bitmuster.',
+    story: 'Die Maschine soll 13 Teile zählen. Die Steuerung braucht die Zahl als Bitmuster.',
     brief: 'Rechne <b>13</b> ins Dualsystem um (fortlaufend durch 2 teilen) und stelle das Ergebnis mit den Pegelschaltern ein.',
-    learn: 'Dezimal → binaer: durch 2 teilen, Reste von unten nach oben lesen.',
+    learn: 'Dezimal → binär: durch 2 teilen, Reste von unten nach oben lesen.',
     take: '13 : 2 = 6 R1, 6 : 2 = 3 R0, 3 : 2 = 1 R1, 1 : 2 = 0 R1 → 1101₂.',
     hint: 'Der erste Rest ist das niederwertigste Bit (E1).',
     hint2: '1101₂: E4 = 1, E3 = 1, E2 = 0, E1 = 1.',
@@ -111,9 +111,9 @@
 
   defTask({
     id: '5.4', ch: 5, title: 'Die Anzeige verdrahten', tags: ['digital.bcd', 'digital.7segment'],
-    story: 'Die 7-Segment-Anzeige ist montiert, aber nicht angeschlossen. Der Decoder uebersetzt die Dualzahl in Segmente.',
-    brief: 'Verbinde die Ausgaenge <b>a … g</b> des BCD-Decoders IC1 mit den gleichnamigen Eingaengen der 7-Segment-Anzeige AZ1. Die Anzeige soll die eingestellte Zahl richtig zeigen – pruefe mit 7 und 9.',
-    learn: 'Ein Decoder wandelt einen Binaercode in ein anderes Muster um – hier BCD in 7 Segmente.',
+    story: 'Die 7-Segment-Anzeige ist montiert, aber nicht angeschlossen. Der Decoder übersetzt die Dualzahl in Segmente.',
+    brief: 'Verbinde die Ausgänge <b>a … g</b> des BCD-Decoders IC1 mit den gleichnamigen Eingängen der 7-Segment-Anzeige AZ1. Die Anzeige soll die eingestellte Zahl richtig zeigen – prüfe mit 7 und 9.',
+    learn: 'Ein Decoder wandelt einen Binärcode in ein anderes Muster um – hier BCD in 7 Segmente.',
     take: 'Jedes Segment hat seinen Buchstaben: a oben, dann im Uhrzeigersinn b … f, g in der Mitte.',
     hint: 'IC1.a → AZ1.a, IC1.b → AZ1.b … bis g.',
     hint2: 'Zum Testen die Pegelschalter umlegen: 0111 = 7, 1001 = 9.',
@@ -130,8 +130,8 @@
     id: '5.5', ch: 5, title: 'High und Low messen', tags: ['digital.pegel', 'messen.spannung'],
     story: 'Die Werkmeisterin fragt: „Woher weisst du, dass eine 1 wirklich eine 1 ist?“ – „Messen!“',
     brief: 'Das Board zeigt 1001₂. Miss die Pegel an <b>E4</b> (Bit = 1) und <b>E3</b> (Bit = 0) gegen Masse und am Eingang der Logikanzeige <b>L1</b>.',
-    learn: 'Logische Zustaende sind Spannungsbereiche: Low nahe 0 V, High nahe 5 V.',
-    take: 'Die Logikanzeige vergleicht die Spannung mit der Schwelle (2,5 V) – darueber leuchtet sie.',
+    learn: 'Logische Zustände sind Spannungsbereiche: Low nahe 0 V, High nahe 5 V.',
+    take: 'Die Logikanzeige vergleicht die Spannung mit der Schwelle (2,5 V) – darüber leuchtet sie.',
     hint: 'Schwarze Spitze bleibt an GND1.g, rote wandert.',
     hint2: 'Erwartet ca. 5 V, 0 V und 5 V.',
     palette: [], start: row(4, 9), ref: row(4, 9), bench: benchRow(4),
@@ -147,19 +147,19 @@
   defTheory({
     id: 'T5B', ch: 5, title: 'Hexadezimal, BCD und Horner-Schema', tags: ['digital.hex', 'digital.bcd', 'digital.zahlensysteme'],
     merksatz: 'Eine Hex-Ziffer entspricht vier Bit (0–9, A–F); das Horner-Schema rechnet jedes Fremdsystem von links nach dezimal um; BCD codiert jede Dezimalziffer einzeln mit vier Bit.',
-    visual: { type: 'numberSteps', mode: 'bases', value: 173, caption: 'Dieselbe Zahl in BCD (jede Dezimalziffer 4 Bit) und hexadezimal (jede Hex-Ziffer 4 Bit), dann mit dem Horner-Schema zurueck: mal 16, plus naechste Ziffer.' },
+    visual: { type: 'numberSteps', mode: 'bases', value: 173, caption: 'Dieselbe Zahl in BCD (jede Dezimalziffer 4 Bit) und hexadezimal (jede Hex-Ziffer 4 Bit), dann mit dem Horner-Schema zurück: mal 16, plus nächste Ziffer.' },
     lesson:
-      '<p>Das <b>Hexadezimalsystem</b> (Basis 16) hat die Ziffern 0–9 und A–F (A = 10 … F = 15). Weil 2⁴ = 16, entspricht <b>genau eine Hex-Ziffer vier Bits</b> (einem Nibble). Umrechnen binaer ↔ hex heisst: in Vierergruppen von rechts aufteilen.</p>' +
+      '<p>Das <b>Hexadezimalsystem</b> (Basis 16) hat die Ziffern 0–9 und A–F (A = 10 … F = 15). Weil 2⁴ = 16, entspricht <b>genau eine Hex-Ziffer vier Bits</b> (einem Nibble). Umrechnen binär ↔ hex heisst: in Vierergruppen von rechts aufteilen.</p>' +
       '<div class="formula">1011 0110₂ = B6₁₆ = 182₁₀</div>' +
       '<p>Genauso ist das <b>Oktalsystem</b> (Basis 8 = 2³) mit Dreiergruppen verwandt: 110 001₂ = 61₈.</p>' +
-      '<p><b>Horner-Schema</b> (Fremdsystem → dezimal): von links beginnen, Zwischenergebnis mal Basis plus naechste Ziffer. 110001₂: 1 → 1·2+1 = 3 → 6 → 12 → 24 → 24·2+1 = 49.</p>' +
-      '<p><b>BCD-Code</b> (Binary Coded Decimal): jede Dezimalziffer einzeln mit 4 Bit. 59 → 0101 1001. Die Kombinationen 1010 … 1111 sind in BCD <b>ungueltig</b> – ein BCD-Decoder zeigt dann nichts an. BCD passt direkt zu 7-Segment-Anzeigen.</p>',
+      '<p><b>Horner-Schema</b> (Fremdsystem → dezimal): von links beginnen, Zwischenergebnis mal Basis plus nächste Ziffer. 110001₂: 1 → 1·2+1 = 3 → 6 → 12 → 24 → 24·2+1 = 49.</p>' +
+      '<p><b>BCD-Code</b> (Binary Coded Decimal): jede Dezimalziffer einzeln mit 4 Bit. 59 → 0101 1001. Die Kombinationen 1010 … 1111 sind in BCD <b>ungültig</b> – ein BCD-Decoder zeigt dann nichts an. BCD passt direkt zu 7-Segment-Anzeigen.</p>',
     questions: [
       { q: 'Welche Dezimalzahl ist EF₁₆?', options: ['215', '239', '254', '255'], correct: 1, explain: '14·16 + 15 = 239.' },
       { q: 'Wie lautet 1111₂ hexadezimal?', options: ['E', 'F', '10', '15'], correct: 1, explain: '1111₂ = 15 = F.' },
       { q: 'Wie viele Bits entsprechen einer Hex-Ziffer?', options: ['2', '3', '4', '8'], correct: 2, explain: '16 = 2⁴ – eine Hex-Ziffer ist ein Nibble.' },
       { q: 'Wie wird die Dezimalzahl 59 im BCD-Code dargestellt?', options: ['0011 1011', '0101 1001', '0111 0011', '1001 0101'], correct: 1, explain: '5 → 0101, 9 → 1001.' },
-      { q: 'Was zeigt ein BCD-7-Segment-Decoder bei der Eingabe 1100₂?', options: ['12', 'C', 'Nichts – ungueltiger BCD-Code', '0'], correct: 2, explain: 'BCD kennt nur 0000 … 1001. 1100 ist ungueltig, die Anzeige bleibt dunkel.' }
+      { q: 'Was zeigt ein BCD-7-Segment-Decoder bei der Eingabe 1100₂?', options: ['12', 'C', 'Nichts – ungültiger BCD-Code', '0'], correct: 2, explain: 'BCD kennt nur 0000 … 1001. 1100 ist ungültig, die Anzeige bleibt dunkel.' }
     ]
   });
 
@@ -180,7 +180,7 @@
 
   defTask({
     id: '5.7', ch: 5, title: 'Ein ganzes Byte', tags: ['digital.hex', 'digital.binaer'],
-    story: 'Ein Byte, acht Bits: Das Pruefprogramm sendet den Wert 2D₁₆. Stell ihn nach.',
+    story: 'Ein Byte, acht Bits: Das Prüfprogramm sendet den Wert 2D₁₆. Stell ihn nach.',
     brief: 'Stelle <b>2D₁₆</b> auf den acht Pegelschaltern ein (E8 = MSB links, E1 = LSB rechts) und trage den Dezimalwert ein.',
     learn: 'Jede Hex-Ziffer ergibt eine Vierergruppe: 2 → 0010, D → 1101.',
     take: '2D₁₆ = 0010 1101₂ = 32 + 8 + 4 + 1 = 45.',
@@ -193,11 +193,11 @@
   });
 
   defTask({
-    id: '5.8', ch: 5, title: 'Ungueltiger BCD-Code', tags: ['digital.bcd', 'digital.7segment'],
+    id: '5.8', ch: 5, title: 'Ungültiger BCD-Code', tags: ['digital.bcd', 'digital.7segment'],
     story: 'Die Anzeige bleibt manchmal dunkel. Ein Kollege vermutet einen Wackelkontakt.',
-    brief: 'Verdrahte die Pegelschalter mit den Decoder-Eingaengen (<b>E1 → A (1), E2 → B (2), E3 → C (4), E4 → D (8)</b>). Probiere danach 3, 8 und 12 aus.',
+    brief: 'Verdrahte die Pegelschalter mit den Decoder-Eingängen (<b>E1 → A (1), E2 → B (2), E3 → C (4), E4 → D (8)</b>). Probiere danach 3, 8 und 12 aus.',
     learn: 'BCD kennt nur 0 … 9 – ab 1010₂ bleibt die Anzeige dunkel.',
-    take: 'Kein Wackelkontakt: 12 ist im BCD-Code ungueltig. Zweistellige Zahlen brauchen zwei Ziffern (zwei Decoder).',
+    take: 'Kein Wackelkontakt: 12 ist im BCD-Code ungültig. Zweistellige Zahlen brauchen zwei Ziffern (zwei Decoder).',
     hint: 'Die Wertigkeiten stehen am Decoder: 1, 2, 4, 8.',
     hint2: 'E1.out → IC1.A, E2.out → IC1.B, E3.out → IC1.C, E4.out → IC1.D.',
     palette: [],
@@ -206,7 +206,7 @@
     tests: [
       { name: 'Drei', set: setBits(4, 3), expect: [{ sel: 'AZ1', digit: 3 }] },
       { name: 'Acht', set: setBits(4, 8), expect: [{ sel: 'AZ1', digit: 8 }] },
-      { name: 'Zwoelf', set: setBits(4, 12), expect: [{ sel: 'AZ1', on: false }] }
+      { name: 'Zwölf', set: setBits(4, 12), expect: [{ sel: 'AZ1', on: false }] }
     ]
   });
 
@@ -214,7 +214,7 @@
     id: '5.9', ch: 5, title: 'Verwandte Systeme', tags: ['digital.hex', 'digital.zahlensysteme'],
     story: 'Im Speicherauszug steht 1011 0110. Der Techniker will den Wert dezimal – und die hohe Hex-Ziffer.',
     brief: 'Lies das Byte auf den Anzeigen ab. Trage den <b>Dezimalwert</b> ein und den Wert der <b>oberen Hex-Ziffer</b> (als Dezimalzahl, A = 10 … F = 15).',
-    learn: 'Vierergruppen machen aus Binaer im Kopf Hex.',
+    learn: 'Vierergruppen machen aus Binär im Kopf Hex.',
     take: '1011 0110₂ = B6₁₆ = 11·16 + 6 = 182.',
     hint: 'Teile in 1011 | 0110 auf.',
     hint2: '1011 = 11 = B, 0110 = 6 → B6₁₆ = 182₁₀.',
@@ -230,7 +230,7 @@
     id: '5.10', ch: 5, title: 'Horner am Board', tags: ['digital.binaer', 'digital.zahlensysteme'],
     story: 'Das Beispiel aus dem Unterricht: 49. Jetzt mit sechs echten Bits.',
     brief: 'Rechne <b>49</b> in eine 6-Bit-Dualzahl um und stelle sie ein. Kontrolliere mit dem Horner-Schema.',
-    learn: 'Horner: von links, mal 2 plus naechstes Bit.',
+    learn: 'Horner: von links, mal 2 plus nächstes Bit.',
     take: '110001₂: 1 → 3 → 6 → 12 → 24 → 49.',
     hint: '49 = 32 + 16 + 1.',
     hint2: 'E6 = 1, E5 = 1, E1 = 1, der Rest 0.',

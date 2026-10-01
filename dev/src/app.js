@@ -146,7 +146,7 @@
     var foot = ok ? (th ? '<span class="nstate ok">' + ICON.ok + ' bestanden' + (S.theory[id] ? ' · ' + Math.round(100 * (S.theory[id].best || 0)) + ' %' : '') + '</span>' : '<span class="nstars" title="' + (di.stars || 1) + ' von 3 Sternen">' + starRow(di.stars || 1) + '</span>')
       : !open ? '<span class="nstate">' + ICON.lock + ' gesperrt</span>'
       : opt.next ? '<span class="nstate go">▶ hier weiter</span>' : S.drafts[id] ? '<span class="nstate draft">begonnen</span>' : '<span class="nstate">' + (th ? 'lesen + Check' : 'offen') + '</span>';
-    return '<button class="node k-' + it.kind + (ok ? ' done' : '') + (open ? '' : ' locked') + (it.boss ? ' boss' : '') + (opt.next ? ' next' : '') + '" data-open="' + id + '"' + (open ? '' : ' disabled') + ' aria-label="' + esc(label + ': ' + it.title + (ok ? ' (geloest)' : open ? '' : ' (gesperrt)')) + '">' +
+    return '<button class="node k-' + it.kind + (ok ? ' done' : '') + (open ? '' : ' locked') + (it.boss ? ' boss' : '') + (opt.next ? ' next' : '') + '" data-open="' + id + '"' + (open ? '' : ' disabled') + ' aria-label="' + esc(label + ': ' + it.title + (ok ? ' (gelöst)' : open ? '' : ' (gesperrt)')) + '">' +
       '<span class="nsym">' + (TILES ? TILES.html(it, Editor) : ICON[it.kind]) + (ok ? '<i class="nok">' + ICON.ok + '</i>' : '') + (it.boss ? '<i class="nboss">BOSS</i>' : '') + (th ? '<i class="nkind">Theorie</i>' : '') + '</span>' +
       '<span class="nid">' + (th ? 'T' + id.slice(1) : id) + vgTag('aufgabe', id, true) + '</span><span class="nt">' + esc(it.title) + '</span><span class="nfoot">' + foot + '</span></button>';
   }
@@ -155,18 +155,18 @@
     return '<svg class="ring' + (done >= total && total ? ' full' : '') + '" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="' + r + '" class="ring-bg"/><circle cx="22" cy="22" r="' + r + '" class="ring-fg" stroke-dasharray="' + (c * p).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 22 22)"/></svg>';
   }
   function chapterHead(c, d, n, extra) {
-    return '<header class="ch-head"><span class="ch-sym">' + (TILES ? TILES.chapter(c, Editor) : '') + '</span><div class="ch-txt"><span class="chno">' + (c.kind === 'workshop' ? 'Frei ueben' : 'Kapitel ' + c.id) + '</span>' + (extra || '') +
-      '<h2>' + esc(c.title) + '</h2><p>' + esc(c.intro || '') + '</p></div><div class="ch-prog" title="' + d + ' von ' + n + ' Stationen geloest">' + ring(d, n) + '<span class="mono">' + d + '<small>/' + n + '</small></span></div></header>';
+    return '<header class="ch-head"><span class="ch-sym">' + (TILES ? TILES.chapter(c, Editor) : '') + '</span><div class="ch-txt"><span class="chno">' + (c.kind === 'workshop' ? 'Frei üben' : 'Kapitel ' + c.id) + '</span>' + (extra || '') +
+      '<h2>' + esc(c.title) + '</h2><p>' + esc(c.intro || '') + '</p></div><div class="ch-prog" title="' + d + ' von ' + n + ' Stationen gelöst">' + ring(d, n) + '<span class="mono">' + d + '<small>/' + n + '</small></span></div></header>';
   }
   function renderMap() {
     var total = ORDER.length, done = ORDER.filter(function (id) { return S.done[id]; }).length, nx = nextOpen(), nxIt = nx && DQ.byId[nx], stars = 0;
     Object.keys(S.done).forEach(function (id) { if (S.done[id] && DQ.byId[id] && DQ.byId[id].kind !== 'theory') stars += (S.doneInfo[id] || {}).stars || 1; });
-    var h = '<div class="map-head"><div class="map-title"><h1>Laborkarte</h1><p class="dim">Baue, miss, verstehe. Jede Station schaltet die naechste frei.</p></div>' +
+    var h = '<div class="map-head"><div class="map-title"><h1>Laborkarte</h1><p class="dim">Baue, miss, verstehe. Jede Station schaltet die nächste frei.</p></div>' +
       '<div class="map-stats"><div class="stat"><b class="mono">' + done + '<small>/' + total + '</small></b><span>Stationen</span></div><div class="stat"><b class="mono"><span class="star on">★</span> ' + stars + '</b><span>Sterne</span></div>' +
       '<div class="stat wide"><div class="bar"><i style="width:' + (100 * done / Math.max(1, total)).toFixed(1) + '%"></i></div><span>' + Math.round(100 * done / Math.max(1, total)) + ' % geschafft</span></div></div>' +
       '<div class="map-actions">' + (nxIt ? '<button class="btn primary" data-open="' + nx + '" title="' + esc(nxIt.title) + '">▶ Weiter: ' + (nxIt.kind === 'theory' ? 'Theorie ' + nx.slice(1) : 'Aufgabe ' + nx) + '</button>' : '') +
-      '<button class="btn" data-open="sandbox" title="Frei bauen und messen – ohne Auftrag">Freie Werkbank</button>' + (DQ.workshop ? '<a class="btn" href="#werkstatt" id="toWs">Uebungswerkstatt</a>' : '') + '</div>' +
-      (staff() ? '<div class="teacher-bar"><b>Dozentenmodus</b> <span class="dim small">Alle Stationen offen, Freie Werkbank mit allen Bauteilen. <a href="../#/leitstand">Zum Leitstand</a></span><label class="fld"><span>Springe zu</span><select id="jump"><option value="">Station waehlen …</option>' +
+      '<button class="btn" data-open="sandbox" title="Frei bauen und messen – ohne Auftrag">Freie Werkbank</button>' + (DQ.workshop ? '<a class="btn" href="#werkstatt" id="toWs">Übungswerkstatt</a>' : '') + '</div>' +
+      (staff() ? '<div class="teacher-bar"><b>Dozentenmodus</b> <span class="dim small">Alle Stationen offen, Freie Werkbank mit allen Bauteilen. <a href="../#/leitstand">Zum Leitstand</a></span><label class="fld"><span>Springe zu</span><select id="jump"><option value="">Station wählen …</option>' +
         DQ.chapters.concat(DQ.workshop ? [DQ.workshop] : []).map(function (c) { return '<optgroup label="' + (c.kind === 'workshop' ? '' : 'Kapitel ' + c.id + ' – ') + esc(c.title) + '">' + c.sequence.map(function (id) { var it = DQ.byId[id]; return '<option value="' + id + '">' + (it.kind === 'theory' ? 'Theorie ' + id.slice(1) : id) + ' ' + esc(it.title) + '</option>'; }).join('') + '</optgroup>'; }).join('') +
         '</select></label></div>' : '') +
       vorgabenBox() + '</div>';
@@ -196,7 +196,7 @@
   function workshopSection() {
     var w = DQ.workshop; if (!w) return '';
     var d = w.sequence.filter(function (id) { return S.done[id]; }).length;
-    return '<div class="part-head part-werkstatt" id="werkstatt"><span class="part-no">Frei ueben</span><h2>' + esc(w.title) + '</h2><span class="stage-tag werkstatt">nur messen</span><span class="part-prog mono">' + d + ' / ' + w.sequence.length + '</span></div>' +
+    return '<div class="part-head part-werkstatt" id="werkstatt"><span class="part-no">Frei üben</span><h2>' + esc(w.title) + '</h2><span class="stage-tag werkstatt">nur messen</span><span class="part-prog mono">' + d + ' / ' + w.sequence.length + '</span></div>' +
       '<section class="chapter workshop">' + chapterHead(w, d, w.sequence.length, vgTag('kapitel', w.id)) + '<div class="nodes">' + w.sequence.map(function (id) { return tile(id, { open: true }); }).join('') + '</div></section>';
   }
   /* Vorgaben vom Dozent auf der Karte: Kasten oben mit Frist und Stand, Hinweis an Kapitel und Station. Nichts wird gesperrt. */
@@ -205,7 +205,7 @@
     var fmt = ACCT.fmtDue, open = vs.filter(function (v) { return !v.done; }).length;
     return '<div class="vg-box"><div class="vg-head"><b>Vorgaben vom Dozent</b><span class="dim small">' + (open ? open + ' offen' : 'alles erledigt') + '</span></div><ul>' + vs.map(function (v) {
       return '<li class="' + (v.done ? 'vg-done' : v.over ? 'vg-over' : '') + '"><button class="vg-go" data-open="' + esc(v.next) + '">' + esc(v.label) + '</button>' +
-        '<span class="vg-meta">' + (v.z.fuer === 'dich' ? 'fuer dich · ' : '') + (v.z.faellig_am ? (v.over ? 'ueberfaellig seit ' : 'bis ') + fmt(v.z.faellig_am) : 'ohne Frist') + ' · ' + (v.done ? 'erledigt' : v.left + ' offen') + '</span></li>';
+        '<span class="vg-meta">' + (v.z.fuer === 'dich' ? 'für dich · ' : '') + (v.z.faellig_am ? (v.over ? 'überfällig seit ' : 'bis ') + fmt(v.z.faellig_am) : 'ohne Frist') + ' · ' + (v.done ? 'erledigt' : v.left + ' offen') + '</span></li>';
     }).join('') + '</ul></div>';
   }
   function vgTag(typ, id, small) {
@@ -221,7 +221,7 @@
     var ev = S.events.filter(function (e) { return e.type === 'task_done' && e.id === a.boss; })[0];
     return new Date(ev ? ev.t : Date.now());
   }
-  function fmtDate(d) { return d.getDate() + '. ' + ['Januar', 'Februar', 'Maerz', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'][d.getMonth()] + ' ' + d.getFullYear(); }
+  function fmtDate(d) { return d.getDate() + '. ' + ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'][d.getMonth()] + ' ' + d.getFullYear(); }
   function personName() { var p = S.profile; return (p.vorname + ' ' + p.nachname).trim() || p.pseudonym || ''; }
   function medal(a, size) { // Abzeichen/Siegel als SVG, Farbe je Stufe
     var gold = a.id === 'profi', c1 = gold ? '#ffcf4a' : '#c9d3dc', c2 = gold ? '#b07a00' : '#6f7c88', s = size || 120;
@@ -235,7 +235,7 @@
     if (!a) return '';
     var got = awardEarned(a);
     return '<div class="award-card' + (got ? ' earned' : '') + '">' + medal(a, 72) + '<div><span class="part-no">' + esc(a.kind) + '</span><h3>' + esc(a.title) + '</h3>' +
-      '<p class="dim small">' + (got ? 'Erhalten am ' + fmtDate(awardDate(a)) + '.' : 'Wird mit der Boss-Aufgabe ' + a.boss + ' freigeschaltet.') + (ACCT && ACCT.portal ? ' Das gepruefte <a href="../#/zertifikate">Zertifikat mit Pruefcode</a> gibt es im Portal.' : '') + '</p></div>' +
+      '<p class="dim small">' + (got ? 'Erhalten am ' + fmtDate(awardDate(a)) + '.' : 'Wird mit der Boss-Aufgabe ' + a.boss + ' freigeschaltet.') + (ACCT && ACCT.portal ? ' Das geprüfte <a href="../#/zertifikate">Zertifikat mit Prüfcode</a> gibt es im Portal.' : '') + '</p></div>' +
       (got ? '<button class="btn primary" data-award="' + a.id + '">' + esc(a.kind) + ' anzeigen</button>' : allOpen() ? '<button class="btn" data-award="' + a.id + '">Vorschau</button>' : '<span class="award-lock">' + ICON.lock + '</span>') + '</div>';
   }
   function openAward(id) {
@@ -251,7 +251,7 @@
       '<p class="cert-name" id="awNameOut">' + (esc(nm) || '<span class="dim">(Name eintragen)</span>') + '</p>' +
       '<p class="cert-text">' + esc(a.text) + '</p>' +
       '<ul class="cert-list">' + chs.map(function (c) { return '<li><b>' + c.id + '</b> ' + esc(c.title) + '</li>'; }).join('') + '</ul>' +
-      '<p class="cert-meta">' + n + ' Stationen geloest · ' + DQ.stages[a.id] + ' · ' + fmtDate(awardDate(a)) + '</p>' +
+      '<p class="cert-meta">' + n + ' Stationen gelöst · ' + DQ.stages[a.id] + ' · ' + fmtDate(awardDate(a)) + '</p>' +
       '<div class="cert-sign"><span>Datum</span><span>Unterschrift Lehrperson</span></div>' +
       '<p class="cert-id mono">ID ' + esc(S.profile.id.slice(0, 8)) + ' · ' + esc(a.id) + '</p></article>';
     $('#awBack').onclick = function () { renderMap(); show('map'); };
@@ -276,7 +276,7 @@
     });
     if (!Object.keys(types).length) types.battery = types.lamp = types.switch = true;
     return { id: 'sandbox', kind: 'task', sandbox: true, ch: 0, title: 'Freie Werkbank', tags: [],
-      brief: 'Baue und miss frei – ohne Auftrag und ohne Pruefung. Alle Bauteile, die du bisher freigeschaltet hast, liegen bereit. Dein Aufbau bleibt gespeichert.',
+      brief: 'Baue und miss frei – ohne Auftrag und ohne Prüfung. Alle Bauteile, die du bisher freigeschaltet hast, liegen bereit. Dein Aufbau bleibt gespeichert.',
       palette: Object.keys(E.PARTS).filter(function (k) { return types[k]; }), start: { parts: [], wires: [] }, tests: [], measure: [], wrong: [] };
   }
 
@@ -303,7 +303,7 @@
   function limitText(lim) {
     return '<p class="limit">Erlaubt: ' + Object.keys(lim).map(function (k) {
       var n = lim[k], name = k === 'gates' ? 'Logikgatter' : (E.PARTS[k] ? E.PARTS[k].label : k);
-      return n === 0 ? (k === 'gates' ? 'keine ' : 'kein ') + name : 'hoechstens <b>' + n + '</b> ' + name;
+      return n === 0 ? (k === 'gates' ? 'keine ' : 'kein ') + name : 'höchstens <b>' + n + '</b> ' + name;
     }).join(', ') + '.</p>';
   }
 
@@ -346,22 +346,22 @@
     var ch = DQ.chapters.filter(function (c) { return c.id === t.ch; })[0];
     if (t.sandbox) {
       $('#taskInfo').innerHTML = '<div class="crumb">Labor · Sandbox</div><h2>' + esc(t.title) + '</h2><div class="brief">' + t.brief + '</div>' +
-        '<div class="learn"><b>Ideen</b> Miss die Spannung an einer LED mit verschiedenen Vorwiderstaenden. Vergleiche V~ mit AVG und TRMS an Rechteck und Sinus. Schau dir mit der Zeitlupe an, wie eine Rueckkopplung einrastet.</div>' +
+        '<div class="learn"><b>Ideen</b> Miss die Spannung an einer LED mit verschiedenen Vorwiderständen. Vergleiche V~ mit AVG und TRMS an Rechteck und Sinus. Schau dir mit der Zeitlupe an, wie eine Rückkopplung einrastet.</div>' +
         '<button class="btn" id="toMap">Zur Karte</button>';
       $('#toMap').onclick = function () { renderMap(); show('map'); };
       renderPalette(t); return;
     }
     if (current.exam) { renderExamPanels(t, draft); return; }
     var lv = current.live;
-    var h = (lv ? '<div class="live-note"><b>' + (lv.bug ? 'STOERUNGSMELDUNG' : 'LIVE-CHALLENGE · SPRINT') + '</b>' + (lv.bug ? '<p>' + esc(lv.bug.symptom || 'Die Schaltung arbeitet nicht wie verlangt.') + '</p><p class="dim small">Auf dem Tisch liegt der fehlerhafte Aufbau. Finde die Ursache, behebe sie und lass pruefen.</p>' : '<p class="dim small">Loese die Aufgabe so schnell und sauber wie moeglich. Fehlversuche und Tipps kosten Punkte.</p>') + '</div>' : '') +
-      '<div class="crumb">' + (lv ? '' : '<button class="btn small back" data-back title="Zurück zur Laborkarte">← Karte</button>') + (t.ch === 'W' ? 'Uebungswerkstatt · Messaufgabe ' : 'Kapitel ' + t.ch + ' · Aufgabe ') + t.id + (t.boss ? ' · <b class="boss-tag">BOSS</b>' : '') + '</div>' +
+    var h = (lv ? '<div class="live-note"><b>' + (lv.bug ? 'STÖRUNGSMELDUNG' : 'LIVE-CHALLENGE · SPRINT') + '</b>' + (lv.bug ? '<p>' + esc(lv.bug.symptom || 'Die Schaltung arbeitet nicht wie verlangt.') + '</p><p class="dim small">Auf dem Tisch liegt der fehlerhafte Aufbau. Finde die Ursache, behebe sie und lass prüfen.</p>' : '<p class="dim small">Löse die Aufgabe so schnell und sauber wie möglich. Fehlversuche und Tipps kosten Punkte.</p>') + '</div>' : '') +
+      '<div class="crumb">' + (lv ? '' : '<button class="btn small back" data-back title="Zurück zur Laborkarte">← Karte</button>') + (t.ch === 'W' ? 'Übungswerkstatt · Messaufgabe ' : 'Kapitel ' + t.ch + ' · Aufgabe ') + t.id + (t.boss ? ' · <b class="boss-tag">BOSS</b>' : '') + '</div>' +
       '<h2>' + esc(t.title) + '</h2>' +
       (t.story ? '<p class="story">' + t.story + '</p>' : '') +
       '<div class="brief">' + t.brief + (t.limit && t.brief.indexOf('class="limit"') < 0 ? limitText(t.limit) : '') + '</div>' +
       (t.learn ? '<div class="learn"><b>Lernziel</b> ' + t.learn + '</div>' : '') +
       '<div class="hints"><button class="btn small" id="hint1">Tipp 1</button><button class="btn small" id="hint2">Tipp 2</button></div><div id="hintBox"></div>';
     if (t.measure.length) {
-      h += '<div class="protocol"><h3>Messprotokoll <button class="btn small calc-ctx" data-calc title="Taschenrechner oeffnen">🖩 Rechner</button></h3>' +
+      h += '<div class="protocol"><h3>Messprotokoll <button class="btn small calc-ctx" data-calc title="Taschenrechner öffnen">🖩 Rechner</button></h3>' +
         '<p class="proto-note dim small">Gib den Wert so an, wie dein Gerät ihn anzeigt bzw. wie du ihn berechnest. Innerhalb der Toleranz ist er richtig – auf eine sinnvolle Stellenzahl runden (Komma oder Punkt).</p>';
       t.measure.forEach(function (m) {
         var v = draft && draft.answers && draft.answers[m.id] !== undefined ? draft.answers[m.id] : '';
@@ -370,8 +370,8 @@
       });
       h += '</div>';
     }
-    h += '<button class="btn primary big" id="btnCheck">Pruefen</button><div id="results"></div>';
-    if (t.measureUX === 'drag') h += '<p class="tut-link"><b>Neu:</b> Messspitzen ziehen, Messbereich waehlen, Tastkopf anschliessen – <a href="#" data-go="tutorial">Anleitung ansehen</a></p>';
+    h += '<button class="btn primary big" id="btnCheck">Prüfen</button><div id="results"></div>';
+    if (t.measureUX === 'drag') h += '<p class="tut-link"><b>Neu:</b> Messspitzen ziehen, Messbereich wählen, Tastkopf anschliessen – <a href="#" data-go="tutorial">Anleitung ansehen</a></p>';
     $('#taskInfo').innerHTML = h;
     var tl = $('#taskInfo [data-go="tutorial"]'); if (tl) tl.onclick = function (ev) { ev.preventDefault(); renderTutorial(); show('tutorial'); };
     var bk = $('#taskInfo [data-back]'); if (bk) bk.onclick = goMap;
@@ -390,17 +390,17 @@
   }
   /* Pruefung: Auftrag, Messprotokoll, „Testen“ (sichtbare Tests im Browser) und „Abgeben“ (Bewertung auf dem Server). Keine Tipps. */
   function renderExamPanels(t, draft) {
-    var h = '<div class="crumb">Pruefung · Aufgabe ' + t.no + ' von ' + t.of + ' · Kapitel ' + t.ch + '</div><h2>' + esc(t.title) + '</h2>' +
+    var h = '<div class="crumb">Prüfung · Aufgabe ' + t.no + ' von ' + t.of + ' · Kapitel ' + t.ch + '</div><h2>' + esc(t.title) + '</h2>' +
       (t.story ? '<p class="story">' + t.story + '</p>' : '') + '<div class="brief">' + t.brief + '</div>';
     if (t.protocol.length) {
-      h += '<div class="protocol"><h3>Messprotokoll <button class="btn small calc-ctx" data-calc title="Taschenrechner oeffnen">🖩 Rechner</button></h3>';
+      h += '<div class="protocol"><h3>Messprotokoll <button class="btn small calc-ctx" data-calc title="Taschenrechner öffnen">🖩 Rechner</button></h3>';
       t.protocol.forEach(function (m) {
         var v = draft && draft.answers && draft.answers[m.id] !== undefined ? draft.answers[m.id] : '';
         h += '<label><span>' + esc(m.ask) + '</span><input inputmode="decimal" data-ans="' + m.id + '" value="' + esc(v) + '" placeholder="Wert"><em>' + esc(m.unit || '') + '</em></label>';
       });
       h += '</div>';
     }
-    h += '<div class="exam-btns"><button class="btn big" id="btnCheck" title="Prueft die sichtbaren Tests hier im Browser">Testen</button><button class="btn primary big" id="btnSend" title="Schickt Schaltung und Messwerte zur Bewertung">Abgeben</button></div>' +
+    h += '<div class="exam-btns"><button class="btn big" id="btnCheck" title="Prüft die sichtbaren Tests hier im Browser">Testen</button><button class="btn primary big" id="btnSend" title="Schickt Schaltung und Messwerte zur Bewertung">Abgeben</button></div>' +
       '<div id="results"></div><div id="examRes"></div>';
     $('#taskInfo').innerHTML = h;
     $$('[data-ans]').forEach(function (inp) { inp.oninput = persistDraft; });
@@ -411,7 +411,7 @@
   function renderPalette(t) {
     var pal = '';
     t.palette.forEach(function (type) {
-      pal += '<button class="palbtn" data-add="' + type + '" title="' + esc(E.PARTS[type].label) + ' hinzufuegen"><svg viewBox="-46 -46 92 92"><g>' + Editor.symbol({ type: type, props: {} }) + '</g></svg><span>' + esc(E.PARTS[type].label) + '</span></button>';
+      pal += '<button class="palbtn" data-add="' + type + '" title="' + esc(E.PARTS[type].label) + ' hinzufügen"><svg viewBox="-46 -46 92 92"><g>' + Editor.symbol({ type: type, props: {} }) + '</g></svg><span>' + esc(E.PARTS[type].label) + '</span></button>';
     });
     $('#palette').innerHTML = pal || '<span class="dim small">Keine neuen Bauteile – nur messen.</span>';
     $$('[data-add]').forEach(function (b) {
@@ -435,7 +435,7 @@
       '<div class="ds-pics"><figure>' + Editor.icon(type, props, { pins: true }) + '<figcaption>Schaltzeichen</figcaption></figure>' +
       '<figure>' + Bench.icon(type, props, p ? p.value : undefined) + '<figcaption>Werkbank</figcaption></figure></div>' +
       '<p class="ds-fn">' + d.funktion + '</p>' +
-      (d.pins.length ? '<h4>Anschluesse</h4><table class="ds-t">' + d.pins.map(function (x) { return '<tr><th class="mono">' + esc(x.pin) + '</th><td>' + x.text + '</td></tr>'; }).join('') + '</table>' : '') +
+      (d.pins.length ? '<h4>Anschlüsse</h4><table class="ds-t">' + d.pins.map(function (x) { return '<tr><th class="mono">' + esc(x.pin) + '</th><td>' + x.text + '</td></tr>'; }).join('') + '</table>' : '') +
       (d.grenzen.length ? '<h4>Grenzen</h4><table class="ds-t ds-lim">' + rows(d.grenzen, true) + '</table>' : '') +
       (d.kennwerte.length ? '<h4>Kennwerte</h4><table class="ds-t">' + rows(d.kennwerte) + '</table>' : '') +
       (d.formel ? '<div class="formula ds-f">' + d.formel + '</div>' : '');
@@ -565,8 +565,8 @@
     return tr.map(function (x, i) {
       var what = x.kind === 'done' ? 'Ruhelage erreicht – so bleibt die Schaltung.' : x.kind === 'unstable' ? 'Keine Ruhelage – die Gatter schalten sich immer wieder um.' :
         'Knotenspannungen berechnet → ' + x.changed.map(function (c) {
-          if (typeof c.to === 'string') return c.id + ' ' + ({ on: 'leitet (aktiver Bereich)', sat: 'geht in Saettigung', off: 'sperrt', f: 'leitet', z: 'bricht durch (Z-Betrieb)' }[c.to] || c.to);
-          if (Array.isArray(c.to)) return c.id + ' Ausgaenge ' + c.to.map(function (b) { return b ? 1 : 0; }).join('');
+          if (typeof c.to === 'string') return c.id + ' ' + ({ on: 'leitet (aktiver Bereich)', sat: 'geht in Sättigung', off: 'sperrt', f: 'leitet', z: 'bricht durch (Z-Betrieb)' }[c.to] || c.to);
+          if (Array.isArray(c.to)) return c.id + ' Ausgänge ' + c.to.map(function (b) { return b ? 1 : 0; }).join('');
           return x.kind === 'diode' ? c.id + (c.to ? ' wird leitend' : ' sperrt') : c.id + ' schaltet auf ' + (c.to ? '1' : '0');
         }).join(', ');
       return { res: x.res, label: 'Rechenschritt ' + (i + 1) + ' von ' + tr.length + ': ' + what };
@@ -575,7 +575,7 @@
   function openReplay() {
     if (!live.net) return;
     var steps = replaySteps();
-    if (steps.length < 2) { status([{ cls: 'info', text: 'Zeitlupe: Diese Schaltung ist in einem Rechenschritt fertig. Spannend wird es mit LEDs/Dioden, Logik-Rueckkopplungen, Kondensatoren und Wechselquellen.' }]); return; }
+    if (steps.length < 2) { status([{ cls: 'info', text: 'Zeitlupe: Diese Schaltung ist in einem Rechenschritt fertig. Spannend wird es mit LEDs/Dioden, Logik-Rückkopplungen, Kondensatoren und Wechselquellen.' }]); return; }
     stopLoop();
     live.replay = { steps: steps, i: steps.length - 1, timer: 0 };
     $('#replay').hidden = false; $('#btnReplay').classList.add('on');
@@ -610,40 +610,40 @@
   function ohm(r) { return E.fmt(r, 'Ω').replace('.000 ', ' ').replace(/(\.\d*?)0+ /, '$1 ').replace('. ', ' '); }
   var FAULT_TEXT = {
     SHORT: function (f) {
-      return 'Kurzschluss an ' + f.part + ': Die Quelle liefert ' + E.fmt(Math.abs(f.i), 'A') + ' (zulaessig ' + E.fmt(f.imax, 'A') + '). Zwischen Plus und Minus liegt kein Verbraucher – ' +
+      return 'Kurzschluss an ' + f.part + ': Die Quelle liefert ' + E.fmt(Math.abs(f.i), 'A') + ' (zulässig ' + E.fmt(f.imax, 'A') + '). Zwischen Plus und Minus liegt kein Verbraucher – ' +
         'der Strom wird nur vom Innenwiderstand begrenzt: I ≈ ' + E.fmt(f.u, 'V') + ' / ' + ohm(f.ri) + '.';
     },
     LED_BURNT: function (f) {
-      if (!(f.i > 0)) return 'LED ' + f.part + ' ist durchgebrannt – Strom zu gross. Vorwiderstand pruefen, dann „Reparieren“.';
+      if (!(f.i > 0)) return 'LED ' + f.part + ' ist durchgebrannt – Strom zu gross. Vorwiderstand prüfen, dann „Reparieren“.';
       var ub = srcVoltage(), t = 'LED ' + f.part + ' ist durchgebrannt: Es flossen ' + E.fmt(f.i, 'A') + ', erlaubt sind ' + E.fmt(f.imax, 'A') + '.';
       if (ub > f.vf) {
         var rNow = Math.max(0, (ub - f.vf) / f.i - 10), rMin = (ub - f.vf) / f.imax, rGood = (ub - f.vf) / 0.02;
         t += ' Bei ' + E.fmt(ub, 'V') + ' und U_F ≈ ' + E.fmt(f.vf, 'V') + ' braucht es mindestens R = (' + E.fmt(ub, 'V') + ' − ' + E.fmt(f.vf, 'V') + ') / ' + E.fmt(f.imax, 'A') + ' = ' + ohm(rMin) +
-          ' Vorwiderstand, fuer 20 mA etwa ' + ohm(rGood) + '. Im Kreis waren nur rund ' + ohm(rNow) + '.';
+          ' Vorwiderstand, für 20 mA etwa ' + ohm(rGood) + '. Im Kreis waren nur rund ' + ohm(rNow) + '.';
       }
       return t + ' Danach „Reparieren“.';
     },
-    LED_REVERSE: function (f) { return 'LED ' + f.part + ' liegt mit ' + E.fmt(Math.abs(f.v), 'V') + ' in Sperrrichtung (verkraftet ca. ' + E.fmt(f.vmax, 'V') + '). Anode (+, langes Bein) gehoert Richtung Pluspol.'; },
+    LED_REVERSE: function (f) { return 'LED ' + f.part + ' liegt mit ' + E.fmt(Math.abs(f.v), 'V') + ' in Sperrrichtung (verkraftet ca. ' + E.fmt(f.vmax, 'V') + '). Anode (+, langes Bein) gehört Richtung Pluspol.'; },
     OVERLOAD: function (f) {
       var rMin = f.v * f.v / f.pmax;
       return (live.net && live.net.byId[f.part] ? E.PARTS[live.net.byId[f.part].type].label : 'Bauteil') + ' ' + f.part + ' wird zu heiss: P = U · I = ' + E.fmt(Math.abs(f.v), 'V') + ' · ' + E.fmt(Math.abs(f.i), 'A') + ' = ' + E.fmt(Math.abs(f.p), 'W') +
         ', belastbar ist er mit ' + E.fmt(f.pmax, 'W') + '. Bei dieser Spannung braucht es mindestens ' + ohm(rMin) + ' (P = U² / R).';
     },
-    LAMP_BURNT: function (f) { return f.p ? 'Lampe ' + f.part + ' ist durchgebrannt: Sie nahm ' + E.fmt(Math.abs(f.p), 'W') + ' auf bei ' + E.fmt(Math.abs(f.v), 'V') + ' – ausgelegt ist sie fuer ' + E.fmt(f.pnom, 'W') + '. Spannung zu hoch.' : 'Lampe ' + f.part + ' ist durchgebrannt – Ueberspannung.'; },
+    LAMP_BURNT: function (f) { return f.p ? 'Lampe ' + f.part + ' ist durchgebrannt: Sie nahm ' + E.fmt(Math.abs(f.p), 'W') + ' auf bei ' + E.fmt(Math.abs(f.v), 'V') + ' – ausgelegt ist sie für ' + E.fmt(f.pnom, 'W') + '. Spannung zu hoch.' : 'Lampe ' + f.part + ' ist durchgebrannt – Überspannung.'; },
     AMMETER_OVERLOAD: function (f) { return 'Strommesser ' + f.part + ' misst ' + E.fmt(Math.abs(f.i), 'A') + ' (Grenze ' + E.fmt(f.imax, 'A') + ') – er liegt wohl parallel zur Quelle statt in Reihe.'; },
     UNSTABLE: function () {
       var g = {}; (live.trace || []).forEach(function (x) { if (x.kind === 'gate') x.changed.forEach(function (c) { g[c.id] = true; }); });
       var ids = Object.keys(g);
-      return 'Die Logikschaltung kommt nicht zur Ruhe' + (ids.length ? ': ' + ids.join(' und ') + ' schalten sich gegenseitig immer wieder um' : '') + ' (Rueckkopplung ohne Ruhelage). Die Zeitlupe zeigt die einzelnen Schritte.';
+      return 'Die Logikschaltung kommt nicht zur Ruhe' + (ids.length ? ': ' + ids.join(' und ') + ' schalten sich gegenseitig immer wieder um' : '') + ' (Rückkopplung ohne Ruhelage). Die Zeitlupe zeigt die einzelnen Schritte.';
     },
     NO_GROUND: function () { return 'Logikbausteine und Taktgeber brauchen eine Masse-Verbindung (⏚).'; },
-    OUTPUT_CLASH: function (f) { return 'Ausgang gegen Ausgang: ' + f.parts.join(' und ') + ' treiben denselben Knoten mit unterschiedlichem Pegel (1 gegen 0). Es fliessen rund ' + E.fmt(f.i, 'A') + ' Ausgleichsstrom – die Ausgangsstufen werden heiss und gehen kaputt. Zwei Signale verknuepft man mit einem Gatter (z. B. ODER), nie durch direktes Zusammenschalten.'; }
+    OUTPUT_CLASH: function (f) { return 'Ausgang gegen Ausgang: ' + f.parts.join(' und ') + ' treiben denselben Knoten mit unterschiedlichem Pegel (1 gegen 0). Es fliessen rund ' + E.fmt(f.i, 'A') + ' Ausgleichsstrom – die Ausgangsstufen werden heiss und gehen kaputt. Zwei Signale verknüpft man mit einem Gatter (z. B. ODER), nie durch direktes Zusammenschalten.'; }
   };
   function diagnose(faults) { return (faults || []).map(function (f) { return { cls: 'err', text: (FAULT_TEXT[f.code] || function () { return f.code; })(f) }; }); }
   function status(items) {
     var el = $('#statusbar'); if (!el) return;
     el.innerHTML = items && items.length ? items.map(function (i) { return '<div class="st ' + i.cls + '">' + esc(i.text) + '</div>'; }).join('')
-      : '<div class="st ok">Schaltung laeuft – keine Stoerung.</div>';
+      : '<div class="st ok">Schaltung läuft – keine Störung.</div>';
   }
 
   /* ---------- Multimeter ---------- */
@@ -655,7 +655,7 @@
     if (ed) { ed.tool = mode === 'OFF' ? 'wire' : 'probe'; if (mode === 'OFF' && !dragUX()) { ed.probes = { a: null, b: null }; meter.a = meter.b = null; meter.next = 'a'; } core.redraw(); }
     log('meter_mode', { id: current.task && current.task.id, mode: mode });
     $('#mmHelp').textContent = dragUX() && viewMode === 'bench' ? 'Werkbank: Messspitzen mit der Maus an die Buchsen ziehen (rot = +, schwarz = COM). Klick auf Buchsen verbindet Leitungen.' :
-      mode === 'OFF' ? 'Messgeraet aus. Klick auf Anschluesse verbindet Leitungen.' :
+      mode === 'OFF' ? 'Messgerät aus. Klick auf Anschlüsse verbindet Leitungen.' :
       'Klick auf einen Anschluss setzt die ' + (meter.next === 'a' ? 'rote (+)' : 'schwarze (COM)') + ' Messspitze.';
     if (ed) tick(0);
   }
@@ -683,7 +683,7 @@
     else {
       meter[meter.next] = pin; ed.probes[meter.next] = pin;
       meter.next = meter.next === 'a' ? 'b' : 'a';
-      $('#mmHelp').textContent = 'Naechster Klick setzt die ' + (meter.next === 'a' ? 'rote (+)' : 'schwarze (COM)') + ' Spitze.';
+      $('#mmHelp').textContent = 'Nächster Klick setzt die ' + (meter.next === 'a' ? 'rote (+)' : 'schwarze (COM)') + ' Spitze.';
     }
     log('probe', { id: current.task && current.task.id, mode: meter.mode, pin: pin });
     tick(0);
@@ -714,14 +714,14 @@
       if (state.fuse) {
         txt = 'FUSE';
         var fi = state.fuseInfo;
-        warn = 'Sicherung durchgebrannt' + (fi ? ': Durch das Messgeraet waeren ' + E.fmt(Math.abs(fi.i), 'A') + ' geflossen (Sicherung ' + E.fmt(fi.imax, 'A') + ')' : '') + '. Das Amperemeter hat fast 0 Ω – es gehoert in Reihe, nie parallel zu einer Quelle.';
+        warn = 'Sicherung durchgebrannt' + (fi ? ': Durch das Messgerät wären ' + E.fmt(Math.abs(fi.i), 'A') + ' geflossen (Sicherung ' + E.fmt(fi.imax, 'A') + ')' : '') + '. Das Amperemeter hat fast 0 Ω – es gehört in Reihe, nie parallel zu einer Quelle.';
       } else txt = E.dmm((r.nodeV[mn.a] - r.nodeV[mn.b]) / E.METER.rA, 'A', undefined, rg).text;
     } else if (m.mode === 'R') {
       var mr = E.measure(layout, { mode: 'R', a: m.a, b: m.b }, state);
       txt = mr.ok ? E.dmm(mr.value, 'Ω', undefined, rg).text.replace('OL', '0L') : 'Err'; warn = mr.ok ? '' : mr.error;
     }
     var ol = !!(rg && mn && /^0?L$|OL|0L/.test(txt));
-    if (ol && !warn) warn = 'OL: Der Messwert liegt ueber dem gewaehlten Bereich ' + E.rangeLabel(rg, unit) + ' – groesseren Bereich waehlen.';
+    if (ol && !warn) warn = 'OL: Der Messwert liegt über dem gewählten Bereich ' + E.rangeLabel(rg, unit) + ' – grösseren Bereich wählen.';
     return { text: txt, sub: sub, warn: warn, ol: ol, range: rg ? E.rangeLabel(rg, unit) : null };
   }
   /* Kurve fuers Oszilloskop (Aufgabe und Tutorial): Abtastung ueber T Sekunden, Skala, Punkte fuer den Werkbank-Schirm */
@@ -745,16 +745,16 @@
   function renderInspector() {
     var el = $('#inspector'); if (!ed) return;
     var p = ed.sel && ed.sel.indexOf('w:') !== 0 ? ed.part(ed.sel) : null;
-    if (!p) { el.innerHTML = '<p class="dim small">Bauteil anklicken, um Werte zu aendern. <kbd>R</kbd> dreht, <kbd>Entf</kbd> loescht.</p>'; return; }
+    if (!p) { el.innerHTML = '<p class="dim small">Bauteil anklicken, um Werte zu ändern. <kbd>R</kbd> dreht, <kbd>Entf</kbd> löscht.</p>'; return; }
     var d = E.PARTS[p.type], q = p.props || (p.props = {}), lock = ed.locked[p.id] && p.type !== 'acsource' && p.type !== 'clock', val = p.value !== undefined ? p.value : (q.value !== undefined ? q.value : d.props.value);
     var r = live.res && live.res.parts[p.id];
-    var h = '<div class="insp-head"><b>' + esc(p.id) + '</b> ' + esc(d.label) + (lock ? ' <span class="tag">Aufgabe</span>' : '') + '<button class="btn small ds-btn" id="dsBtn" title="Datenblatt: Funktion, Anschluesse, Grenzen">ⓘ Datenblatt</button></div>';
+    var h = '<div class="insp-head"><b>' + esc(p.id) + '</b> ' + esc(d.label) + (lock ? ' <span class="tag">Aufgabe</span>' : '') + '<button class="btn small ds-btn" id="dsBtn" title="Datenblatt: Funktion, Anschlüsse, Grenzen">ⓘ Datenblatt</button></div>';
     function field(label, key, v, unit) { return '<label class="fld"><span>' + label + '</span><input data-prop="' + key + '" value="' + esc(v) + '"' + (lock ? ' disabled' : '') + '><em>' + unit + '</em></label>'; }
     if (p.type === 'battery') h += field('Spannung', 'value', Editor.fmtVal(val), 'V');
     if (p.type === 'resistor' || p.type === 'lamp' || p.type === 'pot' || p.type === 'motor') h += field('Widerstand', 'value', Editor.fmtVal(val), 'Ω');
     if (p.type === 'zener') h += field('Z-Spannung', 'vz', q.vz || d.props.vz, 'V');
-    if (p.type === 'npn') h += field('Stromverstaerkung β', 'beta', q.beta || d.props.beta, '');
-    if (p.type === 'capacitor') h += field('Kapazitaet', 'value', Editor.fmtVal(val), 'F');
+    if (p.type === 'npn') h += field('Stromverstärkung β', 'beta', q.beta || d.props.beta, '');
+    if (p.type === 'capacitor') h += field('Kapazität', 'value', Editor.fmtVal(val), 'F');
     if (p.type === 'clock') h += field('Frequenz', 'freq', q.freq || d.props.freq, 'Hz');
     if (p.type === 'acsource') {
       h += field('Scheitelwert Û', 'value', Editor.fmtVal(val), 'V') + field('Frequenz', 'freq', q.freq || d.props.freq, 'Hz');
@@ -764,9 +764,9 @@
     }
     if (p.type === 'pot') h += '<label class="fld"><span>Schleifer</span><input type="range" min="0" max="1" step="0.01" data-prop="pos" value="' + (q.pos !== undefined ? q.pos : 0.5) + '"></label>';
     if (p.type === 'led') {
-      h += '<label class="fld"><span>Farbe</span><select data-prop="color"' + (lock ? ' disabled' : '') + '>' + Object.keys(E.LED_COLORS).map(function (c) { return '<option' + ((q.color || 'rot') === c ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select></label>';
+      h += '<label class="fld"><span>Farbe</span><select data-prop="color"' + (lock ? ' disabled' : '') + '>' + Object.keys(E.LED_COLORS).map(function (c) { return '<option value="' + c + '"' + ((q.color || 'rot') === c ? ' selected' : '') + '>' + (E.LED_COLORS[c].label || c) + '</option>'; }).join('') + '</select></label>';
     }
-    if (p.type === 'switch') h += '<button class="btn small" id="tgl">' + (q.closed ? 'Oeffnen' : 'Schliessen') + '</button>';
+    if (p.type === 'switch') h += '<button class="btn small" id="tgl">' + (q.closed ? 'Öffnen' : 'Schliessen') + '</button>';
     if (p.type === 'logicin') h += '<button class="btn small" id="tgl">Pegel auf ' + (q.closed ? '0' : '1') + ' schalten</button>';
     if (r) {
       h += '<dl class="readout">';
@@ -774,7 +774,7 @@
       if (r.i !== undefined) h += '<dt>I</dt><dd>' + E.fmt(Math.abs(r.i), 'A') + '</dd>';
       if (r.p !== undefined) h += '<dt>P</dt><dd>' + E.fmt(Math.abs(r.p), 'W') + '</dd>';
       if (r.burnt) h += '<dt>!</dt><dd class="err">defekt</dd>';
-      h += '</dl><p class="dim tiny">Direktanzeige der Simulation – im Protokoll zaehlt, was du mit dem Messgeraet misst.</p>';
+      h += '</dl><p class="dim tiny">Direktanzeige der Simulation – im Protokoll zählt, was du mit dem Messgerät misst.</p>';
     }
     el.innerHTML = h;
     $$('[data-prop]', el).forEach(function (inp) {
@@ -829,7 +829,7 @@
     sc = sc || lastScope;
     var el = $('#scopeBig');
     if (!el) { el = document.createElement('div'); el.id = 'scopeBig'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Oszilloskop gross'); document.body.appendChild(el); }
-    if (!sc) { el.innerHTML = '<div class="sb-back"></div><div class="sb-box"><div class="sb-head"><b>Oszilloskop</b><button class="sb-x" aria-label="Schliessen">×</button></div><p class="dim">Noch keine Aufnahme: zuerst Tastkopf bzw. Messspitzen setzen und RUN / „Aufnahme“ druecken.</p></div>'; }
+    if (!sc) { el.innerHTML = '<div class="sb-back"></div><div class="sb-box"><div class="sb-head"><b>Oszilloskop</b><button class="sb-x" aria-label="Schliessen">×</button></div><p class="dim">Noch keine Aufnahme: zuerst Tastkopf bzw. Messspitzen setzen und RUN / „Aufnahme“ drücken.</p></div>'; }
     else {
       var c = sc.c, src = (sc.layout.parts || []).filter(function (p) { return p.type === 'acsource' || p.type === 'clock'; }), f = src.length ? Math.min.apply(null, src.map(function (p) { return (p.props && p.props.freq) || E.PARTS[p.type].props.freq || 50; })) : 0;
       var stat = [['Û+ (max)', E.fmt(c.mx, 'V')], ['Û− (min)', E.fmt(c.mn, 'V')], ['Uss', E.fmt(c.mx - c.mn, 'V')], ['Bildbreite', sc.label], ['Raster', E.fmt(sc.T / 10, 's') + ' / Div']];
@@ -866,13 +866,13 @@
     var an = E.analyze(ed.layout); if (an.faults.length) h += diagnose(an.faults).map(function (d) { return '<div class="st err">' + esc(d.text) + '</div>'; }).join('');
     $('#results').innerHTML = h;
     if (current.exam) { // nur die sichtbaren Tests; Messwerte und verdeckte Tests prueft der Server bei der Abgabe
-      $('#results').innerHTML = '<p class="dim small">Sichtbare Tests im Browser' + (t.protocol.length ? ' – die Messwerte prueft der Server bei der Abgabe' : '') + ':</p>' + h;
+      $('#results').innerHTML = '<p class="dim small">Sichtbare Tests im Browser' + (t.protocol.length ? ' – die Messwerte prüft der Server bei der Abgabe' : '') + ':</p>' + h;
       return;
     }
     if (current.live) {
       log(r.pass ? 'live_done' : 'live_try', { id: t.id, tries: current.tries, hints: current.hints });
       if (LIVE) LIVE.attempt(r.pass, { layout: ed.layout, answers: ans });
-      if (r.pass) modal('<h2 class="win">Geloest!</h2><p>' + t.take + '</p><p class="dim" id="livePts">Punkte werden berechnet …</p>', [{ label: 'Rangliste', primary: true, action: function () { if (LIVE) LIVE.board(); } }]);
+      if (r.pass) modal('<h2 class="win">Gelöst!</h2><p>' + t.take + '</p><p class="dim" id="livePts">Punkte werden berechnet …</p>', [{ label: 'Rangliste', primary: true, action: function () { if (LIVE) LIVE.board(); } }]);
       return;
     }
     log(r.pass ? 'task_done' : 'task_try', { id: t.id, tries: current.tries, hints: current.hints, dur: Math.round((Date.now() - current.started) / 1000), tags: t.tags });
@@ -884,7 +884,7 @@
       var nx = nextOf(t.id), aw = null;
       Object.keys(DQ.awards || {}).forEach(function (k) { if (DQ.awards[k].boss === t.id) aw = DQ.awards[k]; });
       if (aw && first) log('award', { id: aw.id, tags: t.tags });
-      modal('<h2 class="win">Geschafft!</h2><p class="stars-win" title="' + st + ' von 3 Sternen">' + starRow(st) + '</p><p>' + t.take + '</p>' + (first ? '' : '<p class="dim">(bereits geloest)</p>') +
+      modal('<h2 class="win">Geschafft!</h2><p class="stars-win" title="' + st + ' von 3 Sternen">' + starRow(st) + '</p><p>' + t.take + '</p>' + (first ? '' : '<p class="dim">(bereits gelöst)</p>') +
         (aw ? '<div class="award-note">' + medal(aw, 64) + '<p><b>' + esc(aw.title) + '</b><br>Du hast die ' + esc(DQ.stages[aw.id]) + ' abgeschlossen. Dein ' + esc(aw.kind) + ' kannst du anzeigen und drucken.</p></div>' : ''),
         [{ label: 'Zur Karte', action: function () { renderMap(); show('map'); } }]
           .concat(aw ? [{ label: aw.kind + ' anzeigen', primary: !nx, action: function () { openAward(aw.id); } }] : [])
@@ -899,7 +899,7 @@
     var h = '<div class="theory"><div class="crumb"><button class="btn small back" data-back title="Zurück zur Laborkarte">← Karte</button>Kapitel ' + th.ch + ' · Theorie ' + th.id.slice(1) + '</div><div class="th-head"><h2>' + esc(th.title) + '</h2>' +
       (speech.ok() ? '<button class="btn small" id="thRead" title="Lektion vorlesen (Stimme des Systems, offline)">🔊 Vorlesen</button>' : '') + '</div>' +
       '<article class="lesson">' + (V ? V.lessonHtml(th.lesson, vis) : th.lesson) + '</article>' +
-      (th.merksatz ? '<aside class="merksatz"><h3>Das Wichtigste in Kuerze</h3><p>' + esc(th.merksatz) + '</p></aside>' : '') +
+      (th.merksatz ? '<aside class="merksatz"><h3>Das Wichtigste in Kürze</h3><p>' + esc(th.merksatz) + '</p></aside>' : '') +
       '<button class="btn primary" id="toQuiz">Verstanden – zum Check</button><div id="quiz"></div></div>';
     $('#scr-theory').innerHTML = h;
     if ($('#thRead')) $('#thRead').onclick = function () { speech.toggle($('#scr-theory .lesson'), th.merksatz, $('#thRead')); };
@@ -915,7 +915,7 @@
     active: false, btn: null,
     text: function (el, merk) {
       var c = el.cloneNode(true); Array.prototype.forEach.call(c.querySelectorAll('.lesson-visual, svg, table, .formula, script, style'), function (x) { x.remove(); });
-      return (c.textContent || '').replace(/s+/g, ' ').trim() + (merk ? ' Das Wichtigste in Kuerze: ' + merk : '');
+      return (c.textContent || '').replace(/s+/g, ' ').trim() + (merk ? ' Das Wichtigste in Kürze: ' + merk : '');
     },
     stop: function () { if (!this.ok()) return; try { root.speechSynthesis.cancel(); } catch (e) { /* egal */ } this.active = false; if (this.btn) { this.btn.textContent = '🔊 Vorlesen'; this.btn.classList.remove('on'); } },
     toggle: function (el, merk, btn) {
@@ -950,7 +950,7 @@
       if (pass) { S.done[th.id] = true; var ts = score >= 1 - 1e-9 ? 3 : 2, td = S.doneInfo[th.id]; if (!td || ts > (td.stars || 0)) S.doneInfo[th.id] = { at: td && td.at ? td.at : Date.now(), tries: 1, hints: 0, stars: ts }; }
       save();
       var nx = nextOf(th.id);
-      $('#quizRes').innerHTML = '<div class="st ' + (pass ? 'ok' : 'err') + '">' + right + ' von ' + th.questions.length + ' richtig – ' + (pass ? 'bestanden!' : 'noch nicht bestanden. Lies die Erklaerungen und versuche es erneut.') + '</div>' +
+      $('#quizRes').innerHTML = '<div class="st ' + (pass ? 'ok' : 'err') + '">' + right + ' von ' + th.questions.length + ' richtig – ' + (pass ? 'bestanden!' : 'noch nicht bestanden. Lies die Erklärungen und versuche es erneut.') + '</div>' +
         (pass && nx ? '<button class="btn primary" id="thNext">Weiter</button>' : '<button class="btn" id="thRetry">Nochmals</button>');
       if ($('#thNext')) $('#thNext').onclick = function () { openItem(nx); };
       if ($('#thRetry')) $('#thRetry').onclick = function () { openTheory(th); };
@@ -965,27 +965,27 @@
       { id: 'G1', type: 'acsource', value: 5, props: { freq: 50, shape: 'sine', offset: 0 }, x: 160, y: 440, rot: 0, bench: { x: 230, y: 580, rot: 0 } }, { id: 'R2', type: 'resistor', value: 1000, x: 420, y: 440, rot: 90, bench: { x: 560, y: 580, rot: 90 } }],
     wires: [W('B1.p', 'R1.a'), W('R1.b', 'B1.n'), W('G1.p', 'R2.a'), W('R2.b', 'G1.n')] };
   var TUT_STEPS = [
-    ['probeA', 'Rote Messspitze (+) greifen und auf <b>R1.a</b> (oberer Anschluss des Widerstands an der Batterie) ziehen. Loslassen daneben legt sie zurueck vor das Geraet.'],
+    ['probeA', 'Rote Messspitze (+) greifen und auf <b>R1.a</b> (oberer Anschluss des Widerstands an der Batterie) ziehen. Loslassen daneben legt sie zurück vor das Gerät.'],
     ['probeB', 'Schwarze Messspitze (COM) auf <b>R1.b</b> ziehen. Klick auf eine Buchse setzt keine Spitze – er zieht eine Leitung.'],
-    ['mode', 'Am Drehschalter <b>V⎓</b> waehlen. Der Schalter stellt die <b>Messart</b> ein (V⎓, V~, A⎓, Ω); die Tastenreihe darunter den <b>Messbereich</b>.'],
-    ['ol', 'Bereich <b>2V</b> antippen: Das Geraet zeigt <b>OL</b> (overload) – 9 V passen nicht in einen Bereich bis 2 V. Kein Fehler im Aufbau, nur der Bereich ist zu klein.'],
-    ['read', 'Bereich <b>20V</b> waehlen und ablesen: 9,0x V. Der kleinste Bereich, in den der Wert passt, zeigt die meisten Stellen; AUTO waehlt selbst.'],
+    ['mode', 'Am Drehschalter <b>V⎓</b> wählen. Der Schalter stellt die <b>Messart</b> ein (V⎓, V~, A⎓, Ω); die Tastenreihe darunter den <b>Messbereich</b>.'],
+    ['ol', 'Bereich <b>2V</b> antippen: Das Gerät zeigt <b>OL</b> (overload) – 9 V passen nicht in einen Bereich bis 2 V. Kein Fehler im Aufbau, nur der Bereich ist zu klein.'],
+    ['read', 'Bereich <b>20V</b> wählen und ablesen: 9,0x V. Der kleinste Bereich, in den der Wert passt, zeigt die meisten Stellen; AUTO wählt selbst.'],
     ['tip', 'Jetzt das Oszilloskop – ein <b>eigenes Kabelsystem</b>: gelben <b>Tastkopf</b> (CH1) auf <b>R2.a</b> ziehen, schwarzen <b>Erdungsclip</b> auf <b>R2.b</b>. Die Multimeter-Spitzen bleiben, wo sie sind.'],
-    ['run', '<b>RUN</b> am Oszilloskop druecken: der Sinus des Generators erscheint (Bildbreite 40 ms). Aendere die Bildbreite unten und druecke RUN erneut.']
+    ['run', '<b>RUN</b> am Oszilloskop drücken: der Sinus des Generators erscheint (Bildbreite 40 ms). Ändere die Bildbreite unten und drücke RUN erneut.']
   ];
   function renderTutorial() {
     show('tutorial');
     var el = $('#scr-tutorial');
-    el.innerHTML = '<div class="tutorial"><div class="tut-text"><div class="crumb">Werkbank · Bedienung der Messgeraete</div><h2>Werkbank-Tutorial</h2>' +
-      '<p>In den Messtechnik-Aufgaben (Kapitel 16) bedienst du die Geraete wie im Labor: Messspitzen <b>ziehen</b>, Messart <b>und</b> Messbereich waehlen, den Tastkopf des Oszilloskops selbst anschliessen. Rechts steht ein Uebungsaufbau – probiere jeden Schritt direkt aus, die Liste hakt mit.</p>' +
+    el.innerHTML = '<div class="tutorial"><div class="tut-text"><div class="crumb">Werkbank · Bedienung der Messgeräte</div><h2>Werkbank-Tutorial</h2>' +
+      '<p>In den Messtechnik-Aufgaben (Kapitel 16) bedienst du die Geräte wie im Labor: Messspitzen <b>ziehen</b>, Messart <b>und</b> Messbereich wählen, den Tastkopf des Oszilloskops selbst anschliessen. Rechts steht ein Übungsaufbau – probiere jeden Schritt direkt aus, die Liste hakt mit.</p>' +
       '<ol class="tut-steps">' + TUT_STEPS.map(function (s) { return '<li data-step="' + s[0] + '"><span class="tut-chk"></span><span>' + s[1] + '</span></li>'; }).join('') + '</ol>' +
-      '<h3>Gut zu wissen</h3><ul class="tut-notes"><li><b>OL</b> heisst nur: Bereich zu klein. Groesseren Bereich waehlen, nicht am Aufbau suchen.</li>' +
-      '<li><b>Zwei Kabelsysteme:</b> rot/schwarz gehoeren zum Multimeter, gelb/schwarz (Clip) zum Oszilloskop. Beide koennen gleichzeitig an verschiedenen Stellen haengen.</li>' +
-      '<li><b>A⎓</b> misst in Reihe: Leitung loesen, Spitzen in die Luecke. Parallel zu einer Quelle brennt die Sicherung durch (Knopf „Sicherung ersetzen“).</li>' +
-      '<li><b>Ω</b> nur an der spannungsfreien Schaltung. <b>OFF</b> laesst die Spitzen stecken.</li>' +
+      '<h3>Gut zu wissen</h3><ul class="tut-notes"><li><b>OL</b> heisst nur: Bereich zu klein. Grösseren Bereich wählen, nicht am Aufbau suchen.</li>' +
+      '<li><b>Zwei Kabelsysteme:</b> rot/schwarz gehören zum Multimeter, gelb/schwarz (Clip) zum Oszilloskop. Beide können gleichzeitig an verschiedenen Stellen hängen.</li>' +
+      '<li><b>A⎓</b> misst in Reihe: Leitung lösen, Spitzen in die Lücke. Parallel zu einer Quelle brennt die Sicherung durch (Knopf „Sicherung ersetzen“).</li>' +
+      '<li><b>Ω</b> nur an der spannungsfreien Schaltung. <b>OFF</b> lässt die Spitzen stecken.</li>' +
       '<li>Klick auf eine Buchse verbindet Leitungen; Bauteile ziehen, <kbd>R</kbd> dreht.</li></ul>' +
-      '<div class="tut-actions"><button class="btn" id="tutReset">Uebungsaufbau zuruecksetzen</button><button class="btn primary" id="tutMap">Zur Karte</button></div></div>' +
-      '<div class="tut-bench"><svg id="tbench" tabindex="0" aria-label="Uebungs-Werkbank"></svg>' +
+      '<div class="tut-actions"><button class="btn" id="tutReset">Übungsaufbau zurücksetzen</button><button class="btn primary" id="tutMap">Zur Karte</button></div></div>' +
+      '<div class="tut-bench"><svg id="tbench" tabindex="0" aria-label="Übungs-Werkbank"></svg>' +
       '<div class="tut-panel"><span class="lcd small" id="tutLcd">OFF</span><span id="tutSub" class="dim small"></span><span class="tut-probes" id="tutProbes"></span>' +
       '<label class="fld"><span>Bildbreite Oszilloskop</span><select id="tutTb"><option value="0.01">10 ms</option><option value="0.04" selected>40 ms</option><option value="0.2">200 ms</option></select></label>' +
       '<button class="btn small" id="tutScopeBig" title="Oszilloskop gross anzeigen">⤢ Oszilloskop gross</button>' +
@@ -1048,7 +1048,7 @@
 
   /* ================= Handbuch ================= */
   function renderManual(pageId) {
-    var pages = (DQ.manual || []).concat([{ id: 'datenblaetter', title: 'Datenblaetter', html: '' }]), p = pages.filter(function (x) { return x.id === pageId; })[0] || pages[0];
+    var pages = (DQ.manual || []).concat([{ id: 'datenblaetter', title: 'Datenblätter', html: '' }]), p = pages.filter(function (x) { return x.id === pageId; })[0] || pages[0];
     $('#scr-manual').innerHTML = '<div class="manual"><nav>' + pages.map(function (x) { return '<button class="' + (x === p ? 'on' : '') + '" data-man="' + x.id + '">' + esc(x.title) + '</button>'; }).join('') +
       '</nav><article>' + (p ? '<h2>' + esc(p.title) + '</h2>' + (p.id === 'datenblaetter' ? manualSheets() : p.html) : '') + '</article></div>';
     $$('[data-man]').forEach(function (b) { b.onclick = function () { renderManual(b.dataset.man); }; });
@@ -1056,7 +1056,7 @@
 
   /* Handbuch-Seite: alle Datenblaetter zum Nachschlagen (auch ohne Maus) */
   function manualSheets() {
-    return '<p>Jedes Bauteil mit Funktion, Anschluessen und Grenzwerten. In einer Aufgabe siehst du das Datenblatt auch, wenn du mit der Maus ueber ein Bauteil der Palette faehrst, laenger auf einem eingebauten Bauteil verweilst oder im Eigenschaften-Panel auf „ⓘ Datenblatt“ tippst.</p>' +
+    return '<p>Jedes Bauteil mit Funktion, Anschlüssen und Grenzwerten. In einer Aufgabe siehst du das Datenblatt auch, wenn du mit der Maus über ein Bauteil der Palette fährst, länger auf einem eingebauten Bauteil verweilst oder im Eigenschaften-Panel auf „ⓘ Datenblatt“ tippst.</p>' +
       Object.keys(E.PARTS).map(function (t) { return '<section class="ds-card" id="ds-' + t + '">' + sheetHtml(t, null) + '</section>'; }).join('');
   }
 
@@ -1065,11 +1065,11 @@
     var pr = S.profile;
     $('#scr-settings').innerHTML = '<div class="settings"><h2>Einstellungen</h2>' +
       '<section><h3>Darstellung</h3><label class="fld"><span>Thema</span><select id="setTheme"><option value="dark">Dunkel</option><option value="light">Hell</option></select></label></section>' +
-      '<section><h3>Profil (lokal)</h3><p class="dim small">Wird spaeter fuer Klassen und die questuebergreifende Auswertung (Buehler Quest) verwendet. Personen-ID: <code>' + esc(pr.id) + '</code></p>' +
+      '<section><h3>Profil (lokal)</h3><p class="dim small">Wird später für Klassen und die questübergreifende Auswertung (Bühler Quest) verwendet. Personen-ID: <code>' + esc(pr.id) + '</code></p>' +
       '<label class="fld"><span>Vorname</span><input id="pfV" value="' + esc(pr.vorname) + '"></label><label class="fld"><span>Nachname</span><input id="pfN" value="' + esc(pr.nachname) + '"></label>' +
       '<label class="fld"><span>Pseudonym</span><input id="pfP" value="' + esc(pr.pseudonym) + '"></label></section>' +
-      (ACCT && ACCT.portal ? '<section><h3>Konto</h3><p class="small">' + (ACCT.user ? 'Angemeldet als <b>' + esc(ACCT.user.username) + '</b> – der Fortschritt wird im Konto gespeichert.' + (staff() ? ' Dozentenmodus aktiv: alle Stationen offen, Sprungliste auf der Karte, Freie Werkbank mit allen Bauteilen.' : '') : ACCT.offline ? 'Keine Verbindung – der Fortschritt bleibt in diesem Browser und wird spaeter abgeglichen.' : 'Nicht angemeldet – der Fortschritt bleibt in diesem Browser.') + '</p><a class="btn" href="../">Zum Portal</a></section>' : '') +
-      '<section><h3>Spielstand</h3><button class="btn" id="exp">Exportieren</button> <label class="btn">Importieren<input type="file" id="imp" accept=".json" hidden></label> <button class="btn danger" id="rst">Zuruecksetzen</button></section></div>';
+      (ACCT && ACCT.portal ? '<section><h3>Konto</h3><p class="small">' + (ACCT.user ? 'Angemeldet als <b>' + esc(ACCT.user.username) + '</b> – der Fortschritt wird im Konto gespeichert.' + (staff() ? ' Dozentenmodus aktiv: alle Stationen offen, Sprungliste auf der Karte, Freie Werkbank mit allen Bauteilen.' : '') : ACCT.offline ? 'Keine Verbindung – der Fortschritt bleibt in diesem Browser und wird später abgeglichen.' : 'Nicht angemeldet – der Fortschritt bleibt in diesem Browser.') + '</p><a class="btn" href="../">Zum Portal</a></section>' : '') +
+      '<section><h3>Spielstand</h3><button class="btn" id="exp">Exportieren</button> <label class="btn">Importieren<input type="file" id="imp" accept=".json" hidden></label> <button class="btn danger" id="rst">Zurücksetzen</button></section></div>';
     $('#setTheme').value = S.settings.theme;
     $('#setTheme').onchange = function () { S.settings.theme = this.value; applyTheme(); save(); };
     [['#pfV', 'vorname'], ['#pfN', 'nachname'], ['#pfP', 'pseudonym']].forEach(function (x) { $(x[0]).oninput = function () { S.profile[x[1]] = this.value; save(); }; });
@@ -1079,11 +1079,11 @@
     };
     $('#imp').onchange = function () {
       var f = this.files[0]; if (!f) return; var rd = new FileReader();
-      rd.onload = function () { try { var d = JSON.parse(rd.result); if (!d.profile || !d.done) throw 0; S = normalize(d); save(); applyMode(); renderSettings(); modal('<p>Spielstand geladen.</p>'); } catch (e) { modal('<p>Die Datei ist kein gueltiger Spielstand.</p>'); } };
+      rd.onload = function () { try { var d = JSON.parse(rd.result); if (!d.profile || !d.done) throw 0; S = normalize(d); save(); applyMode(); renderSettings(); modal('<p>Spielstand geladen.</p>'); } catch (e) { modal('<p>Die Datei ist kein gültiger Spielstand.</p>'); } };
       rd.readAsText(f);
     };
     $('#rst').onclick = function () {
-      modal('<h2>Alles zuruecksetzen?</h2><p>Fortschritt und Entwuerfe werden geloescht. Die Personen-ID bleibt.</p>', [{ label: 'Abbrechen' }, { label: 'Zuruecksetzen', primary: true, action: function () { var id = S.profile; S = fresh(); S.profile = id; save(); applyMode(); renderSettings(); } }]);
+      modal('<h2>Alles zurücksetzen?</h2><p>Fortschritt und Entwürfe werden gelöscht. Die Personen-ID bleibt.</p>', [{ label: 'Abbrechen' }, { label: 'Zurücksetzen', primary: true, action: function () { var id = S.profile; S = fresh(); S.profile = id; save(); applyMode(); renderSettings(); } }]);
     };
   }
   function applyTheme() { document.documentElement.dataset.theme = S.settings.theme; }
@@ -1167,7 +1167,7 @@
     $('#btnVolt').onclick = function () { ed.showVolt = bench.showVolt = !ed.showVolt; this.classList.toggle('on', ed.showVolt); core.redraw(); };
     $('#btnRepair').onclick = function () { live.state = E.newState(); rebuild(); status([{ cls: 'info', text: 'Defekte Bauteile ersetzt.' }]); };
     $('#btnReset').onclick = function () {
-      modal('<h2>Aufgabe zuruecksetzen?</h2><p>Deine Schaltung wird auf den Startzustand gesetzt.</p>', [{ label: 'Abbrechen' }, { label: 'Zuruecksetzen', primary: true, action: function () { if (current.exam) { if (EXAM) EXAM.reset(current.exam.item); return; } delete S.drafts[current.task.id]; save(); openTask(current.task); } }]);
+      modal('<h2>Aufgabe zurücksetzen?</h2><p>Deine Schaltung wird auf den Startzustand gesetzt.</p>', [{ label: 'Abbrechen' }, { label: 'Zurücksetzen', primary: true, action: function () { if (current.exam) { if (EXAM) EXAM.reset(current.exam.item); return; } delete S.drafts[current.task.id]; save(); openTask(current.task); } }]);
     };
     $('#btnFuse').onclick = function () { live.state.fuse = false; tick(0); };
     $$('[data-mm]').forEach(function (b) { b.onclick = function () { setMeterMode(b.dataset.mm); }; });
@@ -1193,7 +1193,7 @@
     EXAM = root.DQExamUI && !LIVE ? root.DQExamUI.create({ modal: modal, esc: esc, show: show, open: function (t, o) { openTask(t, o); },
       layout: function () { return ed ? E.clone(ed.layout) : null; }, answers: answers }) : null;
     if (EXAM && !EXAM.id) EXAM = null;
-    if (EXAM) { var bk = document.createElement('button'); bk.textContent = 'Zur Pruefung'; bk.className = 'exam-back'; bk.onclick = function () { EXAM.back(); }; $('.top nav').appendChild(bk); }
+    if (EXAM) { var bk = document.createElement('button'); bk.textContent = 'Zur Prüfung'; bk.className = 'exam-back'; bk.onclick = function () { EXAM.back(); }; $('.top nav').appendChild(bk); }
     if (LIVE || EXAM) { /* Einstieg uebernimmt die Challenge bzw. die Pruefung */ }
     else if (qs.get('frei')) openItem('sandbox');
     else if (qs.get('werkstatt')) { var w = $('#werkstatt'); if (w) w.scrollIntoView(); }

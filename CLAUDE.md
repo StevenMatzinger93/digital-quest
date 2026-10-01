@@ -3,7 +3,7 @@
 Anleitung fuer Claude (Cowork / Claude Code) in diesem Repository.
 
 ## Was das ist
-**Digital Quest** – eigenstaendiges, offline spielbares Lernspiel (Deutsch, Schweizer Schreibweise ohne ß) fuer Elektrotechnik und Digitaltechnik. Teil der spaeteren Dachmarke **Buehler Quest**, aber technisch unabhaengig von SPS Quest.
+**Digital Quest** – eigenständiges, offline spielbares Lernspiel für Elektrotechnik und Digitaltechnik. **Sprache: Deutsch, Schweizer Schreibweise: echte Umlaute ä/ö/ü, ß wird immer zu ss.** Keine ae/oe/ue-Umschreibung in sichtbaren Texten (Bezeichner, IDs, Tags, CSS-Klassen, Schlüssel bleiben ASCII). Der Validator meldet Rückfälle anhand der Wortliste `dev/umlaut_woerter.json` (Fehler, nicht Warnung). Teil der spaeteren Dachmarke **Buehler Quest**, aber technisch unabhaengig von SPS Quest.
 Idee: „zwischen Fritzing und LTspice“ – Lernende **bauen Schaltungen** im Schaltplan-Editor, die Schaltung wird **live simuliert**, und sie **messen** wie im Labor (Multimeter V/A/Ω, Oszilloskop). Messen ist gleichwertig mit Bauen.
 
 Methode, Qualitaetsregeln und Design folgen dem Bauplan aus SCL Quest (`docs/BAUPLAN_LERNSPIEL.md`).

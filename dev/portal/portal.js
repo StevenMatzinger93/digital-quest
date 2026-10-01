@@ -101,7 +101,7 @@ let bootTimer = 0;
 function openTerminal(tab){
   $('termOverlay').hidden = false; $('termMsg').textContent = ''; $('termMsg').className = 'term-msg';
   setTab(tab || 'login');
-  const lines = ['DIGITAL-QUEST LEITSTAND  v1.0', 'VERBINDUNG ZUM LABOR ......... OK', 'MESSGERAETE .................. KALIBRIERT', 'SICHERUNGEN .................. GEPRUEFT', '> Bitte identifizieren.'];
+  const lines = ['DIGITAL-QUEST LEITSTAND  v1.0', 'VERBINDUNG ZUM LABOR ......... OK', 'MESSGERÄTE .................. KALIBRIERT', 'SICHERUNGEN .................. GEPRÜFT', '> Bitte identifizieren.'];
   const pre = $('termBoot'); pre.textContent = ''; clearTimeout(bootTimer);
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(reduce){ pre.textContent = lines.join('\n'); }

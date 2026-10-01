@@ -537,7 +537,7 @@ body.beamer-mode main{ min-height:100vh; }
 .aria.chief .aria-eye{ animation:none; }
 .aria.chief .aria-text{ color:#f3e6cc; }
 
-/* ==== Mini-Schaltung im Portal: Variablen und Stile aus dem Spiel (style.css, CIRCUIT-Bloecke) ==== */
+/* ==== Mini-Schaltung im Portal: Variablen und Stile aus dem Spiel (style.css, CIRCUIT-Blöcke) ==== */
 :root { --sym: #d8d8d8; --wire: #d9a441; --accent-lead: #ffb000; --accent-lead-dim: #8a6000; --accent-green: #39ff14; --accent-cyan: #1ec8e0; --accent-red: #ff3333; --accent-orange: #ff8c00; --bg-editor: #0c0d0a; --bg-secondary: #0d1218; --bg-tertiary: #111821; --text-dim: #8b98a6; --text-faint: #5a6774; --font-code: var(--mono); --font-ui: var(--font); }
 
 .bblock { stroke: rgba(0,0,0,.45); stroke-width: 1.5; } .bbevel { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 1.2; }
@@ -743,7 +743,7 @@ body.beamer-mode main{ min-height:100vh; }
 
   var LED_COLORS = {
     rot: { vf: 1.8, rgb: '#ff3b30' }, gelb: { vf: 2.0, rgb: '#ffd60a' },
-    gruen: { vf: 2.1, rgb: '#32d74b' }, blau: { vf: 3.0, rgb: '#0a84ff' }, weiss: { vf: 3.1, rgb: '#f5f5f7' }
+    gruen: { vf: 2.1, rgb: '#32d74b', label: 'grün' }, blau: { vf: 3.0, rgb: '#0a84ff' }, weiss: { vf: 3.1, rgb: '#f5f5f7' } // Schlüssel bleiben ASCII (Spielstand), label nur für die Anzeige
   };
 
   /* Bauteilkatalog: Pins, Standardwerte, Namenspraefix. Geometrie liegt im Editor. */
@@ -965,7 +965,7 @@ body.beamer-mode main{ min-height:100vh; }
     for (iter = 0; iter < 400; iter++) {
       var sys = build();
       var x = solveLinear(sys.A, sys.z);
-      if (!x) throw new Error('Gleichungssystem nicht loesbar');
+      if (!x) throw new Error('Gleichungssystem nicht lösbar');
       V = x;
       var changed = [];
       net.parts.forEach(function (p) {
@@ -1235,7 +1235,7 @@ body.beamer-mode main{ min-height:100vh; }
     }
     if (mode === 'A') {
       var ra = step(net, state, { meter: { mode: 'A', a: a, b: b } });
-      if (state.fuse) return { ok: false, mode: 'A', value: NaN, unit: 'A', display: 'FUSE', error: 'Sicherung im Messgeraet durchgebrannt – Strom wird in Reihe gemessen, nie parallel zu einer Quelle!', res: ra };
+      if (state.fuse) return { ok: false, mode: 'A', value: NaN, unit: 'A', display: 'FUSE', error: 'Sicherung im Messgerät durchgebrannt – Strom wird in Reihe gemessen, nie parallel zu einer Quelle!', res: ra };
       var i = (ra.nodeV[a] - ra.nodeV[b]) / METER.rA;
       return { ok: true, mode: 'A', value: i, unit: 'A', display: fmt(i, 'A'), res: ra };
     }
@@ -1334,7 +1334,7 @@ body.beamer-mode main{ min-height:100vh; }
     /* limit: hoechstens so viele Bauteile eines Typs; Schluessel 'gates' zaehlt alle Logikgatter zusammen */
     Object.keys(task.limit || {}).forEach(function (type) {
       var c = net.parts.filter(function (p) { return type === 'gates' ? GATES[p.type] : p.type === type; }).length;
-      push(c <= task.limit[type], (type === 'gates' ? 'Logikgatter' : def(type).label) + ': hoechstens ' + task.limit[type], { have: c });
+      push(c <= task.limit[type], (type === 'gates' ? 'Logikgatter' : def(type).label) + ': höchstens ' + task.limit[type], { have: c });
     });
     Object.keys(task.need || {}).forEach(function (type) {
       var c = net.parts.filter(function (p) { return p.type === type; }).length;
@@ -1358,8 +1358,8 @@ body.beamer-mode main{ min-height:100vh; }
     });
     function checkAll(expects, r, label) {
       expects.forEach(function (e) {
-        if (e.noFault) { push(r.faults.length === 0, label + 'keine Stoerung', { faults: r.faults }); return; }
-        if (e.fault) { push(r.faults.some(function (f) { return f.code === e.fault; }), label + 'Stoerung ' + e.fault); return; }
+        if (e.noFault) { push(r.faults.length === 0, label + 'keine Störung', { faults: r.faults }); return; }
+        if (e.fault) { push(r.faults.some(function (f) { return f.code === e.fault; }), label + 'Störung ' + e.fault); return; }
         if (e.a && e.ac) {
           var acr = acMeasure(lay2, { a: e.a, b: e.b }), av = acr.ok ? acr[e.ac] : NaN;
           push(acr.ok && inRange(av, e.range), label + ({ dc: 'Gleichanteil', rms: 'Effektivwert', avg: 'AVG-Anzeige', peak: 'Scheitelwert', pp: 'Spitze-Spitze' }[e.ac] || e.ac) + ' ' + e.a + '→' + e.b + ' im Bereich ' + fmt(e.range[0], 'V') + '…' + fmt(e.range[1], 'V'), { got: av });
@@ -1379,7 +1379,7 @@ body.beamer-mode main{ min-height:100vh; }
           if (e.v) push(inRange(Math.abs(pr.v), e.v), label + 'Spannung ' + p.id + ' ' + fmt(e.v[0], 'V') + '…' + fmt(e.v[1], 'V'), { got: pr.v });
           if (e.out !== undefined) push(pr.out === e.out, label + p.id + ' Ausgang ' + (e.out ? '1' : '0'), { got: pr.out });
           if (e.brightness) push(inRange(pr.brightness || 0, e.brightness), label + p.id + ' Helligkeit', { got: pr.brightness });
-          if (e.state !== undefined) push(pr.state === e.state, label + p.id + ' Arbeitsbereich ' + ({ off: 'gesperrt', on: 'aktiv', sat: 'Saettigung' }[e.state] || e.state), { got: pr.state });
+          if (e.state !== undefined) push(pr.state === e.state, label + p.id + ' Arbeitsbereich ' + ({ off: 'gesperrt', on: 'aktiv', sat: 'Sättigung' }[e.state] || e.state), { got: pr.state });
           if (e.digit !== undefined) push(!!pr.seg && pr.seg.map(function (x) { return x ? '1' : '0'; }).join('') === (SEG7[e.digit] || '0000000'), label + p.id + ' zeigt ' + e.digit, { got: pr.seg });
         });
       });
@@ -1543,7 +1543,7 @@ body.beamer-mode main{ min-height:100vh; }
     var s = this.sel; if (!s || this.opts.readonly) return false;
     if (s.indexOf('w:') === 0) { this.layout.wires.splice(+s.slice(2), 1); }
     else {
-      if (this.locked[s]) { if (this.opts.onMessage) this.opts.onMessage('Dieses Bauteil gehoert zur Aufgabe und bleibt.'); return false; }
+      if (this.locked[s]) { if (this.opts.onMessage) this.opts.onMessage('Dieses Bauteil gehört zur Aufgabe und bleibt.'); return false; }
       this.layout.parts = this.layout.parts.filter(function (p) { return p.id !== s; });
       this.layout.wires = this.layout.wires.filter(function (w) { return w.from.split('.')[0] !== s && w.to.split('.')[0] !== s; });
       ['a', 'b'].forEach(function (k) { if (this.probes[k] && this.probes[k].split('.')[0] === s) this.probes[k] = null; }, this);
@@ -2752,7 +2752,7 @@ body.beamer-mode main{ min-height:100vh; }
       if (x.q === 'on') return p.on ? 'leuchtet' : 'aus';
       if (x.q === 'out') return p.out ? '1' : '0';
       if (x.q === 'brightness') return Math.round(100 * (p.brightness || 0)) + ' %';
-      if (x.q === 'state') return { off: 'gesperrt', on: 'aktiv', sat: 'Saettigung' }[p.state] || '–';
+      if (x.q === 'state') return { off: 'gesperrt', on: 'aktiv', sat: 'Sättigung' }[p.state] || '–';
       if (x.q === 'speed') return Math.round(100 * Math.abs(p.speed || 0)) + ' %';
       if (p.burnt) return 'DEFEKT';
       var v2 = Math.abs(p[x.q || 'v'] || 0); return E.fmt(v2, x.unit || ({ v: 'V', i: 'A', p: 'W' }[x.q || 'v']));
@@ -2964,7 +2964,7 @@ let bootTimer = 0;
 function openTerminal(tab){
   $('termOverlay').hidden = false; $('termMsg').textContent = ''; $('termMsg').className = 'term-msg';
   setTab(tab || 'login');
-  const lines = ['DIGITAL-QUEST LEITSTAND  v1.0', 'VERBINDUNG ZUM LABOR ......... OK', 'MESSGERAETE .................. KALIBRIERT', 'SICHERUNGEN .................. GEPRUEFT', '> Bitte identifizieren.'];
+  const lines = ['DIGITAL-QUEST LEITSTAND  v1.0', 'VERBINDUNG ZUM LABOR ......... OK', 'MESSGERÄTE .................. KALIBRIERT', 'SICHERUNGEN .................. GEPRÜFT', '> Bitte identifizieren.'];
   const pre = $('termBoot'); pre.textContent = ''; clearTimeout(bootTimer);
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(reduce){ pre.textContent = lines.join('\n'); }

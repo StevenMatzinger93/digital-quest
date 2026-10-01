@@ -114,7 +114,7 @@
     var s = this.sel; if (!s || this.opts.readonly) return false;
     if (s.indexOf('w:') === 0) { this.layout.wires.splice(+s.slice(2), 1); }
     else {
-      if (this.locked[s]) { if (this.opts.onMessage) this.opts.onMessage('Dieses Bauteil gehoert zur Aufgabe und bleibt.'); return false; }
+      if (this.locked[s]) { if (this.opts.onMessage) this.opts.onMessage('Dieses Bauteil gehört zur Aufgabe und bleibt.'); return false; }
       this.layout.parts = this.layout.parts.filter(function (p) { return p.id !== s; });
       this.layout.wires = this.layout.wires.filter(function (w) { return w.from.split('.')[0] !== s && w.to.split('.')[0] !== s; });
       ['a', 'b'].forEach(function (k) { if (this.probes[k] && this.probes[k].split('.')[0] === s) this.probes[k] = null; }, this);

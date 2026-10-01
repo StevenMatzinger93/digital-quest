@@ -6,7 +6,7 @@
   /* Kapitel: sequence legt die Reihenfolge fest, z. B. ['T1A','1.1','1.2',…,'T1B',…]
    * after (optional): Station, nach der die erste Station dieses Kapitels offen ist (statt der letzten Station des Vorkapitels) */
   root.defChapter = function (c) {
-    if (!c.id || !c.title || !c.sequence) throw new Error('defChapter: id, title, sequence noetig');
+    if (!c.id || !c.title || !c.sequence) throw new Error('defChapter: id, title, sequence nötig');
     c.stage = c.stage || (c.id <= 10 ? 'grund' : 'profi');
     DQ.chapters.push(c); return c;
   };
@@ -32,7 +32,7 @@
   /* Mess-Aufgabe (Uebungswerkstatt): fertige, gesperrte Schaltung – nichts bauen, nur messen.
    * Wie defTask, aber palette = [] und ref = start (Topologie und Werte fix); measure ist Pflicht. */
   root.defMessaufgabe = function (t) {
-    if (!t.start || !t.measure || !t.measure.length) throw new Error('defMessaufgabe ' + t.id + ': start und measure noetig');
+    if (!t.start || !t.measure || !t.measure.length) throw new Error('defMessaufgabe ' + t.id + ': start und measure nötig');
     t.palette = []; t.ref = t.start; t.messOnly = true;
     return root.defTask(t);
   };

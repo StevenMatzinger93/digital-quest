@@ -17,6 +17,6 @@
     grund: { id: 'grund', kind: 'Abzeichen', title: 'Abzeichen Grundstufe', boss: '10.10', chapters: [1, 10],
       text: 'hat die Grundstufe von Digital Quest erfolgreich abgeschlossen: Stromkreis und Messtechnik, Zahlensysteme, Logikgatter, Boolesche Algebra, Schaltungsentwurf und Kombinatorik – mit der Boss-Aufgabe „Das Codeschloss“.' },
     profi: { id: 'profi', kind: 'Abzeichen', title: 'Abzeichen Profi-Stufe', boss: '15.10', chapters: [11, 15],
-      text: 'hat die Profi-Stufe von Digital Quest erfolgreich abgeschlossen: RC-Glied und Taktgeber, Flipflops und Zaehler, Diode und Transistor, RC-Filter und das Anwendungsprojekt – mit der Boss-Aufgabe „Die Antriebsstation“.' }
+      text: 'hat die Profi-Stufe von Digital Quest erfolgreich abgeschlossen: RC-Glied und Taktgeber, Flipflops und Zähler, Diode und Transistor, RC-Filter und das Anwendungsprojekt – mit der Boss-Aufgabe „Die Antriebsstation“.' }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

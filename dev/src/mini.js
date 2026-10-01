@@ -51,7 +51,7 @@
       if (x.q === 'on') return p.on ? 'leuchtet' : 'aus';
       if (x.q === 'out') return p.out ? '1' : '0';
       if (x.q === 'brightness') return Math.round(100 * (p.brightness || 0)) + ' %';
-      if (x.q === 'state') return { off: 'gesperrt', on: 'aktiv', sat: 'Saettigung' }[p.state] || '–';
+      if (x.q === 'state') return { off: 'gesperrt', on: 'aktiv', sat: 'Sättigung' }[p.state] || '–';
       if (x.q === 'speed') return Math.round(100 * Math.abs(p.speed || 0)) + ' %';
       if (p.burnt) return 'DEFEKT';
       var v2 = Math.abs(p[x.q || 'v'] || 0); return E.fmt(v2, x.unit || ({ v: 'V', i: 'A', p: 'W' }[x.q || 'v']));

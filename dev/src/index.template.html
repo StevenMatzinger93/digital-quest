@@ -15,7 +15,7 @@
 <header class="top">
   <a class="brand" id="brand" href="#/karte" title="Zur Startseite"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 4 12 2-6h8"/></svg><span>DIGITAL<b>QUEST</b></span></a>
   <span id="modeTag" class="mode-tag" hidden title="Dozentenmodus: mit einem Dozenten-Konto angemeldet – alle Stationen offen">DOZENT</span>
-  <nav><button data-go="map">Karte</button><button data-go="manual">Handbuch</button><button data-go="tutorial" title="Bedienung der Messgeraete auf der Werkbank ueben"><span class="long">Werkbank-</span>Tutorial</button><button data-go="settings">Einstellungen</button></nav>
+  <nav><button data-go="map">Karte</button><button data-go="manual">Handbuch</button><button data-go="tutorial" title="Bedienung der Messgeräte auf der Werkbank üben"><span class="long">Werkbank-</span>Tutorial</button><button data-go="settings">Einstellungen</button></nav>
   <button class="calc-btn" id="btnCalc" title="Taschenrechner (Strg+Alt+R)" aria-label="Taschenrechner"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h2M8 16h2M12 16h2M16 16v1"/></svg></button>
   <a id="acctChip" class="acct-chip" href="../" hidden></a>
   <span id="saveInd"></span>
@@ -28,17 +28,17 @@
       <div class="toolbar">
         <div id="palette"></div><span class="sep"></span>
         <button class="tb" id="btnRot" title="Drehen (R)">⟳ Drehen</button>
-        <button class="tb" id="btnDel" title="Loeschen (Entf)">✕ Loeschen</button>
+        <button class="tb" id="btnDel" title="Löschen (Entf)">✕ Löschen</button>
         <button class="tb" id="btnFit" title="Ansicht einpassen">⤢ Einpassen</button>
-        <button class="tb" id="btnVolt" title="Knotenspannungen einfaerben">U anzeigen</button>
+        <button class="tb" id="btnVolt" title="Knotenspannungen einfärben">U anzeigen</button>
         <button class="tb" id="btnFlow" title="Stromfluss zeigen: Punkte wandern in technischer Stromrichtung (+ → −), je schneller, desto mehr Strom; Stromwert an jedem Kabel">⇢ Strom</button>
-        <button class="tb" id="btnReplay" title="Rechenschritte bzw. Zeitverlauf Schritt fuer Schritt ansehen">⏱ Zeitlupe</button>
+        <button class="tb" id="btnReplay" title="Rechenschritte bzw. Zeitverlauf Schritt für Schritt ansehen">⏱ Zeitlupe</button>
         <button class="tb view" id="btnView" title="Darstellung wechseln: Schaltplan oder Werkbank">Werkbank</button>
         <button class="tb" id="btnRepair" title="Defekte Bauteile ersetzen">Reparieren</button>
         <button class="tb" id="btnReset" title="Startzustand">Neu</button>
       </div>
       <div class="boardwrap"><svg id="board" tabindex="0" aria-label="Schaltplan"></svg><svg id="bench" class="off" tabindex="0" aria-label="Werkbank"></svg></div>
-      <div id="replay" hidden><button class="tb" id="rpPrev" title="Schritt zurueck">◀</button><button class="tb" id="rpPlay" title="Abspielen">▶</button><button class="tb" id="rpNext" title="Schritt vor">▶|</button>
+      <div id="replay" hidden><button class="tb" id="rpPrev" title="Schritt zurück">◀</button><button class="tb" id="rpPlay" title="Abspielen">▶</button><button class="tb" id="rpNext" title="Schritt vor">▶|</button>
         <input type="range" id="rpSlider" min="0" max="0" value="0" aria-label="Schritt"><span id="rpLabel"></span><button class="tb" id="rpClose">✕ Live</button></div>
       <div id="statusbar"></div>
     </div>
@@ -47,8 +47,8 @@
       <div class="meter">
         <div class="lcd" id="lcd">OFF</div>
         <div class="mm-modes"><button data-mm="OFF">OFF</button><button data-mm="V">V⎓</button><button data-mm="VAC">V~</button><button data-mm="A">A⎓</button><button data-mm="R">Ω</button></div>
-        <div class="mm-type" title="Wie das Geraet Wechselspannung auswertet"><span>V~ misst</span><button data-mt="avg">Mittelwert (AVG)</button><button data-mt="trms">Echt-Effektivwert (TRMS)</button></div>
-        <div class="mm-range" id="mmRange" hidden title="Messbereich von Hand waehlen – zu kleiner Bereich zeigt OL"></div><div id="mmProbes"></div><p id="mmHelp"></p><p id="mmWarn"></p>
+        <div class="mm-type" title="Wie das Gerät Wechselspannung auswertet"><span>V~ misst</span><button data-mt="avg">Mittelwert (AVG)</button><button data-mt="trms">Echt-Effektivwert (TRMS)</button></div>
+        <div class="mm-range" id="mmRange" hidden title="Messbereich von Hand wählen – zu kleiner Bereich zeigt OL"></div><div id="mmProbes"></div><p id="mmHelp"></p><p id="mmWarn"></p>
         <button class="btn small" id="btnFuse" hidden>Sicherung ersetzen</button>
       </div>
       <h3>Eigenschaften</h3>

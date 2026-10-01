@@ -50,7 +50,7 @@ const MIGRATIONS = [
   ]},
   // Bestand vom 29.09.2026 (eigene Tabellen dozenten/klassen/schueler … aus migrations/0001_init.sql) uebernehmen.
   // Passwort-Hashes haben dasselbe Format (pbkdf2$…); Dozenten behalten ihr Passwort. Danach fallen die alten Tabellen weg.
-  { id: 2, name: 'altbestand-uebernehmen', run: async db => {
+  { id: 2, name: 'altbestand-übernehmen', run: async db => {
     const has = async t => !!(await db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").bind(t).first());
     if(await has('dozenten')){
       const ds = (await db.prepare('SELECT * FROM dozenten').all()).results || [];
