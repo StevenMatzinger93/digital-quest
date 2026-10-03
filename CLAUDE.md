@@ -8,6 +8,10 @@ Idee: „zwischen Fritzing und LTspice“ – Lernende **bauen Schaltungen** im 
 
 Methode, Qualitaetsregeln und Design folgen dem Bauplan aus SCL Quest (`docs/BAUPLAN_LERNSPIEL.md`).
 
+## Projektverwaltung
+- Projekt DigitalQuest, Bereich Berufsbildung, Teilprojekt von Bühlerquest.
+- Material liegt nicht im Repo, sondern im OneDrive unter `02_Berufsbildung\Bühlerquest\DigitalQuest\99_inputs`.
+
 ## Stand (29.09.2026)
 **Alle 15 Kapitel sind fertig** (150 Aufgaben, 30 Theorien, alle in Schaltplan UND Werkbank per `tests/tasks.js` loesbar), Werkbank/Labor fertig, Karte nach Teilen I–IV mit Symbol-Kacheln und Sternen, Abzeichen Grundstufe (Boss 10.10) und Profi-Stufe (Boss 15.10).
 **Kapitel 16 Messtechnik-Erweiterung** (30.09.2026, `ch16.js`, Teil V der Karte, offen nach 4.10 via `defChapter({ after })`, zaehlt nicht zu Abzeichen/Zertifikat): 3 Theorien, 8 Aufgaben mit `measureUX: 'drag'` – Messspitzen ziehen, eigener Oszilloskop-Tastkopf, Messbereich von Hand (siehe "Aufgaben schreiben"). Plan `docs/PLAN_MESSTECHNIK_ERWEITERUNG.md`.
@@ -20,7 +24,7 @@ cd dev
 npm install                         # Playwright (Browser-Tests); qrcode-generator (QR-Code auf dem Zertifikat, freiwillig)
 npx playwright install chromium     # Browser fuer tests/smoke.js, tests/portal.js und tests/tasks.js
 ```
-Das Quellmaterial `99_inputs/` (Stevens Unterrichtsunterlagen) ist **bewusst nicht im Repository** (`.gitignore`) – es liegt lokal in Stevens OneDrive. Wer das Original braucht, fragt Steven.
+Das Quellmaterial `99_inputs/` (Stevens Unterrichtsunterlagen) ist **bewusst nicht im Repository** (`.gitignore`) – es liegt lokal in Stevens OneDrive unter `02_Berufsbildung\Bühlerquest\DigitalQuest\99_inputs`. Wer das Original braucht, fragt Steven.
 Jeder Push auf `main` deployt automatisch (Cloudflare Worker). Halbfertiges daher auf einem Branch (`wip/…`) ablegen und erst mit gruenem Validator nach `main`.
 
 ## Aufbau
