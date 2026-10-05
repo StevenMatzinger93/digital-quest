@@ -101,7 +101,7 @@ function render(id){
   if(c.state === 'lobby'){
     body.innerHTML = '<div class="bm-lobby"><div class="bm-join"><div class="bm-k">Beitreten auf</div><div class="bm-url">' + esc(location.host) + '</div><div class="bm-k">mit dem Code</div><div class="bm-code">' + esc(c.code) + '</div>' +
       '<div class="bm-k">Anmelden → Live → Code eingeben</div></div><div class="bm-side"><div class="bm-task"><div class="bm-k">' + MODE[c.mode] + ' · ' + fmt(c.duration) + ' min</div><h2>' + esc(what) + '</h2>' +
-      (bug ? '<p class="bm-alarm">⚠ ' + esc(bug.symptom) + '</p>' : '') + '</div><div class="bm-k">' + pl.length + ' Teilnehmende</div><div class="bm-chips">' + pl.map(p => '<span class="bm-chip">' + esc(p.username) + '</span>').join('') + '</div>' +
+      (bug ? '<p class="bm-alarm">⚠ ' + esc(bug.symptom) + '</p>' : '') + '</div><div class="bm-k">' + pl.length + ' Teilnehmende</div><div class="bm-chips">' + pl.map(p => '<span class="bm-chip">' + P.avatarHTML(p.avatar, p.username, 'mini bm-av') + esc(p.username) + '</span>').join('') + '</div>' +
       '<button class="btn pri bm-start" id="bmStart"' + (pl.length ? '' : ' disabled') + '>▶ Challenge starten</button></div></div>';
     $('bmStart').onclick = async () => { try{ await P.api('POST', 'challenges/' + id + '/start', {}); }catch(err){ P.toast(err.message, true); } };
     return;
@@ -126,7 +126,7 @@ function render(id){
   }
   lastPodium = key;
   body.innerHTML = '<div class="bm-end"><div class="bm-k">Siegerehrung · ' + solved + ' von ' + pl.length + ' haben gelöst</div>' +
-    (top.length ? '<div class="bm-podium">' + [1, 0, 2].filter(i => top[i]).map(i => '<div class="bp bp' + (i + 1) + '" style="animation-delay:' + [0.9, 0.5, 0.1][i] + 's"><div class="bp-name">' + esc(top[i].username) + '</div><div class="bp-pts">' + top[i].points + ' P · ' + fmt(top[i].solvedAfter) + '</div><div class="bp-step">' + (i + 1) + '</div></div>').join('') + '</div>'
+    (top.length ? '<div class="bm-podium">' + [1, 0, 2].filter(i => top[i]).map(i => '<div class="bp bp' + (i + 1) + '" style="animation-delay:' + [0.9, 0.5, 0.1][i] + 's">' + P.avatarHTML(top[i].avatar, top[i].username, 'bm-av dance') + '<div class="bp-name">' + esc(top[i].username) + '</div><div class="bp-pts">' + top[i].points + ' P · ' + fmt(top[i].solvedAfter) + '</div><div class="bp-step">' + (i + 1) + '</div></div>').join('') + '</div>'
       : '<p class="empty">Diesmal hat niemand gelöst. Zeit für eine Besprechung!</p>') +
     '<div class="bm-endgrid"><div class="bm-rank">' + rankTable(pl, true) + '</div><div class="bm-show" id="bmShow"></div></div>' +
     '<div class="row" style="justify-content:center;margin-top:16px"><a class="btn" href="#/live/neu">Neue Challenge</a><a class="btn" href="#/leitstand">Zum Leitstand</a></div></div>';
@@ -136,7 +136,7 @@ function render(id){
 }
 function rankTable(pl, withShow){
   return '<table class="tbl bm-tbl"><thead><tr><th>#</th><th>Pseudonym</th><th class="num">Zeit</th><th class="num">Versuche</th><th class="num">Tipps</th><th class="num">Punkte</th>' + (withShow ? '<th></th>' : '') + '</tr></thead><tbody>' +
-    (pl.length ? pl.map(p => '<tr class="' + (p.solved ? 'ok' : '') + '"><td>' + (p.rank || '–') + '</td><td>' + esc(p.username) + (p.solved ? ' ✓' : '') + '</td><td class="num">' + (p.solved ? fmt(p.solvedAfter) : '–') + '</td><td class="num">' + p.attempts + '</td><td class="num">' + p.hints + '</td><td class="num"><b>' + (p.solved ? p.points : '') + '</b></td>' +
+    (pl.length ? pl.map(p => '<tr class="' + (p.solved ? 'ok' : '') + '"><td>' + (p.rank || '–') + '</td><td class="av-cell">' + P.avatarHTML(p.avatar, p.username, 'mini') + esc(p.username) + (p.solved ? ' ✓' : '') + '</td><td class="num">' + (p.solved ? fmt(p.solvedAfter) : '–') + '</td><td class="num">' + p.attempts + '</td><td class="num">' + p.hints + '</td><td class="num"><b>' + (p.solved ? p.points : '') + '</b></td>' +
       (withShow ? '<td>' + (p.hasCode ? '<button class="btn sm" data-show="' + p.userId + '" title="Lösung anonym am Beamer zeigen">Lösung zeigen</button>' : '') + '</td>' : '') + '</tr>').join('')
       : '<tr><td colspan="7" class="empty">Noch niemand beigetreten.</td></tr>') + '</tbody></table>';
 }

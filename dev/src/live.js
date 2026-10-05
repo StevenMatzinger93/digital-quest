@@ -8,6 +8,8 @@
     var id = root.DQ_PORTAL ? +(new URLSearchParams(location.search).get('live') || 0) : 0;
     var ch = null, me = null, top = [], info = {}, timer = 0, tick = 0, offset = 0, started = false, done = false, sending = Promise.resolve(), bugs = null;
     var esc = ctx.esc, $ = function (s) { return document.querySelector(s); };
+    /* Paket A: Tier-Avatar auf dem Podest (Sieger tanzt), sonst nichts */
+    var avHTML = function (av, cls) { return av && root.SPSQAvatar ? '<span class="live-av ' + (cls || '') + '">' + root.SPSQAvatar.svg(av, { size: 'card', pose: 'dance', anim: !/other/.test(cls || '') }) + '</span>' : ''; };
     function api(method, url, body) {
       return fetch('/api/' + url, { method: method, credentials: 'same-origin', headers: { 'content-type': 'application/json', 'x-dquest': '1' }, body: body ? JSON.stringify(body) : undefined })
         .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, data: d }; }); });
@@ -35,7 +37,7 @@
       var pod = top.slice(0, 3);
       overlay('<div class="live-eyebrow">LIVE-CHALLENGE · ' + modeName().toUpperCase() + '</div><h2>' + (ch.state === 'ended' ? 'Challenge beendet' : 'Rangliste') + '</h2>' +
         (me && me.solved ? '<p class="live-big">Rang <b>' + (me.rank || '–') + '</b> · ' + me.points + ' Punkte</p>' : '<p class="live-big">' + (ch.state === 'ended' ? 'Diesmal nicht gelöst – beim nächsten Mal!' : 'Noch nicht gelöst') + '</p>') +
-        (pod.length ? '<div class="podium">' + [1, 0, 2].filter(function (i) { return pod[i]; }).map(function (i) { return '<div class="pod p' + (i + 1) + '"><div class="pod-name">' + esc(pod[i].username) + '</div><div class="pod-pts">' + pod[i].points + ' P</div><div class="pod-step">' + (i + 1) + '</div></div>'; }).join('') + '</div>' : '') +
+        (pod.length ? '<div class="podium">' + [1, 0, 2].filter(function (i) { return pod[i]; }).map(function (i) { return '<div class="pod p' + (i + 1) + '">' + avHTML(pod[i].avatar, i ? 'other' : 'win') + '<div class="pod-name">' + esc(pod[i].username) + '</div><div class="pod-pts">' + pod[i].points + ' P</div><div class="pod-step">' + (i + 1) + '</div></div>'; }).join('') + '</div>' : '') +
         (top.length > 3 ? '<ol class="live-list" start="4">' + top.slice(3).map(function (p) { return '<li>' + esc(p.username) + ' <span>' + p.points + ' P</span></li>'; }).join('') + '</ol>' : '') +
         '<div class="live-actions">' + (ch.state === 'running' ? '<button class="btn" id="liveBack">Zurück zur Aufgabe</button>' : '') + '<a class="btn primary" href="../#/live">Zum Portal</a></div>');
       var bk = $('#liveBack'); if (bk) bk.onclick = hideOverlay;

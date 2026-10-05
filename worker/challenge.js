@@ -2,7 +2,7 @@
 // Dozent startet eine Challenge (Sprint oder Störungsjagd) und erhält einen 4-stelligen Code,
 // Lernende treten mit ihrem Konto bei. Beamer und Spiel fragen den Stand alle 2–3 s ab (Polling, D1).
 import { json, fail, now, randomDigits, cleanText } from './lib.js';
-import { awardSpeedrun } from './avatar.js';
+import { awardSpeedrun, avatarsFor } from './avatar.js';
 
 const MODES = ['sprint', 'bug'];
 const QUESTS = ['dq'];
@@ -128,8 +128,9 @@ async function beamerState(C, H, id){
   const pls = rank((await players(C, id)).map(p => Object.assign(p, { points: p.points || livePoints(ch, p) })));
   let shown = null;
   if(ch.show_uid){ const s = pls.find(p => p.user_id === ch.show_uid); if(s && s.code) shown = { code: JSON.parse(s.code), rank: s.rank, points: s.points }; }
+  const avs = await avatarsFor(C, pls.map(p => p.user_id));   // Paket A: Tier-Avatare am Beamer
   return json({ challenge: publicChallenge(ch), shown,
-    players: pls.map(p => ({ userId: p.user_id, username: p.username, attempts: p.attempts, hints: p.hints, solved: !!p.solved_at,
+    players: pls.map(p => ({ userId: p.user_id, username: p.username, avatar: avs[p.user_id] || null, attempts: p.attempts, hints: p.hints, solved: !!p.solved_at,
       solvedAfter: p.solved_at && ch.started_at ? Math.round((p.solved_at - ch.started_at) / 1000) : null, points: p.points, rank: p.rank, lastAt: p.last_at, hasCode: !!p.code })) });
 }
 async function control(C, H, id, action){
@@ -187,7 +188,8 @@ async function playerState(C, id){
   const { ch, me } = await playerRow(C, id);
   const pls = rank(await players(C, id));
   const mine = pls.find(p => p.user_id === C.user.id);
-  const top = pls.filter(p => p.solved_at).slice(0, 10).map(p => ({ username: p.username, points: p.points, rank: p.rank }));
+  const topRows = pls.filter(p => p.solved_at).slice(0, 10), avs = await avatarsFor(C, topRows.map(p => p.user_id));   // Paket A: Avatare im Endbildschirm
+  const top = topRows.map(p => ({ username: p.username, avatar: avs[p.user_id] || null, points: p.points, rank: p.rank }));
   return json({ challenge: publicChallenge(ch), me: { attempts: me.attempts, hints: me.hints, solved: !!me.solved_at, points: me.points, rank: mine && mine.rank },
     players: pls.length, solved: pls.filter(p => p.solved_at).length, top });
 }

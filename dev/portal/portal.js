@@ -73,10 +73,24 @@ function printSlips(title, list){
 
 /* ---------- Kopfleiste ---------- */
 const EXTRA_NAV = [];   // weitere Menuepunkte: { href, label, show(user) }
+// Paket A: Avatar (Tier aus avatar_core.js), sonst Platzhalter (Initialen, Farbe aus dem Pseudonym). Klassen: chip/mini/row = Kopf im Kreis,
+// sonst Ganzkörper (stage = gross); Pose aus dance/sad/jump/wave; Animation nur am Beamer (bm-av) oder mit „anim“
+const avHue = s => [...String(s || '')].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
+function avatarHTML(av, username, cls){
+  const c = ' ' + (cls || '') + ' ', has = k => c.includes(' ' + k + ' ');
+  if(av && window.SPSQAvatar){
+    const A = window.SPSQAvatar; A.ensureCSS();
+    if(has('chip') || has('mini') || has('row')) return '<span class="av' + c.replace(/ +$/, '') + '" aria-hidden="true">' + A.svg(av, { size: 'chip' }) + '</span>';
+    const pose = has('dance') ? 'dance' : has('sad') ? 'sad' : has('jump') ? 'jubel' : has('wave') ? 'wave' : 'idle';
+    return '<span class="av full' + c.replace(/ +$/, '') + '" aria-hidden="true">' + A.svg(av, { size: has('stage') ? 'stage' : 'card', pose, anim: has('bm-av') || has('anim') }) + '</span>';
+  }
+  const ini = String(username || '?').replace(/[^A-Za-zÄÖÜäöü0-9]/g, '').slice(0, 2).toUpperCase() || '?';
+  return '<span class="av ph ' + (cls || '') + '" style="--h:' + avHue(username) + '" aria-hidden="true"><b>' + esc(ini) + '</b></span>';
+}
 function renderTop(){
   $('loginBtn').hidden = !!USER; $('userMenu').hidden = !USER;
   if(USER){
-    $('userName').textContent = USER.username; $('userRole').textContent = ROLE[USER.role] + (USER.class ? ' · ' + USER.class.name : '');
+    $('userName').innerHTML = avatarHTML(USER.avatar, USER.username, 'chip') + ' ' + esc(USER.username); $('userRole').textContent = ROLE[USER.role] + (USER.class ? ' · ' + USER.class.name : '');
     document.querySelectorAll('#userDrop [data-role]').forEach(a => a.hidden = a.dataset.role !== USER.role && !(a.dataset.role === 'teacher' && canTeach(USER)));
   }
   const nav = [['#/', 'Halle']];
@@ -330,7 +344,8 @@ const ADMIN_LINKS = [];
 /* ---------- Router ---------- */
 const EXTRA_ROUTES = [];   // weitere Ansichten (Leitstand, Live-Challenge …) hängen sich hier ein
 window.DQP = { Q, GAME, canTeach, questMeta, api, esc, dialog, confirmDlg, toast, credsHTML, printSlips, needLogin, get user(){ return USER; }, routes: EXTRA_ROUTES, nav: EXTRA_NAV,
-  home: HOME_EXTRA, quick: QUICK, account: ACCOUNT_EXTRA, deleteExtra: DELETE_EXTRA, adminLinks: ADMIN_LINKS, fmtDate, ago, openTerminal, reroute: () => route() };
+  home: HOME_EXTRA, quick: QUICK, account: ACCOUNT_EXTRA, deleteExtra: DELETE_EXTRA, adminLinks: ADMIN_LINKS, fmtDate, ago, openTerminal, avatarHTML, reroute: () => route(),
+  setUserAvatar: av => { if(USER){ USER.avatar = av; renderTop(); } } };   // Paket A: Garderobe hat gespeichert → Konto-Chip aktualisieren
 async function route(){
   const h = location.hash || '#/';
   renderTop();

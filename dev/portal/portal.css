@@ -524,3 +524,62 @@ body.beamer-mode main{ min-height:100vh; }
 .aria.chief{ background:linear-gradient(90deg, rgba(255,176,0,.08), rgba(12,16,22,.7) 40%); }
 .aria.chief .aria-eye{ animation:none; }
 .aria.chief .aria-text{ color:#f3e6cc; }
+
+/* ---------- Avatare und Coins (Auftrag 05.10.2026, Paket A; aus SPS Quest C4a, Farben auf das Portal abgebildet: --scl → --term) ---------- */
+.av{ display:inline-flex; align-items:center; justify-content:center; border-radius:50%; overflow:hidden; flex:none; vertical-align:middle; }
+.av svg{ width:100%; height:100%; display:block; }
+.av.ph{ background:hsl(var(--h) 55% 30%); border:2px solid hsl(var(--h) 70% 60%); color:#fff; font:800 11px var(--mono); }
+.av.chip{ width:24px; height:24px; margin:-4px 0; }
+.av.mini{ width:28px; height:28px; margin-right:8px; }
+.av-cell{ white-space:nowrap; } .av-cell a{ vertical-align:middle; }
+.bm-av .av-eyes{ transform-box:fill-box; transform-origin:center; animation:avBlink 4.2s infinite; }
+@keyframes avBlink{ 0%, 92%, 100%{ transform:scaleY(1); } 95%{ transform:scaleY(.1); } }
+@media (prefers-reduced-motion: reduce){ .bm-av .av-eyes{ animation:none; } }
+.av-grid{ display:grid; grid-template-columns:minmax(220px, 300px) 1fr; gap:18px; align-items:start; }
+.av-grid > .panel{ min-width:0; }   /* Handy: Rasterspalte darf schmaler als der Inhalt werden (Filterzeile, Tabelle) */
+.av-preview{ position:sticky; top:12px; display:flex; flex-direction:column; align-items:center; gap:12px; }
+.av-big{ width:230px; height:276px; border-radius:18px; background:radial-gradient(ellipse at 50% 85%, rgba(255,176,0,.14), transparent 65%); } .av-big svg{ width:100%; height:100%; }
+.av-poses{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; } .av-poses button{ min-height:36px; }
+.av-coins{ font-size:22px; } .av-coins .coin{ color:#f5c518; text-shadow:0 0 8px rgba(245,197,24,.6); }
+.av-animals{ display:grid; grid-template-columns:repeat(auto-fill, minmax(92px, 1fr)); gap:10px; }
+.av-pick, .av-item{ display:flex; flex-direction:column; align-items:center; gap:4px; background:#0d141b; border:1px solid var(--line2); border-radius:10px; padding:8px 6px; color:inherit; cursor:pointer; font:inherit; font-size:13px; min-height:44px; }
+.av-pick svg{ width:62px; height:74px; }
+.av-pick.on, .av-item.on{ border-color:var(--term); box-shadow:0 0 0 2px rgba(255,176,0,.25); }
+.av-colors{ display:flex; flex-wrap:wrap; gap:8px; } .av-col{ width:36px; height:36px; border-radius:50%; border:2px solid rgba(255,255,255,.25); cursor:pointer; } .av-col.on{ border-color:#fff; box-shadow:0 0 0 3px rgba(255,176,0,.4); }
+.av-items{ display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:10px; }
+.av-thumb{ width:64px; height:77px; display:flex; align-items:center; justify-content:center; } .av-thumb.av-none{ height:64px; border-radius:50%; } .av-thumb svg{ width:100%; height:100%; }
+.av-none{ background:#111820; color:var(--dim); font-size:22px; }
+.av-item small{ color:var(--dim); font-size:11.5px; text-align:center; } .av-item.own small{ color:var(--ok); } .av-item.locked{ opacity:.55; }
+.av-page h2{ margin-top:14px; }
+@media (max-width:760px){ .av-grid{ grid-template-columns:1fr; } .av-preview{ position:static; } .av-big{ width:170px; height:204px; } }
+@media (max-width:420px){ .av-items{ grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:8px; } .av-animals{ grid-template-columns:repeat(3, 1fr); } .av-filter{ gap:8px; } .av-filter label{ width:100%; } .av-filter select{ flex:1; min-width:0; } }
+/* Ganzkörper statt Kreis; die Figur animiert sich selbst (avatar_core.js CSS) */
+.av.full{ border-radius:0; overflow:visible; }
+.bm-av.full{ width:60px; height:72px; border-radius:0; }
+.bm-av.full.idle, .bm-av.full.jump, .bm-av.full.dance{ animation:none; }
+.bm-av.full.dance{ width:100px; height:120px; margin-bottom:0; }
+.bm-av.full.stage{ width:200px; height:240px; }
+.bm-av.full.sad{ transform:none; filter:grayscale(.45) brightness(.85); }
+.bm-crowd .bm-av.full{ width:64px; height:77px; }
+/* Garderobe: Seltenheitsrahmen, Fortschritt, Filter, Kollektionen */
+.av-item{ position:relative; border-color:color-mix(in srgb, var(--rc, #2c3a4a) 55%, transparent); }
+.av-item.r-gewoehnlich{ border-color:var(--line2); }
+.av-item.r-legendaer, .av-item.r-mythisch{ box-shadow:inset 0 0 18px color-mix(in srgb, var(--rc) 22%, transparent); }
+.av-item.r-mythisch{ background:linear-gradient(160deg, #1a1020, #0d141b 60%); }
+.av-rar{ font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--rc, #9aa3ab); }
+.av-tthumb{ height:auto; min-height:40px; } .av-tthumb .av-title{ font-size:12px; }
+.av-prog{ display:grid; grid-template-columns:1fr auto; gap:2px 6px; width:100%; font-size:10.5px; color:var(--dim); text-align:left; }
+.av-prog-t{ grid-column:1 / -1; line-height:1.25; } .av-bar{ height:6px; border-radius:3px; background:#1f2a36; overflow:hidden; align-self:center; } .av-bar i{ display:block; height:100%; background:var(--rc, var(--term)); }
+.av-filter{ display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; margin:16px 0 4px; padding:10px; border:1px solid var(--line2); border-radius:10px; }
+.av-filter label{ display:flex; gap:6px; align-items:center; }
+.av-wears, .av-set{ color:var(--dim); text-align:center; } .av-set{ color:#ffd166; }
+.av-colls{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:8px 18px; }
+.av-coll{ display:grid; grid-template-columns:1fr auto; gap:2px 8px; font-size:13px; align-items:center; } .av-coll-n{ grid-column:1 / -1; } .av-coll .av-bar{ --rc:var(--term); } .av-coll-c{ font-family:var(--mono); color:var(--dim); font-size:12px; }
+/* Beamer: Avatare (Paket A, aus SPS Quest C4b/C4c) – Lobby-Chips, Rangliste, Podest */
+.bm-chip{ display:inline-flex; align-items:center; gap:8px; }
+.bm-chip .av.mini{ margin-right:0; }
+.bm-av{ position:relative; }
+.bp .bm-av.full.dance{ width:140px; height:168px; margin-bottom:-6px; }
+.bp1 .bm-av.full.dance{ width:170px; height:204px; }
+.bm-tbl .av-cell .av.mini{ width:32px; height:32px; }
+@media (max-width:760px){ .bp .bm-av.full.dance{ width:90px; height:108px; } .bp1 .bm-av.full.dance{ width:110px; height:132px; } }

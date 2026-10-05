@@ -122,7 +122,7 @@
   function chip() {
     var el = $('#acctChip'); if (!el) return;
     el.hidden = !PORTAL; if (!PORTAL) return;
-    if (user) { el.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 4-7 8-7s7 2 8 7"/></svg><span>' + esc(user.username) + '</span>'; el.href = '../'; el.classList.add('on');
+    if (user) { el.innerHTML = (user.avatar && root.SPSQAvatar ? '<span class="acct-av">' + root.SPSQAvatar.svg(user.avatar, { size: 'chip' }) + '</span>' : '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 4-7 8-7s7 2 8 7"/></svg>') + '<span>' + esc(user.username) + '</span>'; el.href = '../'; el.classList.add('on');
       el.title = 'Angemeldet als ' + user.username + ' – der Fortschritt wird im Konto gespeichert. Klick: Portal'; }
     else { el.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/></svg><span>' + (offline ? 'offline' : 'Anmelden') + '</span>'; el.href = offline ? '../' : '../#/login'; el.classList.remove('on');
       el.title = offline ? 'Keine Verbindung – der Fortschritt bleibt in diesem Browser.' : 'Im Portal anmelden, um den Fortschritt im Konto zu speichern'; }
