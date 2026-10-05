@@ -37,10 +37,28 @@
     setPlaying(false);
     return { el: bar, get speed() { return speed; }, get playing() { return playing; }, setPlaying: setPlaying };
   }
+  /* «Gross anzeigen» (L4, 05.10.2026): das Bild/Widget wandert samt Zustand in ein Overlay und beim Schliessen zurück an seinen Platz.
+   * Mini-Schaltungen werden danach neu eingepasst (inst.fit). Esc, × oder Klick daneben schliesst. Kein Pinch in der Lektion – die Seite scrollt. */
+  function bigShow(el, instOf) {
+    var ov = document.getElementById('visBig');
+    if (!ov) { ov = document.createElement('div'); ov.id = 'visBig'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Bild gross'); document.body.appendChild(ov); }
+    var mark = document.createElement('div'); mark.className = 'visual-mark'; el.parentNode.insertBefore(mark, el);
+    ov.innerHTML = '<div class="vb-back"></div><div class="vb-box"><div class="vb-head"><b>Gross anzeigen</b><span class="dim small">Esc oder Klick daneben schliesst</span><button class="vb-x" aria-label="Schliessen">×</button></div><div class="vb-body"></div></div>';
+    ov.querySelector('.vb-body').appendChild(el); el.classList.add('big'); ov.hidden = false; document.body.classList.add('vb-open');
+    var fitIt = function () { var i = instOf(); if (i && i.fit) try { i.fit(); } catch (e) { /* kein fit */ } window.dispatchEvent(new Event('resize')); };
+    requestAnimationFrame(fitIt);
+    function close() { ov.hidden = true; document.body.classList.remove('vb-open'); el.classList.remove('big'); if (mark.parentNode) mark.parentNode.replaceChild(el, mark); document.removeEventListener('keydown', onKey); requestAnimationFrame(fitIt); }
+    function onKey(ev) { if (ev.key === 'Escape') { ev.preventDefault(); close(); } }
+    ov.querySelector('.vb-back').onclick = close; ov.querySelector('.vb-x').onclick = close; document.addEventListener('keydown', onKey);
+    ov.querySelector('.vb-x').focus();
+    return close;
+  }
   function mount(el, v) {
     var t = TYPES[v.type];
     if (!t || !t.mount) { el.innerHTML = '<p class="dim small">Bild „' + v.type + '“ ist noch nicht verfügbar.</p>'; return null; }
     el.classList.add('visual', 'visual-' + v.type);
+    var bigBtn = document.createElement('button'); bigBtn.className = 'btn small visual-big'; bigBtn.title = 'Gross anzeigen'; bigBtn.setAttribute('aria-label', 'Bild gross anzeigen'); bigBtn.textContent = '⤢'; el.appendChild(bigBtn);
+    var instRef = { inst: null }; bigBtn.onclick = function () { bigShow(el, function () { return instRef.inst && instRef.inst.inst !== undefined ? instRef.inst.inst : instRef.inst; }); };
     var body = document.createElement('div'); body.className = 'visual-body'; el.appendChild(body);
     var cap = null; if (v.caption) { cap = document.createElement('p'); cap.className = 'visual-cap'; cap.innerHTML = v.caption; el.appendChild(cap); }
     if (v.collapsed) { // Bild erst auf Knopfdruck (hoechstens zwei Bilder je Lektion sichtbar)
@@ -49,9 +67,9 @@
       var inst = null, holder = { get inst() { return inst; }, destroy: function () { if (inst && inst.destroy) inst.destroy(); } };
       btn.onclick = function () { btn.remove(); body.hidden = false; if (cap) cap.hidden = false; el.classList.remove('collapsed'); inst = t.mount(body, v); holder.shown = true; };
       el.insertBefore(btn, body);
-      return holder;
+      instRef.inst = holder; return holder;
     }
-    return t.mount(body, v);
+    instRef.inst = t.mount(body, v); return instRef.inst;
   }
   function check(v, E) {
     if (!v || typeof v !== 'object') return ['visual ist kein Objekt'];

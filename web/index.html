@@ -567,6 +567,9 @@ body.beamer-mode main{ min-height:100vh; }
 .brange text { font: 700 6.5px var(--font-code); fill: #cfcfcf; text-anchor: middle; pointer-events: none; } .brange.on rect { fill: #ffb000; stroke: #ffb000; } .brange.on text { fill: #111; }
 .bscgrid { stroke: rgba(57,255,20,.13); stroke-width: 1; } .bsctrace { fill: none; stroke: #ffb000; stroke-width: 2; filter: drop-shadow(0 0 3px #ffb000); }
 .bscinfo { font: 8px var(--font-code); fill: #7fd98a; pointer-events: none; }
+.bsctrace2 { stroke: #38bdf8; filter: drop-shadow(0 0 3px #38bdf8); } /* zweiter Kanal (L3) */
+.bscch { cursor: pointer; } .bscch rect { fill: #2a2f36; stroke: #14181d; } .bscch text { font: 700 7px var(--font-code); fill: #9aa; text-anchor: middle; pointer-events: none; } .bscch circle { fill: #333; } .bscch.on .bscled1 { fill: #ffb000; filter: drop-shadow(0 0 2px #ffb000); } .bscch.on .bscled2 { fill: #38bdf8; filter: drop-shadow(0 0 2px #38bdf8); } .bscch.on text { fill: #e8e8e8; }
+.scope-ch { display: flex; gap: 6px; margin: 4px 0; } .scope-ch button.ch1.on { border-color: #ffb000; color: #ffb000; } .scope-ch button.ch2.on { border-color: #38bdf8; color: #38bdf8; } .scope-ch button { opacity: .55; } .scope-ch button.on { opacity: 1; }
 .bscrun { cursor: pointer; } .bscrun rect { fill: #2e7d32; stroke: #0f3a12; } .bscrun:hover rect { fill: #43a047; } .bscrun text { font: 700 11px var(--font-code); fill: #fff; text-anchor: middle; pointer-events: none; }
 /* Touch: groessere Klickflaechen fuer Buchsen/Anschluesse */
 @media (pointer: coarse) { .bpinhit { r: 22px; } .pinhit { r: 17px; } .bdialhit { r: 17px; } }
@@ -1478,7 +1481,7 @@ body.beamer-mode main{ min-height:100vh; }
     this.opts = opts || {}; this.views = []; this.space = 'schema';
     this.layout = { parts: [], wires: [] }; this.locked = {}; this.benchHints = {};
     this.sel = null; this.wireStart = null; this.tool = 'wire';
-    this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null }; this.drag = null;
+    this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null, tip2: null }; this.drag = null; // tip2: zweiter Kanal (L3, 05.10.2026), gemeinsamer Erdungsclip gnd
     this.dragProbe = null; // {which:'a'|'b'|'tip'|'gnd', x, y} waehrend eine Spitze gezogen wird (Raum 'bench')
   }
   Circuit.SPACES = SPACES; Circuit.GRID = SPACES.schema.grid; Circuit.W = SPACES.schema.w; Circuit.H = SPACES.schema.h;
@@ -1511,7 +1514,7 @@ body.beamer-mode main{ min-height:100vh; }
     (lockedIds || []).forEach(function (id) { this.locked[id] = true; }, this);
     ((bench && bench.parts) || []).forEach(function (b) { this.benchHints[b.id] = { x: b.x, y: b.y, rot: b.rot || 0 }; }, this);
     this.layout.parts.forEach(function (p) { var h = this.benchHints[p.id]; if (!p.bench && h) p.bench = E.clone(h); }, this);
-    this.sel = null; this.wireStart = null; this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null }; this.dragProbe = null;
+    this.sel = null; this.wireStart = null; this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null, tip2: null }; this.dragProbe = null;
   };
   Circuit.prototype.part = function (id) { return this.layout.parts.filter(function (p) { return p.id === id; })[0]; };
 
@@ -1571,7 +1574,7 @@ body.beamer-mode main{ min-height:100vh; }
       this.layout.parts = this.layout.parts.filter(function (p) { return p.id !== s; });
       this.layout.wires = this.layout.wires.filter(function (w) { return w.from.split('.')[0] !== s && w.to.split('.')[0] !== s; });
       ['a', 'b'].forEach(function (k) { if (this.probes[k] && this.probes[k].split('.')[0] === s) this.probes[k] = null; }, this);
-      ['tip', 'gnd'].forEach(function (k) { if (this.scopeProbes[k] && this.scopeProbes[k].split('.')[0] === s) this.scopeProbes[k] = null; }, this);
+      ['tip', 'gnd', 'tip2'].forEach(function (k) { if (this.scopeProbes[k] && this.scopeProbes[k].split('.')[0] === s) this.scopeProbes[k] = null; }, this);
     }
     this.sel = null; this.changed('delete'); return true;
   };
@@ -1603,7 +1606,7 @@ body.beamer-mode main{ min-height:100vh; }
   /* Spitze losgelassen: an einem Anschluss (pin) haengt sie dort, sonst (null) liegt sie wieder geparkt beim Geraet */
   Circuit.prototype.dropProbe = function (which, pin) {
     this.dragProbe = null;
-    var scope = which === 'tip' || which === 'gnd', set = scope ? this.scopeProbes : this.probes;
+    var scope = which === 'tip' || which === 'gnd' || which === 'tip2', set = scope ? this.scopeProbes : this.probes;
     set[which] = pin || null;
     this.redraw();
     if (scope) { if (this.opts.onScopeProbe) this.opts.onScopeProbe(which, set[which]); }
@@ -1847,9 +1850,27 @@ body.beamer-mode main{ min-height:100vh; }
     this.core = this.opts.core || new Circuit(this.opts); // Zustand + Bedienlogik (circuit-ui.js); geteilt, falls uebergeben
     this.sim = null; this.showVolt = false; this.mouse = [0, 0];
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    this.view = [0, 0, W, H];
     this.core.attach(this);
     this._bind();
   }
+  /* L4 (05.10.2026): Ausschnitt setzen (begrenzt), zur Zeigerposition zoomen – dieselbe Bedienung wie die Werkbank
+   * (Strg/⌘ + Rad, zwei Finger, Ziehen auf leerer Fläche); Doppeltipp auf ein Bauteil zoomt heran, auf leere Fläche passt ein. */
+  Editor.prototype.setView = function (v) {
+    var w = Math.max(160, Math.min(W * 1.6, v[2])), h = v[3] * w / v[2];
+    var x = Math.max(-300, Math.min(W + 300 - w, v[0])), y = Math.max(-300, Math.min(H + 300 - h, v[1]));
+    this.view = [x, y, w, h]; this.svg.setAttribute('viewBox', this.view.join(' ')); this.render();
+  };
+  Editor.prototype.zoomAt = function (f, cx, cy) {
+    var box = this.svg.getBoundingClientRect(), v = this.view; if (!box.width) return;
+    var px = v[0] + (cx - box.left) / box.width * v[2], py = v[1] + (cy - box.top) / box.height * v[3];
+    var w = Math.max(160, Math.min(W * 1.6, v[2] * f)), k = w / v[2];
+    this.setView([px - (px - v[0]) * k, py - (py - v[1]) * k, w, v[3] * k]);
+  };
+  Editor.prototype.zoomTo = function (part) { // Doppeltipp auf ein Bauteil: halber Ausschnitt um das Bauteil
+    var v = this.view, w = Math.max(160, Math.min(v[2], 360)), h = w * v[3] / v[2];
+    this.setView([part.x - w / 2, part.y - h / 2, w, h]);
+  };
   Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText; Editor.partTip = partTip; Editor.voltColor = voltColor; Editor.icon = icon;
   // Zustand liegt im Kern; die bisherigen Eigenschaften bleiben fuer app.js erhalten
   ['layout', 'locked', 'sel', 'wireStart', 'tool', 'probes', 'drag'].forEach(function (k) {
@@ -1890,27 +1911,53 @@ body.beamer-mode main{ min-height:100vh; }
   };
   /* Nur Hit-Testing und Koordinaten-Umrechnung – die Bedienlogik steckt im Kern */
   Editor.prototype._bind = function () {
-    var self = this, svg = this.svg, core = this.core;
+    var self = this, svg = this.svg, core = this.core, pan = null, pinch = null, touches = {}, lastTap = { t: 0, x: 0, y: 0 };
+    function dblAt(ev) { // Doppeltipp/Doppelklick: Bauteil → heranzoomen, leere Fläche → einpassen
+      var t = ev.target.closest('[data-part]'), p = t && core.part(t.dataset.part);
+      if (p) self.zoomTo(p); else self.fit();
+    }
     svg.addEventListener('pointerdown', function (ev) {
+      if (self.opts.tight) { /* Mini-Schaltung: kein Zoom, die Lektion scrollt */ }
+      else {
+        if (ev.isPrimary !== false) touches = {};
+        if (ev.pointerType === 'touch') touches[ev.pointerId] = [ev.clientX, ev.clientY];
+        if (Object.keys(touches).length === 2) { pan = null; if (core.drag) core.drag = null; var tp = Object.keys(touches).map(function (k) { return touches[k]; }); pinch = { d: Math.hypot(tp[0][0] - tp[1][0], tp[0][1] - tp[1][1]), view: self.view.slice(), c: [(tp[0][0] + tp[1][0]) / 2, (tp[0][1] + tp[1][1]) / 2] }; return; }
+        if (!ev.target.closest('[data-pin],[data-wire]')) { // Doppeltipp/Doppelklick selbst erkennen – der Browser liefert nach dem Neuzeichnen kein dblclick
+          var now = performance.now(); if (now - lastTap.t < 350 && Math.abs(ev.clientX - lastTap.x) < 24 && Math.abs(ev.clientY - lastTap.y) < 24) { lastTap.t = 0; dblAt(ev); return; } lastTap = { t: now, x: ev.clientX, y: ev.clientY };
+        }
+      }
       var t = ev.target.closest('[data-pin],[data-part],[data-wire]'), xy = self._pt(ev);
       if (t && t.dataset.pin) { ev.preventDefault(); core.clickPin(t.dataset.pin); return; }
       if (t && t.dataset.wire !== undefined) { core.clickWire(+t.dataset.wire); return; }
       if (t && t.dataset.part) { if (core.pressPart(t.dataset.part, xy)) svg.setPointerCapture(ev.pointerId); return; }
-      core.clickEmpty();
+      if (self.opts.tight) { core.clickEmpty(); return; }
+      pan = { x: ev.clientX, y: ev.clientY, view: self.view.slice(), moved: false }; // leere Fläche: Ziehen verschiebt, Klick hebt die Auswahl auf
+      try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ }
     });
     svg.addEventListener('pointermove', function (ev) {
+      if (touches[ev.pointerId]) touches[ev.pointerId] = [ev.clientX, ev.clientY];
+      if (pinch && Object.keys(touches).length === 2) { var tp = Object.keys(touches).map(function (k) { return touches[k]; }), d = Math.hypot(tp[0][0] - tp[1][0], tp[0][1] - tp[1][1]); if (d > 10) { self.view = pinch.view.slice(); self.zoomAt(pinch.d / d, pinch.c[0], pinch.c[1]); } return; }
+      if (pan) { var dx = ev.clientX - pan.x, dy = ev.clientY - pan.y; if (Math.abs(dx) + Math.abs(dy) > 5) pan.moved = true; if (pan.moved) { var f = pan.view[2] / (svg.getBoundingClientRect().width || 1); self.setView([pan.view[0] - dx * f, pan.view[1] - dy * f, pan.view[2], pan.view[3]]); } return; }
       var xy = self._pt(ev); self.mouse = xy;
       if (core.drag) core.dragTo(xy);
       else if (core.wireStart) self.render();
     });
-    function up() { core.release(); }
+    function up(ev) {
+      delete touches[ev.pointerId];
+      if (pinch) { if (Object.keys(touches).length < 2) pinch = null; return; }
+      if (pan) { var wasPan = pan.moved; pan = null; if (!wasPan) core.clickEmpty(); return; }
+      core.release();
+    }
     svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
+    svg.addEventListener('wheel', function (ev) { if (self.opts.tight || !(ev.ctrlKey || ev.metaKey)) return; ev.preventDefault(); self.zoomAt(Math.exp(ev.deltaY * 0.0015), ev.clientX, ev.clientY); }, { passive: false });
+    svg.addEventListener('dblclick', function (ev) { if (self.opts.tight) return; ev.preventDefault(); dblAt(ev); });
   };
   Editor.prototype.key = function (ev) { this.core.key(ev); };
 
   Editor.prototype.render = function () {
     if (!this.svg.getClientRects().length) return; // ausgeblendet (Werkbank aktiv): nicht zeichnen, beim Einblenden zeichnet fit()
     var self = this, L = this.layout, sim = this.sim, res = sim && sim.res, pinNode = sim && sim.pinNode;
+    var boxW = this.svg.getBoundingClientRect().width || 0, hit = boxW && boxW < 600 && this.view ? Math.max(1, (this.view[2] / boxW) * 12 / 11) : 1; // nur auf kleinen Bildschirmen (Handy): Anschlüsse ≥ 24 px
     var vmax = 0; if (res) Object.keys(res.nodeV).forEach(function (n) { vmax = Math.max(vmax, res.nodeV[n]); });
     var byId = {}; L.parts.forEach(function (p) { byId[p.id] = p; });
     var pinWireCount = {}; L.wires.forEach(function (w) { pinWireCount[w.from] = (pinWireCount[w.from] || 0) + 1; pinWireCount[w.to] = (pinWireCount[w.to] || 0) + 1; });
@@ -1961,7 +2008,7 @@ body.beamer-mode main{ min-height:100vh; }
       Object.keys(GEO[p.type]).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = pinPos(p, pin), col = wcol(pid);
         var cls = 'pin' + (self.wireStart === pid ? ' active' : '') + (pinWireCount[pid] ? ' used' : '') + (pinWireCount[pid] > 1 ? ' junction' : '');
-        h.push('<g data-pin="' + pid + '"><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="11"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');
+        h.push('<g data-pin="' + pid + '"><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (11 * hit).toFixed(1) + '"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');
         if (self.showVolt && res && pinNode && pinNode[pid] !== undefined && pin !== 'g')
           h.push('<text class="vlabel" x="' + (xy[0] + 6) + '" y="' + (xy[1] - 6) + '">' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + '</text>');
       });
@@ -2048,6 +2095,9 @@ body.beamer-mode main{ min-height:100vh; }
   function val(p) { var d = E.PARTS[p.type], q = p.props || {}; return p.value !== undefined ? p.value : (q.value !== undefined ? q.value : d.props.value); }
 
   /* 4-mm-Buchse: farbiger Isolierring mit Glanz, Messinghuelse, Bohrung */
+  /* Trefferflächen (Buchse, Spitzengriff, Drehschalter) mindestens 12 px Radius auf dem Bildschirm – HIT skaliert die Radien,
+   * sobald ein Bildschirm-Pixel mehr als eine Werkbank-Einheit abdeckt (Handy, weit herausgezoomt). Wird in render() gesetzt. */
+  var HIT = 1;
   function socket(xy, ring) {
     return '<g transform="translate(' + xy[0] + ' ' + xy[1] + ')"><circle r="11.5" cy="1.8" fill="rgba(0,0,0,.35)"/>' +
       '<circle r="10.5" fill="' + (ring || '#262626') + '" stroke="rgba(0,0,0,.65)"/><circle r="10.5" fill="url(#bRingShine)"/>' +
@@ -2314,7 +2364,7 @@ body.beamer-mode main{ min-height:100vh; }
       '<circle cy="10" r="46" fill="none" stroke="#3a3c40" stroke-width="1"/><circle cy="10" r="38" fill="#101010" stroke="#555" stroke-width="2"/><circle cy="10" r="38" fill="url(#bRingShine)"/>';
     DIAL.forEach(function (d) {
       var a = d[1] * Math.PI / 180, lx = Math.sin(a) * 52, ly = 10 - Math.cos(a) * 52;
-      s += '<g data-dial="' + d[0] + '" class="bdial' + (m.mode === d[0] ? ' on' : '') + '"><circle class="bdialhit" cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="13"/>' +
+      s += '<g data-dial="' + d[0] + '" class="bdial' + (m.mode === d[0] ? ' on' : '') + '"><circle class="bdialhit" cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="' + (13 * HIT).toFixed(1) + '"/>' +
         '<text x="' + lx.toFixed(1) + '" y="' + (ly + 4).toFixed(1) + '">' + d[2] + '</text></g>';
     });
     var cur = DIAL.filter(function (d) { return d[0] === m.mode; })[0] || DIAL[0];
@@ -2340,25 +2390,29 @@ body.beamer-mode main{ min-height:100vh; }
       '<rect x="-114" y="-68" width="158" height="120" rx="6" fill="#1a1f25"/><rect x="-110" y="-64" width="150" height="112" rx="4" fill="#07110c"/>';
     for (var i = 1; i < 10; i++) s += '<path d="M' + (-110 + i * 15) + ' -64V48" class="bscgrid"/>';
     for (i = 1; i < 8; i++) s += '<path d="M-110 ' + (-64 + i * 14) + 'H40" class="bscgrid"/>';
-    if (sc && sc.pts && sc.pts.length) s += '<polyline class="bsctrace" points="' + sc.pts.map(function (p) { return (-110 + p[0] * 150).toFixed(1) + ',' + (48 - p[1] * 112).toFixed(1); }).join(' ') + '"/>';
+    var tr = function (pts, cls) { return pts && pts.length ? '<polyline class="' + cls + '" points="' + pts.map(function (p) { return (-110 + p[0] * 150).toFixed(1) + ',' + (48 - p[1] * 112).toFixed(1); }).join(' ') + '"/>' : ''; };
+    if (sc) { if (!sc.ch || sc.ch[1] !== false) s += tr(sc.pts, 'bsctrace'); if (!sc.ch || sc.ch[2] !== false) s += tr(sc.pts2, 'bsctrace bsctrace2'); }
+    var ch = (sc && sc.ch) || { 1: true, 2: true };
     s += '<text class="bscinfo" x="-105" y="44">' + esc(sc && sc.info ? sc.info : own ? 'CH1: Tastkopf anschliessen · RUN' : 'CH1 = Messspitzen · RUN') + '</text>' +
+      (own ? '<g data-scope="ch1" class="bscch' + (ch[1] !== false ? ' on' : '') + '"><rect x="-110" y="54" width="30" height="12" rx="3"/><circle cx="-103" cy="60" r="2.6" class="bscled1"/><text x="-90" y="63">CH1</text></g>' +
+             '<g data-scope="ch2" class="bscch' + (ch[2] !== false ? ' on' : '') + '"><rect x="-76" y="54" width="30" height="12" rx="3"/><circle cx="-69" cy="60" r="2.6" class="bscled2"/><text x="-56" y="63">CH2</text></g>' : '') +
       '<path d="M-110-64L-30-64L-95 48H-110Z" fill="rgba(255,255,255,.04)"/>' +
       '<circle cx="70" cy="-44" r="13" fill="#1b1b1b"/><circle cx="70" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M70-44l0-9" stroke="#222" stroke-width="2"/>' +
       '<circle cx="102" cy="-44" r="13" fill="#1b1b1b"/><circle cx="102" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M102-44l6-6" stroke="#222" stroke-width="2"/>' +
       '<rect x="56" y="-14" width="12" height="6" rx="1.5" fill="#666"/><rect x="72" y="-14" width="12" height="6" rx="1.5" fill="#666"/><rect x="88" y="-14" width="12" height="6" rx="1.5" fill="#666"/><rect x="104" y="-14" width="12" height="6" rx="1.5" fill="#c9a227"/>' +
       '<text class="bdevtxt" x="70" y="-24">Y</text><text class="bdevtxt" x="102" y="-24">X</text>' +
       '<g data-scope="run" class="bscrun"><rect x="56" y="0" width="58" height="24" rx="5"/><text x="85" y="16">RUN</text></g>' +
-      socket([85, 50], '#1a1a1a') + '<text class="bdevtxt" x="60" y="54">CH1</text>';
+      socket([85, 50], '#1a1a1a') + '<text class="bdevtxt" x="60" y="54">CH1</text>' + (own ? socket([110, 50], '#1a1a1a') + '<text class="bdevtxt" x="122" y="66">CH2</text>' : '');
     return s + '</g>';
   }
   /* Parkplaetze der Messspitzen (Werkbank-Koordinaten): Multimeter rot/schwarz vor dem Geraet, Tastkopf und Erdungsclip vor dem Oszilloskop */
   var PARK = { a: function () { return devXY('meter', -54, 200); }, b: function () { return devXY('meter', -2, 200); },
-    tip: function () { return devXY('scope', -70, 118); }, gnd: function () { return devXY('scope', -14, 118); } };
+    tip: function () { return devXY('scope', -70, 118); }, gnd: function () { return devXY('scope', -14, 118); }, tip2: function () { return devXY('scope', 42, 118); } };
   Bench.PARK = PARK;
   function probeSvg(tip, col, park, which, grab) { // Pruefspitze: Metallspitze am Anschluss, Fingerschutz, Griff schraeg nach oben rechts
     var x = tip[0], y = tip[1];
     return '<g class="bprobe' + (park ? ' parked' : '') + (grab ? ' grab' : '') + '"' + (which ? ' data-probe="' + which + '"' : '') + '>' +
-      (grab ? '<circle class="bprobehit" cx="' + (x + 22) + '" cy="' + (y - 44) + '" r="30"/>' : '') +
+      (grab ? '<circle class="bprobehit" cx="' + (x + 22) + '" cy="' + (y - 44) + '" r="' + (30 * HIT).toFixed(1) + '"/>' : '') +
       '<g pointer-events="none">' + // nur der Griff (bprobehit) ist greifbar – der Spitzenkoerper darf keine Buchsen verdecken
       '<path d="M' + x + ' ' + y + 'l17 -32" stroke="#d0d4d6" stroke-width="2.6" stroke-linecap="round"/>' +
       '<path d="M' + (x + 12) + ' ' + (y - 27) + 'l10 -5" stroke="' + col + '" stroke-width="5" stroke-linecap="round"/>' +
@@ -2492,7 +2546,7 @@ body.beamer-mode main{ min-height:100vh; }
         ev.preventDefault();
         if (dv.dataset.dial && self.opts.onDial) self.opts.onDial(dv.dataset.dial);
         if (dv.dataset.range && self.opts.onRange) self.opts.onRange(dv.dataset.range);
-        if (dv.dataset.scope && self.opts.onScope) self.opts.onScope();
+        if (dv.dataset.scope && self.opts.onScope) self.opts.onScope(dv.dataset.scope); // 'run' | 'ch1' | 'ch2'
         return;
       }
       if (ev.isPrimary !== false) touches = {}; // neue Geste: haengengebliebene Zeiger vergessen
@@ -2533,7 +2587,7 @@ body.beamer-mode main{ min-height:100vh; }
     function up(ev) {
       if (self._grab) { // Spitze losgelassen: Buchse unter dem Zeiger? sonst zurueck auf den Parkplatz
         var g = self._grab; self._grab = null; svg.classList.remove('probing');
-        var xy = self._pt(ev), hitPin = self.pinAt(xy, 26);
+        var xy = self._pt(ev), hitPin = self.pinAt(xy, 26 * HIT);
         if (hitPin) core.dropProbe(g.which, hitPin);
         else { self._snapBack(g.which, xy); core.dropProbe(g.which, null); }
         return;
@@ -2602,6 +2656,7 @@ body.beamer-mode main{ min-height:100vh; }
     var wi = this.showFlow ? wireCurrents(L, res) : [];
     var used = {}; L.wires.forEach(function (w) { used[w.from] = (used[w.from] || 0) + 1; used[w.to] = (used[w.to] || 0) + 1; });
     function pp(pid) { var s = pid.split('.'); return byId[s[0]] ? self.pinPos(byId[s[0]], s[1]) : [0, 0]; }
+    var boxW = this.svg.getBoundingClientRect().width || 0; HIT = boxW && boxW < 600 ? Math.max(1, (this.view[2] / boxW) * 12 / 14) : 1; // nur auf kleinen Bildschirmen (Handy): Buchsen ≥ 24 px, sonst stören grosse Kreise dichte Logik-Layouts
     var h = [];
     h.push(DEFS);
     // Tisch (Holz mit Maserung) und Tischkante vorne
@@ -2654,7 +2709,7 @@ body.beamer-mode main{ min-height:100vh; }
     L.parts.forEach(function (p) {
       Object.keys(GEO[p.type]).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = self.pinPos(p, pin), v = nodeV(pid), col = wcol(pid);
-        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="14"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen Masse' : '') + '</title></circle>' +
+        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (14 * HIT).toFixed(1) + '"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen Masse' : '') + '</title></circle>' +
           '<circle class="bpin' + (core.wireStart === pid ? ' active' : '') + (used[pid] ? ' used' : '') + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="12"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
         if (col && pin !== 'g' && used[pid]) h.push('<g transform="translate(' + (xy[0] + 12) + ' ' + (xy[1] - 14) + ') scale(1 ' + (1 / K) + ')"><text class="bvlabel">' + E.fmt(v, 'V') + '</text></g>');
       });
@@ -2669,9 +2724,9 @@ body.beamer-mode main{ min-height:100vh; }
     h.push(scopeSvg(this.scope, this.dragUX), meterSvg(this.meter));
     var dg = core.dragProbe, sn = this._snap, drag = this.dragUX;
     var cables = [['a', '#d32f2f', devXY('meter', this.meter.mode === 'A' ? -40 : 40, 88)], ['b', '#1e1e1e', devXY('meter', 0, 88)]];
-    if (drag) cables.push(['tip', '#e6b400', devXY('scope', 85, 50)], ['gnd', '#1e1e1e', devXY('scope', 85, 50)]);
+    if (drag) cables.push(['tip', '#e6b400', devXY('scope', 85, 50)], ['gnd', '#1e1e1e', devXY('scope', 85, 50)], ['tip2', '#38bdf8', devXY('scope', 110, 50)]); // CH2: blauer Tastkopf, gemeinsamer Erdungsclip
     cables.forEach(function (k) {
-      var which = k[0], scopeP = which === 'tip' || which === 'gnd', pid = scopeP ? core.scopeProbes[which] : core.probes[which], set = pid && byId[pid.split('.')[0]];
+      var which = k[0], scopeP = which === 'tip' || which === 'gnd' || which === 'tip2', pid = scopeP ? core.scopeProbes[which] : core.probes[which], set = pid && byId[pid.split('.')[0]];
       var tip = dg && dg.which === which ? [dg.x, dg.y] : sn && sn.which === which && sn.pos ? sn.pos : set ? pp(pid) : drag ? PARK[which]() : devXY('meter', (which === 'a' ? -34 : 18) - 20, 200);
       var jack = k[2], grip = [tip[0] + 38, tip[1] - 70];
       h.push('<g class="bmcable' + (scopeP ? ' bscable' : '') + '" filter="url(#bCable)" pointer-events="none"><path d="' + cablePath(jack, grip) + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="6" stroke-linecap="round"/>' +
@@ -2879,7 +2934,8 @@ body.beamer-mode main{ min-height:100vh; }
     buildSliders(); show(viewMode); rebuild(true);
     return {
       core: core, sim: function () { return live.res; }, time: function () { return live.state.t || 0; },
-      destroy: function () { dead = true; if (live.raf) cancelAnimationFrame(live.raf); el.innerHTML = ''; }
+      destroy: function () { dead = true; if (live.raf) cancelAnimationFrame(live.raf); el.innerHTML = ''; },
+      fit: function () { show(viewMode); } // nach Grössenänderung (Overlay «gross anzeigen») neu einpassen
     };
   }
   root.DQMini = { mount: mount };

@@ -72,7 +72,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     const ev = (t, x, y) => new PointerEvent(t, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 7, pointerType: 'mouse', isPrimary: true, buttons: t === 'pointerup' ? 0 : 1 });
     pr.dispatchEvent(ev('pointerdown', a.left + a.width / 2, a.top + a.height / 2)); svg.dispatchEvent(ev('pointermove', (a.left + b.left) / 2, (a.top + b.top) / 2));
     svg.dispatchEvent(ev('pointermove', b.left + b.width / 2, b.top + b.height / 2)); svg.dispatchEvent(ev('pointerup', b.left + b.width / 2, b.top + b.height / 2));
-    const set = which === 'tip' || which === 'gnd' ? DigitalQuest.core.scopeProbes[which] : DigitalQuest.core.probes[which]; return set === pid ? 'ok' : 'liegt nicht an ' + pid;
+    const set = which === 'tip' || which === 'gnd' || which === 'tip2' ? DigitalQuest.core.scopeProbes[which] : DigitalQuest.core.probes[which]; return set === pid ? 'ok' : 'liegt nicht an ' + pid;
   }, [which, pid]).then(r => { if (r !== 'ok') errors.push('Werkbank ziehen ' + which + '→' + pid + ': ' + r); });
   await page.evaluate(() => { delete DigitalQuest.state.drafts['1.1']; delete DigitalQuest.state.drafts['1.8']; DigitalQuest.openItem('1.1'); });
   await page.click('#btnView');
@@ -100,7 +100,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   const lcdB = await page.textContent('#bench .bmlcd'), lcdP = await page.textContent('#lcd');
   if (lcdB !== lcdP || !/^1\.9\d\d V$/.test(lcdP)) errors.push('Werkbank-Multimeter: ' + lcdB + ' / ' + lcdP);
   await page.fill('[data-ans="uled"]', String(parseFloat(lcdP)));
-  await bdrag('tip', 'D1.a'); await bdrag('gnd', 'D1.k'); await page.click('#bench [data-scope] rect', { force: true });
+  await bdrag('tip', 'D1.a'); await bdrag('gnd', 'D1.k'); await page.click('#bench [data-scope="run"] rect', { force: true });
   if (!await page.locator('#bench .bsctrace').count()) errors.push('Werkbank-Oszilloskop: keine Kurve');
   await page.screenshot({ path: shots + '/7_werkbank_led.png' });
   // Live-Anzeige: Knotenspannungen und Tooltips mit Simulationswerten
@@ -631,6 +631,64 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await tp.close();
   }
 
+  // L4 (05.10.2026): Schaltplan-Zoom (Strg+Rad, Doppelklick, Ziehen), Theorie-Bild «gross anzeigen»
+  {
+    const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('L4: ' + e.message));
+    await tp.goto(url, { waitUntil: 'domcontentloaded' });
+    await tp.evaluate(() => { delete DigitalQuest.state.drafts['1.8']; DigitalQuest.openItem('1.8'); DigitalQuest.setView('schema'); }); await tp.waitForTimeout(150);
+    const view = () => tp.evaluate(() => DigitalQuest.editor.view.slice());
+    const bb = await tp.locator('#board').boundingBox(), v0 = await view();
+    await tp.mouse.move(bb.x + bb.width * 0.5, bb.y + bb.height * 0.5); await tp.mouse.wheel(0, -300); await tp.waitForTimeout(50);
+    if (JSON.stringify(await view()) !== JSON.stringify(v0)) errors.push('L4: Mausrad ohne Strg zoomt den Schaltplan');
+    await tp.keyboard.down('Control'); await tp.mouse.wheel(0, -300); await tp.keyboard.up('Control'); await tp.waitForTimeout(50);
+    const v1 = await view(); if (!(v1[2] < v0[2] * 0.9)) errors.push('L4: Strg+Rad zoomt den Schaltplan nicht: ' + v1 + ' / ' + v0);
+    await tp.mouse.move(bb.x + 30, bb.y + bb.height - 30); await tp.mouse.down(); await tp.mouse.move(bb.x + 130, bb.y + bb.height - 90, { steps: 5 }); await tp.mouse.up(); await tp.waitForTimeout(50);
+    const v2 = await view(); if (Math.abs(v2[0] - v1[0]) < 5) errors.push('L4: Ziehen auf leerer Fläche verschiebt den Schaltplan nicht');
+    if (await tp.evaluate(() => DigitalQuest.core.wireStart)) errors.push('L4: Ziehen auf leerer Fläche beginnt eine Leitung');
+    await tp.mouse.dblclick(bb.x + bb.width - 20, bb.y + 20); await tp.waitForTimeout(80);
+    const v4 = await view(); if (!(v4[2] > v2[2] * 1.3)) errors.push('L4: Doppelklick auf leere Fläche passt nicht ein: ' + v4[2] + ' / ' + v2[2]);
+    const pb = await tp.evaluate(() => { const r = document.querySelector('#board [data-part="D1"]').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
+    await tp.mouse.dblclick(pb[0], pb[1]); await tp.waitForTimeout(80);
+    const v3 = await view(); if (!(v3[2] <= 360.5)) errors.push('L4: Doppelklick auf Bauteil zoomt nicht heran: ' + v3[2]);
+    await tp.mouse.dblclick(bb.x + bb.width - 20, bb.y + 20); await tp.waitForTimeout(80);
+    if (!((await view())[2] > v3[2] * 1.5)) errors.push('L4: Einpassen nach dem Heranzoomen wirkt nicht');
+    // Theorie: gross anzeigen
+    await tp.evaluate(() => DigitalQuest.openItem('T1B')); await tp.waitForTimeout(300);
+    if (!await tp.$('.visual-circuit .visual-big')) errors.push('L4: Knopf „gross anzeigen“ fehlt');
+    await tp.click('.visual-circuit .visual-big'); await tp.waitForTimeout(250);
+    if (!await tp.isVisible('#visBig .vb-box') || !await tp.$('#visBig .visual-circuit .mini-stage')) errors.push('L4: Overlay zeigt die Mini-Schaltung nicht');
+    const hBig = await tp.$eval('#visBig .mini-stage', e => e.getBoundingClientRect().height); if (!(hBig > 400)) errors.push('L4: Mini-Schaltung im Overlay nicht vergrössert: ' + hBig);
+    await tp.screenshot({ path: shots + '/34_gross_anzeigen.png' });
+    await tp.keyboard.press('Escape'); await tp.waitForTimeout(100);
+    if (await tp.isVisible('#visBig .vb-box') || !await tp.$('#scr-theory .lesson .visual-circuit .mini-stage')) errors.push('L4: Bild kehrt nach Esc nicht in die Lektion zurück');
+    await tp.close();
+  }
+
+  // L3 (05.10.2026): zweiter Kanal – Tiefpass W6: CH1 Eingang, CH2 Ausgang, beide Kurven, Kennwerte je Kanal, Phasenverschiebung, Kanal abschaltbar
+  {
+    const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('L3: ' + e.message));
+    await tp.goto(url, { waitUntil: 'domcontentloaded' });
+    await tp.evaluate(() => { delete DigitalQuest.state.drafts.W6; DigitalQuest.openItem('W6'); DigitalQuest.setView('bench'); }); await tp.waitForTimeout(150);
+    if (!await tp.$('#bench [data-probe="tip2"]')) errors.push('L3: blauer Tastkopf CH2 fehlt auf der Werkbank');
+    const pins = await tp.evaluate(() => { const t = window.DQ.byId.W6; const m = t.measure.filter(m => m.mode === 'AC'); return m.map(x => [x.a, x.b]); });
+    const inPin = pins[0], outPin = pins.find(p => p[0] !== inPin[0]) || pins[1];
+    await tp.evaluate(([a, b, a2]) => { const c = DigitalQuest.core; c.scopeProbes.tip = a; c.scopeProbes.gnd = b; c.scopeProbes.tip2 = a2; c.redraw(); }, [inPin[0], inPin[1], outPin[0]]);
+    await tp.click('#btnScope'); await tp.waitForTimeout(200);
+    if (!await tp.$('#bench .bsctrace') || !await tp.$('#bench .bsctrace2')) errors.push('L3: nicht beide Kurven auf der Werkbank');
+    const info = await tp.textContent('#scopeInfo');
+    if (!/CH1 /.test(info) || !/CH2 /.test(info) || !/Phase CH2→CH1/.test(info)) errors.push('L3: Kennwerte/Phase je Kanal fehlen: ' + info);
+    const ls = await tp.evaluate(() => { const l = DigitalQuest.lastScope; return { mx1: l.c.mx, mx2: l.c2 && l.c2.mx, deg: l.phase && l.phase.deg, top1: l.c.top, top2: l.c2 && l.c2.top }; });
+    if (!(ls.mx2 > 0 && ls.mx2 < ls.mx1) || ls.top1 !== ls.top2) errors.push('L3: CH2 (Ausgang) müsste kleiner als CH1 sein und dieselbe Skala haben: ' + JSON.stringify(ls));
+    if (!(ls.deg !== null && ls.deg !== undefined && Math.abs(ls.deg) > 5 && Math.abs(ls.deg) < 90)) errors.push('L3: Phasenverschiebung am Tiefpass unplausibel: ' + ls.deg);
+    await tp.click('#btnScopeBig'); await tp.waitForTimeout(80); if (!/CH2 Uss/.test(await tp.textContent('#scopeBig')) || !/Phase CH2→CH1/.test(await tp.textContent('#scopeBig'))) errors.push('L3: grosses Oszilloskop ohne Kanal-2-Kennwerte'); await tp.keyboard.press('Escape');
+    await tp.click('#scopeCh [data-ch="2"]'); await tp.waitForTimeout(150);
+    if (await tp.$('#bench .bsctrace2')) errors.push('L3: CH2 lässt sich nicht abschalten');
+    await tp.evaluate(() => { const e = document.querySelector('#bench [data-scope="ch2"]'); const r = e.getBoundingClientRect(); e.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, pointerId: 3, pointerType: 'mouse', isPrimary: true })); }); await tp.waitForTimeout(150);
+    if (!await tp.$('#bench .bsctrace2')) errors.push('L3: Taste CH2 am Gerät schaltet den Kanal nicht wieder ein');
+    await tp.screenshot({ path: shots + '/33_zwei_kanaele.png' });
+    await tp.close();
+  }
+
   // Paket O (05.10.2026): Oszilloskop bei jeder Bildbreite – Kennwerte innerhalb 1 % von E.acMeasure, Werkbank-Schirm und Seitenleiste zeichnen dieselben Punkte, Hinweis bei weniger als einer Periode
   {
     const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('Oszi: ' + e.message));
@@ -728,7 +786,10 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   m.on('pageerror', e => errors.push('mobil: ' + e.message));
   await m.goto(url, { waitUntil: 'domcontentloaded' }); await m.evaluate(() => DigitalQuest.openItem('1.8')); await m.screenshot({ path: shots + '/5_handy.png', fullPage: true });
   const overflow = await m.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1); if (overflow) errors.push('mobil: horizontaler Scroll');
+  const hitS = await m.$eval('#board .pinhit', e => e.getBoundingClientRect().width); if (hitS < 22) errors.push('mobil: Anschluss-Treffer im Schaltplan nur ' + hitS.toFixed(0) + ' px');
   await m.click('#btnView'); await m.screenshot({ path: shots + '/11_handy_werkbank.png' });
+  const hitB = await m.evaluate(() => ['.bpinhit', '.bdialhit', '.bprobehit'].map(s => { const e = document.querySelector('#bench ' + s); return e ? Math.round(e.getBoundingClientRect().width) : 0; }));
+  if (hitB.some(w => w < 22)) errors.push('mobil: Werkbank-Trefferflächen unter 24 px: ' + hitB.join('/'));
   if (await m.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) errors.push('mobil Werkbank: horizontaler Scroll');
 
   const st = await page.evaluate(() => DigitalQuest.state);

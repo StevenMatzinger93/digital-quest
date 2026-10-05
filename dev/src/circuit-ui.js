@@ -25,7 +25,7 @@
     this.opts = opts || {}; this.views = []; this.space = 'schema';
     this.layout = { parts: [], wires: [] }; this.locked = {}; this.benchHints = {};
     this.sel = null; this.wireStart = null; this.tool = 'wire';
-    this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null }; this.drag = null;
+    this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null, tip2: null }; this.drag = null; // tip2: zweiter Kanal (L3, 05.10.2026), gemeinsamer Erdungsclip gnd
     this.dragProbe = null; // {which:'a'|'b'|'tip'|'gnd', x, y} waehrend eine Spitze gezogen wird (Raum 'bench')
   }
   Circuit.SPACES = SPACES; Circuit.GRID = SPACES.schema.grid; Circuit.W = SPACES.schema.w; Circuit.H = SPACES.schema.h;
@@ -58,7 +58,7 @@
     (lockedIds || []).forEach(function (id) { this.locked[id] = true; }, this);
     ((bench && bench.parts) || []).forEach(function (b) { this.benchHints[b.id] = { x: b.x, y: b.y, rot: b.rot || 0 }; }, this);
     this.layout.parts.forEach(function (p) { var h = this.benchHints[p.id]; if (!p.bench && h) p.bench = E.clone(h); }, this);
-    this.sel = null; this.wireStart = null; this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null }; this.dragProbe = null;
+    this.sel = null; this.wireStart = null; this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null, tip2: null }; this.dragProbe = null;
   };
   Circuit.prototype.part = function (id) { return this.layout.parts.filter(function (p) { return p.id === id; })[0]; };
 
@@ -118,7 +118,7 @@
       this.layout.parts = this.layout.parts.filter(function (p) { return p.id !== s; });
       this.layout.wires = this.layout.wires.filter(function (w) { return w.from.split('.')[0] !== s && w.to.split('.')[0] !== s; });
       ['a', 'b'].forEach(function (k) { if (this.probes[k] && this.probes[k].split('.')[0] === s) this.probes[k] = null; }, this);
-      ['tip', 'gnd'].forEach(function (k) { if (this.scopeProbes[k] && this.scopeProbes[k].split('.')[0] === s) this.scopeProbes[k] = null; }, this);
+      ['tip', 'gnd', 'tip2'].forEach(function (k) { if (this.scopeProbes[k] && this.scopeProbes[k].split('.')[0] === s) this.scopeProbes[k] = null; }, this);
     }
     this.sel = null; this.changed('delete'); return true;
   };
@@ -150,7 +150,7 @@
   /* Spitze losgelassen: an einem Anschluss (pin) haengt sie dort, sonst (null) liegt sie wieder geparkt beim Geraet */
   Circuit.prototype.dropProbe = function (which, pin) {
     this.dragProbe = null;
-    var scope = which === 'tip' || which === 'gnd', set = scope ? this.scopeProbes : this.probes;
+    var scope = which === 'tip' || which === 'gnd' || which === 'tip2', set = scope ? this.scopeProbes : this.probes;
     set[which] = pin || null;
     this.redraw();
     if (scope) { if (this.opts.onScopeProbe) this.opts.onScopeProbe(which, set[which]); }

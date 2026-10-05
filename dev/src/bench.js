@@ -59,6 +59,9 @@
   function val(p) { var d = E.PARTS[p.type], q = p.props || {}; return p.value !== undefined ? p.value : (q.value !== undefined ? q.value : d.props.value); }
 
   /* 4-mm-Buchse: farbiger Isolierring mit Glanz, Messinghuelse, Bohrung */
+  /* Trefferflächen (Buchse, Spitzengriff, Drehschalter) mindestens 12 px Radius auf dem Bildschirm – HIT skaliert die Radien,
+   * sobald ein Bildschirm-Pixel mehr als eine Werkbank-Einheit abdeckt (Handy, weit herausgezoomt). Wird in render() gesetzt. */
+  var HIT = 1;
   function socket(xy, ring) {
     return '<g transform="translate(' + xy[0] + ' ' + xy[1] + ')"><circle r="11.5" cy="1.8" fill="rgba(0,0,0,.35)"/>' +
       '<circle r="10.5" fill="' + (ring || '#262626') + '" stroke="rgba(0,0,0,.65)"/><circle r="10.5" fill="url(#bRingShine)"/>' +
@@ -325,7 +328,7 @@
       '<circle cy="10" r="46" fill="none" stroke="#3a3c40" stroke-width="1"/><circle cy="10" r="38" fill="#101010" stroke="#555" stroke-width="2"/><circle cy="10" r="38" fill="url(#bRingShine)"/>';
     DIAL.forEach(function (d) {
       var a = d[1] * Math.PI / 180, lx = Math.sin(a) * 52, ly = 10 - Math.cos(a) * 52;
-      s += '<g data-dial="' + d[0] + '" class="bdial' + (m.mode === d[0] ? ' on' : '') + '"><circle class="bdialhit" cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="13"/>' +
+      s += '<g data-dial="' + d[0] + '" class="bdial' + (m.mode === d[0] ? ' on' : '') + '"><circle class="bdialhit" cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="' + (13 * HIT).toFixed(1) + '"/>' +
         '<text x="' + lx.toFixed(1) + '" y="' + (ly + 4).toFixed(1) + '">' + d[2] + '</text></g>';
     });
     var cur = DIAL.filter(function (d) { return d[0] === m.mode; })[0] || DIAL[0];
@@ -351,25 +354,29 @@
       '<rect x="-114" y="-68" width="158" height="120" rx="6" fill="#1a1f25"/><rect x="-110" y="-64" width="150" height="112" rx="4" fill="#07110c"/>';
     for (var i = 1; i < 10; i++) s += '<path d="M' + (-110 + i * 15) + ' -64V48" class="bscgrid"/>';
     for (i = 1; i < 8; i++) s += '<path d="M-110 ' + (-64 + i * 14) + 'H40" class="bscgrid"/>';
-    if (sc && sc.pts && sc.pts.length) s += '<polyline class="bsctrace" points="' + sc.pts.map(function (p) { return (-110 + p[0] * 150).toFixed(1) + ',' + (48 - p[1] * 112).toFixed(1); }).join(' ') + '"/>';
+    var tr = function (pts, cls) { return pts && pts.length ? '<polyline class="' + cls + '" points="' + pts.map(function (p) { return (-110 + p[0] * 150).toFixed(1) + ',' + (48 - p[1] * 112).toFixed(1); }).join(' ') + '"/>' : ''; };
+    if (sc) { if (!sc.ch || sc.ch[1] !== false) s += tr(sc.pts, 'bsctrace'); if (!sc.ch || sc.ch[2] !== false) s += tr(sc.pts2, 'bsctrace bsctrace2'); }
+    var ch = (sc && sc.ch) || { 1: true, 2: true };
     s += '<text class="bscinfo" x="-105" y="44">' + esc(sc && sc.info ? sc.info : own ? 'CH1: Tastkopf anschliessen · RUN' : 'CH1 = Messspitzen · RUN') + '</text>' +
+      (own ? '<g data-scope="ch1" class="bscch' + (ch[1] !== false ? ' on' : '') + '"><rect x="-110" y="54" width="30" height="12" rx="3"/><circle cx="-103" cy="60" r="2.6" class="bscled1"/><text x="-90" y="63">CH1</text></g>' +
+             '<g data-scope="ch2" class="bscch' + (ch[2] !== false ? ' on' : '') + '"><rect x="-76" y="54" width="30" height="12" rx="3"/><circle cx="-69" cy="60" r="2.6" class="bscled2"/><text x="-56" y="63">CH2</text></g>' : '') +
       '<path d="M-110-64L-30-64L-95 48H-110Z" fill="rgba(255,255,255,.04)"/>' +
       '<circle cx="70" cy="-44" r="13" fill="#1b1b1b"/><circle cx="70" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M70-44l0-9" stroke="#222" stroke-width="2"/>' +
       '<circle cx="102" cy="-44" r="13" fill="#1b1b1b"/><circle cx="102" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M102-44l6-6" stroke="#222" stroke-width="2"/>' +
       '<rect x="56" y="-14" width="12" height="6" rx="1.5" fill="#666"/><rect x="72" y="-14" width="12" height="6" rx="1.5" fill="#666"/><rect x="88" y="-14" width="12" height="6" rx="1.5" fill="#666"/><rect x="104" y="-14" width="12" height="6" rx="1.5" fill="#c9a227"/>' +
       '<text class="bdevtxt" x="70" y="-24">Y</text><text class="bdevtxt" x="102" y="-24">X</text>' +
       '<g data-scope="run" class="bscrun"><rect x="56" y="0" width="58" height="24" rx="5"/><text x="85" y="16">RUN</text></g>' +
-      socket([85, 50], '#1a1a1a') + '<text class="bdevtxt" x="60" y="54">CH1</text>';
+      socket([85, 50], '#1a1a1a') + '<text class="bdevtxt" x="60" y="54">CH1</text>' + (own ? socket([110, 50], '#1a1a1a') + '<text class="bdevtxt" x="122" y="66">CH2</text>' : '');
     return s + '</g>';
   }
   /* Parkplaetze der Messspitzen (Werkbank-Koordinaten): Multimeter rot/schwarz vor dem Geraet, Tastkopf und Erdungsclip vor dem Oszilloskop */
   var PARK = { a: function () { return devXY('meter', -54, 200); }, b: function () { return devXY('meter', -2, 200); },
-    tip: function () { return devXY('scope', -70, 118); }, gnd: function () { return devXY('scope', -14, 118); } };
+    tip: function () { return devXY('scope', -70, 118); }, gnd: function () { return devXY('scope', -14, 118); }, tip2: function () { return devXY('scope', 42, 118); } };
   Bench.PARK = PARK;
   function probeSvg(tip, col, park, which, grab) { // Pruefspitze: Metallspitze am Anschluss, Fingerschutz, Griff schraeg nach oben rechts
     var x = tip[0], y = tip[1];
     return '<g class="bprobe' + (park ? ' parked' : '') + (grab ? ' grab' : '') + '"' + (which ? ' data-probe="' + which + '"' : '') + '>' +
-      (grab ? '<circle class="bprobehit" cx="' + (x + 22) + '" cy="' + (y - 44) + '" r="30"/>' : '') +
+      (grab ? '<circle class="bprobehit" cx="' + (x + 22) + '" cy="' + (y - 44) + '" r="' + (30 * HIT).toFixed(1) + '"/>' : '') +
       '<g pointer-events="none">' + // nur der Griff (bprobehit) ist greifbar – der Spitzenkoerper darf keine Buchsen verdecken
       '<path d="M' + x + ' ' + y + 'l17 -32" stroke="#d0d4d6" stroke-width="2.6" stroke-linecap="round"/>' +
       '<path d="M' + (x + 12) + ' ' + (y - 27) + 'l10 -5" stroke="' + col + '" stroke-width="5" stroke-linecap="round"/>' +
@@ -503,7 +510,7 @@
         ev.preventDefault();
         if (dv.dataset.dial && self.opts.onDial) self.opts.onDial(dv.dataset.dial);
         if (dv.dataset.range && self.opts.onRange) self.opts.onRange(dv.dataset.range);
-        if (dv.dataset.scope && self.opts.onScope) self.opts.onScope();
+        if (dv.dataset.scope && self.opts.onScope) self.opts.onScope(dv.dataset.scope); // 'run' | 'ch1' | 'ch2'
         return;
       }
       if (ev.isPrimary !== false) touches = {}; // neue Geste: haengengebliebene Zeiger vergessen
@@ -544,7 +551,7 @@
     function up(ev) {
       if (self._grab) { // Spitze losgelassen: Buchse unter dem Zeiger? sonst zurueck auf den Parkplatz
         var g = self._grab; self._grab = null; svg.classList.remove('probing');
-        var xy = self._pt(ev), hitPin = self.pinAt(xy, 26);
+        var xy = self._pt(ev), hitPin = self.pinAt(xy, 26 * HIT);
         if (hitPin) core.dropProbe(g.which, hitPin);
         else { self._snapBack(g.which, xy); core.dropProbe(g.which, null); }
         return;
@@ -613,6 +620,7 @@
     var wi = this.showFlow ? wireCurrents(L, res) : [];
     var used = {}; L.wires.forEach(function (w) { used[w.from] = (used[w.from] || 0) + 1; used[w.to] = (used[w.to] || 0) + 1; });
     function pp(pid) { var s = pid.split('.'); return byId[s[0]] ? self.pinPos(byId[s[0]], s[1]) : [0, 0]; }
+    var boxW = this.svg.getBoundingClientRect().width || 0; HIT = boxW && boxW < 600 ? Math.max(1, (this.view[2] / boxW) * 12 / 14) : 1; // nur auf kleinen Bildschirmen (Handy): Buchsen ≥ 24 px, sonst stören grosse Kreise dichte Logik-Layouts
     var h = [];
     h.push(DEFS);
     // Tisch (Holz mit Maserung) und Tischkante vorne
@@ -665,7 +673,7 @@
     L.parts.forEach(function (p) {
       Object.keys(GEO[p.type]).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = self.pinPos(p, pin), v = nodeV(pid), col = wcol(pid);
-        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="14"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen Masse' : '') + '</title></circle>' +
+        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (14 * HIT).toFixed(1) + '"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen Masse' : '') + '</title></circle>' +
           '<circle class="bpin' + (core.wireStart === pid ? ' active' : '') + (used[pid] ? ' used' : '') + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="12"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
         if (col && pin !== 'g' && used[pid]) h.push('<g transform="translate(' + (xy[0] + 12) + ' ' + (xy[1] - 14) + ') scale(1 ' + (1 / K) + ')"><text class="bvlabel">' + E.fmt(v, 'V') + '</text></g>');
       });
@@ -680,9 +688,9 @@
     h.push(scopeSvg(this.scope, this.dragUX), meterSvg(this.meter));
     var dg = core.dragProbe, sn = this._snap, drag = this.dragUX;
     var cables = [['a', '#d32f2f', devXY('meter', this.meter.mode === 'A' ? -40 : 40, 88)], ['b', '#1e1e1e', devXY('meter', 0, 88)]];
-    if (drag) cables.push(['tip', '#e6b400', devXY('scope', 85, 50)], ['gnd', '#1e1e1e', devXY('scope', 85, 50)]);
+    if (drag) cables.push(['tip', '#e6b400', devXY('scope', 85, 50)], ['gnd', '#1e1e1e', devXY('scope', 85, 50)], ['tip2', '#38bdf8', devXY('scope', 110, 50)]); // CH2: blauer Tastkopf, gemeinsamer Erdungsclip
     cables.forEach(function (k) {
-      var which = k[0], scopeP = which === 'tip' || which === 'gnd', pid = scopeP ? core.scopeProbes[which] : core.probes[which], set = pid && byId[pid.split('.')[0]];
+      var which = k[0], scopeP = which === 'tip' || which === 'gnd' || which === 'tip2', pid = scopeP ? core.scopeProbes[which] : core.probes[which], set = pid && byId[pid.split('.')[0]];
       var tip = dg && dg.which === which ? [dg.x, dg.y] : sn && sn.which === which && sn.pos ? sn.pos : set ? pp(pid) : drag ? PARK[which]() : devXY('meter', (which === 'a' ? -34 : 18) - 20, 200);
       var jack = k[2], grip = [tip[0] + 38, tip[1] - 70];
       h.push('<g class="bmcable' + (scopeP ? ' bscable' : '') + '" filter="url(#bCable)" pointer-events="none"><path d="' + cablePath(jack, grip) + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="6" stroke-linecap="round"/>' +

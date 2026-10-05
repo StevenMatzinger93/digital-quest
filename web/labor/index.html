@@ -175,6 +175,9 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .brange text { font: 700 6.5px var(--font-code); fill: #cfcfcf; text-anchor: middle; pointer-events: none; } .brange.on rect { fill: #ffb000; stroke: #ffb000; } .brange.on text { fill: #111; }
 .bscgrid { stroke: rgba(57,255,20,.13); stroke-width: 1; } .bsctrace { fill: none; stroke: #ffb000; stroke-width: 2; filter: drop-shadow(0 0 3px #ffb000); }
 .bscinfo { font: 8px var(--font-code); fill: #7fd98a; pointer-events: none; }
+.bsctrace2 { stroke: #38bdf8; filter: drop-shadow(0 0 3px #38bdf8); } /* zweiter Kanal (L3) */
+.bscch { cursor: pointer; } .bscch rect { fill: #2a2f36; stroke: #14181d; } .bscch text { font: 700 7px var(--font-code); fill: #9aa; text-anchor: middle; pointer-events: none; } .bscch circle { fill: #333; } .bscch.on .bscled1 { fill: #ffb000; filter: drop-shadow(0 0 2px #ffb000); } .bscch.on .bscled2 { fill: #38bdf8; filter: drop-shadow(0 0 2px #38bdf8); } .bscch.on text { fill: #e8e8e8; }
+.scope-ch { display: flex; gap: 6px; margin: 4px 0; } .scope-ch button.ch1.on { border-color: #ffb000; color: #ffb000; } .scope-ch button.ch2.on { border-color: #38bdf8; color: #38bdf8; } .scope-ch button { opacity: .55; } .scope-ch button.on { opacity: 1; }
 .bscrun { cursor: pointer; } .bscrun rect { fill: #2e7d32; stroke: #0f3a12; } .bscrun:hover rect { fill: #43a047; } .bscrun text { font: 700 11px var(--font-code); fill: #fff; text-anchor: middle; pointer-events: none; }
 /* Touch: groessere Klickflaechen fuer Buchsen/Anschluesse */
 @media (pointer: coarse) { .bpinhit { r: 22px; } .pinhit { r: 17px; } .bdialhit { r: 17px; } }
@@ -477,6 +480,13 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 #demoBox { margin: 8px 0; } .demo { border: 1px solid var(--accent-cyan); border-radius: 10px; padding: 8px 10px; background: rgba(30,200,224,.06); }
 .demo-head { display: flex; align-items: center; gap: 10px; } .demo-head b { color: var(--accent-cyan); } .demo-head .small { flex: 1; } .demo-text { margin: 6px 0; font-size: 14px; min-height: 20px; } .demo-rw .wk-row { margin: 2px 0 4px; }
 
+/* «Gross anzeigen» für Theorie-Bilder (L4) */
+.visual { position: relative; } .visual-big { position: absolute; top: 2px; right: 2px; z-index: 2; padding: 2px 8px; opacity: .7; } .visual-big:hover { opacity: 1; } .visual.collapsed .visual-big { display: none; }
+#visBig { position: fixed; inset: 0; z-index: 620; } #visBig[hidden] { display: none; } .vb-back { position: absolute; inset: 0; background: rgba(0,0,0,.65); }
+.vb-box { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(1100px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow: auto; background: var(--bg-secondary); border: 1px solid var(--accent-lead-dim); border-radius: 14px; padding: 12px 14px; box-shadow: 0 18px 50px rgba(0,0,0,.6); }
+.vb-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; } .vb-head b { color: var(--accent-lead); } .vb-head .small { flex: 1; } .vb-x { background: none; border: 0; color: var(--text-dim); font-size: 24px; line-height: 1; cursor: pointer; } .vb-x:hover { color: var(--text-primary); }
+.visual.big .mini-stage { height: min(70vh, 640px) !important; } .visual.big .visual-big { display: none; } .visual.big svg.benchicon, .visual.big .visual-body > svg { max-height: 80vh; width: 100%; height: auto; }
+
 /* Zusatzbloecke in Lektionen, eingeklappte Bilder, Abspielsteuerung */
 .lesson details.zusatz { margin: 10px 0; border: 1px dashed var(--line); border-radius: 10px; padding: 6px 12px; } .lesson details.zusatz summary { cursor: pointer; color: var(--accent-cyan); font-weight: 600; } .lesson details.zusatz[open] summary { margin-bottom: 6px; }
 .visual.collapsed { padding: 4px 0; } .visual-show { margin: 4px 0; }
@@ -691,6 +701,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       <div class="scopebox">
         <canvas id="scope"></canvas>
         <div class="scope-ctl"><button class="btn small" id="btnScopeBig" title="Oszilloskop gross anzeigen" aria-label="Oszilloskop vergrössern">⤢</button><select id="tb" aria-label="Zeitbasis (ganze Bildbreite)"><option value="0.005">5 ms</option><option value="0.01">10 ms</option><option value="0.02">20 ms</option><option value="0.05">50 ms</option><option value="0.1">100 ms</option><option value="1" selected>1 s</option><option value="5">5 s</option></select><button class="btn small" id="btnScope">Aufnahme</button></div>
+        <div class="scope-ch" id="scopeCh" hidden><button class="btn small ch1 on" data-ch="1" title="Kanal 1 (gelber Tastkopf) ein/aus">CH1</button><button class="btn small ch2 on" data-ch="2" title="Kanal 2 (blauer Tastkopf, gemeinsamer Erdungsclip) ein/aus">CH2</button></div>
         <div id="scopeInfo">Kanal 1 = Messspitzen des Multimeters (neue Messtechnik-Aufgaben: eigener Tastkopf auf der Werkbank). Aufnahme mit „Aufnahme“ bzw. RUN.</div>
       </div>
     </aside>
@@ -5921,7 +5932,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p><b>Leitung ziehen:</b> Anschluss anklicken, dann den Ziel-Anschluss. Leitung anklicken und <kbd>Entf</kbd> entfernt sie.</p>' +
       '<p><b>Schalter</b> schaltest du per Klick, <b>Taster</b> sind nur gedrückt, solange du sie hältst.</p>' +
       '<p>Die Schaltung wird <b>laufend simuliert</b>. „U anzeigen“ färbt alle Knoten nach ihrer Spannung (blau = 0 V, rot = höchste Spannung). Fährst du über ein Bauteil, siehst du U, I und P.</p>' +
-      '<p><b>Messen auf der Werkbank:</b> Messspitzen (rot = +, schwarz = COM) und den Tastkopf des Oszilloskops mit der Maus an die Buchsen <b>ziehen</b>; daneben loslassen legt sie zurück. Im Schaltplan setzt ein Klick die Spitze. In den Messtechnik-Aufgaben (Kapitel 16) wählst du zusätzlich den <b>Messbereich</b> am Gerät – zu klein zeigt OL. Jede Messaufgabe hat oben die Box „So stellst du das Gerät ein“. Zoom auf der Werkbank: <kbd>Strg</kbd> + Mausrad, Verschieben durch Ziehen auf der leeren Tischfläche; das Mausrad allein scrollt die Seite.</p>' +
+      '<p><b>Messen auf der Werkbank:</b> Messspitzen (rot = +, schwarz = COM) und den Tastkopf des Oszilloskops mit der Maus an die Buchsen <b>ziehen</b>; daneben loslassen legt sie zurück. Im Schaltplan setzt ein Klick die Spitze. In den Messtechnik-Aufgaben (Kapitel 16) wählst du zusätzlich den <b>Messbereich</b> am Gerät – zu klein zeigt OL. Jede Messaufgabe hat oben die Box „So stellst du das Gerät ein“. Zoom auf der Werkbank und im Schaltplan: <kbd>Strg</kbd> + Mausrad, Verschieben durch Ziehen auf der leeren Fläche; das Mausrad allein scrollt die Seite. Auf dem Handy: zwei Finger zoomen, ein Finger verschiebt, Doppeltipp auf ein Bauteil zoomt heran, Doppeltipp auf die leere Fläche passt wieder ein. Bilder und Mini-Schaltungen in den Lektionen zeigt der Knopf ⤢ gross.</p>' +
       '<p><b>Schaltplan oder Werkbank:</b> Der Knopf „Werkbank“ / „Schaltplan“ wechselt die Darstellung. Es ist dieselbe Schaltung – auf der Werkbank stecken die Bauteile auf Steckbausteinen und werden mit Laborkabeln verbunden. Bauen, Messen und Prüfen funktionieren in beiden Ansichten gleich. Auf der Werkbank zoomst du mit dem Mausrad (Handy: zwei Finger) und verschiebst den Tisch, indem du auf einer freien Stelle ziehst; „Einpassen“ zeigt wieder alles.</p>' +
       '<p><b>Zeitlupe:</b> zeigt Schritt für Schritt, wie die Simulation zum Ergebnis kommt – welche LED leitend wird, welches Gatter umschaltet, wie sich ein Kondensator über die Zeit lädt. Mit dem Schieberegler oder den Pfeiltasten blättern, „Live“ kehrt zurück.</p>' +
       '<p><b>Strom zeigen</b> („⇢ Strom“ in der Werkzeugleiste): Punkte wandern entlang der Leitungen in <b>technischer Stromrichtung</b> (von + nach −) – je schneller, desto mehr Strom. An jedem Kabel steht der Stromwert. So siehst du, wo sich der Strom aufteilt und wo gar keiner fliesst.</p>' +
@@ -5957,7 +5968,8 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p><b>Neue Bedienung in der Vertiefung Messtechnik (Kapitel 16):</b> Auf der Werkbank liegen die Messspitzen vor dem Gerät. Du <b>ziehst</b> sie mit der Maus (oder dem Finger) an die Buchse – loslassen daneben legt sie zurück. Ein Klick auf eine Buchse verbindet dort immer Leitungen. Unter dem Drehschalter wählst du den <b>Messbereich</b> von Hand (AUTO oder z. B. 200mV, 2V, 20V …): Ist der Messwert grösser als der Bereich, zeigt das Gerät <b>OL</b>; ein zu grosser Bereich verschenkt Stellen. Das LCD zeigt „MAN 20V“ statt AUTO. Ausgeschaltet bleiben die Spitzen stecken.</p>' },
     { id: 'oszi', title: 'Oszilloskop', html:
       '<p>Das Oszilloskop zeichnet die Spannung zwischen den Multimeter-Spitzen (oder rot gegen Masse) über die Zeit auf – ab dem Einschalten. Ideal für Lade-/Entladekurven, Taktsignale und Wechselspannungen. Auf der Werkbank startet die Taste RUN am Gerät die Aufnahme.</p>' +
-      '<p>In der <b>Vertiefung Messtechnik</b> (Kapitel 16) hat das Oszilloskop einen eigenen <b>Tastkopf</b> (gelb, CH1) und einen <b>Erdungsclip</b> (schwarz), die vor dem Gerät liegen: beide an die Schaltung ziehen, dann RUN. Ohne Tastkopf bleibt der Schirm dunkel („Tastkopf anschliessen“). Multimeter und Oszilloskop können so gleichzeitig an verschiedenen Stellen messen.</p>' },
+      '<p>In der <b>Vertiefung Messtechnik</b> (Kapitel 16) hat das Oszilloskop einen eigenen <b>Tastkopf</b> (gelb, CH1) und einen <b>Erdungsclip</b> (schwarz), die vor dem Gerät liegen: beide an die Schaltung ziehen, dann RUN. Ohne Tastkopf bleibt der Schirm dunkel („Tastkopf anschliessen“). Multimeter und Oszilloskop können so gleichzeitig an verschiedenen Stellen messen.</p>' +
+      '<p><b>Zweiter Kanal:</b> Der blaue Tastkopf (CH2) misst gegen denselben Erdungsclip. Beide Kurven erscheinen übereinander auf einer gemeinsamen Skala (gelb = CH1, blau = CH2); die Tasten CH1/CH2 am Gerät und in der Seitenleiste schalten einen Kanal aus. Die Kennwerte stehen je Kanal, dazu die Phasenverschiebung von CH2 gegen CH1 – so siehst du am RC-Glied oder am Gleichrichter Eingang und Ausgang gleichzeitig.</p>' },
     { id: 'bauteile', title: 'Bauteile', html:
       '<dl><dt>Spannungsquelle</dt><dd>Ideale Quelle mit kleinem Innenwiderstand.</dd><dt>LED</dt><dd>Leuchtet ab U<sub>F</sub> (rot 1,8 V … blau 3,0 V), max. 30 mA.</dd>' +
       '<dt>Logikgatter</dt><dd>5-V-Logik, Schaltschwelle 2,5 V. Versorgung ist intern, brauchen aber eine Masse (⏚).</dd><dt>Kondensator</dt><dd>Lädt über einen Widerstand mit τ = R · C.</dd>' +
@@ -6004,7 +6016,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     this.opts = opts || {}; this.views = []; this.space = 'schema';
     this.layout = { parts: [], wires: [] }; this.locked = {}; this.benchHints = {};
     this.sel = null; this.wireStart = null; this.tool = 'wire';
-    this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null }; this.drag = null;
+    this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null, tip2: null }; this.drag = null; // tip2: zweiter Kanal (L3, 05.10.2026), gemeinsamer Erdungsclip gnd
     this.dragProbe = null; // {which:'a'|'b'|'tip'|'gnd', x, y} waehrend eine Spitze gezogen wird (Raum 'bench')
   }
   Circuit.SPACES = SPACES; Circuit.GRID = SPACES.schema.grid; Circuit.W = SPACES.schema.w; Circuit.H = SPACES.schema.h;
@@ -6037,7 +6049,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     (lockedIds || []).forEach(function (id) { this.locked[id] = true; }, this);
     ((bench && bench.parts) || []).forEach(function (b) { this.benchHints[b.id] = { x: b.x, y: b.y, rot: b.rot || 0 }; }, this);
     this.layout.parts.forEach(function (p) { var h = this.benchHints[p.id]; if (!p.bench && h) p.bench = E.clone(h); }, this);
-    this.sel = null; this.wireStart = null; this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null }; this.dragProbe = null;
+    this.sel = null; this.wireStart = null; this.probes = { a: null, b: null }; this.scopeProbes = { tip: null, gnd: null, tip2: null }; this.dragProbe = null;
   };
   Circuit.prototype.part = function (id) { return this.layout.parts.filter(function (p) { return p.id === id; })[0]; };
 
@@ -6097,7 +6109,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       this.layout.parts = this.layout.parts.filter(function (p) { return p.id !== s; });
       this.layout.wires = this.layout.wires.filter(function (w) { return w.from.split('.')[0] !== s && w.to.split('.')[0] !== s; });
       ['a', 'b'].forEach(function (k) { if (this.probes[k] && this.probes[k].split('.')[0] === s) this.probes[k] = null; }, this);
-      ['tip', 'gnd'].forEach(function (k) { if (this.scopeProbes[k] && this.scopeProbes[k].split('.')[0] === s) this.scopeProbes[k] = null; }, this);
+      ['tip', 'gnd', 'tip2'].forEach(function (k) { if (this.scopeProbes[k] && this.scopeProbes[k].split('.')[0] === s) this.scopeProbes[k] = null; }, this);
     }
     this.sel = null; this.changed('delete'); return true;
   };
@@ -6129,7 +6141,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   /* Spitze losgelassen: an einem Anschluss (pin) haengt sie dort, sonst (null) liegt sie wieder geparkt beim Geraet */
   Circuit.prototype.dropProbe = function (which, pin) {
     this.dragProbe = null;
-    var scope = which === 'tip' || which === 'gnd', set = scope ? this.scopeProbes : this.probes;
+    var scope = which === 'tip' || which === 'gnd' || which === 'tip2', set = scope ? this.scopeProbes : this.probes;
     set[which] = pin || null;
     this.redraw();
     if (scope) { if (this.opts.onScopeProbe) this.opts.onScopeProbe(which, set[which]); }
@@ -6371,9 +6383,27 @@ body.has-exam-bar .top { padding-top: 50px; }
     this.core = this.opts.core || new Circuit(this.opts); // Zustand + Bedienlogik (circuit-ui.js); geteilt, falls uebergeben
     this.sim = null; this.showVolt = false; this.mouse = [0, 0];
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    this.view = [0, 0, W, H];
     this.core.attach(this);
     this._bind();
   }
+  /* L4 (05.10.2026): Ausschnitt setzen (begrenzt), zur Zeigerposition zoomen – dieselbe Bedienung wie die Werkbank
+   * (Strg/⌘ + Rad, zwei Finger, Ziehen auf leerer Fläche); Doppeltipp auf ein Bauteil zoomt heran, auf leere Fläche passt ein. */
+  Editor.prototype.setView = function (v) {
+    var w = Math.max(160, Math.min(W * 1.6, v[2])), h = v[3] * w / v[2];
+    var x = Math.max(-300, Math.min(W + 300 - w, v[0])), y = Math.max(-300, Math.min(H + 300 - h, v[1]));
+    this.view = [x, y, w, h]; this.svg.setAttribute('viewBox', this.view.join(' ')); this.render();
+  };
+  Editor.prototype.zoomAt = function (f, cx, cy) {
+    var box = this.svg.getBoundingClientRect(), v = this.view; if (!box.width) return;
+    var px = v[0] + (cx - box.left) / box.width * v[2], py = v[1] + (cy - box.top) / box.height * v[3];
+    var w = Math.max(160, Math.min(W * 1.6, v[2] * f)), k = w / v[2];
+    this.setView([px - (px - v[0]) * k, py - (py - v[1]) * k, w, v[3] * k]);
+  };
+  Editor.prototype.zoomTo = function (part) { // Doppeltipp auf ein Bauteil: halber Ausschnitt um das Bauteil
+    var v = this.view, w = Math.max(160, Math.min(v[2], 360)), h = w * v[3] / v[2];
+    this.setView([part.x - w / 2, part.y - h / 2, w, h]);
+  };
   Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText; Editor.partTip = partTip; Editor.voltColor = voltColor; Editor.icon = icon;
   // Zustand liegt im Kern; die bisherigen Eigenschaften bleiben fuer app.js erhalten
   ['layout', 'locked', 'sel', 'wireStart', 'tool', 'probes', 'drag'].forEach(function (k) {
@@ -6414,27 +6444,53 @@ body.has-exam-bar .top { padding-top: 50px; }
   };
   /* Nur Hit-Testing und Koordinaten-Umrechnung – die Bedienlogik steckt im Kern */
   Editor.prototype._bind = function () {
-    var self = this, svg = this.svg, core = this.core;
+    var self = this, svg = this.svg, core = this.core, pan = null, pinch = null, touches = {}, lastTap = { t: 0, x: 0, y: 0 };
+    function dblAt(ev) { // Doppeltipp/Doppelklick: Bauteil → heranzoomen, leere Fläche → einpassen
+      var t = ev.target.closest('[data-part]'), p = t && core.part(t.dataset.part);
+      if (p) self.zoomTo(p); else self.fit();
+    }
     svg.addEventListener('pointerdown', function (ev) {
+      if (self.opts.tight) { /* Mini-Schaltung: kein Zoom, die Lektion scrollt */ }
+      else {
+        if (ev.isPrimary !== false) touches = {};
+        if (ev.pointerType === 'touch') touches[ev.pointerId] = [ev.clientX, ev.clientY];
+        if (Object.keys(touches).length === 2) { pan = null; if (core.drag) core.drag = null; var tp = Object.keys(touches).map(function (k) { return touches[k]; }); pinch = { d: Math.hypot(tp[0][0] - tp[1][0], tp[0][1] - tp[1][1]), view: self.view.slice(), c: [(tp[0][0] + tp[1][0]) / 2, (tp[0][1] + tp[1][1]) / 2] }; return; }
+        if (!ev.target.closest('[data-pin],[data-wire]')) { // Doppeltipp/Doppelklick selbst erkennen – der Browser liefert nach dem Neuzeichnen kein dblclick
+          var now = performance.now(); if (now - lastTap.t < 350 && Math.abs(ev.clientX - lastTap.x) < 24 && Math.abs(ev.clientY - lastTap.y) < 24) { lastTap.t = 0; dblAt(ev); return; } lastTap = { t: now, x: ev.clientX, y: ev.clientY };
+        }
+      }
       var t = ev.target.closest('[data-pin],[data-part],[data-wire]'), xy = self._pt(ev);
       if (t && t.dataset.pin) { ev.preventDefault(); core.clickPin(t.dataset.pin); return; }
       if (t && t.dataset.wire !== undefined) { core.clickWire(+t.dataset.wire); return; }
       if (t && t.dataset.part) { if (core.pressPart(t.dataset.part, xy)) svg.setPointerCapture(ev.pointerId); return; }
-      core.clickEmpty();
+      if (self.opts.tight) { core.clickEmpty(); return; }
+      pan = { x: ev.clientX, y: ev.clientY, view: self.view.slice(), moved: false }; // leere Fläche: Ziehen verschiebt, Klick hebt die Auswahl auf
+      try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ }
     });
     svg.addEventListener('pointermove', function (ev) {
+      if (touches[ev.pointerId]) touches[ev.pointerId] = [ev.clientX, ev.clientY];
+      if (pinch && Object.keys(touches).length === 2) { var tp = Object.keys(touches).map(function (k) { return touches[k]; }), d = Math.hypot(tp[0][0] - tp[1][0], tp[0][1] - tp[1][1]); if (d > 10) { self.view = pinch.view.slice(); self.zoomAt(pinch.d / d, pinch.c[0], pinch.c[1]); } return; }
+      if (pan) { var dx = ev.clientX - pan.x, dy = ev.clientY - pan.y; if (Math.abs(dx) + Math.abs(dy) > 5) pan.moved = true; if (pan.moved) { var f = pan.view[2] / (svg.getBoundingClientRect().width || 1); self.setView([pan.view[0] - dx * f, pan.view[1] - dy * f, pan.view[2], pan.view[3]]); } return; }
       var xy = self._pt(ev); self.mouse = xy;
       if (core.drag) core.dragTo(xy);
       else if (core.wireStart) self.render();
     });
-    function up() { core.release(); }
+    function up(ev) {
+      delete touches[ev.pointerId];
+      if (pinch) { if (Object.keys(touches).length < 2) pinch = null; return; }
+      if (pan) { var wasPan = pan.moved; pan = null; if (!wasPan) core.clickEmpty(); return; }
+      core.release();
+    }
     svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
+    svg.addEventListener('wheel', function (ev) { if (self.opts.tight || !(ev.ctrlKey || ev.metaKey)) return; ev.preventDefault(); self.zoomAt(Math.exp(ev.deltaY * 0.0015), ev.clientX, ev.clientY); }, { passive: false });
+    svg.addEventListener('dblclick', function (ev) { if (self.opts.tight) return; ev.preventDefault(); dblAt(ev); });
   };
   Editor.prototype.key = function (ev) { this.core.key(ev); };
 
   Editor.prototype.render = function () {
     if (!this.svg.getClientRects().length) return; // ausgeblendet (Werkbank aktiv): nicht zeichnen, beim Einblenden zeichnet fit()
     var self = this, L = this.layout, sim = this.sim, res = sim && sim.res, pinNode = sim && sim.pinNode;
+    var boxW = this.svg.getBoundingClientRect().width || 0, hit = boxW && boxW < 600 && this.view ? Math.max(1, (this.view[2] / boxW) * 12 / 11) : 1; // nur auf kleinen Bildschirmen (Handy): Anschlüsse ≥ 24 px
     var vmax = 0; if (res) Object.keys(res.nodeV).forEach(function (n) { vmax = Math.max(vmax, res.nodeV[n]); });
     var byId = {}; L.parts.forEach(function (p) { byId[p.id] = p; });
     var pinWireCount = {}; L.wires.forEach(function (w) { pinWireCount[w.from] = (pinWireCount[w.from] || 0) + 1; pinWireCount[w.to] = (pinWireCount[w.to] || 0) + 1; });
@@ -6485,7 +6541,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       Object.keys(GEO[p.type]).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = pinPos(p, pin), col = wcol(pid);
         var cls = 'pin' + (self.wireStart === pid ? ' active' : '') + (pinWireCount[pid] ? ' used' : '') + (pinWireCount[pid] > 1 ? ' junction' : '');
-        h.push('<g data-pin="' + pid + '"><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="11"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');
+        h.push('<g data-pin="' + pid + '"><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (11 * hit).toFixed(1) + '"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');
         if (self.showVolt && res && pinNode && pinNode[pid] !== undefined && pin !== 'g')
           h.push('<text class="vlabel" x="' + (xy[0] + 6) + '" y="' + (xy[1] - 6) + '">' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + '</text>');
       });
@@ -6570,6 +6626,9 @@ body.has-exam-bar .top { padding-top: 50px; }
   function val(p) { var d = E.PARTS[p.type], q = p.props || {}; return p.value !== undefined ? p.value : (q.value !== undefined ? q.value : d.props.value); }
 
   /* 4-mm-Buchse: farbiger Isolierring mit Glanz, Messinghuelse, Bohrung */
+  /* Trefferflächen (Buchse, Spitzengriff, Drehschalter) mindestens 12 px Radius auf dem Bildschirm – HIT skaliert die Radien,
+   * sobald ein Bildschirm-Pixel mehr als eine Werkbank-Einheit abdeckt (Handy, weit herausgezoomt). Wird in render() gesetzt. */
+  var HIT = 1;
   function socket(xy, ring) {
     return '<g transform="translate(' + xy[0] + ' ' + xy[1] + ')"><circle r="11.5" cy="1.8" fill="rgba(0,0,0,.35)"/>' +
       '<circle r="10.5" fill="' + (ring || '#262626') + '" stroke="rgba(0,0,0,.65)"/><circle r="10.5" fill="url(#bRingShine)"/>' +
@@ -6836,7 +6895,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<circle cy="10" r="46" fill="none" stroke="#3a3c40" stroke-width="1"/><circle cy="10" r="38" fill="#101010" stroke="#555" stroke-width="2"/><circle cy="10" r="38" fill="url(#bRingShine)"/>';
     DIAL.forEach(function (d) {
       var a = d[1] * Math.PI / 180, lx = Math.sin(a) * 52, ly = 10 - Math.cos(a) * 52;
-      s += '<g data-dial="' + d[0] + '" class="bdial' + (m.mode === d[0] ? ' on' : '') + '"><circle class="bdialhit" cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="13"/>' +
+      s += '<g data-dial="' + d[0] + '" class="bdial' + (m.mode === d[0] ? ' on' : '') + '"><circle class="bdialhit" cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="' + (13 * HIT).toFixed(1) + '"/>' +
         '<text x="' + lx.toFixed(1) + '" y="' + (ly + 4).toFixed(1) + '">' + d[2] + '</text></g>';
     });
     var cur = DIAL.filter(function (d) { return d[0] === m.mode; })[0] || DIAL[0];
@@ -6862,25 +6921,29 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<rect x="-114" y="-68" width="158" height="120" rx="6" fill="#1a1f25"/><rect x="-110" y="-64" width="150" height="112" rx="4" fill="#07110c"/>';
     for (var i = 1; i < 10; i++) s += '<path d="M' + (-110 + i * 15) + ' -64V48" class="bscgrid"/>';
     for (i = 1; i < 8; i++) s += '<path d="M-110 ' + (-64 + i * 14) + 'H40" class="bscgrid"/>';
-    if (sc && sc.pts && sc.pts.length) s += '<polyline class="bsctrace" points="' + sc.pts.map(function (p) { return (-110 + p[0] * 150).toFixed(1) + ',' + (48 - p[1] * 112).toFixed(1); }).join(' ') + '"/>';
+    var tr = function (pts, cls) { return pts && pts.length ? '<polyline class="' + cls + '" points="' + pts.map(function (p) { return (-110 + p[0] * 150).toFixed(1) + ',' + (48 - p[1] * 112).toFixed(1); }).join(' ') + '"/>' : ''; };
+    if (sc) { if (!sc.ch || sc.ch[1] !== false) s += tr(sc.pts, 'bsctrace'); if (!sc.ch || sc.ch[2] !== false) s += tr(sc.pts2, 'bsctrace bsctrace2'); }
+    var ch = (sc && sc.ch) || { 1: true, 2: true };
     s += '<text class="bscinfo" x="-105" y="44">' + esc(sc && sc.info ? sc.info : own ? 'CH1: Tastkopf anschliessen · RUN' : 'CH1 = Messspitzen · RUN') + '</text>' +
+      (own ? '<g data-scope="ch1" class="bscch' + (ch[1] !== false ? ' on' : '') + '"><rect x="-110" y="54" width="30" height="12" rx="3"/><circle cx="-103" cy="60" r="2.6" class="bscled1"/><text x="-90" y="63">CH1</text></g>' +
+             '<g data-scope="ch2" class="bscch' + (ch[2] !== false ? ' on' : '') + '"><rect x="-76" y="54" width="30" height="12" rx="3"/><circle cx="-69" cy="60" r="2.6" class="bscled2"/><text x="-56" y="63">CH2</text></g>' : '') +
       '<path d="M-110-64L-30-64L-95 48H-110Z" fill="rgba(255,255,255,.04)"/>' +
       '<circle cx="70" cy="-44" r="13" fill="#1b1b1b"/><circle cx="70" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M70-44l0-9" stroke="#222" stroke-width="2"/>' +
       '<circle cx="102" cy="-44" r="13" fill="#1b1b1b"/><circle cx="102" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M102-44l6-6" stroke="#222" stroke-width="2"/>' +
       '<rect x="56" y="-14" width="12" height="6" rx="1.5" fill="#666"/><rect x="72" y="-14" width="12" height="6" rx="1.5" fill="#666"/><rect x="88" y="-14" width="12" height="6" rx="1.5" fill="#666"/><rect x="104" y="-14" width="12" height="6" rx="1.5" fill="#c9a227"/>' +
       '<text class="bdevtxt" x="70" y="-24">Y</text><text class="bdevtxt" x="102" y="-24">X</text>' +
       '<g data-scope="run" class="bscrun"><rect x="56" y="0" width="58" height="24" rx="5"/><text x="85" y="16">RUN</text></g>' +
-      socket([85, 50], '#1a1a1a') + '<text class="bdevtxt" x="60" y="54">CH1</text>';
+      socket([85, 50], '#1a1a1a') + '<text class="bdevtxt" x="60" y="54">CH1</text>' + (own ? socket([110, 50], '#1a1a1a') + '<text class="bdevtxt" x="122" y="66">CH2</text>' : '');
     return s + '</g>';
   }
   /* Parkplaetze der Messspitzen (Werkbank-Koordinaten): Multimeter rot/schwarz vor dem Geraet, Tastkopf und Erdungsclip vor dem Oszilloskop */
   var PARK = { a: function () { return devXY('meter', -54, 200); }, b: function () { return devXY('meter', -2, 200); },
-    tip: function () { return devXY('scope', -70, 118); }, gnd: function () { return devXY('scope', -14, 118); } };
+    tip: function () { return devXY('scope', -70, 118); }, gnd: function () { return devXY('scope', -14, 118); }, tip2: function () { return devXY('scope', 42, 118); } };
   Bench.PARK = PARK;
   function probeSvg(tip, col, park, which, grab) { // Pruefspitze: Metallspitze am Anschluss, Fingerschutz, Griff schraeg nach oben rechts
     var x = tip[0], y = tip[1];
     return '<g class="bprobe' + (park ? ' parked' : '') + (grab ? ' grab' : '') + '"' + (which ? ' data-probe="' + which + '"' : '') + '>' +
-      (grab ? '<circle class="bprobehit" cx="' + (x + 22) + '" cy="' + (y - 44) + '" r="30"/>' : '') +
+      (grab ? '<circle class="bprobehit" cx="' + (x + 22) + '" cy="' + (y - 44) + '" r="' + (30 * HIT).toFixed(1) + '"/>' : '') +
       '<g pointer-events="none">' + // nur der Griff (bprobehit) ist greifbar – der Spitzenkoerper darf keine Buchsen verdecken
       '<path d="M' + x + ' ' + y + 'l17 -32" stroke="#d0d4d6" stroke-width="2.6" stroke-linecap="round"/>' +
       '<path d="M' + (x + 12) + ' ' + (y - 27) + 'l10 -5" stroke="' + col + '" stroke-width="5" stroke-linecap="round"/>' +
@@ -7014,7 +7077,7 @@ body.has-exam-bar .top { padding-top: 50px; }
         ev.preventDefault();
         if (dv.dataset.dial && self.opts.onDial) self.opts.onDial(dv.dataset.dial);
         if (dv.dataset.range && self.opts.onRange) self.opts.onRange(dv.dataset.range);
-        if (dv.dataset.scope && self.opts.onScope) self.opts.onScope();
+        if (dv.dataset.scope && self.opts.onScope) self.opts.onScope(dv.dataset.scope); // 'run' | 'ch1' | 'ch2'
         return;
       }
       if (ev.isPrimary !== false) touches = {}; // neue Geste: haengengebliebene Zeiger vergessen
@@ -7055,7 +7118,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     function up(ev) {
       if (self._grab) { // Spitze losgelassen: Buchse unter dem Zeiger? sonst zurueck auf den Parkplatz
         var g = self._grab; self._grab = null; svg.classList.remove('probing');
-        var xy = self._pt(ev), hitPin = self.pinAt(xy, 26);
+        var xy = self._pt(ev), hitPin = self.pinAt(xy, 26 * HIT);
         if (hitPin) core.dropProbe(g.which, hitPin);
         else { self._snapBack(g.which, xy); core.dropProbe(g.which, null); }
         return;
@@ -7124,6 +7187,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     var wi = this.showFlow ? wireCurrents(L, res) : [];
     var used = {}; L.wires.forEach(function (w) { used[w.from] = (used[w.from] || 0) + 1; used[w.to] = (used[w.to] || 0) + 1; });
     function pp(pid) { var s = pid.split('.'); return byId[s[0]] ? self.pinPos(byId[s[0]], s[1]) : [0, 0]; }
+    var boxW = this.svg.getBoundingClientRect().width || 0; HIT = boxW && boxW < 600 ? Math.max(1, (this.view[2] / boxW) * 12 / 14) : 1; // nur auf kleinen Bildschirmen (Handy): Buchsen ≥ 24 px, sonst stören grosse Kreise dichte Logik-Layouts
     var h = [];
     h.push(DEFS);
     // Tisch (Holz mit Maserung) und Tischkante vorne
@@ -7176,7 +7240,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     L.parts.forEach(function (p) {
       Object.keys(GEO[p.type]).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = self.pinPos(p, pin), v = nodeV(pid), col = wcol(pid);
-        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="14"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen Masse' : '') + '</title></circle>' +
+        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (14 * HIT).toFixed(1) + '"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen Masse' : '') + '</title></circle>' +
           '<circle class="bpin' + (core.wireStart === pid ? ' active' : '') + (used[pid] ? ' used' : '') + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="12"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
         if (col && pin !== 'g' && used[pid]) h.push('<g transform="translate(' + (xy[0] + 12) + ' ' + (xy[1] - 14) + ') scale(1 ' + (1 / K) + ')"><text class="bvlabel">' + E.fmt(v, 'V') + '</text></g>');
       });
@@ -7191,9 +7255,9 @@ body.has-exam-bar .top { padding-top: 50px; }
     h.push(scopeSvg(this.scope, this.dragUX), meterSvg(this.meter));
     var dg = core.dragProbe, sn = this._snap, drag = this.dragUX;
     var cables = [['a', '#d32f2f', devXY('meter', this.meter.mode === 'A' ? -40 : 40, 88)], ['b', '#1e1e1e', devXY('meter', 0, 88)]];
-    if (drag) cables.push(['tip', '#e6b400', devXY('scope', 85, 50)], ['gnd', '#1e1e1e', devXY('scope', 85, 50)]);
+    if (drag) cables.push(['tip', '#e6b400', devXY('scope', 85, 50)], ['gnd', '#1e1e1e', devXY('scope', 85, 50)], ['tip2', '#38bdf8', devXY('scope', 110, 50)]); // CH2: blauer Tastkopf, gemeinsamer Erdungsclip
     cables.forEach(function (k) {
-      var which = k[0], scopeP = which === 'tip' || which === 'gnd', pid = scopeP ? core.scopeProbes[which] : core.probes[which], set = pid && byId[pid.split('.')[0]];
+      var which = k[0], scopeP = which === 'tip' || which === 'gnd' || which === 'tip2', pid = scopeP ? core.scopeProbes[which] : core.probes[which], set = pid && byId[pid.split('.')[0]];
       var tip = dg && dg.which === which ? [dg.x, dg.y] : sn && sn.which === which && sn.pos ? sn.pos : set ? pp(pid) : drag ? PARK[which]() : devXY('meter', (which === 'a' ? -34 : 18) - 20, 200);
       var jack = k[2], grip = [tip[0] + 38, tip[1] - 70];
       h.push('<g class="bmcable' + (scopeP ? ' bscable' : '') + '" filter="url(#bCable)" pointer-events="none"><path d="' + cablePath(jack, grip) + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="6" stroke-linecap="round"/>' +
@@ -7399,7 +7463,8 @@ body.has-exam-bar .top { padding-top: 50px; }
     buildSliders(); show(viewMode); rebuild(true);
     return {
       core: core, sim: function () { return live.res; }, time: function () { return live.state.t || 0; },
-      destroy: function () { dead = true; if (live.raf) cancelAnimationFrame(live.raf); el.innerHTML = ''; }
+      destroy: function () { dead = true; if (live.raf) cancelAnimationFrame(live.raf); el.innerHTML = ''; },
+      fit: function () { show(viewMode); } // nach Grössenänderung (Overlay «gross anzeigen») neu einpassen
     };
   }
   root.DQMini = { mount: mount };
@@ -7445,10 +7510,28 @@ body.has-exam-bar .top { padding-top: 50px; }
     setPlaying(false);
     return { el: bar, get speed() { return speed; }, get playing() { return playing; }, setPlaying: setPlaying };
   }
+  /* «Gross anzeigen» (L4, 05.10.2026): das Bild/Widget wandert samt Zustand in ein Overlay und beim Schliessen zurück an seinen Platz.
+   * Mini-Schaltungen werden danach neu eingepasst (inst.fit). Esc, × oder Klick daneben schliesst. Kein Pinch in der Lektion – die Seite scrollt. */
+  function bigShow(el, instOf) {
+    var ov = document.getElementById('visBig');
+    if (!ov) { ov = document.createElement('div'); ov.id = 'visBig'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Bild gross'); document.body.appendChild(ov); }
+    var mark = document.createElement('div'); mark.className = 'visual-mark'; el.parentNode.insertBefore(mark, el);
+    ov.innerHTML = '<div class="vb-back"></div><div class="vb-box"><div class="vb-head"><b>Gross anzeigen</b><span class="dim small">Esc oder Klick daneben schliesst</span><button class="vb-x" aria-label="Schliessen">×</button></div><div class="vb-body"></div></div>';
+    ov.querySelector('.vb-body').appendChild(el); el.classList.add('big'); ov.hidden = false; document.body.classList.add('vb-open');
+    var fitIt = function () { var i = instOf(); if (i && i.fit) try { i.fit(); } catch (e) { /* kein fit */ } window.dispatchEvent(new Event('resize')); };
+    requestAnimationFrame(fitIt);
+    function close() { ov.hidden = true; document.body.classList.remove('vb-open'); el.classList.remove('big'); if (mark.parentNode) mark.parentNode.replaceChild(el, mark); document.removeEventListener('keydown', onKey); requestAnimationFrame(fitIt); }
+    function onKey(ev) { if (ev.key === 'Escape') { ev.preventDefault(); close(); } }
+    ov.querySelector('.vb-back').onclick = close; ov.querySelector('.vb-x').onclick = close; document.addEventListener('keydown', onKey);
+    ov.querySelector('.vb-x').focus();
+    return close;
+  }
   function mount(el, v) {
     var t = TYPES[v.type];
     if (!t || !t.mount) { el.innerHTML = '<p class="dim small">Bild „' + v.type + '“ ist noch nicht verfügbar.</p>'; return null; }
     el.classList.add('visual', 'visual-' + v.type);
+    var bigBtn = document.createElement('button'); bigBtn.className = 'btn small visual-big'; bigBtn.title = 'Gross anzeigen'; bigBtn.setAttribute('aria-label', 'Bild gross anzeigen'); bigBtn.textContent = '⤢'; el.appendChild(bigBtn);
+    var instRef = { inst: null }; bigBtn.onclick = function () { bigShow(el, function () { return instRef.inst && instRef.inst.inst !== undefined ? instRef.inst.inst : instRef.inst; }); };
     var body = document.createElement('div'); body.className = 'visual-body'; el.appendChild(body);
     var cap = null; if (v.caption) { cap = document.createElement('p'); cap.className = 'visual-cap'; cap.innerHTML = v.caption; el.appendChild(cap); }
     if (v.collapsed) { // Bild erst auf Knopfdruck (hoechstens zwei Bilder je Lektion sichtbar)
@@ -7457,9 +7540,9 @@ body.has-exam-bar .top { padding-top: 50px; }
       var inst = null, holder = { get inst() { return inst; }, destroy: function () { if (inst && inst.destroy) inst.destroy(); } };
       btn.onclick = function () { btn.remove(); body.hidden = false; if (cap) cap.hidden = false; el.classList.remove('collapsed'); inst = t.mount(body, v); holder.shown = true; };
       el.insertBefore(btn, body);
-      return holder;
+      instRef.inst = holder; return holder;
     }
-    return t.mount(body, v);
+    instRef.inst = t.mount(body, v); return instRef.inst;
   }
   function check(v, E) {
     if (!v || typeof v !== 'object') return ['visual ist kein Objekt'];
@@ -9076,7 +9159,7 @@ body.has-exam-bar .top { padding-top: 50px; }
         onMessage: function (m) { status([{ cls: 'info', text: m }]); }
       });
       ed = new Editor($('#board'), { core: core });
-      bench = new Bench($('#bench'), { core: core, onDial: function (m) { setMeterMode(m); }, onRange: function (r) { setMeterRange(r); }, onScope: scope });
+      bench = new Bench($('#bench'), { core: core, onDial: function (m) { setMeterMode(m); }, onRange: function (r) { setMeterRange(r); }, onScope: function (k) { if (k === 'ch1' || k === 'ch2') toggleChannel(+k.slice(2)); else scope(); } });
       bindSheetHover($('#board')); bindSheetHover($('#bench'));
     }
     setView(t.sandbox ? 'bench' : preferredView(), t.sandbox);
@@ -9219,7 +9302,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       if (setTxt) parts.push('Schalter: ' + setTxt);
       if (m.value !== undefined) parts.push('Rechenwert – kein Messgerät, Ergebnis in ' + (m.unit || 'der angegebenen Einheit') + ' eintragen');
       else if (m.truth && !m.mode) parts.push(m.truth.q === 'i' ? 'A⎓ in Reihe mit ' + m.truth.sel + ' (Leitung an ' + m.truth.sel + ' lösen, Spitzen in die Lücke)' : 'V⎓ an ' + m.truth.sel);
-      else if (m.mode === 'AC') parts.push('Oszilloskop: Tastkopf CH1 an ' + m.a + ', Erdungsclip an ' + (m.b || 'Masse') + ', Bildbreite ' + tbLabel(suggestTb(t.ref)) + ', RUN – ' + ({ dc: 'Mittelwert ablesen', peak: 'Scheitelwert ablesen', pp: 'Spitze-Spitze ablesen', rms: 'Effektivwert', avg: 'Gleichrichtwert' }[m.q || 'dc'] || m.q));
+      else if (m.mode === 'AC') parts.push('Oszilloskop: Tastkopf CH' + (m.ch || 1) + ' an ' + m.a + ', Erdungsclip an ' + (m.b || 'Masse') + ', Bildbreite ' + tbLabel(suggestTb(t.ref)) + ', RUN – ' + ({ dc: 'Mittelwert ablesen', peak: 'Scheitelwert ablesen', pp: 'Spitze-Spitze ablesen', rms: 'Effektivwert', avg: 'Gleichrichtwert' }[m.q || 'dc'] || m.q));
       else {
         var u = m.mode === 'A' || m.mode === 'AAC' ? 'A' : m.mode === 'R' ? 'Ω' : 'V', mode = m.mode === 'A' ? 'A⎓ (in Reihe: Leitung lösen, Spitzen in die Lücke)' : m.mode === 'AAC' ? 'A~, Verfahren ' + ((m.meterType || 'trms').toUpperCase()) + ' (in Reihe: Leitung lösen, Spitzen in die Lücke)' : m.mode === 'R' ? 'Ω (spannungsfrei!)' : m.mode === 'VAC' ? 'V~, Verfahren ' + ((m.meterType || 'trms').toUpperCase()) : 'V⎓';
         parts.push('Messart ' + mode);
@@ -9654,7 +9737,7 @@ body.has-exam-bar .top { padding-top: 50px; }
    * bei wenigen Perioden die Kurve selbst; Werkbank-Schirm, Seitenleiste und grosses Oszilloskop zeichnen dieselben Punkte (pts).
    * Kennwerte max/min kommen aus E.acMeasure (eingeschwungen, fein abgetastet), sobald mindestens eine Periode im Bild ist; sonst
    * aus dem Bildausschnitt mit Hinweis «Bildbreite zu klein». pts = [x 0…1, y 0…1]; bei einem Band erst die Oberkante, dann die Unterkante rückwärts. */
-  function scopeCurve(layout, sp, T, label) {
+  function scopeCurve(layout, sp, T, label, chNo, scale) {
     var fr = sourceFreqs(layout), fmax = fr.length ? Math.max.apply(null, fr) : 0, fmin = fr.length ? Math.min.apply(null, fr) : 0, dt = T / 400;
     if (fmax > 0) dt = Math.min(dt, 1 / (fmax * 100)); dt = Math.max(dt, T / 40000);
     var rs = [], cs = []; (layout.parts || []).forEach(function (p) { var v = p.value !== undefined ? p.value : (p.props && p.props.value); if (p.type === 'resistor' && v > 0) rs.push(v); if (p.type === 'capacitor' && v > 0) cs.push(v); });
@@ -9665,7 +9748,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     var periods = fmin > 0 ? T * fmin : 0, short = fmin > 0 && periods < 0.999, ac = null;
     if (fmin > 0 && !short) { try { ac = E.acMeasure(layout, { a: sp.a, b: sp.b || undefined }); } catch (e) { ac = null; } }
     if (ac && ac.ok && !ac.static && isFinite(ac.max)) { mx = ac.max; mn = ac.min; } // exakte Kennwerte, unabhängig von der Bildbreite
-    var top = Math.max(1, Math.ceil(Math.max(mx, 0) * 1.1)), bot = Math.min(0, Math.floor(mn * 1.1)), span = top - bot;
+    var top = scale ? scale.top : Math.max(1, Math.ceil(Math.max(mx, 0) * 1.1)), bot = scale ? scale.bot : Math.min(0, Math.floor(mn * 1.1)), span = top - bot;
     // Huellkurve: Spalten; bei mehr Perioden als Spalten/2 ist das Bild ein Band aus den exakten Kennwerten (kein Aliasing)
     var cols = 300, pts = [], t0 = s.length ? s[0].t : 0; // nach dem Einschwingen beginnt die Aufzeichnung nicht bei t = 0
     if (s.length <= 2 * cols) pts = s.map(function (x) { return [(x.t - t0) / T, (x.ch0 - bot) / span]; });
@@ -9679,7 +9762,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     }
     var hint = short ? 'Bildbreite zu klein: weniger als eine Periode im Bild – Scheitelwert und Spitze-Spitze sind so nicht ablesbar, grössere Bildbreite wählen.' : '';
     return { samples: s, top: top, bot: bot, mx: mx, mn: mn, pts: pts, short: short, hint: hint, periods: periods,
-      info: 'CH1 ' + sp.a + (sp.b ? '–' + sp.b : '') + ' · ' + bot + '…' + top + ' V · ' + label + (short ? ' · zu klein!' : ''),
+      info: 'CH' + (chNo || 1) + ' ' + sp.a + (sp.b ? '–' + sp.b : '') + ' · ' + bot + '…' + top + ' V · ' + label + (short ? ' · zu klein!' : ''),
       text: 'Kanal: ' + sp.a + ' gegen ' + (sp.b || 'Masse') + ' · ' + bot + '…' + top + ' V · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') + (short ? ' · ' + hint : '') };
   }
   function updateMeter(r, mn) {
@@ -9745,8 +9828,19 @@ body.has-exam-bar .top { padding-top: 50px; }
    * sonst (Altbestand, Schema-Ansicht) die Messspitzen des Multimeters. */
   /* Kanal 1: eigener Tastkopf, sobald er auf der Werkbank angeschlossen ist; im Schaltplan (kein Tastkopf zum Ziehen) sonst die Multimeter-Spitzen */
   function scopeProbes() {
-    if (dragUX() && core && (core.scopeProbes.tip || viewMode === 'bench')) return { a: core.scopeProbes.tip, b: core.scopeProbes.gnd, own: true };
+    if (dragUX() && core && (core.scopeProbes.tip || viewMode === 'bench')) return { a: core.scopeProbes.tip, b: core.scopeProbes.gnd, a2: core.scopeProbes.tip2, own: true };
     return { a: meter.a, b: meter.b, own: false };
+  }
+  /* L3 (05.10.2026): zweiter Kanal – blauer Tastkopf CH2 gegen denselben Erdungsclip. Kanäle einzeln ein-/ausschaltbar (Gerät und Seitenleiste),
+   * beide Kurven auf gemeinsamer Skala, Kennwerte je Kanal, Phasenverschiebung CH2 gegen CH1 aus den steigenden Nulldurchgängen. */
+  var scopeCh = { 1: true, 2: true };
+  function toggleChannel(n) { scopeCh[n] = !scopeCh[n]; $$('#scopeCh [data-ch]').forEach(function (b) { b.classList.toggle('on', scopeCh[+b.dataset.ch]); }); if (lastScope) { bench.scope = Object.assign({}, bench.scope, { ch: scopeCh }); bench.render(); scope(); } else if (bench) { bench.scope = Object.assign({}, bench.scope || {}, { ch: scopeCh }); bench.render(); } log('scope_ch', { ch: n, on: scopeCh[n] }); }
+  function phaseShift(c1, c2, T0) { // Δt der ersten steigenden Nulldurchgänge (um den Gleichanteil), als Zeit und Winkel
+    if (!c1 || !c2 || !T0) return null;
+    function cross(s) { var dc = 0; s.forEach(function (x) { dc += x.ch0; }); dc /= s.length || 1; for (var k = 1; k < s.length; k++) if (s[k - 1].ch0 < dc && s[k].ch0 >= dc) return s[k].t - (s[k].ch0 - dc) / ((s[k].ch0 - s[k - 1].ch0) || 1e-12) * (s[k].t - s[k - 1].t); return null; }
+    var t1 = cross(c1.samples), t2 = cross(c2.samples); if (t1 === null || t2 === null) return null;
+    var dt = t2 - t1; dt = dt - Math.round(dt / T0) * T0; // auf (−T0/2, T0/2]
+    return { dt: dt, deg: dt / T0 * 360 };
   }
   function scope() {
     var cv = $('#scope'), ctx = cv.getContext('2d'), T = +$('#tb').value;
@@ -9760,19 +9854,30 @@ body.has-exam-bar .top { padding-top: 50px; }
       $('#scopeInfo').textContent = sp.own ? 'Tastkopf anschliessen: den gelben Tastkopf (CH1) an den Messpunkt ziehen, den schwarzen Erdungsclip an Masse bzw. den Bezugspunkt – dann RUN.' : 'Setze zuerst die rote Messspitze (Multimeter V).';
       bench.scope = { pts: [], info: sp.own ? 'Tastkopf anschliessen' : 'Zuerst rote Messspitze setzen (V)' }; bench.render(); return;
     }
-    var c;
-    try { c = scopeCurve(ed.layout, sp, T, $('#tb').selectedOptions[0].textContent); }
-    catch (e) { $('#scopeInfo').textContent = e.message; return; }
-    drawTrace(ctx, c, T, w, h);
-    lastScope = { c: c, T: T, layout: ed.layout, label: $('#tb').selectedOptions[0].textContent, sp: sp };
-    $('#scopeInfo').textContent = c.text;
-    bench.scope = { pts: c.pts, info: c.info };
+    var c, c2 = null, label = $('#tb').selectedOptions[0].textContent;
+    try {
+      c = scopeCurve(ed.layout, sp, T, label);
+      if (sp.own && sp.a2 && scopeCh[2]) { // CH2 auf derselben Skala wie CH1 (gemeinsame Masse)
+        c2 = scopeCurve(ed.layout, { a: sp.a2, b: sp.b }, T, label, 2);
+        var top = Math.max(c.top, c2.top), bot = Math.min(c.bot, c2.bot);
+        if (top !== c.top || bot !== c.bot) c = scopeCurve(ed.layout, sp, T, label, 1, { top: top, bot: bot });
+        if (top !== c2.top || bot !== c2.bot) c2 = scopeCurve(ed.layout, { a: sp.a2, b: sp.b }, T, label, 2, { top: top, bot: bot });
+      }
+    } catch (e) { $('#scopeInfo').textContent = e.message; return; }
+    if (scopeCh[1]) drawTrace(ctx, c, T, w, h, '#ffb000');
+    if (c2) drawTrace(ctx, c2, T, w, h, '#38bdf8');
+    var fr0 = sourceFreqs(ed.layout), ph = c2 ? phaseShift(c, c2, fr0.length ? 1 / Math.min.apply(null, fr0) : 0) : null;
+    lastScope = { c: c, c2: c2, phase: ph, T: T, layout: ed.layout, label: label, sp: sp };
+    $('#scopeInfo').textContent = (c2 ? 'CH1 ' : '') + c.text + (c2 ? ' · CH2 ' + c2.text.replace(/^Kanal: /, '') + (ph ? ' · Phase CH2→CH1 ' + E.fmt(ph.dt, 's') + ' (' + ph.deg.toFixed(0) + '°)' : '') : '');
+    $('#scopeCh').hidden = !sp.own;
+    bench.scope = { pts: c.pts, pts2: c2 ? c2.pts : null, info: c.info + (c2 ? ' · CH2 ' + c2.bot + '…' + c2.top + ' V' : ''), ch: scopeCh };
     bench.render();
-    log('scope', { id: current.task && current.task.id, T: T });
+    log('scope', { id: current.task && current.task.id, T: T, ch2: !!c2 });
   }
 
-  function drawTrace(ctx, c, T, w, h) {
-    ctx.strokeStyle = '#ffb000'; ctx.lineWidth = 2 * (window.devicePixelRatio || 1); ctx.shadowColor = '#ffb000'; ctx.shadowBlur = 6; ctx.beginPath();
+  function drawTrace(ctx, c, T, w, h, color) {
+    color = color || '#ffb000';
+    ctx.strokeStyle = color; ctx.lineWidth = 2 * (window.devicePixelRatio || 1); ctx.shadowColor = color; ctx.shadowBlur = 6; ctx.beginPath();
     c.pts.forEach(function (p, k) { var px = p[0] * w, py = h - p[1] * h; if (k) ctx.lineTo(px, py); else ctx.moveTo(px, py); }); // dieselben Punkte wie der Werkbank-Schirm (Kurve oder Hüllkurve)
     if (c.pts.length > 600) ctx.closePath();
     ctx.stroke(); ctx.shadowBlur = 0;
@@ -9787,7 +9892,11 @@ body.has-exam-bar .top { padding-top: 50px; }
     if (!sc) { el.innerHTML = '<div class="sb-back"></div><div class="sb-box"><div class="sb-head"><b>Oszilloskop</b><button class="sb-x" aria-label="Schliessen">×</button></div><p class="dim">Noch keine Aufnahme: zuerst Tastkopf bzw. Messspitzen setzen und RUN / „Aufnahme“ drücken.</p></div>'; }
     else {
       var c = sc.c, src = (sc.layout.parts || []).filter(function (p) { return p.type === 'acsource' || p.type === 'clock'; }), f = src.length ? Math.min.apply(null, src.map(function (p) { return (p.props && p.props.freq) || E.PARTS[p.type].props.freq || 50; })) : 0;
-      var stat = [['Û+ (max)', E.fmt(c.mx, 'V')], ['Û− (min)', E.fmt(c.mn, 'V')], ['Uss', E.fmt(c.mx - c.mn, 'V')], ['Bildbreite', sc.label], ['Raster', E.fmt(sc.T / 10, 's') + ' / Div']];
+      var c2 = sc.c2, p1 = c2 ? 'CH1 ' : '';
+      var stat = [[p1 + 'Û+ (max)', E.fmt(c.mx, 'V')], [p1 + 'Û− (min)', E.fmt(c.mn, 'V')], [p1 + 'Uss', E.fmt(c.mx - c.mn, 'V')]];
+      if (c2) stat.push(['CH2 Û+ (max)', E.fmt(c2.mx, 'V')], ['CH2 Û− (min)', E.fmt(c2.mn, 'V')], ['CH2 Uss', E.fmt(c2.mx - c2.mn, 'V')]);
+      if (sc.phase) stat.push(['Phase CH2→CH1', E.fmt(sc.phase.dt, 's') + ' / ' + sc.phase.deg.toFixed(0) + '°']);
+      stat.push(['Bildbreite', sc.label], ['Raster', E.fmt(sc.T / 10, 's') + ' / Div']);
       if (f) stat.push(['Quelle f', E.fmt(f, 'Hz')], ['Periode T', E.fmt(1 / f, 's')]);
       if (c.short) stat.push(['Hinweis', 'Bildbreite zu klein – Û und Uss nicht ablesbar']);
       el.innerHTML = '<div class="sb-back"></div><div class="sb-box"><div class="sb-head"><b>Oszilloskop</b><span class="dim small">' + esc(c.info) + '</span><button class="sb-x" aria-label="Schliessen">×</button></div>' +
@@ -9800,7 +9909,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       for (var i = 1; i < 10; i++) { ctx.beginPath(); ctx.moveTo(w * i / 10, 0); ctx.lineTo(w * i / 10, h); ctx.stroke(); }
       for (i = 1; i < 8; i++) { ctx.beginPath(); ctx.moveTo(0, h * i / 8); ctx.lineTo(w, h * i / 8); ctx.stroke(); }
       ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = (12 * dpr) + 'px ' + 'monospace'; ctx.fillText(c.top + ' V', 6 * dpr, 14 * dpr); ctx.fillText(c.bot + ' V', 6 * dpr, h - 6 * dpr);
-      drawTrace(ctx, c, sc.T, w, h);
+      drawTrace(ctx, c, sc.T, w, h, '#ffb000'); if (c2) drawTrace(ctx, c2, sc.T, w, h, '#38bdf8');
     }
     el.hidden = false; document.body.classList.add('sb-open');
     var close = function () { el.hidden = true; document.body.classList.remove('sb-open'); document.removeEventListener('keydown', esc1); };
@@ -10196,6 +10305,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     else brand.onclick = function (ev) { ev.preventDefault(); if (EXAM) { EXAM.back(); return; } goMap(); };
     if (!root.DQ_PORTAL) { $('#footImp').href = 'https://digital-quest.steven-matzinger93.workers.dev/impressum.html'; $('#footDs').href = 'https://digital-quest.steven-matzinger93.workers.dev/datenschutz.html'; $$('.lab-foot a').forEach(function (a) { a.target = '_blank'; a.rel = 'noopener'; }); }
     $('#btnScopeBig').onclick = function () { scopeBig(); };
+    $$('#scopeCh [data-ch]').forEach(function (b) { b.onclick = function () { toggleChannel(+b.dataset.ch); }; });
     window.addEventListener('popstate', function () {
       if (root.DQCalc && root.DQCalc.isOpen) { root.DQCalc.close(); return; } // Zurueck schliesst zuerst den Rechner
       if ($('#scopeBig') && !$('#scopeBig').hidden) { $('#scopeBig .sb-x').click(); return; }

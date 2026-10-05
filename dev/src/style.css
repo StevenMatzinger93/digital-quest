@@ -166,6 +166,9 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .brange text { font: 700 6.5px var(--font-code); fill: #cfcfcf; text-anchor: middle; pointer-events: none; } .brange.on rect { fill: #ffb000; stroke: #ffb000; } .brange.on text { fill: #111; }
 .bscgrid { stroke: rgba(57,255,20,.13); stroke-width: 1; } .bsctrace { fill: none; stroke: #ffb000; stroke-width: 2; filter: drop-shadow(0 0 3px #ffb000); }
 .bscinfo { font: 8px var(--font-code); fill: #7fd98a; pointer-events: none; }
+.bsctrace2 { stroke: #38bdf8; filter: drop-shadow(0 0 3px #38bdf8); } /* zweiter Kanal (L3) */
+.bscch { cursor: pointer; } .bscch rect { fill: #2a2f36; stroke: #14181d; } .bscch text { font: 700 7px var(--font-code); fill: #9aa; text-anchor: middle; pointer-events: none; } .bscch circle { fill: #333; } .bscch.on .bscled1 { fill: #ffb000; filter: drop-shadow(0 0 2px #ffb000); } .bscch.on .bscled2 { fill: #38bdf8; filter: drop-shadow(0 0 2px #38bdf8); } .bscch.on text { fill: #e8e8e8; }
+.scope-ch { display: flex; gap: 6px; margin: 4px 0; } .scope-ch button.ch1.on { border-color: #ffb000; color: #ffb000; } .scope-ch button.ch2.on { border-color: #38bdf8; color: #38bdf8; } .scope-ch button { opacity: .55; } .scope-ch button.on { opacity: 1; }
 .bscrun { cursor: pointer; } .bscrun rect { fill: #2e7d32; stroke: #0f3a12; } .bscrun:hover rect { fill: #43a047; } .bscrun text { font: 700 11px var(--font-code); fill: #fff; text-anchor: middle; pointer-events: none; }
 /* Touch: groessere Klickflaechen fuer Buchsen/Anschluesse */
 @media (pointer: coarse) { .bpinhit { r: 22px; } .pinhit { r: 17px; } .bdialhit { r: 17px; } }
@@ -467,6 +470,13 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 /* Vorführ-Modus */
 #demoBox { margin: 8px 0; } .demo { border: 1px solid var(--accent-cyan); border-radius: 10px; padding: 8px 10px; background: rgba(30,200,224,.06); }
 .demo-head { display: flex; align-items: center; gap: 10px; } .demo-head b { color: var(--accent-cyan); } .demo-head .small { flex: 1; } .demo-text { margin: 6px 0; font-size: 14px; min-height: 20px; } .demo-rw .wk-row { margin: 2px 0 4px; }
+
+/* «Gross anzeigen» für Theorie-Bilder (L4) */
+.visual { position: relative; } .visual-big { position: absolute; top: 2px; right: 2px; z-index: 2; padding: 2px 8px; opacity: .7; } .visual-big:hover { opacity: 1; } .visual.collapsed .visual-big { display: none; }
+#visBig { position: fixed; inset: 0; z-index: 620; } #visBig[hidden] { display: none; } .vb-back { position: absolute; inset: 0; background: rgba(0,0,0,.65); }
+.vb-box { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(1100px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow: auto; background: var(--bg-secondary); border: 1px solid var(--accent-lead-dim); border-radius: 14px; padding: 12px 14px; box-shadow: 0 18px 50px rgba(0,0,0,.6); }
+.vb-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; } .vb-head b { color: var(--accent-lead); } .vb-head .small { flex: 1; } .vb-x { background: none; border: 0; color: var(--text-dim); font-size: 24px; line-height: 1; cursor: pointer; } .vb-x:hover { color: var(--text-primary); }
+.visual.big .mini-stage { height: min(70vh, 640px) !important; } .visual.big .visual-big { display: none; } .visual.big svg.benchicon, .visual.big .visual-body > svg { max-height: 80vh; width: 100%; height: auto; }
 
 /* Zusatzbloecke in Lektionen, eingeklappte Bilder, Abspielsteuerung */
 .lesson details.zusatz { margin: 10px 0; border: 1px dashed var(--line); border-radius: 10px; padding: 6px 12px; } .lesson details.zusatz summary { cursor: pointer; color: var(--accent-cyan); font-weight: 600; } .lesson details.zusatz[open] summary { margin-bottom: 6px; }

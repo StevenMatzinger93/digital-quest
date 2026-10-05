@@ -151,7 +151,8 @@
     buildSliders(); show(viewMode); rebuild(true);
     return {
       core: core, sim: function () { return live.res; }, time: function () { return live.state.t || 0; },
-      destroy: function () { dead = true; if (live.raf) cancelAnimationFrame(live.raf); el.innerHTML = ''; }
+      destroy: function () { dead = true; if (live.raf) cancelAnimationFrame(live.raf); el.innerHTML = ''; },
+      fit: function () { show(viewMode); } // nach Grössenänderung (Overlay «gross anzeigen») neu einpassen
     };
   }
   root.DQMini = { mount: mount };

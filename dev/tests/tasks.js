@@ -46,7 +46,7 @@ async function atomicDrag(page, which, pid) {
     svg.dispatchEvent(ev('pointermove', (a.left + b.left) / 2, (a.top + b.top) / 2));
     svg.dispatchEvent(ev('pointermove', b.left + b.width / 2, b.top + b.height / 2));
     svg.dispatchEvent(ev('pointerup', b.left + b.width / 2, b.top + b.height / 2));
-    const set = which === 'tip' || which === 'gnd' ? DigitalQuest.core.scopeProbes[which] : DigitalQuest.core.probes[which];
+    const set = which === 'tip' || which === 'gnd' || which === 'tip2' ? DigitalQuest.core.scopeProbes[which] : DigitalQuest.core.probes[which];
     return set === pid ? 'ok' : 'Spitze ' + which + ' liegt nicht an ' + pid + ' (' + set + ')';
   }, [which, pid]);
   if (r !== 'ok') throw new Error(r);
