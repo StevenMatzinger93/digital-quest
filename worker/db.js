@@ -211,6 +211,26 @@ const MIGRATIONS = [
        remaining INTEGER NOT NULL,
        created_at INTEGER NOT NULL
      )`
+  ]},
+  // Paket A (05.10.2026): Tier-Avatare und Coins (nur verdienbar, rein kosmetisch). Stand = Spielstand (berechnet) + coin_ledger.
+  { id: 7, name: 'avatare-coins', sql: [
+    `CREATE TABLE IF NOT EXISTS avatars (
+       user_id INTEGER PRIMARY KEY,
+       animal TEXT NOT NULL,
+       color TEXT NOT NULL,
+       equip TEXT NOT NULL DEFAULT '{}',
+       updated_at INTEGER NOT NULL
+     )`,
+    `CREATE TABLE IF NOT EXISTS coin_ledger (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       user_id INTEGER NOT NULL,
+       amount INTEGER NOT NULL,
+       source TEXT NOT NULL,
+       ref TEXT NOT NULL,
+       created_at INTEGER NOT NULL,
+       UNIQUE(user_id, source, ref)
+     )`,
+    `CREATE INDEX IF NOT EXISTS coin_ledger_user ON coin_ledger(user_id)`
   ]}
 ];
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].id;

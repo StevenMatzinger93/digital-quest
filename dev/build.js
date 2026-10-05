@@ -7,6 +7,7 @@
 //     data/dq_live.json    Musterschaltungen und Stoerungsszenarien (aus den wrong-Loesungen)
 //     sw.js                ein Service Worker fuer Portal und Spiel, /api/ nie aus dem Cache
 //   ../worker/gen/exam_bundle.js   Engine + Pruefungspool fuer den Worker (Bewertung der Pruefungen auf dem Server)
+//   ../worker/gen/avatar_bundle.js Avatar-Katalog und Coin-Regeln (src/avatar_core.js), Kollektionen je Teil (AVATAR_META) und Boss-Aufgaben (FINAL_TASKS)
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 // Zeilenenden vereinheitlichen: Git unter Windows checkt mit CRLF aus
 const src = p => fs.readFileSync(path.join(__dirname, 'src', p), 'utf8').split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
@@ -116,9 +117,28 @@ const NL = String.fromCharCode(10);
 const bundle = ['// GENERIERT von dev/build.js – nicht von Hand ändern. Engine, Prüfungskern und Prüfungspool für den Worker.']
   .concat(bundleParts.map(f => '/* ==== ' + f + ' ==== */' + NL + src(f)))
   .concat(['/* ==== Theoriefragen (aus den Lektionen) ==== */', JSON.stringify(XP.questions) + '.forEach(q => globalThis.defExamQuestion(q));',
-    'export const Exam = globalThis.DQExam;', 'export const QUEST_TASKS = ' + JSON.stringify(QUEST_TASKS) + ';', '']).join(NL);
+    'export const Exam = globalThis.DQExam;', 'export const Engine = globalThis.DQEngine;', 'export const QUEST_TASKS = ' + JSON.stringify(QUEST_TASKS) + ';', '']).join(NL);
 fs.mkdirSync(path.join(root, 'worker', 'gen'), { recursive: true });
 fs.writeFileSync(path.join(root, 'worker', 'gen', 'exam_bundle.js'), bundle);
+
+/* ---------- Worker: Avatare und Coins (Paket A) – Kollektionen = Teile I–V, Übungswerkstatt zählt zur Messtechnik ---------- */
+const AVATAR_KEYS = { I: 'elektro', II: 'digital', III: 'kombi', IV: 'praxis', V: 'messen' };
+const AVATAR_META = {};
+DQ.parts.forEach(p => {
+  const key = AVATAR_KEYS[p.no]; if (!key) throw new Error('Avatar-Kollektion fehlt für Teil ' + p.no);
+  const tasks = DQ.tasks.filter(t => p.chapters.includes(t.ch)).concat(key === 'messen' ? DQ.workshop.sequence.map(id => DQ.byId[id]) : []);
+  const theory = DQ.theories.filter(t => p.chapters.includes(t.ch));
+  const meta = {};
+  tasks.filter(t => t.boss).forEach(t => { meta[t.id] = { boss: t.id !== DQ.awards.profi.boss, final: t.id === DQ.awards.profi.boss, ch: t.ch }; });
+  meta.$ = { name: p.title, tasks: tasks.length, theoryAll: theory.length, ids: tasks.map(t => t.id), theoryIds: theory.map(t => t.id) };
+  AVATAR_META[key] = meta;
+});
+// Boss-Aufgaben mit Tests (ohne Texte): der Worker prüft damit den gespeicherten Entwurf, bevor er Boss-/Final-Teile freigibt
+const FINAL_TASKS = {};
+[DQ.awards.grund.boss, DQ.awards.profi.boss].forEach(id => { const t = DQ.byId[id]; FINAL_TASKS[id] = { id, need: t.need || {}, limit: t.limit || {}, tests: t.tests || [], measure: t.measure || [], final: id === DQ.awards.profi.boss }; });
+const avatarBundle = ['// GENERIERT von dev/build.js – nicht von Hand ändern. Avatar-Katalog und Coin-Regeln (dev/src/avatar_core.js), Kollektionen je Teil und Boss-Aufgaben für den Worker.',
+  src('avatar_core.js'), 'export const Avatar = globalThis.SPSQAvatar;', 'export const AVATAR_META = ' + JSON.stringify(AVATAR_META) + ';', 'export const FINAL_TASKS = ' + JSON.stringify(FINAL_TASKS) + ';', ''].join(NL);
+fs.writeFileSync(path.join(root, 'worker', 'gen', 'avatar_bundle.js'), avatarBundle);
 for (const f of files) if (/content_exam|exam_core/.test(f)) throw new Error('Prüfungspool darf nicht ins Spiel: ' + f);
 if (/defExamTask|"hidden"/.test(game)) throw new Error('Prüfungspool ist im Spiel gelandet');
 

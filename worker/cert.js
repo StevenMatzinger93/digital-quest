@@ -2,6 +2,7 @@
 // Nach dem Vorbild von SPS Quest. Prüfcode DQ-XXXX-XXXX.
 import { json, fail, now, cleanText, randomCode } from './lib.js';
 import { LEVEL_NAME, examRow } from './exam.js';
+import { awardCert } from './avatar.js';
 
 const QNAME = { dq: 'Digital' };
 const CODE_RE = /^DQ-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/;
@@ -70,6 +71,7 @@ async function issue(C){
   const code = await uniqueCode(C);
   await C.db.prepare('INSERT INTO certificates (id, user_id, exam_id, quest, level, holder_name, score, distinction, proctored, proctor_label, issued_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .bind(code, C.user.id, e.id, e.quest, e.level, name, e.score, e.distinction ? 1 : 0, e.session_id ? 1 : 0, proctor, now()).run();
+  await awardCert(C, C.user.id, e.quest, e.level, !!e.distinction).catch(() => {});   // Paket A: Zertifikats-Coins, einmal je Stufe
   return json({ certificate: await ownView(C, code) }, 201);
 }
 async function ownView(C, code){

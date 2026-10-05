@@ -2,6 +2,7 @@
 // Dozent startet eine Challenge (Sprint oder Störungsjagd) und erhält einen 4-stelligen Code,
 // Lernende treten mit ihrem Konto bei. Beamer und Spiel fragen den Stand alle 2–3 s ab (Polling, D1).
 import { json, fail, now, randomDigits, cleanText } from './lib.js';
+import { awardSpeedrun } from './avatar.js';
 
 const MODES = ['sprint', 'bug'];
 const QUESTS = ['dq'];
@@ -38,8 +39,14 @@ async function closeIfOver(C, ch){
   if(ch.state === 'running' && ch.ends_at && t >= ch.ends_at){
     await C.db.prepare("UPDATE challenges SET state = 'ended', ended_at = ends_at WHERE id = ? AND state = 'running'").bind(ch.id).run();
     ch.state = 'ended'; ch.ended_at = ch.ends_at;
+    await prizes(C, ch);
   }
   return ch;
+}
+// Paket A: Coin-Prämien beim Ende (Rang 1–3, gelöst, Teilnahme) – höchstens einmal je Challenge (UNIQUE im coin_ledger)
+async function prizes(C, ch){
+  try{ const pl = (await players(C, ch.id)).map(p => Object.assign(p, { points: p.points || livePoints(ch, p) })); await awardSpeedrun(C, ch, rank(pl)); }
+  catch(e){ console.warn('Coin-Prämie', e && e.message); }
 }
 // Punkte: 500 + bis 500 fuer Tempo − 50 je Fehlversuch (hoechstens 250) − 100 je Tipp, mindestens 100
 export function livePoints(ch, pl){
@@ -50,7 +57,7 @@ export function livePoints(ch, pl){
   const base = 500 + Math.round(500 * Math.max(0, 1 - t / dur));
   return Math.max(100, base - Math.min(250, 50 * fails) - 100 * pl.hints);
 }
-function rank(players){
+export function rank(players){
   const sorted = players.slice().sort((a, b) => {
     if(!!b.solved_at !== !!a.solved_at) return b.solved_at ? 1 : -1;
     if(a.solved_at) return (b.points - a.points) || (a.solved_at - b.solved_at);
@@ -134,6 +141,7 @@ async function control(C, H, id, action){
   } else if(action === 'stop'){
     if(ch.state === 'ended') return json({ ok: true });
     await C.db.prepare("UPDATE challenges SET state = 'ended', ended_at = ?, ends_at = CASE WHEN ends_at IS NULL OR ends_at > ? THEN ? ELSE ends_at END WHERE id = ?").bind(t, t, t, id).run();
+    ch.state = 'ended'; ch.ended_at = t; await prizes(C, ch);
   } else if(action === 'show'){
     const uid = C.body.userId ? +C.body.userId : null;
     await C.db.prepare('UPDATE challenges SET show_uid = ? WHERE id = ?').bind(uid, id).run();

@@ -9,6 +9,7 @@ import { reportRoutes } from './reports.js';
 import { assignRoutes, wipeAssignments } from './assign.js';
 import { examRoutes } from './exam.js';
 import { certRoutes, verifyPage } from './cert.js';
+import { avatarRoutes, avatarOf, avatarsFor } from './avatar.js';
 
 const COOKIE = 'dq_sess';
 const HEADER = 'x-dquest';
@@ -52,7 +53,7 @@ async function route(req, env, url, ctx){
   if(p === '/api/class-info' && m === 'GET') return classInfo(C);
 
   const H = { currentUser, requireRole, ownClass, studentOf };
-  const r = (await challengeRoutes(C, p, m, H)) || (await reportRoutes(C, p, m, H)) || (await assignRoutes(C, p, m, H)) || (await examRoutes(C, p, m, H)) || (await certRoutes(C, p, m, H));
+  const r = (await challengeRoutes(C, p, m, H)) || (await reportRoutes(C, p, m, H)) || (await assignRoutes(C, p, m, H)) || (await examRoutes(C, p, m, H)) || (await certRoutes(C, p, m, H)) || (await avatarRoutes(C, p, m, H));
   if(r) return r;
 
   C.user = await currentUser(C);
@@ -234,6 +235,7 @@ async function publicUser(C, u){
   const out = { id: u.id, username: u.username, role: u.role, noticeAck: !!u.notice_ack, mustChange: !!u.must_change };
   if(u.role === 'admin') out.secretAdmin = u.pw === '!secret';   // Passwort nur in den Worker-Secrets änderbar
   if(u.role !== 'student') out.displayName = u.display_name || '';
+  out.avatar = await avatarOf(C, u.id).catch(() => null);   // Paket A: Tier-Avatar (null = noch keiner gewählt)
   if(u.role === 'student' && u.class_id){
     const c = await C.db.prepare('SELECT c.name, u.username AS teacher FROM classes c JOIN users u ON u.id = c.teacher_id WHERE c.id = ?').bind(u.class_id).first();
     if(c) out.class = { id: u.class_id, name: c.name, teacher: c.teacher };
@@ -279,6 +281,8 @@ async function wipeUser(C, id, deleteCertificates){
     C.db.prepare('DELETE FROM challenge_players WHERE user_id = ?').bind(id),
     C.db.prepare('DELETE FROM assignments WHERE user_id = ?').bind(id),
     C.db.prepare('UPDATE feedback_reports SET user_id = NULL, username = NULL WHERE user_id = ?').bind(id),
+    C.db.prepare('DELETE FROM avatars WHERE user_id = ?').bind(id),
+    C.db.prepare('DELETE FROM coin_ledger WHERE user_id = ?').bind(id),
     C.db.prepare('DELETE FROM users WHERE id = ?').bind(id)
   ]);
 }
@@ -402,6 +406,8 @@ async function getClass(C, id){
       noticeAck: !!row.notice_ack, mustChange: !!row.must_change, progress: {} });
     if(row.quest) s.progress[row.quest] = Object.assign(JSON.parse(row.summary || '{}'), { updatedAt: row.updated_at });
   });
+  const avs = await avatarsFor(C, Object.keys(by).map(Number));   // Paket A: Avatar je Konto für die Klassenliste
+  Object.values(by).forEach(s => { s.avatar = avs[s.id] || null; });
   return json({ class: { id: c.id, name: c.name, code: c.code, selfSignup: !!c.self_signup, createdAt: c.created_at }, students: Object.values(by) });
 }
 async function patchClass(C, id){
