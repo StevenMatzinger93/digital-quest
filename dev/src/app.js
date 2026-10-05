@@ -840,19 +840,38 @@
     return { text: txt, sub: sub, warn: warn, ol: ol, range: rg ? E.rangeLabel(rg, unit) : null };
   }
   /* Kurve fuers Oszilloskop (Aufgabe und Tutorial): Abtastung ueber T Sekunden, Skala, Punkte fuer den Werkbank-Schirm */
-  /* Oszilloskop-Kurve: Abtastung mindestens 50 Punkte je Periode der schnellsten Quelle (kein Aliasing bei langer Bildbreite),
-   * vorher Einschwingen wie E.acMeasure (5·R·C, höchstens 3 s), damit die Kurve den eingeschwungenen Zustand zeigt. */
+  /* Oszilloskop-Kurve (Paket O, 05.10.2026): Abtastung mindestens 100 Punkte je Periode der schnellsten Quelle, vorher Einschwingen
+   * wie E.acMeasure (5·R·C, höchstens 3 s). Anzeige als Hüllkurve: je Bildspalte Minimum und Maximum (bei vielen Perioden ein Band),
+   * bei wenigen Perioden die Kurve selbst; Werkbank-Schirm, Seitenleiste und grosses Oszilloskop zeichnen dieselben Punkte (pts).
+   * Kennwerte max/min kommen aus E.acMeasure (eingeschwungen, fein abgetastet), sobald mindestens eine Periode im Bild ist; sonst
+   * aus dem Bildausschnitt mit Hinweis «Bildbreite zu klein». pts = [x 0…1, y 0…1]; bei einem Band erst die Oberkante, dann die Unterkante rückwärts. */
   function scopeCurve(layout, sp, T, label) {
-    var fr = sourceFreqs(layout), fmax = fr.length ? Math.max.apply(null, fr) : 0, dt = T / 400;
-    if (fmax > 0) dt = Math.min(dt, 1 / (fmax * 50)); dt = Math.max(dt, T / 20000);
+    var fr = sourceFreqs(layout), fmax = fr.length ? Math.max.apply(null, fr) : 0, fmin = fr.length ? Math.min.apply(null, fr) : 0, dt = T / 400;
+    if (fmax > 0) dt = Math.min(dt, 1 / (fmax * 100)); dt = Math.max(dt, T / 40000);
     var rs = [], cs = []; (layout.parts || []).forEach(function (p) { var v = p.value !== undefined ? p.value : (p.props && p.props.value); if (p.type === 'resistor' && v > 0) rs.push(v); if (p.type === 'capacitor' && v > 0) cs.push(v); });
     var tauMax = rs.length && cs.length ? Math.max.apply(null, rs) * Math.max.apply(null, cs) : 0, settle = null;
     if (fr.length && tauMax > 0) { var T0 = 1 / Math.min.apply(null, fr); settle = { t: Math.ceil(Math.min(5 * tauMax, 3) / T0) * T0, dt: T0 / 40 }; } // ohne Wechselquelle (Ladekurve) bewusst ab t = 0
     var s = E.simulate(layout, { dt: dt, tEnd: T, settle: settle, probes: [{ a: sp.a, b: sp.b || undefined }] }).samples;
     var vs = s.map(function (x) { return x.ch0; }), mx = Math.max.apply(null, vs), mn = Math.min.apply(null, vs);
-    var top = Math.max(1, Math.ceil(Math.max(mx, 0) * 1.1)), bot = Math.min(0, Math.floor(mn * 1.1)), stepN = Math.max(1, Math.floor(s.length / 150));
-    return { samples: s, top: top, bot: bot, mx: mx, mn: mn, pts: s.filter(function (x, k) { return k % stepN === 0; }).map(function (x) { return [x.t / T, (x.ch0 - bot) / (top - bot)]; }),
-      info: 'CH1 ' + sp.a + (sp.b ? '–' + sp.b : '') + ' · ' + bot + '…' + top + ' V · ' + label, text: 'Kanal: ' + sp.a + ' gegen ' + (sp.b || 'Masse') + ' · ' + bot + '…' + top + ' V · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') };
+    var periods = fmin > 0 ? T * fmin : 0, short = fmin > 0 && periods < 0.999, ac = null;
+    if (fmin > 0 && !short) { try { ac = E.acMeasure(layout, { a: sp.a, b: sp.b || undefined }); } catch (e) { ac = null; } }
+    if (ac && ac.ok && !ac.static && isFinite(ac.max)) { mx = ac.max; mn = ac.min; } // exakte Kennwerte, unabhängig von der Bildbreite
+    var top = Math.max(1, Math.ceil(Math.max(mx, 0) * 1.1)), bot = Math.min(0, Math.floor(mn * 1.1)), span = top - bot;
+    // Huellkurve: Spalten; bei mehr Perioden als Spalten/2 ist das Bild ein Band aus den exakten Kennwerten (kein Aliasing)
+    var cols = 300, pts = [], t0 = s.length ? s[0].t : 0; // nach dem Einschwingen beginnt die Aufzeichnung nicht bei t = 0
+    if (s.length <= 2 * cols) pts = s.map(function (x) { return [(x.t - t0) / T, (x.ch0 - bot) / span]; });
+    else {
+      var hi = [], lo = [], k, c0;
+      for (k = 0; k < cols; k++) { hi[k] = -Infinity; lo[k] = Infinity; }
+      s.forEach(function (x) { c0 = Math.max(0, Math.min(cols - 1, Math.floor((x.t - t0) / T * cols))); if (x.ch0 > hi[c0]) hi[c0] = x.ch0; if (x.ch0 < lo[c0]) lo[c0] = x.ch0; });
+      if (ac && periods > cols / 6) for (k = 0; k < cols; k++) { hi[k] = mx; lo[k] = mn; } // unter 6 Spalten je Periode wäre die Hüllkurve selbst ein Moiré
+      for (k = 0; k < cols; k++) if (isFinite(hi[k])) pts.push([(k + 0.5) / cols, (hi[k] - bot) / span]);
+      for (k = cols - 1; k >= 0; k--) if (isFinite(lo[k])) pts.push([(k + 0.5) / cols, (lo[k] - bot) / span]);
+    }
+    var hint = short ? 'Bildbreite zu klein: weniger als eine Periode im Bild – Scheitelwert und Spitze-Spitze sind so nicht ablesbar, grössere Bildbreite wählen.' : '';
+    return { samples: s, top: top, bot: bot, mx: mx, mn: mn, pts: pts, short: short, hint: hint, periods: periods,
+      info: 'CH1 ' + sp.a + (sp.b ? '–' + sp.b : '') + ' · ' + bot + '…' + top + ' V · ' + label + (short ? ' · zu klein!' : ''),
+      text: 'Kanal: ' + sp.a + ' gegen ' + (sp.b || 'Masse') + ' · ' + bot + '…' + top + ' V · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') + (short ? ' · ' + hint : '') };
   }
   function updateMeter(r, mn) {
     var lcd = $('#lcd'), rg = manualRange() && meter.range !== 'AUTO' ? meter.range : undefined;
@@ -945,7 +964,8 @@
 
   function drawTrace(ctx, c, T, w, h) {
     ctx.strokeStyle = '#ffb000'; ctx.lineWidth = 2 * (window.devicePixelRatio || 1); ctx.shadowColor = '#ffb000'; ctx.shadowBlur = 6; ctx.beginPath();
-    c.samples.forEach(function (x, k) { var px = x.t / T * w, py = h - (x.ch0 - c.bot) / (c.top - c.bot) * h; if (k) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
+    c.pts.forEach(function (p, k) { var px = p[0] * w, py = h - p[1] * h; if (k) ctx.lineTo(px, py); else ctx.moveTo(px, py); }); // dieselben Punkte wie der Werkbank-Schirm (Kurve oder Hüllkurve)
+    if (c.pts.length > 600) ctx.closePath();
     ctx.stroke(); ctx.shadowBlur = 0;
   }
   /* Oszilloskop gross: Overlay mit dem Schirm in voller Breite und den Kennwerten (Û+, Û−, Uss, Bildbreite, Frequenz/Periode der
@@ -960,6 +980,7 @@
       var c = sc.c, src = (sc.layout.parts || []).filter(function (p) { return p.type === 'acsource' || p.type === 'clock'; }), f = src.length ? Math.min.apply(null, src.map(function (p) { return (p.props && p.props.freq) || E.PARTS[p.type].props.freq || 50; })) : 0;
       var stat = [['Û+ (max)', E.fmt(c.mx, 'V')], ['Û− (min)', E.fmt(c.mn, 'V')], ['Uss', E.fmt(c.mx - c.mn, 'V')], ['Bildbreite', sc.label], ['Raster', E.fmt(sc.T / 10, 's') + ' / Div']];
       if (f) stat.push(['Quelle f', E.fmt(f, 'Hz')], ['Periode T', E.fmt(1 / f, 's')]);
+      if (c.short) stat.push(['Hinweis', 'Bildbreite zu klein – Û und Uss nicht ablesbar']);
       el.innerHTML = '<div class="sb-back"></div><div class="sb-box"><div class="sb-head"><b>Oszilloskop</b><span class="dim small">' + esc(c.info) + '</span><button class="sb-x" aria-label="Schliessen">×</button></div>' +
         '<canvas id="sbCanvas"></canvas><div class="sb-stats">' + stat.map(function (s) { return '<div><span>' + s[0] + '</span><b class="mono">' + esc(s[1]) + '</b></div>'; }).join('') + '</div>' +
         '<p class="dim small">Esc oder Klick daneben schliesst. Deine Schaltung und die Messspitzen bleiben, wie sie sind.</p></div>';
@@ -1432,6 +1453,6 @@
     if (ACCT) { var rd = ACCT.start(); if (LIVE) rd.then(function () { LIVE.start(); }); if (EXAM) rd.then(function () { EXAM.start(); }); }
   }
 
-  window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, get examUI() { return EXAM; }, get tutorial() { return tut; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; }, get demo() { return demo; } };
+  window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, get examUI() { return EXAM; }, get tutorial() { return tut; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; }, get demo() { return demo; }, get lastScope() { return lastScope; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

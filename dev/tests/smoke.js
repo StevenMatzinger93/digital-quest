@@ -590,6 +590,27 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await tp.close();
   }
 
+  // Paket O (05.10.2026): Oszilloskop bei jeder Bildbreite – Kennwerte innerhalb 1 % von E.acMeasure, Werkbank-Schirm und Seitenleiste zeichnen dieselben Punkte, Hinweis bei weniger als einer Periode
+  {
+    const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('Oszi: ' + e.message));
+    await tp.goto(url, { waitUntil: 'domcontentloaded' });
+    await tp.evaluate(() => { delete DigitalQuest.state.drafts.W1; DigitalQuest.openItem('W1'); DigitalQuest.setView('bench'); const c = DigitalQuest.core; c.scopeProbes.tip = 'R2.a'; c.scopeProbes.gnd = 'R2.b'; c.redraw(); });
+    const ref = await tp.evaluate(() => DigitalQuest.engine.acMeasure(DigitalQuest.core.layout, { a: 'R2.a', b: 'R2.b' }));
+    for (const tb of await tp.$$eval('#tb option', l => l.map(o => o.value))) {
+      await tp.selectOption('#tb', tb); await tp.click('#btnScope'); await tp.waitForTimeout(120);
+      const r = await tp.evaluate(() => { const ls = DigitalQuest.lastScope, tr = document.querySelector('#bench .bsctrace'); return { mx: ls.c.mx, mn: ls.c.mn, short: ls.c.short, n: ls.c.pts.length, bench: tr ? tr.getAttribute('points').split(' ').length : 0, info: document.getElementById('scopeInfo').textContent }; });
+      const periods = +tb * 50;
+      if (periods >= 1) { if (Math.abs(r.mx - ref.max) > 0.01 * ref.pp || Math.abs(r.mn - ref.min) > 0.01 * ref.pp) errors.push('Oszi ' + tb + ' s: Kennwerte ' + r.mx + '/' + r.mn + ' statt ' + ref.max + '/' + ref.min); if (r.short || /zu klein/.test(r.info)) errors.push('Oszi ' + tb + ' s: Hinweis obwohl ≥ 1 Periode'); }
+      else if (!r.short || !/zu klein/.test(r.info)) errors.push('Oszi ' + tb + ' s: Hinweis „Bildbreite zu klein“ fehlt');
+      if (r.bench !== r.n || r.n < 100) errors.push('Oszi ' + tb + ' s: Werkbank-Schirm (' + r.bench + ' Punkte) weicht von der Kurve (' + r.n + ') ab');
+      await tp.click('#btnScopeBig'); await tp.waitForTimeout(80);
+      if (!await tp.$('#sbCanvas') || (periods < 1) !== /zu klein/.test(await tp.textContent('#scopeBig'))) errors.push('Oszi ' + tb + ' s: grosses Oszilloskop ohne passenden Hinweis');
+      await tp.keyboard.press('Escape');
+    }
+    await tp.selectOption('#tb', '1'); await tp.click('#btnScope'); await tp.waitForTimeout(120); await tp.screenshot({ path: shots + '/31_oszi_band.png' });
+    await tp.close();
+  }
+
   // Phase 6: Vorführ-Modus – läuft vollständig durch, Entwurf bleibt unverändert, Pause hält die Spitze an, Abbrechen stellt alles wieder her, zählt wie ein Tipp
   {
     const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('Phase6: ' + e.message));

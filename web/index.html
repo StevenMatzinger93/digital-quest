@@ -1219,7 +1219,7 @@ body.beamer-mode main{ min-height:100vh; }
     var rms = Math.sqrt(last.reduce(function (s, v) { return s + (v - dc) * (v - dc); }, 0) / n);
     var rect = last.reduce(function (s, v) { return s + Math.abs(v - dc); }, 0) / n;
     var mx = Math.max.apply(null, last), mn = Math.min.apply(null, last);
-    return { ok: true, static: false, dc: dc, rms: rms, avg: FORM_FACTOR_SINE * rect, peak: Math.max(Math.abs(mx), Math.abs(mn)), pp: mx - mn, period: T };
+    return { ok: true, static: false, dc: dc, rms: rms, avg: FORM_FACTOR_SINE * rect, peak: Math.max(Math.abs(mx), Math.abs(mn)), pp: mx - mn, max: mx, min: mn, period: T };
   }
 
   function measure(layout, probe, state) {

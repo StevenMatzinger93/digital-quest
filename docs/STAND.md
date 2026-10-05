@@ -204,6 +204,15 @@ Zusätzliche Einordnung:
 - **Fragen an Steven**: (1) Betreiberangaben für Impressum und Datenschutz (Name, Adresse, E-Mail; Firma/UID falls zutreffend) – die gelben Platzhalter stehen noch. (2) Umlaut-Liste «bleibt» stichprobenweise gegenlesen (`dev/umlaut_woerter.json`, Status «bleibt», Grund «legitime Folge»/«Handentscheid»). (3) Meldungen im Portal nach dem Deploy selbst als erledigt markieren.
 - Nicht angefasst: Konten, Live-Datenbank, Meldungen im Portal.
 
+## Paket O – Oszilloskop-Darstellung (05.10.2026, Auftrag `docs/AUFTRAG_OSZI_LABOR_AVATARE_2026-10-05.md`, Branch `wip/oszi`)
+**Befund (reproduziert mit Playwright, W1 / W4 / W6 / W7 / 16.3 / 16.5, alle Bildbreiten, Werkbank-Schirm, Seitenleiste, grosses Oszilloskop; Screenshots `tests/shots/oszi_vorher_*` und `oszi_nachher_*`, Skript `tests/oszi_befund.js`):**
+- Der Vorbefund stimmt: Bei 1 s und 5 s Bildbreite (50 Hz = 50–250 Perioden) dünnte `scopeCurve()` die Abtastwerte auf ≈ 150 Punkte aus (3 Punkte je Periode) – der Werkbank-Schirm zeigte eine gezackte, unregelmässige Hüllkurve, die Seitenleiste (alle Abtastwerte) ein volles Band. Dazu stimmten die Kennwerte nicht genau: 7,984 statt 8,000 V (50 Abtastwerte je Periode treffen den Scheitel nicht), bei 16.5 (RC, 1 kHz) bis 0,77 % Abweichung bei langer Bildbreite.
+- Zweiter Fehler, bisher unbemerkt: Bei Aufgaben mit Kondensator (W7, 16.5) beginnt die Aufzeichnung nach dem Einschwingen nicht bei t = 0; die Zeitachse war darum verschoben, bei 10–50 ms blieben nur 2 Punkte übrig.
+- Bei weniger als einer Periode (5 / 10 ms bei 50 Hz) fehlte jeder Hinweis – «min 0,000 V» sah wie eine Messung aus.
+- **Multimeter (Stevens Vermutung) geprüft**: V~ TRMS, V~ AVG und V⎓ an W1, W4, 16.3, 16.5 liegen innerhalb der nachgebildeten Geräteabweichung (+0,2 % Kalibrierung, ±1 Digit) am Wert von `E.acMeasure` (z. B. 5,668 V zu 5,657 V). Kein Fehler.
+
+**Änderungen:** `scopeCurve()` tastet mit ≥ 100 Punkten je Periode (höchstens 40 000), rechnet die Zeit ab dem ersten Abtastwert, liefert `pts` als **Hüllkurve** (je Bildspalte Minimum und Maximum, Oberkante vor, Unterkante zurück; unter 6 Spalten je Periode ein Band aus den exakten Kennwerten, sonst wäre die Hüllkurve selbst ein Moiré) oder bei wenigen Punkten die Kurve. Werkbank-Schirm, Seitenleiste und grosses Oszilloskop zeichnen dieselben `pts`. Kennwerte max/min kommen aus `E.acMeasure` (neu auch `max`/`min` im Ergebnis), sobald mindestens eine Periode im Bild ist – Abweichung bei allen 42 Fällen 0,00 %. Bei weniger als einer Periode: `c.short` mit Hinweis in Seitenleiste («Bildbreite zu klein …»), Werkbank («zu klein!») und grossem Oszilloskop. Smoke: Abschnitt «Paket O» (W1, jede Bildbreite). `DigitalQuest.lastScope` für Tests.
+
 ## Hosting (Stand 29.09.2026)
 GitHub-Repo: github.com/StevenMatzinger93/digital-quest (Branch `main`). Cloudflare Worker `digital-quest` (`wrangler.jsonc`: `main` = `worker/index.js`, Assets aus `web/`, D1 `digitalquest` als Binding `DB`, Worker zuerst fuer `/api/*` und `/z/*`) per GitHub verbunden – jeder Push nach `main` deployt automatisch. Secrets `ADMIN_USER`/`ADMIN_PASSWORD`.
 
