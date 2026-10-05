@@ -488,7 +488,7 @@
     var tauMin = rs.length && cs.length ? Math.min.apply(null, rs) * Math.min.apply(null, cs) : Infinity;
     var n = opts.samples || Math.min(4000, Math.max(200, Math.ceil(40 * Math.max.apply(null, freqs) / Math.min.apply(null, freqs)), Math.ceil(20 * T / tauMin))); // auch schnelle Anteile und Nadeln fein abtasten
     var settle = opts.settle === false || 5 * tauMax <= T * (per - 1) ? null : { t: Math.ceil(Math.min(5 * tauMax, 3) / T) * T, dt: T / 40 };
-    var sim = simulate(layout, { dt: T / n, tEnd: T * per, settle: settle, probes: [{ a: probe.a, b: probe.b }] }).samples;
+    var sim = simulate(layout, { dt: T / n, tEnd: T * per, settle: settle, meter: opts.meter, probes: [{ a: probe.a, b: probe.b }] }).samples; // opts.meter: Shunt des Amperemeters (A~)
     var last = sim.slice(-n).map(function (x) { return x.ch0; });
     var dc = last.reduce(function (s, v) { return s + v; }, 0) / n;
     var rms = Math.sqrt(last.reduce(function (s, v) { return s + (v - dc) * (v - dc); }, 0) / n);
@@ -523,6 +523,30 @@
       if (R > METER.olOhm) R = Infinity;
       return { ok: true, mode: 'R', value: R, unit: 'Ω', display: fmt(R, 'Ω'), res: live };
     }
+    if (mode === 'AAC') { // Wechselstrom in Reihe (Shunt 0,1 Ω), AC-gekoppelt; probe.meterType 'avg' | 'trms' – wie VAC, nur über den Shunt
+      var raA = step(net, state, { meter: { mode: 'A', a: a, b: b } });
+      if (state.fuse) return { ok: false, mode: 'AAC', value: NaN, unit: 'A', display: 'FUSE', error: 'Sicherung im Messgerät durchgebrannt – Strom wird in Reihe gemessen, nie parallel zu einer Quelle!', res: raA };
+      var acA = acMeasure(layout, { a: probe.a, b: probe.b }, { meter: { mode: 'A', a: a, b: b } });
+      if (!acA.ok) return { ok: false, mode: 'AAC', value: NaN, unit: 'A', display: 'Err', error: acA.error };
+      var iA = (probe.meterType === 'avg' ? acA.avg : acA.rms) / METER.rA;
+      return { ok: true, mode: 'AAC', value: iA, unit: 'A', display: fmt(iA, 'A'), static: acA.static, ac: acA, res: raA };
+    }
+    if (mode === 'AAC') { // Wechselstrom in Reihe (Shunt 0,1 Ω), AC-gekoppelt; probe.meterType 'avg' | 'trms' – wie VAC, nur über den Shunt
+      var raA = step(net, state, { meter: { mode: 'A', a: a, b: b } });
+      if (state.fuse) return { ok: false, mode: 'AAC', value: NaN, unit: 'A', display: 'FUSE', error: 'Sicherung im Messgerät durchgebrannt – Strom wird in Reihe gemessen, nie parallel zu einer Quelle!', res: raA };
+      var acA = acMeasure(layout, { a: probe.a, b: probe.b }, { meter: { mode: 'A', a: a, b: b } });
+      if (!acA.ok) return { ok: false, mode: 'AAC', value: NaN, unit: 'A', display: 'Err', error: acA.error };
+      var iA = (probe.meterType === 'avg' ? acA.avg : acA.rms) / METER.rA;
+      return { ok: true, mode: 'AAC', value: iA, unit: 'A', display: fmt(iA, 'A'), static: acA.static, ac: acA, res: raA };
+    }
+    if (mode === 'AAC') { // Wechselstrom in Reihe (Shunt 0,1 Ω), AC-gekoppelt; probe.meterType 'avg' | 'trms' – wie VAC, nur über den Shunt
+      var raA = step(net, state, { meter: { mode: 'A', a: a, b: b } });
+      if (state.fuse) return { ok: false, mode: 'AAC', value: NaN, unit: 'A', display: 'FUSE', error: 'Sicherung im Messgerät durchgebrannt – Strom wird in Reihe gemessen, nie parallel zu einer Quelle!', res: raA };
+      var acA = acMeasure(layout, { a: probe.a, b: probe.b }, { meter: { mode: 'A', a: a, b: b } });
+      if (!acA.ok) return { ok: false, mode: 'AAC', value: NaN, unit: 'A', display: 'Err', error: acA.error };
+      var iA = (probe.meterType === 'avg' ? acA.avg : acA.rms) / METER.rA;
+      return { ok: true, mode: 'AAC', value: iA, unit: 'A', display: fmt(iA, 'A'), static: acA.static, ac: acA, res: raA };
+    }
     if (mode === 'VAC') { // Wechselspannung, AC-gekoppelt; probe.meterType 'avg' (Mittelwert-Gleichrichter) oder 'trms' (Standard)
       var ac = acMeasure(layout, probe);
       if (!ac.ok) return ac;
@@ -539,16 +563,16 @@
     var ev = (opts.events || []).slice().sort(function (x, y) { return x[0] - y[0]; }), ei = 0;
     var net = buildNetlist(lay), samples = [];
     // Anfangszustand: Kondensatoren entladen, Gatter aus Gleichstrom-Arbeitspunkt
-    step(net, state, {});
+    step(net, state, { meter: opts.meter });
     // opts.settle = {t, dt}: vorher grob einschwingen, ohne Aufzeichnung
     if (opts.settle && opts.settle.t > 0) {
-      for (var s0 = 0; state.t < opts.settle.t - 1e-12 && s0 < 200000; s0++) step(net, state, { dt: Math.min(opts.settle.dt, opts.settle.t - state.t) });
+      for (var s0 = 0; state.t < opts.settle.t - 1e-12 && s0 < 200000; s0++) step(net, state, { dt: Math.min(opts.settle.dt, opts.settle.t - state.t), meter: opts.meter });
       tEnd += state.t;
     }
     for (var k = 0; state.t <= tEnd + 1e-12; k++) {
       var changed = false;
       while (ei < ev.length && ev[ei][0] <= state.t + 1e-12) { applySet(net, ev[ei][1]); ei++; changed = true; }
-      var r = step(net, state, { dt: dt });
+      var r = step(net, state, { dt: dt, meter: opts.meter });
       var row = { t: r.t };
       (opts.probes || []).forEach(function (pr, j) {
         row['ch' + j] = r.nodeV[net.pinNode[pr.a]] - (pr.b ? r.nodeV[net.pinNode[pr.b]] : 0);

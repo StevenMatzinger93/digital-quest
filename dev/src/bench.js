@@ -309,7 +309,7 @@
   /* ---------- Messgeraete ----------
    * Lage in Werkbank-Koordinaten (Mitte); gezeichnet in Frontansicht (Gruppe mit scale(1, 1/K)). */
   var DEV = { meter: { x: 1085, y: 255 }, scope: { x: 1060, y: 610 } };
-  var DIAL = [['OFF', -110, 'OFF'], ['V', -55, 'V⎓'], ['VAC', 0, 'V~'], ['A', 55, 'A⎓'], ['R', 110, 'Ω']];
+  var DIAL = [['OFF', -110, 'OFF'], ['V', -66, 'V⎓'], ['VAC', -22, 'V~'], ['A', 22, 'A⎓'], ['AAC', 66, 'A~'], ['R', 110, 'Ω']];
   function devXY(dev, lx, ly) { return [DEV[dev].x + lx, DEV[dev].y + ly / K]; } // Geraete-Koordinate → Werkbank
   function meterSvg(m) {
     var s = '<g class="bdev" data-dev="meter" transform="translate(' + DEV.meter.x + ' ' + DEV.meter.y + ') scale(1 ' + (1 / K) + ')">' +

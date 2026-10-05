@@ -590,6 +590,47 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await tp.close();
   }
 
+  // Paket L1/L2 (05.10.2026): ruhige Lampe an 50 Hz (Anzeige gemittelt), Taktgeber 1 Hz blinkt weiter; A~ in Reihe stimmt mit E.measure überein, Hinweise bei falscher Messart
+  {
+    const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('L1/L2: ' + e.message));
+    await tp.goto(url, { waitUntil: 'domcontentloaded' });
+    await tp.evaluate(() => { delete DigitalQuest.state.drafts.sandbox; DigitalQuest.openItem('sandbox'); DigitalQuest.setView('bench'); });
+    await tp.click('[data-add="acsource"]'); await tp.click('[data-add="lamp"]');
+    await tp.evaluate(() => { const c = DigitalQuest.core; ['G1.p', 'H1.a', 'H1.b', 'G1.n'].forEach(p => c.connectPin(p)); });
+    await tp.waitForTimeout(300);
+    const samp = async (sel, n) => { const out = []; for (let k = 0; k < n; k++) { out.push(await tp.evaluate(s => { const r = DigitalQuest.bench.sim && DigitalQuest.bench.sim.res; const p = r && r.parts[s]; return p ? [p.p, p.on] : null; }, sel)); await tp.waitForTimeout(70); } return out; };
+    const lamp = await samp('H1', 8), ps = lamp.map(x => x && x[0]);
+    if (ps.some(v => v == null) || Math.max(...ps) - Math.min(...ps) > 0.02 * Math.max(...ps) || Math.max(...ps) <= 0) errors.push('L1: Lampe an 50 Hz flackert in der Anzeige: ' + ps.map(v => v && v.toFixed(3)).join(','));
+    if (!await tp.evaluate(() => DigitalQuest.live.res && !DigitalQuest.live.res.averaged && DigitalQuest.bench.sim.res.averaged)) errors.push('L1: Anzeige nicht als gemittelt gekennzeichnet');
+    await tp.evaluate(() => DigitalQuest.setView('schema')); await tp.waitForTimeout(100);
+    if (!await tp.evaluate(() => DigitalQuest.editor.sim && DigitalQuest.editor.sim.res.averaged)) errors.push('L1: Schaltplan-Anzeige nicht gemittelt');
+    // Taktgeber 1 Hz blinkt weiter
+    await tp.evaluate(() => { delete DigitalQuest.state.drafts.sandbox; DigitalQuest.openItem('sandbox'); DigitalQuest.setView('schema'); });
+    await tp.click('[data-add="clock"]'); await tp.fill('[data-prop="freq"]', '1'); await tp.dispatchEvent('[data-prop="freq"]', 'change'); await tp.click('[data-add="logicled"]'); await tp.click('[data-add="ground"]');
+    await tp.evaluate(() => { const c = DigitalQuest.core; c.connectPin('CLK1.out'); c.connectPin('L1.in'); });
+    const ons = []; for (let k = 0; k < 14; k++) { ons.push(await tp.evaluate(() => { const r = DigitalQuest.editor.sim && DigitalQuest.editor.sim.res; return r && r.parts.L1 ? r.parts.L1.on : null; })); await tp.waitForTimeout(100); }
+    if (!(ons.includes(true) && ons.includes(false))) errors.push('L1: Taktgeber 1 Hz blinkt nicht mehr: ' + ons.join(','));
+    // A~: Generator + Widerstand, Lücke zwischen R1.b und G1.n, Amperemeter A~ in die Lücke
+    await tp.evaluate(() => { delete DigitalQuest.state.drafts.sandbox; DigitalQuest.openItem('sandbox'); DigitalQuest.setView('schema'); });
+    await tp.click('[data-add="acsource"]'); await tp.click('[data-add="resistor"]');
+    await tp.evaluate(() => { const c = DigitalQuest.core; c.connectPin('G1.p'); c.connectPin('R1.a'); });
+    if (!await tp.$('[data-mm="AAC"]')) errors.push('L2: Knopf A~ fehlt');
+    await tp.click('[data-mm="AAC"]'); await tp.click('[data-mt="trms"]'); await tp.evaluate(() => { const c = DigitalQuest.core; c.clickPin('R1.b'); c.clickPin('G1.n'); }); await tp.waitForTimeout(250);
+    const lcdA = await tp.textContent('#lcd'), wantA = await tp.evaluate(() => DigitalQuest.engine.measure(DigitalQuest.core.layout, { mode: 'AAC', a: 'R1.b', b: 'G1.n', meterType: 'trms' }));
+    const gotA = parseFloat(lcdA) * (/mA/.test(lcdA) ? 1e-3 : /µA/.test(lcdA) ? 1e-6 : 1);
+    if (!wantA.ok || !(wantA.value > 1e-4) || Math.abs(gotA - wantA.value) > 0.01 * wantA.value) errors.push('L2: A~ zeigt ' + lcdA + ' statt ' + JSON.stringify(wantA.value));
+    if (!/AC TRMS/.test(await tp.evaluate(() => DigitalQuest.bench.meter.sub || ''))) errors.push('L2: Unterzeile AC TRMS fehlt');
+    await tp.click('[data-mm="A"]'); await tp.waitForTimeout(250); if (!/A~/.test(await tp.textContent('#mmWarn'))) errors.push('L2: A⎓ an Wechselstrom ohne Hinweis auf A~: ' + await tp.textContent('#mmWarn'));
+    await tp.evaluate(() => DigitalQuest.setView('bench')); await tp.waitForTimeout(100); if (!await tp.$('#bench [data-dial="AAC"]')) errors.push('L2: Drehschalter ohne A~');
+    await tp.screenshot({ path: shots + '/32_a_ac.png' });
+    // A~ an Gleichstrom (1.5: Batterie, Lücke R1.b–H1.a)
+    await tp.evaluate(() => { delete DigitalQuest.state.drafts['1.5']; DigitalQuest.openItem('1.5'); DigitalQuest.setView('schema'); });
+    await tp.evaluate(() => { const c = DigitalQuest.core, i = c.layout.wires.findIndex(w => (w.from === 'R1.b' && w.to === 'H1.a') || (w.from === 'H1.a' && w.to === 'R1.b')); if (i >= 0) { c.layout.wires.splice(i, 1); c.changed('edit'); } });
+    await tp.click('[data-mm="AAC"]'); await tp.evaluate(() => { const c = DigitalQuest.core; c.clickPin('R1.b'); c.clickPin('H1.a'); }); await tp.waitForTimeout(250);
+    if (!/Wähle A⎓/.test(await tp.textContent('#mmWarn'))) errors.push('L2: A~ an Gleichstrom ohne Hinweis: ' + await tp.textContent('#mmWarn'));
+    await tp.close();
+  }
+
   // Paket O (05.10.2026): Oszilloskop bei jeder Bildbreite – Kennwerte innerhalb 1 % von E.acMeasure, Werkbank-Schirm und Seitenleiste zeichnen dieselben Punkte, Hinweis bei weniger als einer Periode
   {
     const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } }); tp.on('pageerror', e => errors.push('Oszi: ' + e.message));

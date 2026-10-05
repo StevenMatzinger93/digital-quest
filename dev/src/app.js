@@ -423,7 +423,7 @@
     if (typeof rw === 'string') return '<div class="rw">' + rw + '</div>';
     var how = m.value !== undefined ? 'Rechenwert aus den Angaben der Aufgabe.' :
       m.truth ? 'Aus der Simulation: ' + (m.truth.q === 'i' ? 'Strom durch ' : m.truth.q === 'v' ? 'Spannung an ' : m.truth.q + ' von ') + esc(m.truth.sel) + '.' :
-      'Messung ' + (m.mode === 'A' ? 'A⎓ in Reihe' : m.mode === 'R' ? 'Ω spannungsfrei' : m.mode === 'VAC' ? 'V~ (' + (m.meterType || 'TRMS').toUpperCase() + ')' : m.mode === 'AC' ? 'Oszilloskop (' + (m.q || 'dc') + ')' : 'V⎓') + (m.a ? ' zwischen ' + esc(m.a) + ' und ' + esc(m.b || 'Masse') : '') + '.';
+      'Messung ' + (m.mode === 'A' ? 'A⎓ in Reihe' : m.mode === 'AAC' ? 'A~ in Reihe (' + (m.meterType || 'TRMS').toUpperCase() + ')' : m.mode === 'R' ? 'Ω spannungsfrei' : m.mode === 'VAC' ? 'V~ (' + (m.meterType || 'TRMS').toUpperCase() + ')' : m.mode === 'AC' ? 'Oszilloskop (' + (m.q || 'dc') + ')' : 'V⎓') + (m.a ? ' zwischen ' + esc(m.a) + ' und ' + esc(m.b || 'Masse') : '') + '.';
     return '<div class="rw"><p>' + how + ' Sollwert <b>' + fmtSoll(soll, m.unit) + '</b> (Toleranz ±' + Math.round((m.tol || 0.03) * 100) + ' %).</p></div>';
   }
   function revealHtml(t, m) { var soll = sollOf(t, ed && ed.layout)[m.id]; return '<div class="rv-box"><b>Aufgedeckt – Sollwert ' + fmtSoll(soll, m.unit) + '</b>' + rechenwegHtml(t, m, soll) + '</div>'; }
@@ -477,9 +477,9 @@
       else if (m.truth && !m.mode) parts.push(m.truth.q === 'i' ? 'A⎓ in Reihe mit ' + m.truth.sel + ' (Leitung an ' + m.truth.sel + ' lösen, Spitzen in die Lücke)' : 'V⎓ an ' + m.truth.sel);
       else if (m.mode === 'AC') parts.push('Oszilloskop: Tastkopf CH1 an ' + m.a + ', Erdungsclip an ' + (m.b || 'Masse') + ', Bildbreite ' + tbLabel(suggestTb(t.ref)) + ', RUN – ' + ({ dc: 'Mittelwert ablesen', peak: 'Scheitelwert ablesen', pp: 'Spitze-Spitze ablesen', rms: 'Effektivwert', avg: 'Gleichrichtwert' }[m.q || 'dc'] || m.q));
       else {
-        var u = m.mode === 'A' ? 'A' : m.mode === 'R' ? 'Ω' : 'V', mode = m.mode === 'A' ? 'A⎓ (in Reihe: Leitung lösen, Spitzen in die Lücke)' : m.mode === 'R' ? 'Ω (spannungsfrei!)' : m.mode === 'VAC' ? 'V~, Verfahren ' + ((m.meterType || 'trms').toUpperCase()) : 'V⎓';
+        var u = m.mode === 'A' || m.mode === 'AAC' ? 'A' : m.mode === 'R' ? 'Ω' : 'V', mode = m.mode === 'A' ? 'A⎓ (in Reihe: Leitung lösen, Spitzen in die Lücke)' : m.mode === 'AAC' ? 'A~, Verfahren ' + ((m.meterType || 'trms').toUpperCase()) + ' (in Reihe: Leitung lösen, Spitzen in die Lücke)' : m.mode === 'R' ? 'Ω (spannungsfrei!)' : m.mode === 'VAC' ? 'V~, Verfahren ' + ((m.meterType || 'trms').toUpperCase()) : 'V⎓';
         parts.push('Messart ' + mode);
-        if (m.mode !== 'A') parts.push('rote Spitze an ' + m.a + ', schwarze an ' + (m.b || 'Masse'));
+        if (m.mode !== 'A' && m.mode !== 'AAC') parts.push('rote Spitze an ' + m.a + ', schwarze an ' + (m.b || 'Masse'));
         if (manual && soll[m.id] !== undefined) { var sc = E.UNIT_SCALE[m.unit] || 1, rg = suggestRange(u, soll[m.id] * sc); parts.push('Bereich ' + E.rangeLabel(rg, u)); }
       }
       return '<li><b>' + esc(m.ask) + ':</b> ' + parts.join(' · ') + '</li>';
@@ -634,17 +634,54 @@
   function tick(dt, withTrace) {
     if (live.replay) return; // Zeitlupe zeigt einen festgehaltenen Schritt
     if (!live.net) { setSim(null); status([{ cls: 'err', text: live.err }]); return; }
-    var mn = meterNodes(), mm = meter.mode === 'VAC' ? 'V' : meter.mode, mopt = mn && (mm === 'V' || mm === 'A') ? { mode: mm, a: mn.a, b: mn.b } : null;
+    var mn = meterNodes(), mm = meter.mode === 'VAC' ? 'V' : meter.mode === 'AAC' ? 'A' : meter.mode, mopt = mn && (mm === 'V' || mm === 'A') ? { mode: mm, a: mn.a, b: mn.b } : null;
     if (withTrace) { // Zeitlupe: Arbeitspunkt auf einer Kopie neu suchen – Dioden von vorn (reine Rechenhilfe), Gatter behalten ihr Gedaechtnis
       var ts = E.clone(live.state); ts.diode = {};
       try { live.trace = E.step(live.net, ts, { meter: mopt, trace: true }).trace || []; } catch (e) { live.trace = []; }
     }
     var r = E.step(live.net, live.state, { dt: live.dynamic && dt > 0 ? dt : null, meter: mopt });
     live.res = r;
+    var disp = liveDisplay(r);
+    var disp = liveDisplay(r);
+    var disp = liveDisplay(r);
     if (live.dynamic) { live.hist.push(r); if (live.hist.length > HIST_MAX) live.hist.shift(); }
     updateMeter(r, mn);
-    setSim({ res: r, pinNode: live.net.pinNode });
+    setSim({ res: disp, pinNode: live.net.pinNode });
     status(diagnose(r.faults, r));
+  }
+  /* ---------- L1 (05.10.2026): Anzeige bei schnellen Wechselquellen mitteln statt mit der Bildrate abzutasten ----------
+   * Quellen ab 8 Hz löst die Bildrate nicht sinnvoll auf – LED/Lampe/Spannungsfarben flackerten (Aliasing). Für die Darstellung wird
+   * deshalb eine Periode der langsamsten schnellen Quelle in 48 Schritten auf einer Kopie des Zustands gerechnet: Helligkeit (LED),
+   * Leistung (Lampe/Motor, Betrag) und „leuchtet“ als Mittel, Knotenspannungen als Effektivwert (Farben). Ergebnis je Aufbau und
+   * Zustand höchstens 1 s zwischengespeichert. Messwerte, Ströme für die Stromfluss-Animation und Tooltips bleiben die Live-Werte;
+   * langsame Quellen (Taktgeber 1 Hz) blinken weiter, weil sie nicht gemittelt werden. */
+  var liveAvg = { key: '', at: 0 };
+  function liveDisplay(r) {
+    if (!live.net || !live.dynamic) return r;
+    var fr = []; live.net.parts.forEach(function (p) { if ((p.type === 'acsource' || p.type === 'clock') && p.props.freq >= 8) fr.push(p.props.freq); });
+    if (!fr.length) return r;
+    var key = JSON.stringify(ed.layout) + '|' + JSON.stringify(live.state.burnt) + '|' + !!live.state.fuse + '|' + meter.mode + meter.a + meter.b;
+    if (liveAvg.key !== key || performance.now() - liveAvg.at > 1000) {
+      var T = 1 / Math.min.apply(null, fr), n = 48, st = E.clone(live.state), acc = {}, nv = {}, mn = meterNodes(), mm = meter.mode === 'VAC' ? 'V' : meter.mode === 'AAC' ? 'A' : meter.mode;
+      var mopt = mn && (mm === 'V' || mm === 'A') ? { mode: mm, a: mn.a, b: mn.b } : null;
+      try {
+        for (var k = 0; k < n; k++) {
+          var rk = E.step(live.net, st, { dt: T / n, meter: mopt });
+          Object.keys(rk.parts).forEach(function (id) { var p = rk.parts[id], a = acc[id] = acc[id] || { brightness: 0, p: 0, on: 0 }; a.brightness += (p.brightness || 0) / n; a.p += Math.abs(p.p || 0) / n; if (p.on) a.on++; });
+          Object.keys(rk.nodeV).forEach(function (nn) { nv[nn] = (nv[nn] || 0) + rk.nodeV[nn] * rk.nodeV[nn] / n; });
+        }
+        Object.keys(nv).forEach(function (nn) { nv[nn] = Math.sqrt(nv[nn]); });
+        liveAvg = { key: key, at: performance.now(), parts: acc, nodeV: nv };
+      } catch (e) { liveAvg = { key: key, at: performance.now(), parts: null }; }
+    }
+    if (!liveAvg.parts) return r;
+    var disp = Object.assign({}, r, { nodeV: liveAvg.nodeV, parts: {}, averaged: true });
+    Object.keys(r.parts).forEach(function (id) {
+      var q = Object.assign({}, r.parts[id]), a = liveAvg.parts[id];
+      if (a) { if (q.brightness !== undefined) q.brightness = a.brightness; if (q.p !== undefined) q.p = a.p; if (q.on !== undefined) q.on = a.on > 0; }
+      disp.parts[id] = q;
+    });
+    return disp;
   }
 
   function setSim(sim) { ed.setSim(sim); bench.setSim(sim); }
@@ -767,7 +804,7 @@
     if (ed) tick(0);
   }
   /* Messbereich von Hand (nur measureUX 'drag'): 'AUTO' oder Endwert aus E.DMM_MANUAL; Wechsel des Modus setzt auf AUTO */
-  function rangeUnit() { return meter.mode === 'A' ? 'A' : meter.mode === 'R' ? 'Ω' : 'V'; }
+  function rangeUnit() { return meter.mode === 'A' || meter.mode === 'AAC' ? 'A' : meter.mode === 'R' ? 'Ω' : 'V'; }
   function setMeterRange(r) {
     meter.range = r === 'AUTO' ? 'AUTO' : +r;
     log('meter_range', { id: current.task && current.task.id, mode: meter.mode, range: meter.range });
@@ -799,12 +836,27 @@
    * fuer die Aufgabe und das Werkbank-Tutorial. m = {mode, a, b, acKey, ac} (ac-Zwischenspeicher liegt im Objekt),
    * rg = fester Bereich (Endwert) oder undefined, mt = 'avg'|'trms'. Liefert {text, sub, warn, ol}. */
   function meterReading(m, layout, net, r, state, mn, rg, mt) {
-    var txt = '— — —', warn = '', sub = m.mode === 'VAC' ? 'AC ' + (mt === 'avg' ? 'AVG' : 'TRMS') : m.mode === 'V' || m.mode === 'A' ? 'DC' : '';
-    var unit = m.mode === 'A' ? 'A' : m.mode === 'R' ? 'Ω' : 'V';
+    var txt = '— — —', warn = '', sub = m.mode === 'VAC' || m.mode === 'AAC' ? 'AC ' + (mt === 'avg' ? 'AVG' : 'TRMS') : m.mode === 'V' || m.mode === 'A' ? 'DC' : '';
+    var unit = m.mode === 'A' || m.mode === 'AAC' ? 'A' : m.mode === 'R' ? 'Ω' : 'V';
     function ac() { // Wechselgroessen nur neu rechnen, wenn sich Aufbau oder Spitzen aendern
       var key = JSON.stringify(layout) + '|' + m.a + '|' + m.b;
       if (m.acKey !== key) { m.acKey = key; m.ac = E.acMeasure(layout, { a: m.a, b: m.b }); }
       return m.ac;
+    }
+    function acA() { // Wechselstrom über den Shunt (A~ und Hinweis bei A⎓): wie ac(), aber mit eingesetztem Amperemeter
+      var key = JSON.stringify(layout) + '|A|' + m.a + '|' + m.b;
+      if (m.acAKey !== key) { m.acAKey = key; m.acA = mn ? E.acMeasure(layout, { a: m.a, b: m.b }, { meter: { mode: 'A', a: mn.a, b: mn.b } }) : { ok: false }; }
+      return m.acA;
+    }
+    function acA() { // Wechselstrom über den Shunt (A~ und Hinweis bei A⎓): wie ac(), aber mit eingesetztem Amperemeter
+      var key = JSON.stringify(layout) + '|A|' + m.a + '|' + m.b;
+      if (m.acAKey !== key) { m.acAKey = key; m.acA = mn ? E.acMeasure(layout, { a: m.a, b: m.b }, { meter: { mode: 'A', a: mn.a, b: mn.b } }) : { ok: false }; }
+      return m.acA;
+    }
+    function acA() { // Wechselstrom über den Shunt (A~ und Hinweis bei A⎓): wie ac(), aber mit eingesetztem Amperemeter
+      var key = JSON.stringify(layout) + '|A|' + m.a + '|' + m.b;
+      if (m.acAKey !== key) { m.acAKey = key; m.acA = mn ? E.acMeasure(layout, { a: m.a, b: m.b }, { meter: { mode: 'A', a: mn.a, b: mn.b } }) : { ok: false }; }
+      return m.acA;
     }
     var fs = Infinity; (net ? net.parts : []).forEach(function (p) { if ((p.type === 'acsource' || p.type === 'clock') && p.props.freq > 0) fs = Math.min(fs, p.props.freq); });
     var raw = NaN; // Rohwert in der Basiseinheit (für Bereichs- und Vorzeichenhinweise)
@@ -827,7 +879,20 @@
         txt = 'FUSE';
         var fi = state.fuseInfo;
         warn = 'Sicherung durchgebrannt: Die Spitzen lagen parallel zu einer Quelle' + (fi ? ' – ' + E.fmt(Math.abs(fi.i), 'A') + ' statt höchstens ' + E.fmt(fi.imax, 'A') : '') + '. A-Messung immer in Reihe: Kreis auftrennen (eine Leitung löschen), das Messgerät in die Lücke setzen, dann „Sicherung ersetzen“.';
-      } else { raw = (r.nodeV[mn.a] - r.nodeV[mn.b]) / E.METER.rA; txt = E.dmm(raw, 'A', undefined, rg).text; }
+      } else {
+        raw = (r.nodeV[mn.a] - r.nodeV[mn.b]) / E.METER.rA;
+        if (isFinite(fs) && fs >= 5) { var acD = acA(); if (acD.ok && !acD.static) { raw = acD.dc / E.METER.rA; if (acD.rms / E.METER.rA > 1e-4 && Math.abs(raw) < 0.05 * acD.rms / E.METER.rA) warn = 'Deine Schaltung führt Wechselstrom: A⎓ zeigt nur den Mittelwert (hier ≈ 0). Für den Effektivwert A~ wählen.'; } } // DMM zeigt bei schnellem Wechsel den Mittelwert
+        txt = E.dmm(raw, 'A', undefined, rg).text;
+      }
+    } else if (m.mode === 'AAC') {
+      if (state.fuse) {
+        txt = 'FUSE'; var fi2 = state.fuseInfo;
+        warn = 'Sicherung durchgebrannt: Die Spitzen lagen parallel zu einer Quelle' + (fi2 ? ' – ' + E.fmt(Math.abs(fi2.i), 'A') + ' statt höchstens ' + E.fmt(fi2.imax, 'A') : '') + '. A-Messung immer in Reihe: Kreis auftrennen (eine Leitung löschen), das Messgerät in die Lücke setzen, dann „Sicherung ersetzen“.';
+      } else {
+        var a4 = acA();
+        if (!a4.ok) { txt = 'Err'; warn = a4.error; }
+        else { raw = (mt === 'avg' ? a4.avg : a4.rms) / E.METER.rA; txt = E.dmm(raw, 'A', undefined, rg).text; if (a4.static) warn = 'Du misst A~, der Strom ist Gleichstrom – A~ zeigt nur den Wechselanteil (hier 0). Wähle A⎓.'; }
+      }
     } else if (m.mode === 'R') {
       var mr = E.measure(layout, { mode: 'R', a: m.a, b: m.b }, state);
       txt = mr.ok ? E.dmm(mr.value, 'Ω', undefined, rg).text.replace('OL', '0L') : 'Err'; if (mr.ok) raw = mr.value;
