@@ -222,12 +222,25 @@ Zusätzliche Einordnung:
 - Umsetzung: Messart `AAC` (Panel «A~», Drehschalter mit 6 Stellungen) – in Reihe über den Shunt 0,1 Ω, AVG/TRMS wie V~ (`E.measure` mode `AAC`, `E.simulate`/`E.acMeasure` führen das Messgerät jetzt über `opts.meter` mit), gleiche Sicherung und FUSE-Meldung wie A⎓, Bereichstasten bei `rangeUX: 'manual'` (Einheit A). Hinweise: A~ an Gleichstrom → «Wähle A⎓», A⎓ an Wechselstrom → «A⎓ zeigt nur den Mittelwert – A~ wählen» (A⎓ zeigt bei schnellem Wechsel den Mittelwert, wie V⎓). Einstellungs-Box und automatischer Rechenweg kennen A~; Vorführ-Modus bewusst nicht (Reihenmessung ändert den Aufbau). Handbuch «Multimeter» ergänzt. Aufgaben mit `measure: {mode:'AAC', a, b, meterType}` sind möglich (noch keine im Bestand).
 - Tests: Smoke-Abschnitt «L1/L2» (Lampe an 50 Hz ruhig in Werkbank und Schaltplan, Taktgeber 1 Hz blinkt, A~ in Reihe = `E.measure` auf 1 %, beide Hinweise, Drehschalter). tests/tasks.js unverändert grün.
 
+### L3 – Zweiter Oszilloskop-Kanal: Bedienvorschlag (wartet auf Steven)
+- Befund: ein Kanal (CH1) mit gelbem Tastkopf und schwarzem Erdungsclip auf der Werkbank; im Schaltplan liest CH1 die Multimeter-Spitzen. Kennwerte, grosses Oszilloskop und Vorführ-Modus sind auf einen Kanal gebaut (`scopeProbes()`, `scopeCurve()`, `bench.scope.pts`).
+- Vorschlag: **CH2 als zweiter Tastkopf in Blau** (`core.scopeProbes.tip2`), geparkt rechts neben dem gelben am Oszilloskop; **ein gemeinsamer Erdungsclip** (wie am echten Gerät, beide Kanäle gegen dieselbe Masse). Am Gerät zwei Tasten «CH1» / «CH2» (leuchten gelb bzw. blau, schalten den Kanal ein/aus), dieselben Tasten in der Seitenleiste; Kurven in Gelb und Blau übereinander auf demselben Raster, Kennwerte je Kanal in der Seitenleiste und im grossen Oszilloskop (Û+, Û−, Uss je Kanal, dazu Phasenverschiebung CH2 gegen CH1 in ms und Grad, wenn beide Kanäle eine Wechselquelle sehen). Im Schaltplan bleibt es bei CH1 über die Multimeter-Spitzen. Aufgaben erhalten optional `measure: {mode:'AC', ch:2, …}` und die Einstellungs-Box nennt «Tastkopf CH2 an …». Erster Einsatz: 14.x (Ein-/Ausgang Tiefpass), 3.4/3.5 und 16.6/16.7 (vor/hinter dem Gleichrichter). Kein Bau vor Stevens Antwort.
+### L4 – Zoomen auf dem Handy: Befund (390 px, Pixel-5-Emulation, Screenshots `tests/shots/l4_*.png`)
+- **Schaltplan**: 375 × 298 px, feste Einpassung – **kein Zoom** (editor.js kennt weder Pinch noch Rad); Anschluss-Treffer 25 px, ausreichend. Es fehlt: Heranzoomen bei grösseren Schaltungen (z. B. Kapitel 9/10/15 mit 10+ Bauteilen), dort sind die Bauteile auf 375 px winzig.
+- **Werkbank**: Pinch-Zoom und Verschieben vorhanden, aber ungezoomt sind die **Buchsen 15 px, Prüfspitzen-Griff 21 px, Drehschalter-Stellungen 12 px** gross – unter der üblichen Mindestgrösse für Touch (≈ 24 px). Bedienbar erst nach Heranzoomen, was niemand ahnt.
+- **Mini-Schaltungen in der Theorie**: 313 × 260 px, bewusst ohne Pinch (die Seite soll scrollen); Schalter-Treffer 23 px, ausreichend. Es fehlt eine Möglichkeit, das Bild gross zu sehen.
+- **Tutorial-Werkbank**: wie die Werkbank (Pinch vorhanden, Buchsen 14 px).
+- Vorschlag (nach Stevens Antwort): (a) Trefferflächen auf der Werkbank in Bildschirm-Pixeln skalieren (Buchse/Griff/Drehschalter mindestens 24 px, unabhängig vom Zoom); (b) Schaltplan bekommt dieselbe Pinch- und Strg-Rad-Steuerung wie die Werkbank plus Doppeltipp auf ein Bauteil = heranzoomen, Doppeltipp auf leere Fläche = einpassen; (c) Mini-Schaltungen und Theorie-Bilder bekommen den Knopf ⤢ «gross anzeigen» (Overlay wie das grosse Oszilloskop) statt Pinch; (d) im Handbuch ein Hinweis «Zwei Finger zoomen, ein Finger verschiebt».
+
+## Paket A – Avatare, Coins, Shop: Etappe A0 (05.10.2026)
+Abbildung des SPS-Quest-Systems auf Digital Quest, Vorschläge (Kollektionen je Teil I–V, umgedeutete Bedingungen, Coin-Regeln ×3, Titel) und Wirtschafts-Rechnung in . Kein Code – wartet auf Stevens Antworten zu Abschnitt 6 des Auftrags.
+
 ## Hosting (Stand 29.09.2026)
 GitHub-Repo: github.com/StevenMatzinger93/digital-quest (Branch `main`). Cloudflare Worker `digital-quest` (`wrangler.jsonc`: `main` = `worker/index.js`, Assets aus `web/`, D1 `digitalquest` als Binding `DB`, Worker zuerst fuer `/api/*` und `/z/*`) per GitHub verbunden – jeder Push nach `main` deployt automatisch. Secrets `ADMIN_USER`/`ADMIN_PASSWORD`.
 
 ## Naechste Schritte
 0. ~~Werkbank-Ansicht (Phasen 1–5)~~ und ~~Quick Wins~~ – erledigt 28.09.2026, siehe oben.
-0c. Offene Labor-Feinheiten (nicht blockierend): Live-Anzeige bei schnellen Wechselquellen mitteln statt abtasten (Lampen-/LED-Helligkeit aus Effektivwert), A~-Bereich, Oszilloskop mit eigener Tastkopf-Leitung und 2 Kanaelen, Bausteine auf dem Handy per Pinch zoomen.
+0c. Offene Labor-Feinheiten (nicht blockierend): ~~Live-Anzeige mitteln~~, ~~A~-Bereich~~, ~~eigene Tastkopf-Leitung~~ (erledigt 05.10.2026, Paket L1/L2 und Auftrag 6); offen: 2 Kanäle (L3, Vorschlag im STAND) und Zoomen auf dem Handy (L4, Befund im STAND); Bausteine auf dem Handy per Pinch zoomen.
 1. ~~Themenliste in Kapitel umsetzen~~ – Kapitel 1–15 erledigt (29.09.2026), inkl. Zertifikat/Abzeichen und Karte nach Teilen.
 1b. ~~Engine-Erweiterung fuer Kapitel 3 (Wechselspannungsquelle, AVG/RMS/TRMS)~~ – erledigt 28.09.2026 (`acsource`, `acMeasure`, V~ mit AVG/TRMS).
 2. Theoriedokumente in `theorie/` sichten → Lektionen und Fragen ableiten.
