@@ -1,5 +1,7 @@
 # Avatare, Coins und Shop in Digital Quest – Etappe A0: Abbildung und Vorschlag (05.10.2026)
 
+> **Umgesetzt 05.10.2026 (A1–A4, Branch `wip/avatare`)** nach Stevens Antworten: alle Vorschläge dieses Plans so übernommen (fünf Kollektionen, Regeln ×3, Umdeutungen, Titel, `SPSQAvatar`, Menü für alle Rollen). Abweichungen vom Plan: Legendär-Teile der Teile I–III hängen am Kapitel-Boss 10.10 (`bosses: 1`), die von Teil IV am Final Boss 15.10 (`final: 1`); beide prüft der Server am gespeicherten Entwurf (`drafts`) mit `Engine.runTask` – auch für günstige Teile (Goldkette, Bauhelm). `bosses` zählt beide Boss-Aufgaben (10.10 und 15.10), der Final-Zuschlag bleibt nur für 15.10. Stand und Tests: `docs/STAND.md`, Abschnitt «Paket A».
+
 Grundlage: `docs/AVATAR_SYSTEM_TRANSFER.md` (SPS Quest, Stand cd685be) und `docs/AUFTRAG_OSZI_LABOR_AVATARE_2026-10-05.md`, Abschnitt 5. Geprüft am Code von Digital Quest (41134b6). **Kein Code vor Stevens Antworten zu Abschnitt 6 des Auftrags** – unten stehen die Vorschläge, auf die sich die Fragen beziehen.
 
 ## 1. Tabelle 5.4 am Code nachgeprüft und ergänzt

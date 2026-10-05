@@ -4222,6 +4222,15 @@ function bind(){
 P.routes.push({ re: /^#\/avatar$/, view });
 // Menüpunkt für alle angemeldeten Konten (auch Dozenten und Admin: sie sehen sonst am Beamer keinen eigenen Avatar)
 P.nav.push({ href: '#/avatar', label: 'Avatar & Coins', show: u => !!u });
+// Anleitung: je ein Schritt für Lernende und Dozenten (portal_anleitung.js lädt vorher und stellt P.manual bereit)
+if(P.manual){
+  P.manual.lernende.push({ title: 'Avatar und Coins', html: '<p>Unter <i>Avatar &amp; Coins</i> wählst du ein <b>Tier</b>, eine <b>Farbe</b> und Ausrüstung. Dein Tier erscheint oben beim Konto, in der Klassenliste deiner Lehrperson und bei Live-Challenges am Beamer.</p>' +
+    '<ul><li><b>Coins</b> gibt es nur fürs Spielen: gelöste Aufgaben nach Sternen, Kapitel-Boss und Final Boss, bestandene Theorie, Live-Challenges und Zertifikate. Nie für Geld, kein Vorteil im Labor.</li>' +
+    '<li>Jede <b>Kollektion</b> (Teile I–V der Karte) hat eigene Teile und einen Titel – frei ab 7, 13 oder 20 gelösten Aufgaben des Teils. Legendäre und mythische Teile brauchen eine Leistung, die der Server bestätigt (Boss-Lösung im Konto gespeichert, Zertifikat, Challenge-Trophäe).</li>' +
+    '<li>Gesperrte Teile zeigen einen Fortschrittsbalken mit der Bedingung. Gekaufte Teile behältst du; der Stand steht unten unter <i>So verdienst du Coins</i>.</li></ul>' });
+  P.manual.dozenten.push({ title: 'Avatare am Beamer und in der Klassenliste', html: '<p>Lernende können sich unter <i>Avatar &amp; Coins</i> ein Tier zulegen – rein kosmetisch, Coins gibt es nur fürs Spielen. Das Tier erscheint in der <b>Klassenliste</b> und bei Live-Challenges in <b>Lobby, Rangliste und auf dem Podest</b>; ohne Avatar steht ein Platzhalter mit Initialen. Auch Dozenten- und Admin-Konten können einen Avatar wählen.</p>' +
+    '<p><b>Prämien:</b> Live-Challenges zählen für Trophäen und Teilnahme-Coins ab 3 Teilnehmenden und 2 Minuten Laufzeit; Platz 1–3 und „gelöst“ geben im Sprint ab 2 Teilnehmenden Coins. Ein bestandenes Zertifikat gibt 900 Coins (mit Auszeichnung 1500), einmal je Stufe.</p>' });
+}
 })();
 
 </script>
