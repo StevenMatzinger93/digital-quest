@@ -75,7 +75,7 @@
     { id: 'multimeter', bereich: 'aufgabe', icon: '🔋', titel: 'Multimeter', tour: false,
       text: 'Messart OFF, V⎓, V~, A⎓, A~, Ω; Verfahren AVG oder TRMS; auf der Werkbank Spitzen ziehen, im Schaltplan Anschlüsse anklicken.', wann: 'Für Spannung, Strom und Widerstand.' },
     { id: 'oszilloskop', bereich: 'aufgabe', icon: '📈', titel: 'Oszilloskop', tour: false,
-      text: 'Spannung über die Zeit: Bildbreite wählen, Aufnahme/RUN, zwei Kanäle, gross anzeigen; darunter die Kennwerte.', wann: 'Für Wechselgrössen, Lade- und Taktsignale.' }
+      text: 'Spannung über die Zeit: Bildbreite wählen, Aufnahme/RUN, zwei Kanäle und MATH, AC-Kopplung für kleine Welligkeit, gross anzeigen; darunter die Kennwerte mit Uss.', wann: 'Für Wechselgrössen, Lade- und Taktsignale.' }
   ];
   /* Häufige Wege: Frage → Ziel (Portal-Adresse oder Labor-Adresse mit labor: true) */
   var wege = [

@@ -332,7 +332,7 @@
         onMessage: function (m) { status([{ cls: 'info', text: m }]); }
       });
       ed = new Editor($('#board'), { core: core });
-      bench = new Bench($('#bench'), { core: core, onDial: function (m) { setMeterMode(m); }, onRange: function (r) { setMeterRange(r); }, onScope: function (k) { if (k === 'ch1' || k === 'ch2' || k === 'math') toggleChannel(k === 'math' ? 3 : +k.slice(2)); else scope(); } });
+      bench = new Bench($('#bench'), { core: core, onDial: function (m) { setMeterMode(m); }, onRange: function (r) { setMeterRange(r); }, onScope: function (k) { if (/^cpl[123]$/.test(k)) { toggleCoupling(+k.slice(3)); return; } if (k === 'ch1' || k === 'ch2' || k === 'math') toggleChannel(k === 'math' ? 3 : +k.slice(2)); else scope(); } });
       bindSheetHover($('#board')); bindSheetHover($('#bench'));
     }
     setView(t.sandbox ? 'bench' : preferredView(), t.sandbox);
@@ -475,7 +475,7 @@
       if (setTxt) parts.push('Schalter: ' + setTxt);
       if (m.value !== undefined) parts.push('Rechenwert – kein Messgerät, Ergebnis in ' + (m.unit || 'der angegebenen Einheit') + ' eintragen');
       else if (m.truth && !m.mode) parts.push(m.truth.q === 'i' ? 'A⎓ in Reihe mit ' + m.truth.sel + ' (Leitung an ' + m.truth.sel + ' lösen, Spitzen in die Lücke)' : 'V⎓ an ' + m.truth.sel);
-      else if (m.mode === 'AC') parts.push('Oszilloskop: Tastkopf CH' + (m.ch || 1) + ' an ' + m.a + ', Erdungsclip an ' + (m.b || refL + ' (Bezugspunkt)') + ', Bildbreite ' + tbLabel(suggestTb(t.ref)) + ', RUN – ' + ({ dc: 'Mittelwert ablesen', peak: 'Scheitelwert ablesen', pp: 'Spitze-Spitze ablesen', rms: 'Effektivwert', avg: 'Gleichrichtwert' }[m.q || 'dc'] || m.q));
+      else if (m.mode === 'AC') parts.push('Oszilloskop: Tastkopf CH' + (m.ch || 1) + ' an ' + m.a + ', Erdungsclip an ' + (m.b || refL + ' (Bezugspunkt)') + (m.q === 'pp' ? ', bei kleiner Welligkeit AC-Kopplung (Taste DC/AC)' : '') + ', Bildbreite ' + tbLabel(suggestTb(t.ref)) + ', RUN – ' + ({ dc: 'Mittelwert ablesen', peak: 'Scheitelwert ablesen', pp: 'Spitze-Spitze ablesen', rms: 'Effektivwert', avg: 'Gleichrichtwert' }[m.q || 'dc'] || m.q));
       else {
         var u = m.mode === 'A' || m.mode === 'AAC' ? 'A' : m.mode === 'R' ? 'Ω' : 'V', mode = m.mode === 'A' ? 'A⎓ (in Reihe: Leitung lösen, Spitzen in die Lücke)' : m.mode === 'AAC' ? 'A~, Verfahren ' + ((m.meterType || 'trms').toUpperCase()) + ' (in Reihe: Leitung lösen, Spitzen in die Lücke)' : m.mode === 'R' ? 'Ω (spannungsfrei!)' : m.mode === 'VAC' ? 'V~, Verfahren ' + ((m.meterType || 'trms').toUpperCase()) : 'V⎓';
         parts.push('Messart ' + mode);
@@ -935,18 +935,30 @@
     if (cr.length < 2) return { mean: mean, T: 0 };
     return { mean: mean, T: (cr[cr.length - 1] - cr[0]) / (cr.length - 1) };
   }
-  function scopeCurve(layout, sp, T, label, chNo, scale) {
+  var SCOPE_CACHE = {};   // Simulation und acMeasure je Aufbau/Messpunkt/Bildbreite (höchstens 10 Einträge)
+  /* Skalenstufe 1-2-5 für die AC-gekoppelte Anzeige: kleinster Wert ≥ 1,15 · Amplitude */
+  function niceTop(a) { var steps = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100], want = Math.max(a, 1e-6) * 1.15; for (var i = 0; i < steps.length; i++) if (steps[i] >= want) return steps[i]; return Math.ceil(want); }
+  /* acCoupled: AC-Kopplung (K3) – der Gleichanteil wird abgezogen und die Skala symmetrisch um 0 vergrössert; Standard ist DC */
+  function scopeCurve(layout, sp, T, label, chNo, scale, acCoupled) {
     var fr = sourceFreqs(layout), fmax = fr.length ? Math.max.apply(null, fr) : 0, fmin = fr.length ? Math.min.apply(null, fr) : 0, dt = T / 400;
     if (fmax > 0) dt = Math.min(dt, 1 / (fmax * 100)); dt = Math.max(dt, T / 40000);
     var rs = [], cs = []; (layout.parts || []).forEach(function (p) { var v = p.value !== undefined ? p.value : (p.props && p.props.value); if (p.type === 'resistor' && v > 0) rs.push(v); if (p.type === 'capacitor' && v > 0) cs.push(v); });
     var tauMax = rs.length && cs.length ? Math.max.apply(null, rs) * Math.max.apply(null, cs) : 0, settle = null;
-    if (fr.length && tauMax > 0) { var T0 = 1 / Math.min.apply(null, fr); settle = { t: Math.ceil(Math.min(5 * tauMax, 3) / T0) * T0, dt: T0 / 40 }; } // ohne Wechselquelle (Ladekurve) bewusst ab t = 0
-    var s = E.simulate(layout, { dt: dt, tEnd: T, settle: settle, probes: [{ a: sp.a, b: sp.b || undefined }] }).samples;
-    var vs = s.map(function (x) { return x.ch0; }), mx = Math.max.apply(null, vs), mn = Math.min.apply(null, vs);
+    if (fr.length && tauMax > 0) { var T0 = 1 / Math.min.apply(null, fr); settle = { t: Math.ceil(Math.min(5 * tauMax, 10) / T0) * T0, dt: T0 / 40 }; } // bis 10 s (K3): 1000 µF an 1 kΩ braucht 5·τ = 5 s // ohne Wechselquelle (Ladekurve) bewusst ab t = 0
     var periods = fmin > 0 ? T * fmin : 0, short = fmin > 0 && periods < 0.999, ac = null;
-    if (fmin > 0 && !short) { try { ac = E.acMeasure(layout, { a: sp.a, b: sp.b || undefined }); } catch (e) { ac = null; } }
-    if (ac && ac.ok && !ac.static && isFinite(ac.max)) { mx = ac.max; mn = ac.min; } // exakte Kennwerte, unabhängig von der Bildbreite
-    var top = scale ? scale.top : Math.max(1, Math.ceil(Math.max(mx, 0) * 1.1)), bot = scale ? scale.bot : Math.min(0, Math.floor(mn * 1.1)), span = top - bot;
+    var ckey = JSON.stringify(layout) + '|' + sp.a + '|' + (sp.b || '') + '|' + T, hit = SCOPE_CACHE[ckey], s;
+    if (hit) { s = hit.s; ac = hit.ac; }
+    else {
+      s = E.simulate(layout, { dt: dt, tEnd: T, settle: settle, probes: [{ a: sp.a, b: sp.b || undefined }] }).samples;
+      if (fmin > 0 && !short) { try { ac = E.acMeasure(layout, { a: sp.a, b: sp.b || undefined }); } catch (e) { ac = null; } }
+      var ks = Object.keys(SCOPE_CACHE); if (ks.length >= 10) delete SCOPE_CACHE[ks[0]]; SCOPE_CACHE[ckey] = { s: s, ac: ac };
+    }
+    var exact = !!(ac && ac.ok && !ac.static && isFinite(ac.max)), smean = s.reduce(function (a, x) { return a + x.ch0; }, 0) / (s.length || 1);
+    var base = exact && isFinite(ac.dc) ? ac.dc : smean, coup = !!acCoupled; // base = Gleichanteil des Kanals
+    if (coup) s = s.map(function (x) { return { t: x.t, ch0: x.ch0 - base }; });
+    var vs = s.map(function (x) { return x.ch0; }), mx = Math.max.apply(null, vs), mn = Math.min.apply(null, vs);
+    if (exact) { mx = ac.max - (coup ? base : 0); mn = ac.min - (coup ? base : 0); } // exakte Kennwerte, unabhängig von der Bildbreite
+    var top = scale ? scale.top : coup ? niceTop(Math.max(Math.abs(mx), Math.abs(mn))) : Math.max(1, Math.ceil(Math.max(mx, 0) * 1.1)), bot = scale ? scale.bot : coup ? -top : Math.min(0, Math.floor(mn * 1.1)), span = top - bot;
     // Huellkurve: Spalten; bei mehr Perioden als Spalten/2 ist das Bild ein Band aus den exakten Kennwerten (kein Aliasing)
     var cols = 300, pts = [], t0 = s.length ? s[0].t : 0; // nach dem Einschwingen beginnt die Aufzeichnung nicht bei t = 0
     if (s.length <= 2 * cols) pts = s.map(function (x) { return [(x.t - t0) / T, (x.ch0 - bot) / span]; });
@@ -961,9 +973,10 @@
     var hint = short ? 'Bildbreite zu klein: weniger als eine Periode im Bild – Scheitelwert und Spitze-Spitze sind so nicht ablesbar, grössere Bildbreite wählen.' : '';
     // Bezugspunkt nie stillschweigend (G1): ohne zweiten Anschluss misst der Kanal gegen den Bezugspunkt der Schaltung – im Klartext nennen
     var ref = sp.b ? null : refOf(layout), refLbl = ref ? ref.label : '';
-    var sig = signalPeriod(s), mean = ac && ac.ok && !ac.static && isFinite(ac.dc) ? ac.dc : (sig ? sig.mean : 0), sigT = sig && !short ? sig.T : 0;
-    var kenn = ' · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') + ' · Mittelwert ' + E.fmt(mean, 'V') + (sigT ? ' · Periode ' + E.fmt(sigT, 's') + ' (' + E.fmt(1 / sigT, 'Hz') + ')' : '');
-    return { samples: s, top: top, bot: bot, mx: mx, mn: mn, mean: mean, sigT: sigT, pts: pts, short: short, hint: hint, periods: periods, ref: ref ? ref.pid : null, refLabel: refLbl, a: sp.a, b: sp.b || null,
+    var sig = signalPeriod(s), mean = coup ? 0 : (ac && ac.ok && !ac.static && isFinite(ac.dc) ? ac.dc : (sig ? sig.mean : 0)), sigT = sig && !short ? sig.T : 0, uss = mx - mn;
+    var cpl = coup ? ' · AC-gekoppelt, Gleichanteil ' + E.fmt(base, 'V') + ' abgezogen' : '';
+    var kenn = cpl + ' · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') + ' · Uss ' + E.fmt(uss, 'V') + (coup ? '' : ' · Mittelwert ' + E.fmt(mean, 'V')) + (sigT ? ' · Periode ' + E.fmt(sigT, 's') + ' (' + E.fmt(1 / sigT, 'Hz') + ')' : '');
+    return { samples: s, top: top, bot: bot, mx: mx, mn: mn, mean: mean, uss: uss, coup: coup, base: base, sigT: sigT, pts: pts, short: short, hint: hint, periods: periods, ref: ref ? ref.pid : null, refLabel: refLbl, a: sp.a, b: sp.b || null,
       info: (sp.math ? 'MATH ' : 'CH' + (chNo || 1) + ' ') + sp.a + (sp.b ? '–' + sp.b : ' gegen ' + refLbl + ' ⏚') + ' · ' + bot + '…' + top + ' V · ' + label + (short ? ' · zu klein!' : ''),
       text: 'Kanal: ' + sp.a + ' gegen ' + (sp.b || refLbl + ' (Bezugspunkt – ' + (sp.own === false ? 'schwarze Spitze nicht gesetzt' : 'Erdungsclip nicht angeschlossen') + ')') + ' · ' + bot + '…' + top + ' V' + kenn + (short ? ' · ' + hint : '') };
   }
@@ -1036,6 +1049,14 @@
   /* L3 (05.10.2026): zweiter Kanal – blauer Tastkopf CH2 gegen denselben Erdungsclip. Kanäle einzeln ein-/ausschaltbar (Gerät und Seitenleiste),
    * beide Kurven auf gemeinsamer Skala, Kennwerte je Kanal, Phasenverschiebung CH2 gegen CH1 aus den steigenden Nulldurchgängen. */
   var scopeCh = { 1: true, 2: true, 3: false };   // 3 = MATH (CH1 − CH2), standardmässig aus
+  var scopeCoup = { 1: false, 2: false, 3: false };   // Kopplung je Kanal: false = DC (Standard), true = AC (K3)
+  function toggleCoupling(n) {
+    scopeCoup[n] = !scopeCoup[n];
+    $$('#scopeCpl [data-cpl]').forEach(function (b) { var on = scopeCoup[+b.dataset.cpl]; b.classList.toggle('on', on); b.textContent = (+b.dataset.cpl === 3 ? 'MATH ' : 'CH' + b.dataset.cpl + ' ') + (on ? 'AC' : 'DC'); });
+    if (bench) bench.scope = Object.assign({}, bench.scope || {}, { cpl: scopeCoup });
+    if (lastScope) scope(); else if (bench) bench.render();
+    log('scope_cpl', { ch: n, ac: scopeCoup[n] });
+  }
   function toggleChannel(n) { if (n === 3 && !(core && core.scopeProbes.tip && core.scopeProbes.tip2)) { status([{ cls: 'warn', text: 'MATH = CH1 − CH2 braucht beide Tastköpfe: CH1 an den einen, CH2 an den anderen Anschluss des Bauteils.' }]); return; } scopeCh[n] = !scopeCh[n]; $$('#scopeCh [data-ch]').forEach(function (b) { b.classList.toggle('on', scopeCh[+b.dataset.ch]); }); if (lastScope) { bench.scope = Object.assign({}, bench.scope, { ch: scopeCh }); bench.render(); scope(); } else if (bench) { bench.scope = Object.assign({}, bench.scope || {}, { ch: scopeCh }); bench.render(); } log('scope_ch', { ch: n, on: scopeCh[n] }); }
   function phaseShift(c1, c2, T0) { // Δt der ersten steigenden Nulldurchgänge (um den Gleichanteil), als Zeit und Winkel
     if (!c1 || !c2 || !T0) return null;
@@ -1060,9 +1081,12 @@
     try {
       // CH1, CH2 (gegen denselben Erdungsclip) und MATH = CH1 − CH2 (= Tastkopf 1 gegen Tastkopf 2, potentialfrei; G3) auf gemeinsamer Skala
       var defs = [[sp, 1]]; if (sp.own && sp.a2 && scopeCh[2]) defs.push([{ a: sp.a2, b: sp.b }, 2]); if (sp.own && sp.a2 && scopeCh[3]) defs.push([{ a: sp.a, b: sp.a2, math: true }, 3]);
-      var cs = defs.map(function (d) { return scopeCurve(ed.layout, d[0], T, label, d[1]); });
-      var top = Math.max.apply(null, cs.map(function (x) { return x.top; })), bot = Math.min.apply(null, cs.map(function (x) { return x.bot; }));
-      cs = cs.map(function (x, k) { return x.top === top && x.bot === bot ? x : scopeCurve(ed.layout, defs[k][0], T, label, defs[k][1], { top: top, bot: bot }); });
+      var cs = defs.map(function (d) { return scopeCurve(ed.layout, d[0], T, label, d[1], null, !!scopeCoup[d[1]]); });
+      [false, true].forEach(function (g) { // gemeinsame Skala je Kopplungsgruppe: alle DC-Kanäle zusammen, alle AC-Kanäle zusammen
+        var grp = cs.filter(function (x) { return x.coup === g; }); if (!grp.length) return;
+        var top = Math.max.apply(null, grp.map(function (x) { return x.top; })), bot = Math.min.apply(null, grp.map(function (x) { return x.bot; }));
+        cs = cs.map(function (x, k) { return x.coup !== g || (x.top === top && x.bot === bot) ? x : scopeCurve(ed.layout, defs[k][0], T, label, defs[k][1], { top: top, bot: bot }, g); });
+      });
       c = cs[0]; cs.forEach(function (x, k) { if (defs[k][1] === 2) c2 = x; if (defs[k][1] === 3) c3 = x; });
     } catch (e) { $('#scopeInfo').textContent = e.message; return; }
     if (scopeCh[1]) drawTrace(ctx, c, T, w, h, '#ffb000');
@@ -1074,7 +1098,8 @@
       (c3 ? ' · MATH = CH1 − CH2 (' + c3.a + ' gegen ' + c3.b + ', potentialfrei)' + ' ' + c3.text.replace(/^Kanal: [^·]*/, '') : '');
     scopeWarn(c, sp);
     $('#scopeCh').hidden = !sp.own;
-    bench.scope = { pts: c.pts, pts2: c2 ? c2.pts : null, pts3: c3 ? c3.pts : null, info: c.info + (c2 ? ' · CH2 ' + c2.bot + '…' + c2.top + ' V' : '') + (c3 ? ' · MATH' : ''), ch: scopeCh, math: !!(sp.own && sp.a2) };
+    bench.scope = { pts: c.pts, pts2: c2 ? c2.pts : null, pts3: c3 ? c3.pts : null, info: c.info + (c2 ? ' · CH2 ' + c2.bot + '…' + c2.top + ' V' : '') + (c3 ? ' · MATH' : ''), info2: (c.coup ? 'AC ' : '') + 'Uss ' + E.fmt(c.uss, 'V') + (c2 ? ' · CH2 ' + E.fmt(c2.uss, 'V') : '') + (c3 ? ' · MATH ' + E.fmt(c3.uss, 'V') : ''), ch: scopeCh, cpl: scopeCoup, math: !!(sp.own && sp.a2) };
+    var cb = $('#scopeCpl'); if (cb) { $$('[data-cpl="2"]', cb).forEach(function (b) { b.hidden = !sp.own || !sp.a2; }); $$('[data-cpl="3"]', cb).forEach(function (b) { b.hidden = !(sp.own && sp.a2); }); }
     bench.render();
     log('scope', { id: current.task && current.task.id, T: T, ch2: !!c2, math: !!c3 });
   }
@@ -1120,6 +1145,7 @@
       if (c2) stat.push(['CH2 Û+ (max)', E.fmt(c2.mx, 'V')], ['CH2 Û− (min)', E.fmt(c2.mn, 'V')], ['CH2 Uss', E.fmt(c2.mx - c2.mn, 'V')]);
       var c3 = sc.c3; if (c3) stat.push(['MATH = CH1 − CH2', c3.a + ' gegen ' + c3.b], ['MATH Û+ (max)', E.fmt(c3.mx, 'V')], ['MATH Û− (min)', E.fmt(c3.mn, 'V')], ['MATH Mittelwert', E.fmt(c3.mean || 0, 'V')], ['MATH Signal T / f', c3.sigT ? E.fmt(c3.sigT, 's') + ' / ' + E.fmt(1 / c3.sigT, 'Hz') : '–']);
       if (sc.phase) stat.push(['Phase CH2→CH1', E.fmt(sc.phase.dt, 's') + ' / ' + sc.phase.deg.toFixed(0) + '°']);
+      if (c.coup) stat.push([p1 + 'Kopplung', 'AC – Gleichanteil ' + E.fmt(c.base, 'V') + ' abgezogen']); else stat.push([p1 + 'Kopplung', 'DC']);
       stat.push([p1 + 'Mittelwert', E.fmt(c.mean || 0, 'V')]); if (c.sigT) stat.push([p1 + 'Signal T / f', E.fmt(c.sigT, 's') + ' / ' + E.fmt(1 / c.sigT, 'Hz')]);
       if (c.ref) stat.push(['Bezugspunkt', c.refLabel + ' (kein Erdungsclip)']);
       stat.push(['Bildbreite', sc.label], ['Raster', E.fmt(sc.T / 10, 's') + ' / Div']);
@@ -1560,6 +1586,7 @@
     if (!root.DQ_PORTAL) { $('#footImp').href = 'https://digital-quest.steven-matzinger93.workers.dev/impressum.html'; $('#footDs').href = 'https://digital-quest.steven-matzinger93.workers.dev/datenschutz.html'; $$('.lab-foot a').forEach(function (a) { a.target = '_blank'; a.rel = 'noopener'; }); }
     $('#btnScopeBig').onclick = function () { scopeBig(); };
     $$('#scopeCh [data-ch]').forEach(function (b) { b.onclick = function () { toggleChannel(+b.dataset.ch); }; });
+    $$('#scopeCpl [data-cpl]').forEach(function (b) { b.onclick = function () { toggleCoupling(+b.dataset.cpl); }; });
     window.addEventListener('popstate', function () {
       if (root.DQCalc && root.DQCalc.isOpen) { root.DQCalc.close(); return; } // Zurueck schliesst zuerst den Rechner
       if ($('#scopeBig') && !$('#scopeBig').hidden) { $('#scopeBig .sb-x').click(); return; }

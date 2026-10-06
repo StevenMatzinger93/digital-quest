@@ -810,7 +810,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await probes('R1.a', null); t = await run();
     if (!/R1\.a gegen G1\.– \(Bezugspunkt – Erdungsclip nicht angeschlossen\)/.test(t)) errors.push('Gleichrichter: Klartext ohne Clip fehlt: ' + t);
     if (await g.$eval('#scopeWarn', e => e.hidden) || !/Erdungsclip ist nicht angeschlossen.*G1\.–.*R1\.b/.test(await g.textContent('#scopeWarn'))) errors.push('Gleichrichter: Warnhinweis ohne Clip fehlt: ' + await g.textContent('#scopeWarn'));
-    if (!await g.$('#bench .brefmark') || !/G1\.– ⏚/.test(await g.textContent('#bench .bscinfo'))) errors.push('Gleichrichter: Markierung ⏚ auf der Werkbank fehlt');
+    if (!await g.$('#bench .brefmark') || !/G1\.– ⏚/.test(await g.textContent('#bench .bscinfo:not(.bscinfo2)'))) errors.push('Gleichrichter: Markierung ⏚ auf der Werkbank fehlt');
     await g.click('#btnScopeBig'); await g.waitForTimeout(100);
     if (!/Bezugspunkt.*G1\.–/.test(await g.textContent('#scopeBig .sb-stats')) || !/Mittelwert/.test(await g.textContent('#scopeBig .sb-stats'))) errors.push('Gleichrichter: grosses Oszilloskop ohne Bezugspunkt/Mittelwert');
     await g.keyboard.press('Escape'); await g.waitForTimeout(50);

@@ -176,6 +176,8 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 .bscgrid { stroke: rgba(57,255,20,.13); stroke-width: 1; } .bsctrace { fill: none; stroke: #ffb000; stroke-width: 2; filter: drop-shadow(0 0 3px #ffb000); }
 .bscinfo { font: 8px var(--font-code); fill: #7fd98a; pointer-events: none; }
 .bsctrace2 { stroke: #38bdf8; filter: drop-shadow(0 0 3px #38bdf8); } /* zweiter Kanal (L3) */
+.bscinfo2 { fill: #9fe7ad; } .bsccpl rect { fill: #23282e; } .bsccpl.on rect { fill: #3a2f10; stroke: #ffb000; } .bsccpl text { fill: #7c868f; } .bsccpl.on text { fill: #ffb000; }
+#scopeCpl { align-items: center; } #scopeCpl button.on { border-color: #ffb000; color: #ffb000; } #scopeCpl button[hidden] { display: none; }
 .bsctrace3 { stroke: #c084fc; filter: drop-shadow(0 0 3px #c084fc); } /* MATH = CH1 − CH2 (G3) */
 .bscch.on .bscled3 { fill: #c084fc; filter: drop-shadow(0 0 2px #c084fc); }
 .bscch { cursor: pointer; } .bscch rect { fill: #2a2f36; stroke: #14181d; } .bscch text { font: 700 7px var(--font-code); fill: #9aa; text-anchor: middle; pointer-events: none; } .bscch circle { fill: #333; } .bscch.on .bscled1 { fill: #ffb000; filter: drop-shadow(0 0 2px #ffb000); } .bscch.on .bscled2 { fill: #38bdf8; filter: drop-shadow(0 0 2px #38bdf8); } .bscch.on text { fill: #e8e8e8; }
@@ -717,6 +719,7 @@ body.has-exam-bar .top { padding-top: 50px; }
         <canvas id="scope"></canvas>
         <div class="scope-ctl"><button class="btn small" id="btnScopeBig" title="Oszilloskop gross anzeigen" aria-label="Oszilloskop vergrössern">⤢</button><select id="tb" aria-label="Zeitbasis (ganze Bildbreite)"><option value="0.005">5 ms</option><option value="0.01">10 ms</option><option value="0.02">20 ms</option><option value="0.05">50 ms</option><option value="0.1">100 ms</option><option value="1" selected>1 s</option><option value="5">5 s</option></select><button class="btn small" id="btnScope">Aufnahme</button></div>
         <div class="scope-ch" id="scopeCh" hidden><button class="btn small ch1 on" data-ch="1" title="Kanal 1 (gelber Tastkopf) ein/aus">CH1</button><button class="btn small ch2 on" data-ch="2" title="Kanal 2 (blauer Tastkopf, gemeinsamer Erdungsclip) ein/aus">CH2</button><button class="btn small ch3" data-ch="3" title="MATH = CH1 − CH2: Differenz der beiden Tastköpfe (potentialfreie Messung über einem Bauteil)">MATH</button></div>
+        <div class="scope-ch" id="scopeCpl"><span class="small dim">Kopplung</span><button class="btn small" data-cpl="1" title="Kanal 1: DC (Standard) oder AC – bei AC wird der Gleichanteil abgezogen und die Skala vergrössert, damit kleine Welligkeit sichtbar wird">CH1 DC</button><button class="btn small" data-cpl="2" hidden title="Kanal 2: DC oder AC">CH2 DC</button><button class="btn small" data-cpl="3" hidden title="MATH: DC oder AC">MATH DC</button></div>
         <div id="scopeInfo">Kanal 1 = Messspitzen des Multimeters (neue Messtechnik-Aufgaben: eigener Tastkopf auf der Werkbank). Aufnahme mit „Aufnahme“ bzw. RUN.</div>
         <div id="scopeWarn" class="scope-warn" role="status" hidden></div>
       </div>
@@ -5498,8 +5501,9 @@ body.has-exam-bar .top { padding-top: 50px; }
     brief: 'Schliesse nacheinander <b>nur einen</b> Kondensator (S1 = 10 µF, S2 = 100 µF, S3 = 470 µF) und miss an R1 jeweils den <b>Gleichanteil</b> und die <b>Welligkeit U<sub>ss</sub></b> (Spitze-Spitze am Oszilloskop, Zeitbasis 50 ms). Berechne <b>τ = R · C</b> für jeden Kondensator und die Welligkeit nach der Faustformel <b>ΔU ≈ I / (2 · f · C)</b> mit I = U<sub>DC</sub> / R und f = 50 Hz. Dann: Welcher der drei Kondensatoren hält die Welligkeit unter <b>0,5 V</b>? Zum Schluss: Schliesse mit dem 470-µF-Kondensator zusätzlich S4 (R2 parallel zu R1, Last halbiert) und miss die Welligkeit erneut.',
     learn: 'Glättung braucht τ = R · C viel grösser als der Buckelabstand von 10 ms – und je mehr Strom die Last zieht, desto grösser die Welligkeit.',
     take: 'Glättung braucht τ = R · C viel grösser als 10 ms. 10 µF: Sägezahn (U_ss ≈ 4,1 V), 100 µF: leichte Welle (≈ 0,7 V), 470 µF: fast Gleichspannung (≈ 0,16 V). Die Faustformel ΔU ≈ I / (2 · f · C) gilt erst für τ ≫ 10 ms und liegt etwas zu hoch. Mit halber Last (500 Ω) verdoppelt sich der Strom und damit ungefähr die Welligkeit.',
-    hint: 'Immer nur einen Schalter schliessen (auf der Werkbank anklicken), die anderen offen lassen. Tastkopf an R1.a, Erdungsclip an R1.b, Bildbreite 50 ms. Die Welligkeit U_ss steht unter der Kurve.',
+    hint: 'Immer nur einen Schalter schliessen (auf der Werkbank anklicken), die anderen offen lassen. Tastkopf an R1.a, Erdungsclip an R1.b, Bildbreite 50 ms. Die Welligkeit U_ss steht unter der Kurve; bei kleiner Welligkeit AC-Kopplung einschalten (Taste DC/AC), dann füllt die Welle den Schirm.',
     hint2: 'Erwartet: 10 µF ≈ 4,1 V, 100 µF ≈ 0,7 V, 470 µF ≈ 0,16 V Welligkeit. Mehrere Schalter gleichzeitig zu sind erlaubt – die Kapazitäten addieren sich (S2 + S3 = 570 µF). Faustformel: I = U_DC / R1, ΔU = I / (2 · 50 Hz · C).',
+    setupNote: '<b>Welligkeit sichtbar machen:</b> Bei der Standard-Kopplung DC ist eine geglättete Spannung (z. B. 8,4 V) fast eine gerade Linie – das ist richtig. Schalte am Oszilloskop die Kopplung von CH1 auf <b>AC</b> (Taste DC/AC neben CH1): Der Gleichanteil wird abgezogen und die Skala vergrössert, U_ss liest du unter der Kurve ab.',
     palette: [], start: smooth, ref: smooth, bench: bSmooth, demo: 'pp2',
     tests: [{ name: 'ohne Kondensator', set: SW([]), expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [4.9, 5.9] }, { noFault: true }] },
       { name: '470 µF', set: SW(['S3']), expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [8.0, 8.6] }, { noFault: true }] }],
@@ -6097,6 +6101,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p>In der <b>Vertiefung Messtechnik</b> (Kapitel 16) hat das Oszilloskop einen eigenen <b>Tastkopf</b> (gelb, CH1) und einen <b>Erdungsclip</b> (schwarz), die vor dem Gerät liegen: beide an die Schaltung ziehen, dann RUN. Ohne Tastkopf bleibt der Schirm dunkel („Tastkopf anschliessen“). Multimeter und Oszilloskop können so gleichzeitig an verschiedenen Stellen messen.</p>' +
       '<p><b>Zweiter Kanal:</b> Der blaue Tastkopf (CH2) misst gegen denselben Erdungsclip. Beide Kurven erscheinen übereinander auf einer gemeinsamen Skala (gelb = CH1, blau = CH2); die Tasten CH1/CH2 am Gerät und in der Seitenleiste schalten einen Kanal aus. Die Kennwerte stehen je Kanal, dazu die Phasenverschiebung von CH2 gegen CH1 – so siehst du am RC-Glied oder am Gleichrichter Eingang und Ausgang gleichzeitig.</p>' },
       '<p><b>Bezugspunkt und Erdungsclip:</b> Das Oszilloskop zeigt immer eine Spannung <i>zwischen zwei Punkten</i>. Ohne Erdungsclip (bzw. ohne schwarze Spitze) ist der Bezugspunkt der Minuspol der ersten Quelle oder das Masse-Symbol – die Anzeige sagt es im Klartext («R1.a gegen G1.–»), markiert den Anschluss mit ⏚ und warnt unter der Kurve. Beim Brückengleichrichter siehst du so nur eine Halbwelle; die Spannung an R1 misst du mit Tastkopf an R1.a und Clip an R1.b. Praxis: Sind Generator und Oszilloskop beide geerdet, würde der Clip an R1.b eine Diode kurzschliessen – dort misst man mit Trenntransformator, Differenztastkopf oder mit zwei Kanälen und MATH = CH1 − CH2.</p>' +
+      '<p><b>Kleine Welligkeit sichtbar machen – AC-Kopplung und U<sub>ss</sub>:</b> Unter jeder Kurve stehen max, min, <b>Spitze-Spitze (U<sub>ss</sub>)</b>, Mittelwert und die Periode des gemessenen Signals. Eine fast glatte Gleichspannung (z. B. 8,4 V mit 0,16 V Welligkeit nach einem grossen Ladekondensator) erscheint bei der Standard-Kopplung <b>DC</b> als fast gerade Linie auf der Skala 0 … 10 V – das ist richtig so. Mit der Taste <b>AC</b> (am Gerät neben jedem Kanal und in der Seitenleiste unter «Kopplung») wird der Gleichanteil abgezogen und die Skala so vergrössert, dass die Welligkeit den Schirm füllt; die Anzeige sagt es im Klartext («CH1 AC-gekoppelt, Gleichanteil 8,38 V abgezogen»). Je Kanal einstellbar, Standard bleibt DC.</p>' +
       '<p><b>MATH = CH1 − CH2:</b> Die Taste MATH (am Gerät und in der Seitenleiste) rechnet die Differenz der beiden Tastköpfe – das ist die Spannung zwischen CH1 und CH2, unabhängig vom Erdungsclip (potentialfrei). Violette Kurve mit eigenen Kennwerten (max, min, Mittelwert, Periode). Unter der Kurve stehen bei jedem Kanal Mittelwert und Periodendauer bzw. Frequenz <i>des gemessenen Signals</i> – beim Brückengleichrichter 10 ms / 100 Hz, beim Einweggleichrichter 20 ms / 50 Hz.</p>',
     { id: 'bauteile', title: 'Bauteile', html:
       '<dl><dt>Spannungsquelle</dt><dd>Ideale Quelle mit kleinem Innenwiderstand.</dd><dt>LED</dt><dd>Leuchtet ab U<sub>F</sub> (rot 1,8 V … blau 3,0 V), max. 30 mA.</dd>' +
@@ -7053,10 +7058,13 @@ body.has-exam-bar .top { padding-top: 50px; }
     var tr = function (pts, cls) { return pts && pts.length ? '<polyline class="' + cls + '" points="' + pts.map(function (p) { return (-110 + p[0] * 150).toFixed(1) + ',' + (48 - p[1] * 112).toFixed(1); }).join(' ') + '"/>' : ''; };
     if (sc) { if (!sc.ch || sc.ch[1] !== false) s += tr(sc.pts, 'bsctrace'); if (!sc.ch || sc.ch[2] !== false) s += tr(sc.pts2, 'bsctrace bsctrace2'); if (sc.ch && sc.ch[3]) s += tr(sc.pts3, 'bsctrace bsctrace3'); }
     var ch = (sc && sc.ch) || { 1: true, 2: true };
+    if (sc && sc.info2) s += '<text class="bscinfo bscinfo2" x="-105" y="36">' + esc(sc.info2) + '</text>';
     s += '<text class="bscinfo" x="-105" y="44">' + esc(sc && sc.info ? sc.info : own ? 'CH1: Tastkopf anschliessen · RUN' : 'CH1 = Messspitzen · RUN') + '</text>' +
-      (own ? '<g data-scope="ch1" class="bscch' + (ch[1] !== false ? ' on' : '') + '"><rect x="-110" y="54" width="30" height="12" rx="3"/><circle cx="-103" cy="60" r="2.6" class="bscled1"/><text x="-90" y="63">CH1</text></g>' +
-             '<g data-scope="ch2" class="bscch' + (ch[2] !== false ? ' on' : '') + '"><rect x="-76" y="54" width="30" height="12" rx="3"/><circle cx="-69" cy="60" r="2.6" class="bscled2"/><text x="-56" y="63">CH2</text></g>' +
-             '<g data-scope="math" class="bscch' + (ch[3] ? ' on' : '') + '"><title>MATH = CH1 − CH2 (Differenz, potentialfrei)</title><rect x="-42" y="54" width="36" height="12" rx="3"/><circle cx="-35" cy="60" r="2.6" class="bscled3"/><text x="-19" y="63">MATH</text></g>' : '') +
+      (own ? [['ch1', 'CH1', 26, 'bscled1', ch[1] !== false, -110, 'Kanal 1 (gelber Tastkopf) ein/aus'], ['ch2', 'CH2', 26, 'bscled2', ch[2] !== false, -62, 'Kanal 2 (blauer Tastkopf) ein/aus'], ['math', 'MATH', 34, 'bscled3', !!ch[3], -14, 'MATH = CH1 − CH2 (Differenz, potentialfrei)']].map(function (k, i) {
+        var cp = sc && sc.cpl && sc.cpl[i + 1], x2 = k[5] + k[2] + 1;
+        return '<g data-scope="' + k[0] + '" class="bscch' + (k[4] ? ' on' : '') + '"><title>' + k[6] + '</title><rect x="' + k[5] + '" y="54" width="' + k[2] + '" height="12" rx="3"/><circle cx="' + (k[5] + 7) + '" cy="60" r="2.4" class="' + k[3] + '"/><text x="' + (k[5] + 8 + (k[2] - 8) / 2) + '" y="63">' + k[1] + '</text></g>' +
+          '<g data-scope="cpl' + (i + 1) + '" class="bscch bsccpl' + (cp ? ' on' : '') + '"><title>' + k[1] + ': Kopplung ' + (cp ? 'AC (Gleichanteil abgezogen) – Klick: DC' : 'DC – Klick: AC (Gleichanteil abziehen, Skala vergrössern)') + '</title><rect x="' + x2 + '" y="54" width="17" height="12" rx="3"/><text x="' + (x2 + 8.5) + '" y="63">' + (cp ? 'AC' : 'DC') + '</text></g>';
+      }).join('') : '') +
       '<path d="M-110-64L-30-64L-95 48H-110Z" fill="rgba(255,255,255,.04)"/>' +
       '<circle cx="70" cy="-44" r="13" fill="#1b1b1b"/><circle cx="70" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M70-44l0-9" stroke="#222" stroke-width="2"/>' +
       '<circle cx="102" cy="-44" r="13" fill="#1b1b1b"/><circle cx="102" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M102-44l6-6" stroke="#222" stroke-width="2"/>' +
@@ -9211,7 +9219,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     { id: 'multimeter', bereich: 'aufgabe', icon: '🔋', titel: 'Multimeter', tour: false,
       text: 'Messart OFF, V⎓, V~, A⎓, A~, Ω; Verfahren AVG oder TRMS; auf der Werkbank Spitzen ziehen, im Schaltplan Anschlüsse anklicken.', wann: 'Für Spannung, Strom und Widerstand.' },
     { id: 'oszilloskop', bereich: 'aufgabe', icon: '📈', titel: 'Oszilloskop', tour: false,
-      text: 'Spannung über die Zeit: Bildbreite wählen, Aufnahme/RUN, zwei Kanäle, gross anzeigen; darunter die Kennwerte.', wann: 'Für Wechselgrössen, Lade- und Taktsignale.' }
+      text: 'Spannung über die Zeit: Bildbreite wählen, Aufnahme/RUN, zwei Kanäle und MATH, AC-Kopplung für kleine Welligkeit, gross anzeigen; darunter die Kennwerte mit Uss.', wann: 'Für Wechselgrössen, Lade- und Taktsignale.' }
   ];
   /* Häufige Wege: Frage → Ziel (Portal-Adresse oder Labor-Adresse mit labor: true) */
   var wege = [
@@ -10131,7 +10139,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
         onMessage: function (m) { status([{ cls: 'info', text: m }]); }
       });
       ed = new Editor($('#board'), { core: core });
-      bench = new Bench($('#bench'), { core: core, onDial: function (m) { setMeterMode(m); }, onRange: function (r) { setMeterRange(r); }, onScope: function (k) { if (k === 'ch1' || k === 'ch2' || k === 'math') toggleChannel(k === 'math' ? 3 : +k.slice(2)); else scope(); } });
+      bench = new Bench($('#bench'), { core: core, onDial: function (m) { setMeterMode(m); }, onRange: function (r) { setMeterRange(r); }, onScope: function (k) { if (/^cpl[123]$/.test(k)) { toggleCoupling(+k.slice(3)); return; } if (k === 'ch1' || k === 'ch2' || k === 'math') toggleChannel(k === 'math' ? 3 : +k.slice(2)); else scope(); } });
       bindSheetHover($('#board')); bindSheetHover($('#bench'));
     }
     setView(t.sandbox ? 'bench' : preferredView(), t.sandbox);
@@ -10274,7 +10282,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
       if (setTxt) parts.push('Schalter: ' + setTxt);
       if (m.value !== undefined) parts.push('Rechenwert – kein Messgerät, Ergebnis in ' + (m.unit || 'der angegebenen Einheit') + ' eintragen');
       else if (m.truth && !m.mode) parts.push(m.truth.q === 'i' ? 'A⎓ in Reihe mit ' + m.truth.sel + ' (Leitung an ' + m.truth.sel + ' lösen, Spitzen in die Lücke)' : 'V⎓ an ' + m.truth.sel);
-      else if (m.mode === 'AC') parts.push('Oszilloskop: Tastkopf CH' + (m.ch || 1) + ' an ' + m.a + ', Erdungsclip an ' + (m.b || refL + ' (Bezugspunkt)') + ', Bildbreite ' + tbLabel(suggestTb(t.ref)) + ', RUN – ' + ({ dc: 'Mittelwert ablesen', peak: 'Scheitelwert ablesen', pp: 'Spitze-Spitze ablesen', rms: 'Effektivwert', avg: 'Gleichrichtwert' }[m.q || 'dc'] || m.q));
+      else if (m.mode === 'AC') parts.push('Oszilloskop: Tastkopf CH' + (m.ch || 1) + ' an ' + m.a + ', Erdungsclip an ' + (m.b || refL + ' (Bezugspunkt)') + (m.q === 'pp' ? ', bei kleiner Welligkeit AC-Kopplung (Taste DC/AC)' : '') + ', Bildbreite ' + tbLabel(suggestTb(t.ref)) + ', RUN – ' + ({ dc: 'Mittelwert ablesen', peak: 'Scheitelwert ablesen', pp: 'Spitze-Spitze ablesen', rms: 'Effektivwert', avg: 'Gleichrichtwert' }[m.q || 'dc'] || m.q));
       else {
         var u = m.mode === 'A' || m.mode === 'AAC' ? 'A' : m.mode === 'R' ? 'Ω' : 'V', mode = m.mode === 'A' ? 'A⎓ (in Reihe: Leitung lösen, Spitzen in die Lücke)' : m.mode === 'AAC' ? 'A~, Verfahren ' + ((m.meterType || 'trms').toUpperCase()) + ' (in Reihe: Leitung lösen, Spitzen in die Lücke)' : m.mode === 'R' ? 'Ω (spannungsfrei!)' : m.mode === 'VAC' ? 'V~, Verfahren ' + ((m.meterType || 'trms').toUpperCase()) : 'V⎓';
         parts.push('Messart ' + mode);
@@ -10734,18 +10742,30 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     if (cr.length < 2) return { mean: mean, T: 0 };
     return { mean: mean, T: (cr[cr.length - 1] - cr[0]) / (cr.length - 1) };
   }
-  function scopeCurve(layout, sp, T, label, chNo, scale) {
+  var SCOPE_CACHE = {};   // Simulation und acMeasure je Aufbau/Messpunkt/Bildbreite (höchstens 10 Einträge)
+  /* Skalenstufe 1-2-5 für die AC-gekoppelte Anzeige: kleinster Wert ≥ 1,15 · Amplitude */
+  function niceTop(a) { var steps = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100], want = Math.max(a, 1e-6) * 1.15; for (var i = 0; i < steps.length; i++) if (steps[i] >= want) return steps[i]; return Math.ceil(want); }
+  /* acCoupled: AC-Kopplung (K3) – der Gleichanteil wird abgezogen und die Skala symmetrisch um 0 vergrössert; Standard ist DC */
+  function scopeCurve(layout, sp, T, label, chNo, scale, acCoupled) {
     var fr = sourceFreqs(layout), fmax = fr.length ? Math.max.apply(null, fr) : 0, fmin = fr.length ? Math.min.apply(null, fr) : 0, dt = T / 400;
     if (fmax > 0) dt = Math.min(dt, 1 / (fmax * 100)); dt = Math.max(dt, T / 40000);
     var rs = [], cs = []; (layout.parts || []).forEach(function (p) { var v = p.value !== undefined ? p.value : (p.props && p.props.value); if (p.type === 'resistor' && v > 0) rs.push(v); if (p.type === 'capacitor' && v > 0) cs.push(v); });
     var tauMax = rs.length && cs.length ? Math.max.apply(null, rs) * Math.max.apply(null, cs) : 0, settle = null;
-    if (fr.length && tauMax > 0) { var T0 = 1 / Math.min.apply(null, fr); settle = { t: Math.ceil(Math.min(5 * tauMax, 3) / T0) * T0, dt: T0 / 40 }; } // ohne Wechselquelle (Ladekurve) bewusst ab t = 0
-    var s = E.simulate(layout, { dt: dt, tEnd: T, settle: settle, probes: [{ a: sp.a, b: sp.b || undefined }] }).samples;
-    var vs = s.map(function (x) { return x.ch0; }), mx = Math.max.apply(null, vs), mn = Math.min.apply(null, vs);
+    if (fr.length && tauMax > 0) { var T0 = 1 / Math.min.apply(null, fr); settle = { t: Math.ceil(Math.min(5 * tauMax, 10) / T0) * T0, dt: T0 / 40 }; } // bis 10 s (K3): 1000 µF an 1 kΩ braucht 5·τ = 5 s // ohne Wechselquelle (Ladekurve) bewusst ab t = 0
     var periods = fmin > 0 ? T * fmin : 0, short = fmin > 0 && periods < 0.999, ac = null;
-    if (fmin > 0 && !short) { try { ac = E.acMeasure(layout, { a: sp.a, b: sp.b || undefined }); } catch (e) { ac = null; } }
-    if (ac && ac.ok && !ac.static && isFinite(ac.max)) { mx = ac.max; mn = ac.min; } // exakte Kennwerte, unabhängig von der Bildbreite
-    var top = scale ? scale.top : Math.max(1, Math.ceil(Math.max(mx, 0) * 1.1)), bot = scale ? scale.bot : Math.min(0, Math.floor(mn * 1.1)), span = top - bot;
+    var ckey = JSON.stringify(layout) + '|' + sp.a + '|' + (sp.b || '') + '|' + T, hit = SCOPE_CACHE[ckey], s;
+    if (hit) { s = hit.s; ac = hit.ac; }
+    else {
+      s = E.simulate(layout, { dt: dt, tEnd: T, settle: settle, probes: [{ a: sp.a, b: sp.b || undefined }] }).samples;
+      if (fmin > 0 && !short) { try { ac = E.acMeasure(layout, { a: sp.a, b: sp.b || undefined }); } catch (e) { ac = null; } }
+      var ks = Object.keys(SCOPE_CACHE); if (ks.length >= 10) delete SCOPE_CACHE[ks[0]]; SCOPE_CACHE[ckey] = { s: s, ac: ac };
+    }
+    var exact = !!(ac && ac.ok && !ac.static && isFinite(ac.max)), smean = s.reduce(function (a, x) { return a + x.ch0; }, 0) / (s.length || 1);
+    var base = exact && isFinite(ac.dc) ? ac.dc : smean, coup = !!acCoupled; // base = Gleichanteil des Kanals
+    if (coup) s = s.map(function (x) { return { t: x.t, ch0: x.ch0 - base }; });
+    var vs = s.map(function (x) { return x.ch0; }), mx = Math.max.apply(null, vs), mn = Math.min.apply(null, vs);
+    if (exact) { mx = ac.max - (coup ? base : 0); mn = ac.min - (coup ? base : 0); } // exakte Kennwerte, unabhängig von der Bildbreite
+    var top = scale ? scale.top : coup ? niceTop(Math.max(Math.abs(mx), Math.abs(mn))) : Math.max(1, Math.ceil(Math.max(mx, 0) * 1.1)), bot = scale ? scale.bot : coup ? -top : Math.min(0, Math.floor(mn * 1.1)), span = top - bot;
     // Huellkurve: Spalten; bei mehr Perioden als Spalten/2 ist das Bild ein Band aus den exakten Kennwerten (kein Aliasing)
     var cols = 300, pts = [], t0 = s.length ? s[0].t : 0; // nach dem Einschwingen beginnt die Aufzeichnung nicht bei t = 0
     if (s.length <= 2 * cols) pts = s.map(function (x) { return [(x.t - t0) / T, (x.ch0 - bot) / span]; });
@@ -10760,9 +10780,10 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     var hint = short ? 'Bildbreite zu klein: weniger als eine Periode im Bild – Scheitelwert und Spitze-Spitze sind so nicht ablesbar, grössere Bildbreite wählen.' : '';
     // Bezugspunkt nie stillschweigend (G1): ohne zweiten Anschluss misst der Kanal gegen den Bezugspunkt der Schaltung – im Klartext nennen
     var ref = sp.b ? null : refOf(layout), refLbl = ref ? ref.label : '';
-    var sig = signalPeriod(s), mean = ac && ac.ok && !ac.static && isFinite(ac.dc) ? ac.dc : (sig ? sig.mean : 0), sigT = sig && !short ? sig.T : 0;
-    var kenn = ' · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') + ' · Mittelwert ' + E.fmt(mean, 'V') + (sigT ? ' · Periode ' + E.fmt(sigT, 's') + ' (' + E.fmt(1 / sigT, 'Hz') + ')' : '');
-    return { samples: s, top: top, bot: bot, mx: mx, mn: mn, mean: mean, sigT: sigT, pts: pts, short: short, hint: hint, periods: periods, ref: ref ? ref.pid : null, refLabel: refLbl, a: sp.a, b: sp.b || null,
+    var sig = signalPeriod(s), mean = coup ? 0 : (ac && ac.ok && !ac.static && isFinite(ac.dc) ? ac.dc : (sig ? sig.mean : 0)), sigT = sig && !short ? sig.T : 0, uss = mx - mn;
+    var cpl = coup ? ' · AC-gekoppelt, Gleichanteil ' + E.fmt(base, 'V') + ' abgezogen' : '';
+    var kenn = cpl + ' · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') + ' · Uss ' + E.fmt(uss, 'V') + (coup ? '' : ' · Mittelwert ' + E.fmt(mean, 'V')) + (sigT ? ' · Periode ' + E.fmt(sigT, 's') + ' (' + E.fmt(1 / sigT, 'Hz') + ')' : '');
+    return { samples: s, top: top, bot: bot, mx: mx, mn: mn, mean: mean, uss: uss, coup: coup, base: base, sigT: sigT, pts: pts, short: short, hint: hint, periods: periods, ref: ref ? ref.pid : null, refLabel: refLbl, a: sp.a, b: sp.b || null,
       info: (sp.math ? 'MATH ' : 'CH' + (chNo || 1) + ' ') + sp.a + (sp.b ? '–' + sp.b : ' gegen ' + refLbl + ' ⏚') + ' · ' + bot + '…' + top + ' V · ' + label + (short ? ' · zu klein!' : ''),
       text: 'Kanal: ' + sp.a + ' gegen ' + (sp.b || refLbl + ' (Bezugspunkt – ' + (sp.own === false ? 'schwarze Spitze nicht gesetzt' : 'Erdungsclip nicht angeschlossen') + ')') + ' · ' + bot + '…' + top + ' V' + kenn + (short ? ' · ' + hint : '') };
   }
@@ -10835,6 +10856,14 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
   /* L3 (05.10.2026): zweiter Kanal – blauer Tastkopf CH2 gegen denselben Erdungsclip. Kanäle einzeln ein-/ausschaltbar (Gerät und Seitenleiste),
    * beide Kurven auf gemeinsamer Skala, Kennwerte je Kanal, Phasenverschiebung CH2 gegen CH1 aus den steigenden Nulldurchgängen. */
   var scopeCh = { 1: true, 2: true, 3: false };   // 3 = MATH (CH1 − CH2), standardmässig aus
+  var scopeCoup = { 1: false, 2: false, 3: false };   // Kopplung je Kanal: false = DC (Standard), true = AC (K3)
+  function toggleCoupling(n) {
+    scopeCoup[n] = !scopeCoup[n];
+    $$('#scopeCpl [data-cpl]').forEach(function (b) { var on = scopeCoup[+b.dataset.cpl]; b.classList.toggle('on', on); b.textContent = (+b.dataset.cpl === 3 ? 'MATH ' : 'CH' + b.dataset.cpl + ' ') + (on ? 'AC' : 'DC'); });
+    if (bench) bench.scope = Object.assign({}, bench.scope || {}, { cpl: scopeCoup });
+    if (lastScope) scope(); else if (bench) bench.render();
+    log('scope_cpl', { ch: n, ac: scopeCoup[n] });
+  }
   function toggleChannel(n) { if (n === 3 && !(core && core.scopeProbes.tip && core.scopeProbes.tip2)) { status([{ cls: 'warn', text: 'MATH = CH1 − CH2 braucht beide Tastköpfe: CH1 an den einen, CH2 an den anderen Anschluss des Bauteils.' }]); return; } scopeCh[n] = !scopeCh[n]; $$('#scopeCh [data-ch]').forEach(function (b) { b.classList.toggle('on', scopeCh[+b.dataset.ch]); }); if (lastScope) { bench.scope = Object.assign({}, bench.scope, { ch: scopeCh }); bench.render(); scope(); } else if (bench) { bench.scope = Object.assign({}, bench.scope || {}, { ch: scopeCh }); bench.render(); } log('scope_ch', { ch: n, on: scopeCh[n] }); }
   function phaseShift(c1, c2, T0) { // Δt der ersten steigenden Nulldurchgänge (um den Gleichanteil), als Zeit und Winkel
     if (!c1 || !c2 || !T0) return null;
@@ -10859,9 +10888,12 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     try {
       // CH1, CH2 (gegen denselben Erdungsclip) und MATH = CH1 − CH2 (= Tastkopf 1 gegen Tastkopf 2, potentialfrei; G3) auf gemeinsamer Skala
       var defs = [[sp, 1]]; if (sp.own && sp.a2 && scopeCh[2]) defs.push([{ a: sp.a2, b: sp.b }, 2]); if (sp.own && sp.a2 && scopeCh[3]) defs.push([{ a: sp.a, b: sp.a2, math: true }, 3]);
-      var cs = defs.map(function (d) { return scopeCurve(ed.layout, d[0], T, label, d[1]); });
-      var top = Math.max.apply(null, cs.map(function (x) { return x.top; })), bot = Math.min.apply(null, cs.map(function (x) { return x.bot; }));
-      cs = cs.map(function (x, k) { return x.top === top && x.bot === bot ? x : scopeCurve(ed.layout, defs[k][0], T, label, defs[k][1], { top: top, bot: bot }); });
+      var cs = defs.map(function (d) { return scopeCurve(ed.layout, d[0], T, label, d[1], null, !!scopeCoup[d[1]]); });
+      [false, true].forEach(function (g) { // gemeinsame Skala je Kopplungsgruppe: alle DC-Kanäle zusammen, alle AC-Kanäle zusammen
+        var grp = cs.filter(function (x) { return x.coup === g; }); if (!grp.length) return;
+        var top = Math.max.apply(null, grp.map(function (x) { return x.top; })), bot = Math.min.apply(null, grp.map(function (x) { return x.bot; }));
+        cs = cs.map(function (x, k) { return x.coup !== g || (x.top === top && x.bot === bot) ? x : scopeCurve(ed.layout, defs[k][0], T, label, defs[k][1], { top: top, bot: bot }, g); });
+      });
       c = cs[0]; cs.forEach(function (x, k) { if (defs[k][1] === 2) c2 = x; if (defs[k][1] === 3) c3 = x; });
     } catch (e) { $('#scopeInfo').textContent = e.message; return; }
     if (scopeCh[1]) drawTrace(ctx, c, T, w, h, '#ffb000');
@@ -10873,7 +10905,8 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
       (c3 ? ' · MATH = CH1 − CH2 (' + c3.a + ' gegen ' + c3.b + ', potentialfrei)' + ' ' + c3.text.replace(/^Kanal: [^·]*/, '') : '');
     scopeWarn(c, sp);
     $('#scopeCh').hidden = !sp.own;
-    bench.scope = { pts: c.pts, pts2: c2 ? c2.pts : null, pts3: c3 ? c3.pts : null, info: c.info + (c2 ? ' · CH2 ' + c2.bot + '…' + c2.top + ' V' : '') + (c3 ? ' · MATH' : ''), ch: scopeCh, math: !!(sp.own && sp.a2) };
+    bench.scope = { pts: c.pts, pts2: c2 ? c2.pts : null, pts3: c3 ? c3.pts : null, info: c.info + (c2 ? ' · CH2 ' + c2.bot + '…' + c2.top + ' V' : '') + (c3 ? ' · MATH' : ''), info2: (c.coup ? 'AC ' : '') + 'Uss ' + E.fmt(c.uss, 'V') + (c2 ? ' · CH2 ' + E.fmt(c2.uss, 'V') : '') + (c3 ? ' · MATH ' + E.fmt(c3.uss, 'V') : ''), ch: scopeCh, cpl: scopeCoup, math: !!(sp.own && sp.a2) };
+    var cb = $('#scopeCpl'); if (cb) { $$('[data-cpl="2"]', cb).forEach(function (b) { b.hidden = !sp.own || !sp.a2; }); $$('[data-cpl="3"]', cb).forEach(function (b) { b.hidden = !(sp.own && sp.a2); }); }
     bench.render();
     log('scope', { id: current.task && current.task.id, T: T, ch2: !!c2, math: !!c3 });
   }
@@ -10919,6 +10952,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
       if (c2) stat.push(['CH2 Û+ (max)', E.fmt(c2.mx, 'V')], ['CH2 Û− (min)', E.fmt(c2.mn, 'V')], ['CH2 Uss', E.fmt(c2.mx - c2.mn, 'V')]);
       var c3 = sc.c3; if (c3) stat.push(['MATH = CH1 − CH2', c3.a + ' gegen ' + c3.b], ['MATH Û+ (max)', E.fmt(c3.mx, 'V')], ['MATH Û− (min)', E.fmt(c3.mn, 'V')], ['MATH Mittelwert', E.fmt(c3.mean || 0, 'V')], ['MATH Signal T / f', c3.sigT ? E.fmt(c3.sigT, 's') + ' / ' + E.fmt(1 / c3.sigT, 'Hz') : '–']);
       if (sc.phase) stat.push(['Phase CH2→CH1', E.fmt(sc.phase.dt, 's') + ' / ' + sc.phase.deg.toFixed(0) + '°']);
+      if (c.coup) stat.push([p1 + 'Kopplung', 'AC – Gleichanteil ' + E.fmt(c.base, 'V') + ' abgezogen']); else stat.push([p1 + 'Kopplung', 'DC']);
       stat.push([p1 + 'Mittelwert', E.fmt(c.mean || 0, 'V')]); if (c.sigT) stat.push([p1 + 'Signal T / f', E.fmt(c.sigT, 's') + ' / ' + E.fmt(1 / c.sigT, 'Hz')]);
       if (c.ref) stat.push(['Bezugspunkt', c.refLabel + ' (kein Erdungsclip)']);
       stat.push(['Bildbreite', sc.label], ['Raster', E.fmt(sc.T / 10, 's') + ' / Div']);
@@ -11359,6 +11393,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     if (!root.DQ_PORTAL) { $('#footImp').href = 'https://digital-quest.steven-matzinger93.workers.dev/impressum.html'; $('#footDs').href = 'https://digital-quest.steven-matzinger93.workers.dev/datenschutz.html'; $$('.lab-foot a').forEach(function (a) { a.target = '_blank'; a.rel = 'noopener'; }); }
     $('#btnScopeBig').onclick = function () { scopeBig(); };
     $$('#scopeCh [data-ch]').forEach(function (b) { b.onclick = function () { toggleChannel(+b.dataset.ch); }; });
+    $$('#scopeCpl [data-cpl]').forEach(function (b) { b.onclick = function () { toggleCoupling(+b.dataset.cpl); }; });
     window.addEventListener('popstate', function () {
       if (root.DQCalc && root.DQCalc.isOpen) { root.DQCalc.close(); return; } // Zurueck schliesst zuerst den Rechner
       if ($('#scopeBig') && !$('#scopeBig').hidden) { $('#scopeBig .sb-x').click(); return; }
