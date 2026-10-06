@@ -340,5 +340,21 @@ ok(CALC.fmt(0.1 + 0.2) === '0.3' && CALC.fmt(1e-9) === '1.0000e-9' && CALC.fmt(1
     }
   }
 }
+// Welligkeit und Last (Auftrag 06.10.2026, K5.1): Soll aus der Tabelle des Auftrags (± 5 %), doppelte Last = 1,7- bis 2,2-fache Welligkeit, Faustformel
+{
+  const gen = { id: 'G1', type: 'acsource', value: 10, props: { freq: 50, shape: 'sine', offset: 0 } };
+  const d = id => ({ id, type: 'diode' });
+  const mk = (uF, rl) => ({ parts: [gen, { id: 'R1', type: 'resistor', value: rl || 1000 }, d('V1'), d('V2'), d('V3'), d('V4'), { id: 'C1', type: 'capacitor', value: uF * 1e-6 }],
+    wires: [W('G1.p', 'V1.a'), W('V1.k', 'R1.a'), W('G1.n', 'V2.a'), W('V2.k', 'R1.a'), W('R1.b', 'V3.a'), W('V3.k', 'G1.p'), W('R1.b', 'V4.a'), W('V4.k', 'G1.n'), W('R1.a', 'C1.a'), W('C1.b', 'R1.b')] });
+  const rip = (uF, rl) => { const a = E.acMeasure(mk(uF, rl), { a: 'R1.a', b: 'R1.b' }); return { pp: a.max - a.min, dc: a.dc, max: a.max, min: a.min }; };
+  const SOLLW = { 10: [4.104, 6.654], 47: [1.358, 7.916], 100: [0.693, 8.210], 220: [0.326, 8.343], 470: [0.155, 8.382], 1000: [0.074, 8.393] };
+  Object.keys(SOLLW).forEach(uF => { const r = rip(+uF); near(r.pp, SOLLW[uF][0], 0.05, 'Welligkeit ' + uF + ' µF ≈ ' + SOLLW[uF][0] + ' V'); near(r.dc, SOLLW[uF][1], 0.01, 'Gleichanteil ' + uF + ' µF ≈ ' + SOLLW[uF][1] + ' V'); });
+  const w1 = rip(470).pp, w2 = rip(470, 500).pp;
+  ok(w2 / w1 >= 1.7 && w2 / w1 <= 2.2, 'doppelte Last (500 Ω): 1,7- bis 2,2-fache Welligkeit', w2 / w1);
+  ok(rip(10).pp > 0.5 && rip(100).pp > 0.5 && rip(220).pp < 0.5 && rip(470).pp < 0.5, 'Welligkeit unter 0,5 V erst ab 220 µF (470 µF ist der kleinste der drei Kondensatoren in 16.9, der reicht)');
+  // Faustformel ΔU ≈ I / (2·f·C): ab τ ≫ 10 ms etwas zu gross (≤ 30 % darüber), nie darunter
+  [100, 470, 1000].forEach(uF => { const r = rip(uF), f = r.dc / 1000 / (2 * 50 * uF * 1e-6); ok(f >= r.pp * 0.99 && f <= r.pp * 1.3, 'Faustformel ' + uF + ' µF: ' + f.toFixed(3) + ' V gegen gemessen ' + r.pp.toFixed(3) + ' V', [f, r.pp]); });
+  ok(rip(10).dc > 5.019 && rip(100).dc > rip(10).dc && rip(470).dc > rip(100).dc, 'Gleichanteil steigt mit der Kapazität Richtung Scheitel');
+}
 console.log(`Engine-Tests: ${pass} ok, ${fail} Fehler`);
 process.exit(fail ? 1 : 0);

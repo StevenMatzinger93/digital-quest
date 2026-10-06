@@ -855,6 +855,73 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await g.close();
   }
 
+  // ===== Glättung (Auftrag 06.10.2026, K5.4): 16.9 je Kondensator, AC-Kopplung, Vorführen, T3C-Regler, Handy =====
+  {
+    const g = await browser.newPage({ viewport: { width: 1440, height: 900 } }); g.on('pageerror', e => errors.push('Glättung: ' + e.message));
+    await g.goto(url, { waitUntil: 'domcontentloaded' }); await g.waitForTimeout(300); await g.evaluate(() => { DigitalQuest.state.settings.tourAsked = true; }); if (await g.$('#dqTourAsk')) await g.click('#dqtAskNo');
+    await g.evaluate(() => { delete DigitalQuest.state.drafts['16.9']; DigitalQuest.openItem('16.9'); DigitalQuest.setView('bench'); }); await g.waitForTimeout(250);
+    const closedOf = () => g.evaluate(() => ['S1', 'S2', 'S3', 'S4'].map(id => !!(DigitalQuest.core.part(id).props || {}).closed).join());
+    const flip = async id => { await g.evaluate(() => window.scrollTo(0, 0)); const c = await g.evaluate(id => { const r = document.querySelector('#bench [data-part="' + id + '"] .bblock').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }, id); await g.mouse.click(c[0], c[1]); await g.waitForTimeout(150); }; // echter Mausklick auf den Schalter (nach RUN zeichnet die Werkbank laufend neu; Playwrights Stabilitätsprüfung würde warten)
+    if (await closedOf() !== 'false,false,false,false') errors.push('Glättung: Schalter nicht alle offen: ' + await closedOf());
+    await g.evaluate(() => { const c = DigitalQuest.core; c.scopeProbes.tip = 'R1.a'; c.scopeProbes.gnd = 'R1.b'; c.scopeProbes.tip2 = null; c.redraw(); });
+    await g.selectOption('#tb', await g.$$eval('#tb option', l => l.map(o => o.value).find(v => Math.abs(+v - 0.05) < 1e-9)));
+    const uss = txt => { const m = /Uss ([\d.]+) ?(m?V)/.exec(txt); return m ? +m[1] * (m[2] === 'mV' ? 1e-3 : 1) : NaN; };
+    const run = async () => { await g.click('#btnScope'); await g.waitForTimeout(250); return (await g.textContent('#scopeInfo')).replace(/\s+/g, ' '); };
+    // je Kondensator einzeln: Schalter über die Bedienung stellen, U_ss ablesen (Soll aus der Engine, ± 6 %)
+    const want = await g.evaluate(() => { const E = DigitalQuest.engine, t = DQ.byId['16.9'], ex = E.expectedAnswers(t, t.ref); return { pp1: ex.pp1, pp2: ex.pp2, pp3: ex.pp3, pp4: ex.pp4, dc3: ex.dc3 }; });
+    for (const [sw, key] of [['S1', 'pp1'], ['S2', 'pp2'], ['S3', 'pp3']]) {
+      await flip(sw); const only = await closedOf(); if (only.split(',').filter(x => x === 'true').length !== 1) errors.push('Glättung: ' + sw + ' lässt sich nicht einzeln schliessen: ' + only);
+      const t = await run(), u = uss(t);
+      if (!(Math.abs(u - want[key]) <= 0.06 * want[key])) errors.push('Glättung: ' + sw + ' U_ss ' + u + ' statt ' + want[key] + ' (' + t.slice(0, 160) + ')');
+      if (sw === 'S3') {
+        // DC: fast gerade Linie auf 0 … 10 V; AC: Gleichanteil abgezogen, Klartext, Skala vergrössert, Uss bleibt
+        if (!/0…10 V/.test(t) || /AC-gekoppelt/.test(t)) errors.push('Glättung: DC-Kopplung ist nicht Standard/0…10 V: ' + t.slice(0, 120));
+        await g.screenshot({ path: shots + '/19_glaettung_dc.png' });
+        await g.click('#scopeCpl [data-cpl="1"]'); await g.waitForTimeout(250); const ta = (await g.textContent('#scopeInfo')).replace(/\s+/g, ' ');
+        if (!/AC-gekoppelt, Gleichanteil 8\.38\d V abgezogen/.test(ta) || !/-0\.1…0\.1 V/.test(ta) || Math.abs(uss(ta) - u) > 1e-6) errors.push('Glättung: AC-Kopplung (Klartext/Skala/Uss) falsch: ' + ta.slice(0, 200));
+        if (!/AC/.test(await g.$eval('#bench [data-scope="cpl1"] text', e => e.textContent)) || !await g.$eval('#scopeCpl [data-cpl="1"]', b => b.classList.contains('on'))) errors.push('Glättung: AC-Taste (Gerät/Seitenleiste) zeigt AC nicht');
+        if (!/^AC Uss/.test(await g.$eval('#bench .bscinfo2', e => e.textContent))) errors.push('Glättung: Schirmzeile mit AC und Uss fehlt');
+        await g.click('#btnScopeBig'); await g.waitForTimeout(100); const sb = await g.textContent('#scopeBig .sb-stats');
+        if (!/Kopplung.*AC/.test(sb) || !/Uss/.test(sb)) errors.push('Glättung: grosses Oszilloskop ohne Kopplung/Uss'); await g.keyboard.press('Escape');
+        await g.screenshot({ path: shots + '/20_glaettung_ac.png' });
+        await g.click('#scopeCpl [data-cpl="1"]'); await g.waitForTimeout(150); if (/AC-gekoppelt/.test(await g.textContent('#scopeInfo'))) errors.push('Glättung: DC-Taste schaltet nicht zurück');
+      }
+      await flip(sw); // wieder öffnen, damit immer nur ein Kondensator zu ist
+    }
+    // halbe Last: S4 zu bei S3 zu (S1, S2 wieder offen): U_ss ≈ doppelt
+    await flip('S3'); await flip('S4'); if (await closedOf() !== 'false,false,true,true') errors.push('Glättung: Schalterstellung für halbe Last: ' + await closedOf());
+    { const u = uss(await run()); if (!(Math.abs(u - want.pp4) <= 0.06 * want.pp4) || !(u / want.pp3 > 1.7 && u / want.pp3 < 2.2)) errors.push('Glättung: halbe Last U_ss ' + u + ' statt ' + want.pp4); }
+    // Protokoll: 13 Messwerte, Rechenwerte und Abschlussfrage mit Einheit µF
+    const prot = await g.evaluate(() => { const t = DQ.byId['16.9'], ex = DigitalQuest.engine.expectedAnswers(t, t.ref); return { n: t.measure.length, cmin: ex.cmin, tau3: ex.tau3, du2: ex.du2 }; });
+    if (prot.n !== 13 || prot.cmin !== 470 || prot.tau3 !== 470 || !(prot.du2 > 0.8 && prot.du2 < 0.85)) errors.push('Glättung: Messwerte/Sollwerte: ' + JSON.stringify(prot));
+    // Vorführ-Modus (Welligkeit bei 100 µF): stellt die Schalter selbst
+    await g.evaluate(() => { delete DigitalQuest.state.drafts['16.9']; DigitalQuest.openItem('16.9'); DigitalQuest.setView('bench'); }); await g.waitForTimeout(200);
+    if (!await g.$('#btnDemo')) errors.push('Glättung: Vorführen fehlt');
+    else { await g.click('#btnDemo'); await g.waitForTimeout(150); const d0 = await g.evaluate(() => DigitalQuest.demo ? DigitalQuest.demo.steps.map(s => s.text).join(' | ') : ''); if (!/Welligkeit U_ss/.test(d0) || !/S2 zu/.test(d0)) errors.push('Glättung: Vorführung nennt Messwert/Schalter nicht: ' + d0.slice(0, 200)); await g.click('#demoStop'); await g.waitForTimeout(100); }
+    // Einstellungs-Box nennt Schalterstellung und AC-Kopplung
+    if (!/Schalter: S1 offen, S2 zu, S3 offen, S4 offen/.test(await g.textContent('#taskInfo .setup')) || !/AC-Kopplung/.test(await g.textContent('#taskInfo .setup'))) errors.push('Glättung: Einstellungs-Box ohne Schalterstellung/AC-Kopplung');
+    // T3C: Regler ändern Kurve und Kennwerte
+    await g.evaluate(() => DigitalQuest.openItem('T3C')); await g.waitForTimeout(500);
+    const vis = (await g.$$('#scr-theory .visual'))[1]; if (!vis) errors.push('T3C: zweites Bild fehlt');
+    else {
+      await vis.scrollIntoViewIfNeeded(); await g.waitForTimeout(600); const sels = await vis.$$('select[data-sl]'); const ro = async () => { await g.waitForTimeout(600); return (await vis.$eval('.mini-ro', e => e.textContent.replace(/\s+/g, ' '))); };
+      await sels[0].selectOption('0.00001'); const r10 = await ro(); await sels[0].selectOption('0.00047'); const r470 = await ro();
+      const num = (t, k) => { const m = new RegExp(k + ' ([\\d.]+) ?(m?V)').exec(t); return m ? +m[1] * (m[2] === 'mV' ? 1e-3 : 1) : NaN; };
+      if (!(num(r10, 'Welligkeit Uss') > 3.5 && num(r470, 'Welligkeit Uss') < 0.3 && num(r470, 'Gleichanteil') > num(r10, 'Gleichanteil'))) errors.push('T3C: Regler ändert Kennwerte nicht: ' + r10 + ' / ' + r470);
+      if (!/τ = R · C 470\.0 ms/.test(r470)) errors.push('T3C: τ-Anzeige falsch: ' + r470);
+      await sels[1].selectOption('500'); const rl = await ro(); if (!(num(rl, 'Welligkeit Uss') / num(r470, 'Welligkeit Uss') > 1.7)) errors.push('T3C: doppelte Last verdoppelt die Welligkeit nicht: ' + rl);
+      await sels[0].selectOption('1e-9'); if (!/τ = R · C –/.test(await ro())) errors.push('T3C: «ohne Kondensator» zeigt kein «–»');
+      await g.screenshot({ path: shots + '/21_t3c_glaettung.png' });
+    }
+    // Handy 390 px: Kopplungs-Tasten und Kennwerte lesbar, kein Querscrollen
+    await g.setViewportSize({ width: 390, height: 844 }); await g.evaluate(() => { DigitalQuest.openItem('16.9'); DigitalQuest.setView('bench'); const c = DigitalQuest.core; c.scopeProbes.tip = 'R1.a'; c.scopeProbes.gnd = 'R1.b'; c.part('S3').props.closed = true; c.redraw(); }); await g.waitForTimeout(250);
+    await g.click('#btnScope'); await g.waitForTimeout(300);
+    const mb = await g.evaluate(() => { const b = document.querySelector('#scopeCpl [data-cpl="1"]').getBoundingClientRect(); return { w: b.width, h: b.height, sw: document.documentElement.scrollWidth, iw: innerWidth, info: document.getElementById('scopeInfo').getBoundingClientRect().right }; });
+    if (mb.h < 28 || mb.sw > mb.iw + 1 || mb.info > mb.iw + 1) errors.push('Glättung mobil: Kopplungs-Taste zu klein oder Querscrollen: ' + JSON.stringify(mb));
+    await g.screenshot({ path: shots + '/22_glaettung_handy.png' });
+    await g.close();
+  }
+
   // ===== Wegweiser (Auftrag 06.10.2026): ?-Link, Handbuch-Seite, Rundgang, Ereignisse, erste Frage, kein Rundgang bei Live-Start =====
   {
     const w = await browser.newPage({ viewport: { width: 1440, height: 900 } }); w.on('pageerror', e => errors.push('Wegweiser: ' + e.message));

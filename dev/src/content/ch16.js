@@ -440,9 +440,9 @@
     wires: [W('G1.p', 'V1.a'), W('G1.p', 'V3.k'), W('G1.n', 'V2.a'), W('G1.n', 'V4.k'), W('V1.k', 'R1.a'), W('V2.k', 'R1.a'), W('V3.a', 'R1.b'), W('V4.a', 'R1.b'),
       W('R1.a', 'S1.a'), W('S1.b', 'C1.a'), W('C1.b', 'R1.b'), W('R1.a', 'S2.a'), W('S2.b', 'C2.a'), W('C2.b', 'R1.b'), W('R1.a', 'S3.a'), W('S3.b', 'C3.a'), W('C3.b', 'R1.b'),
       W('R1.a', 'S4.a'), W('S4.b', 'R2.a'), W('R2.b', 'R1.b')] };
-  var bSmooth = { parts: [{ id: 'G1', x: 210, y: 470, rot: 0 }, { id: 'V1', x: 350, y: 230, rot: 0 }, { id: 'V2', x: 350, y: 650, rot: 0 }, { id: 'V3', x: 510, y: 230, rot: 180 }, { id: 'V4', x: 510, y: 650, rot: 180 }, { id: 'R1', x: 610, y: 450, rot: 90 },
-    { id: 'S1', x: 700, y: 190, rot: 0 }, { id: 'C1', x: 700, y: 330, rot: 90 }, { id: 'S2', x: 815, y: 190, rot: 0 }, { id: 'C2', x: 815, y: 330, rot: 90 }, { id: 'S3', x: 930, y: 190, rot: 0 }, { id: 'C3', x: 930, y: 330, rot: 90 },
-    { id: 'S4', x: 720, y: 600, rot: 0 }, { id: 'R2', x: 840, y: 600, rot: 0 }] };
+  var bSmooth = { parts: [{ id: 'G1', x: 210, y: 470, rot: 0 }, { id: 'V1', x: 350, y: 230, rot: 0 }, { id: 'V2', x: 350, y: 650, rot: 0 }, { id: 'V3', x: 510, y: 230, rot: 180 }, { id: 'V4', x: 510, y: 650, rot: 180 }, { id: 'R1', x: 580, y: 450, rot: 90 },
+    { id: 'S1', x: 680, y: 190, rot: 90 }, { id: 'C1', x: 680, y: 345, rot: 90 }, { id: 'S2', x: 772, y: 190, rot: 90 }, { id: 'C2', x: 772, y: 345, rot: 90 }, { id: 'S3', x: 864, y: 190, rot: 90 }, { id: 'C3', x: 864, y: 345, rot: 90 },
+    { id: 'S4', x: 956, y: 190, rot: 90 }, { id: 'R2', x: 956, y: 345, rot: 90 }] };
   /* Schalterstellungen je Messwert: gelistete Schalter zu, alle anderen offen */
   var SW = function (closed) { var s = {}; ['S1', 'S2', 'S3', 'S4'].forEach(function (id) { s[id] = { closed: closed.indexOf(id) >= 0 }; }); return s; };
   var G9 = function (id, ask, q, closed, tol, unit) { return { id: id, ask: ask, unit: unit || 'V', mode: 'AC', q: q, a: 'R1.a', b: 'R1.b', tol: tol || 0.06, set: SW(closed) }; };
