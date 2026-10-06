@@ -46,7 +46,7 @@ Bosse: 10.10 = Kapitel-Boss (`boss`, +40), 15.10 = Final Boss (`final`, +100, se
 | `profiCerts: 4` (Krone, `earnOnly`) | **beide Zertifikate und beide Bosse** (`certs: 2` + `bosses: 2`) – «Digital-Quest-Meisterkrone» |
 | `finals3: 3` (Polyglott-Umhang) | **alle fünf Kollektionen vollständig gelöst** (neue Bedingung `setsAll: 5`) |
 | `questFinal: {fup}` usw. | `final: 1` (15.10) bzw. `bosses: 1` (10.10) |
-| `sensorAll`, `sensorClean` | `messenAll` = alle 18 Aufgaben und 3 Theorien der Kollektion `messen`; `messenClean` = alle 18 ohne Aufdecken/Lösung |
+| `sensorAll`, `sensorClean` | `messenAll` = alle 18 Aufgaben (seit 06.10.2026 19, mit 16.9) und 3 Theorien der Kollektion `messen`; `messenClean` = alle 18 ohne Aufdecken/Lösung |
 | `sdWins` (Blitz-Aura, Schnellster Finger) | ausblenden (`hidden: true`), bis Sudden Death gebaut ist (eigener Auftrag) |
 | `podium`, `wins`, `challenges`, `flawless`, `bugFixed` | erreichbar (Sprint, Störungsjagd) – unverändert |
 

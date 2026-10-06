@@ -88,7 +88,7 @@ const ITEMS = {
   awl_stahl:      { slot: 'kette',    name: 'Glühender Stahlblock', price: 2500, rarity: 'legendaer', set: 'praxis', kind: 'stahl', color: '#f97316', anim: true, alt: ['#ef4444', '#facc15'], unlock: { final: 1 } },
   awl_funken:     { slot: 'aura',     name: 'Funkenregen',       price: 5000, rarity: 'mythisch',  set: 'praxis', kind: 'funken', color: '#fb923c', anim: true, unlock: { cert: { quest: 'dq', level: 'profi' } } },
   awl_titel:      { slot: 'titel',    name: 'Takt-Meister',      price: 600,  rarity: 'episch',    set: 'praxis', kind: 'titel', unlock: { questSolved: { praxis: 25 } } },
-  // Messtechnik (Teil V: Kapitel 16 und Übungswerkstatt, 18 Messaufgaben)
+  // Messtechnik (Teil V: Kapitel 16 und Übungswerkstatt, 19 Messaufgaben)
   sen_guertel:    { slot: 'oberteil', name: 'Werkzeuggürtel',    price: 400,  rarity: 'selten',    set: 'messen', kind: 'guertel', color: '#475569', unlock: { questSolved: { messen: 3 } } },
   sen_lampe:      { slot: 'kopf',     name: 'Stirnlampe',        price: 1200, rarity: 'episch',    set: 'messen', kind: 'stirnlampe', color: '#facc15', anim: true, alt: ['#38bdf8', '#f472b6'], unlock: { questSolved: { messen: 9 } } },
   sen_multimeter: { slot: 'hand',     name: 'Multimeter',        price: 2500, rarity: 'legendaer', set: 'messen', kind: 'multimeter', color: '#facc15', anim: true, alt: ['#ef4444', '#22c55e'], unlock: { messenAll: 1 } },

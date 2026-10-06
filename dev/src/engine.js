@@ -700,7 +700,7 @@
   }
 
   var GATES = { not: 1, and: 1, or: 1, nand: 1, nor: 1, xor: 1, xnor: 1 };
-  var UNIT_SCALE = { mA: 1e-3, mV: 1e-3, 'µA': 1e-6, 'kΩ': 1e3, 'MΩ': 1e6, ms: 1e-3, mW: 1e-3 };
+  var UNIT_SCALE = { mA: 1e-3, mV: 1e-3, 'µA': 1e-6, 'kΩ': 1e3, 'MΩ': 1e6, ms: 1e-3, mW: 1e-3, 'µF': 1e-6 };
   /* Sollwerte fuer task.measure in der Einheit der Aufgabe (fuer Validator und „Loesung zeigen“) */
   function expectedAnswers(task, layout) {
     var out = {};

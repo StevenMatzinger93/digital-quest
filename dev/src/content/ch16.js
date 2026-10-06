@@ -9,7 +9,7 @@
   defChapter({
     id: 16, title: 'Messtechnik-Erweiterung', after: '4.10',
     intro: 'Analoge Messwerke, Sinnbilder auf dem Skalenfeld, Messkategorien und die genaue Rechnung mit Messfehlern. Auf der Werkbank ziehst du die Messspitzen selbst an die Buchsen, schliesst den Tastkopf des Oszilloskops an und wählst den Messbereich von Hand.',
-    sequence: ['T16A', '16.1', '16.2', '16.3', 'T16B', '16.4', '16.5', 'T16C', '16.6', '16.7', '16.8']
+    sequence: ['T16A', '16.1', '16.2', '16.3', 'T16B', '16.4', '16.5', 'T16C', '16.6', '16.7', '16.8', '16.9']
   });
 
   var DRAG = 'drag';
@@ -399,7 +399,7 @@
     brief: 'Miss an R1 <b>ohne</b> Kondensator (S1 offen) und <b>mit</b> Kondensator (S1 geschlossen): jeweils <b>V⎓</b> (Gleichanteil), <b>V~ TRMS</b> (Restwelligkeit) und den <b>Scheitelwert</b> am Oszilloskop (Zeitbasis 50 ms). Bereich 20 V.',
     learn: 'Der Ladekondensator hebt den Gleichanteil Richtung Scheitelwert und drückt die Restwelligkeit.',
     setupNote: '<b>Alternative wie am echten Labortisch – potentialfrei messen:</b> Sind Generator und Oszilloskop beide geerdet, darf der Erdungsclip nicht an R1.b (das würde eine Diode kurzschliessen). Dann: Erdungsclip an G1.–, CH1 an R1.a, CH2 an R1.b und am Gerät <b>MATH</b> einschalten. CH1 und CH2 zeigen je eine Halbwelle, MATH = CH1 − CH2 zeigt die Spannung an R1 – die Zweiweg-Kurve mit 10 ms Periode.',
-    take: 'Ohne C: U_DC ≈ 5,0 V, U_AC ≈ 3,0 V, Û ≈ 8,6 V. Mit C (10 µF an 1 kΩ, τ = 10 ms): U_DC ≈ 6,7 V, U_AC nur noch ≈ 1,3 V – ein grösserer Kondensator würde den Gleichanteil weiter Richtung Û heben.',
+    take: 'Ohne C: U_DC ≈ 5,0 V, U_AC ≈ 3,0 V, Û ≈ 8,6 V. Mit C (10 µF an 1 kΩ, τ = 10 ms): U_DC ≈ 6,7 V, U_AC nur noch ≈ 1,3 V – ein grösserer Kondensator würde den Gleichanteil weiter Richtung Û heben. Weiter mit 16.9: So wird daraus eine glatte Gleichspannung.',
     hint: 'S1 auf der Werkbank anklicken. Tastkopf an R1.a, Erdungsclip an R1.b.',
     hint2: 'Mit Kondensator sieht das Oszilloskop eine Sägezahn-Welligkeit oben am Scheitelwert – das ist die Restwelligkeit, die V~ TRMS misst.',
     palette: [], start: bridgeC, ref: bridgeC, bench: bBridge,
@@ -431,11 +431,60 @@
     ]
   });
 
+  /* ===== 16.9 Glättung (Auftrag 06.10.2026, K1/K2): drei Ladekondensatoren mit je einem Schalter, Zusatzlast R2 über S4 ===== */
+  var sw = function (id, x, y, rot) { return { id: id, type: 'switch', x: x, y: y, rot: rot, props: { closed: false } }; };
+  var cap = function (id, v, x, y, rot) { return { id: id, type: 'capacitor', value: v, x: x, y: y, rot: rot }; };
+  var smooth = { parts: [gen(), d('V1', 240, 200, 0), d('V2', 240, 400, 0), d('V3', 460, 200, 180), d('V4', 460, 400, 180), R('R1', 1000, 560, 300, 90),
+    sw('S1', 650, 160, 90), cap('C1', 10e-6, 650, 300, 90), sw('S2', 730, 160, 90), cap('C2', 100e-6, 730, 300, 90), sw('S3', 810, 160, 90), cap('C3', 470e-6, 810, 300, 90),
+    sw('S4', 890, 160, 90), R('R2', 1000, 890, 300, 90)],
+    wires: [W('G1.p', 'V1.a'), W('G1.p', 'V3.k'), W('G1.n', 'V2.a'), W('G1.n', 'V4.k'), W('V1.k', 'R1.a'), W('V2.k', 'R1.a'), W('V3.a', 'R1.b'), W('V4.a', 'R1.b'),
+      W('R1.a', 'S1.a'), W('S1.b', 'C1.a'), W('C1.b', 'R1.b'), W('R1.a', 'S2.a'), W('S2.b', 'C2.a'), W('C2.b', 'R1.b'), W('R1.a', 'S3.a'), W('S3.b', 'C3.a'), W('C3.b', 'R1.b'),
+      W('R1.a', 'S4.a'), W('S4.b', 'R2.a'), W('R2.b', 'R1.b')] };
+  var bSmooth = { parts: [{ id: 'G1', x: 210, y: 470, rot: 0 }, { id: 'V1', x: 350, y: 230, rot: 0 }, { id: 'V2', x: 350, y: 650, rot: 0 }, { id: 'V3', x: 510, y: 230, rot: 180 }, { id: 'V4', x: 510, y: 650, rot: 180 }, { id: 'R1', x: 610, y: 450, rot: 90 },
+    { id: 'S1', x: 700, y: 190, rot: 0 }, { id: 'C1', x: 700, y: 330, rot: 90 }, { id: 'S2', x: 815, y: 190, rot: 0 }, { id: 'C2', x: 815, y: 330, rot: 90 }, { id: 'S3', x: 930, y: 190, rot: 0 }, { id: 'C3', x: 930, y: 330, rot: 90 },
+    { id: 'S4', x: 720, y: 600, rot: 0 }, { id: 'R2', x: 840, y: 600, rot: 0 }] };
+  /* Schalterstellungen je Messwert: gelistete Schalter zu, alle anderen offen */
+  var SW = function (closed) { var s = {}; ['S1', 'S2', 'S3', 'S4'].forEach(function (id) { s[id] = { closed: closed.indexOf(id) >= 0 }; }); return s; };
+  var G9 = function (id, ask, q, closed, tol, unit) { return { id: id, ask: ask, unit: unit || 'V', mode: 'AC', q: q, a: 'R1.a', b: 'R1.b', tol: tol || 0.06, set: SW(closed) }; };
+  defTask({
+    id: '16.9', ch: 16, title: 'Glättung: Wie gross muss der Ladekondensator sein?', tags: ['elektro.gleichrichter', 'elektro.kondensator', 'messen.oszilloskop', 'elektro.zeitkonstante'], measureUX: DRAG, rangeUX: 'manual',
+    story: 'Aus den Buckeln der Brücke soll eine ruhige Gleichspannung werden. Dafür liegen drei Ladekondensatoren bereit, jeder mit eigenem Schalter – welcher reicht?',
+    brief: 'Schliesse nacheinander <b>nur einen</b> Kondensator (S1 = 10 µF, S2 = 100 µF, S3 = 470 µF) und miss an R1 jeweils den <b>Gleichanteil</b> und die <b>Welligkeit U<sub>ss</sub></b> (Spitze-Spitze am Oszilloskop, Zeitbasis 50 ms). Berechne <b>τ = R · C</b> für jeden Kondensator und die Welligkeit nach der Faustformel <b>ΔU ≈ I / (2 · f · C)</b> mit I = U<sub>DC</sub> / R und f = 50 Hz. Dann: Welcher der drei Kondensatoren hält die Welligkeit unter <b>0,5 V</b>? Zum Schluss: Schliesse mit dem 470-µF-Kondensator zusätzlich S4 (R2 parallel zu R1, Last halbiert) und miss die Welligkeit erneut.',
+    learn: 'Glättung braucht τ = R · C viel grösser als der Buckelabstand von 10 ms – und je mehr Strom die Last zieht, desto grösser die Welligkeit.',
+    take: 'Glättung braucht τ = R · C viel grösser als 10 ms. 10 µF: Sägezahn (U_ss ≈ 4,1 V), 100 µF: leichte Welle (≈ 0,7 V), 470 µF: fast Gleichspannung (≈ 0,16 V). Die Faustformel ΔU ≈ I / (2 · f · C) gilt erst für τ ≫ 10 ms und liegt etwas zu hoch. Mit halber Last (500 Ω) verdoppelt sich der Strom und damit ungefähr die Welligkeit.',
+    hint: 'Immer nur einen Schalter schliessen (auf der Werkbank anklicken), die anderen offen lassen. Tastkopf an R1.a, Erdungsclip an R1.b, Bildbreite 50 ms. Die Welligkeit U_ss steht unter der Kurve.',
+    hint2: 'Erwartet: 10 µF ≈ 4,1 V, 100 µF ≈ 0,7 V, 470 µF ≈ 0,16 V Welligkeit. Mehrere Schalter gleichzeitig zu sind erlaubt – die Kapazitäten addieren sich (S2 + S3 = 570 µF). Faustformel: I = U_DC / R1, ΔU = I / (2 · 50 Hz · C).',
+    palette: [], start: smooth, ref: smooth, bench: bSmooth, demo: 'pp2',
+    tests: [{ name: 'ohne Kondensator', set: SW([]), expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [4.9, 5.9] }, { noFault: true }] },
+      { name: '470 µF', set: SW(['S3']), expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [8.0, 8.6] }, { noFault: true }] }],
+    measure: [
+      G9('dc1', '10 µF (S1): Gleichanteil (V⎓)', 'dc', ['S1']), G9('pp1', '10 µF (S1): Welligkeit U_ss (Oszilloskop)', 'pp', ['S1']),
+      G9('dc2', '100 µF (S2): Gleichanteil (V⎓)', 'dc', ['S2']), G9('pp2', '100 µF (S2): Welligkeit U_ss (Oszilloskop)', 'pp', ['S2'], 0.08),
+      G9('dc3', '470 µF (S3): Gleichanteil (V⎓)', 'dc', ['S3']), G9('pp3', '470 µF (S3): Welligkeit U_ss (Oszilloskop)', 'pp', ['S3'], 0.1),
+      { id: 'tau1', ask: 'Zeitkonstante τ = R1 · C1 (berechnet)', unit: 'ms', value: 'tau1', tol: 0.03 },
+      { id: 'tau2', ask: 'Zeitkonstante τ = R1 · C2 (berechnet)', unit: 'ms', value: 'tau2', tol: 0.03 },
+      { id: 'tau3', ask: 'Zeitkonstante τ = R1 · C3 (berechnet)', unit: 'ms', value: 'tau3', tol: 0.03 },
+      { id: 'du2', ask: '100 µF: Welligkeit nach der Faustformel ΔU ≈ I / (2·f·C) (berechnet)', unit: 'V', value: 'du2', tol: 0.06 },
+      { id: 'du3', ask: '470 µF: Welligkeit nach der Faustformel ΔU ≈ I / (2·f·C) (berechnet)', unit: 'V', value: 'du3', tol: 0.06 },
+      { id: 'cmin', ask: 'Welcher Kondensator hält U_ss unter 0,5 V? (Wert in µF eintragen)', unit: 'µF', value: 'cmin', tol: 0.05 },
+      G9('pp4', '470 µF (S3) und halbe Last (S4 zu): Welligkeit U_ss (Oszilloskop)', 'pp', ['S3', 'S4'], 0.1)
+    ]
+  });
+
   /* Rechenwerte, die von der Simulation abhaengen: einmal beim Laden aus der Engine holen (gleiche Zahlen wie die Messungen) */
   var ROOT = typeof window !== "undefined" ? window : globalThis, E = ROOT.DQEngine, DQR = ROOT.DQ;
   if (E && E.acMeasure) {
     var h = E.acMeasure(half, { a: 'R1.a', b: 'R1.b' }), s = E.acMeasure(shunt, { a: 'R2.a', b: 'R2.b' });
     DQR.byId["16.6"].measure.forEach(function (m) { if (m.value === 'rms2') m.value = Math.sqrt(h.dc * h.dc + h.rms * h.rms); });
     DQR.byId["16.8"].measure.forEach(function (m) { if (m.value === 'idc') m.value = s.dc / 10; if (m.value === 'ipk') m.value = s.peak / 10; });
+    // 16.9: τ aus R1·C, Faustformel aus dem gemessenen Gleichanteil, kleinster Kondensator mit U_ss < 0,5 V aus der Messreihe
+    var lay9 = function (closed) { var l = E.clone(smooth); l.parts.forEach(function (p) { if (/^S\d$/.test(p.id)) p.props = { closed: closed.indexOf(p.id) >= 0 }; }); return l; };
+    var r1 = smooth.parts.filter(function (p) { return p.id === 'R1'; })[0].value, cv = function (id) { return smooth.parts.filter(function (p) { return p.id === id; })[0].value; };
+    var a2 = E.acMeasure(lay9(['S2']), { a: 'R1.a', b: 'R1.b' }), a3 = E.acMeasure(lay9(['S3']), { a: 'R1.a', b: 'R1.b' }), a1 = E.acMeasure(lay9(['S1']), { a: 'R1.a', b: 'R1.b' });
+    var cmin = [['S1', 10, a1], ['S2', 100, a2], ['S3', 470, a3]].filter(function (x) { return x[2].max - x[2].min < 0.5; })[0];
+    DQR.byId["16.9"].measure.forEach(function (m) {
+      if (m.value === 'tau1') m.value = r1 * cv('C1'); if (m.value === 'tau2') m.value = r1 * cv('C2'); if (m.value === 'tau3') m.value = r1 * cv('C3'); // in Sekunden, die Einheit ms skaliert die Engine
+      if (m.value === 'du2') m.value = a2.dc / r1 / (2 * 50 * cv('C2')); if (m.value === 'du3') m.value = a3.dc / r1 / (2 * 50 * cv('C3')); if (m.value === 'cmin') m.value = (cmin ? cmin[1] : 470) * 1e-6;
+    });
   }
 })();

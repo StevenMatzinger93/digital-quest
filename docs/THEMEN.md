@@ -49,7 +49,7 @@ Kapitelplan, abgeleitet aus Stevens Quellmaterial in `99_inputs/` und `theorie/`
 |---|---|---|---|---|---|---|
 | 16 | Messtechnik-Erweiterung | Analoge Messwerke (Drehspul, Dreheisen, Strommesszange) | Sinnbilder und Messkategorien CAT I–IV | Genauigkeit vertieft (analog/digital, Digit-Fehler, Systemfehler) | Messspitzen ziehen, eigener Oszilloskop-Tastkopf, Messbereich von Hand (OL); Instrumentenvergleich AVG/TRMS/Oszilloskop an Kurvenformen, Mischspannung, Frequenzgang, Einweg-/Brueckengleichrichter mit/ohne C, Strom am Shunt | `neu formatiert/Messtechnik Erweiterung_neu.docx` (nur Text/Formeln; alle Bilder neu gezeichnet) |
 
-Aufgaben 16.1 Datenblatt und Systemfehler · 16.2 Spannungs-/Strommessfehler · 16.3 Kurvenformen im Instrumentenvergleich · 16.4 Wechselgroesse mit Gleichanteil · 16.5 Frequenz erhoehen · 16.6 Einweggleichrichter · 16.7 Brueckengleichrichter mit/ohne Ladekondensator · 16.8 Strommessung am Gleichrichter. Alle mit `measureUX: 'drag'`.
+Aufgaben 16.1 Datenblatt und Systemfehler · 16.2 Spannungs-/Strommessfehler · 16.3 Kurvenformen im Instrumentenvergleich · 16.4 Wechselgroesse mit Gleichanteil · 16.5 Frequenz erhoehen · 16.6 Einweggleichrichter · 16.7 Brueckengleichrichter mit/ohne Ladekondensator · 16.8 Strommessung am Gleichrichter · 16.9 Glättung: Wie gross muss der Ladekondensator sein?. Alle mit `measureUX: 'drag'`.
 
 ## Offene Punkte
 - Kapitel 9/10 und 11/12 sind grobe Zuordnung – die beiden "neu formatiert"-Quelldokumente sind sehr umfangreich (4–6 MB), vor dem Ableiten der 10 Aufgaben pro Kapitel lohnt sich ein genauerer Blick in den Inhalt, damit die Reihenfolge zum Aufbau des Dokuments passt statt nur zum Dateinamen.

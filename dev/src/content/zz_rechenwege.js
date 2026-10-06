@@ -76,6 +76,21 @@
     ac1: [S('Die Restwelligkeit sinkt deutlich.', 'U_AC (TRMS)', '', 1.30, 'V')],
     pk1: [S('Der Scheitel bleibt gleich.', 'Û_R', '', 8.58, 'V')]
   });
+  set('16.9', {
+    dc1: [S('Nur S1 zu (10 µF): Der Kondensator lädt im Scheitel auf ≈ 8,6 V, fällt aber bis zum nächsten Buckel stark ab – der Mittelwert liegt zwischen 5,0 V (ohne C) und dem Scheitel.', 'U_DC', '', 6.65, 'V')],
+    pp1: [S('τ = R · C = 10 ms ist gleich gross wie der Buckelabstand: Die Spannung fällt von 8,58 V auf ≈ 4,5 V, bevor der nächste Buckel nachlädt (Sägezahn). U_ss = Scheitel − Tal, mit AC-Kopplung am Oszilloskop gut ablesbar.', 'U_ss', '8,58 V − 4,48 V', 4.10, 'V')],
+    dc2: [S('Nur S2 zu (100 µF): τ = 100 ms ≫ 10 ms, die Spannung fällt zwischen zwei Buckeln nur noch wenig.', 'U_DC', '', 8.21, 'V')],
+    pp2: [S('τ = 100 ms, Buckelabstand 10 ms: Die Spannung fällt von 8,55 V nur noch auf ≈ 7,86 V.', 'U_ss', '8,55 V − 7,86 V', 0.69, 'V')],
+    dc3: [S('Nur S3 zu (470 µF): fast Gleichspannung dicht unter dem Scheitel.', 'U_DC', '', 8.38, 'V')],
+    pp3: [S('τ = 470 ms ≫ 10 ms: Die Welligkeit ist nur noch ≈ 0,16 V – bei DC-Kopplung eine fast gerade Linie, mit AC-Kopplung gut sichtbar.', 'U_ss', '8,46 V − 8,30 V', 0.155, 'V')],
+    tau1: [S('Zeitkonstante = Widerstand mal Kapazität. R1 = 1 kΩ, C1 = 10 µF.', 'τ₁', '1 kΩ · 10 µF', 10, 'ms')],
+    tau2: [S('R1 = 1 kΩ, C2 = 100 µF.', 'τ₂', '1 kΩ · 100 µF', 100, 'ms')],
+    tau3: [S('R1 = 1 kΩ, C3 = 470 µF.', 'τ₃', '1 kΩ · 470 µF', 470, 'ms')],
+    du2: [S('Laststrom aus dem Gleichanteil: I = U_DC / R1 = 8,21 V / 1 kΩ = 8,21 mA. Faustformel ΔU ≈ I / (2 · f · C) mit f = 50 Hz (zwei Buckel je Periode, daher 2·f).', 'ΔU (100 µF)', '8,21 mA / (2 · 50 Hz · 100 µF)', 0.82, 'V')],
+    du3: [S('I = 8,38 V / 1 kΩ = 8,38 mA, ΔU ≈ I / (2 · f · C). Die Formel liegt etwas über der Messung (0,155 V), weil die Entladung kürzer als 10 ms dauert.', 'ΔU (470 µF)', '8,38 mA / (2 · 50 Hz · 470 µF)', 0.178, 'V')],
+    cmin: [S('Gemessene Welligkeit: 10 µF ≈ 4,1 V, 100 µF ≈ 0,69 V (zu viel), 470 µF ≈ 0,16 V (unter 0,5 V). Der kleinste der drei Kondensatoren, der reicht, ist 470 µF.', 'C', '', 470, 'µF')],
+    pp4: [S('Halbe Last (R1 ∥ R2 = 500 Ω): doppelter Strom, der Kondensator entlädt sich doppelt so schnell – die Welligkeit wird ungefähr doppelt so gross wie bei 1 kΩ (0,155 V).', 'U_ss', '≈ 2 · 0,155 V', 0.295, 'V')]
+  });
   set('16.8', {
     udc: [S('V⎓ am Shunt R2 = 10 Ω, Bereich 200 mV.', 'U_DC am Shunt', '', 49.7, 'mV')],
     idc: [S('Strom aus der Shunt-Spannung.', 'I_DC = U / R', '49,7 mV / 10 Ω', 4.97, 'mA')],
