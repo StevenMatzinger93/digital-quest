@@ -14,7 +14,7 @@ const src = p => fs.readFileSync(path.join(__dirname, 'src', p), 'utf8').split(S
 const P = f => fs.readFileSync(path.join(__dirname, 'portal', f), 'utf8').split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
 const script = (title, code) => { if (/<\/script/i.test(code)) throw new Error(title + ' enthält </script>'); return '<script>\n/* ==== ' + title + ' ==== */\n' + code + '\n</script>\n'; };
 const content = fs.readdirSync(path.join(__dirname, 'src/content')).filter(f => f.endsWith('.js') && f !== '_helpers.js' && f !== 'manual.js').sort();
-const files = ['engine.js', 'content/_helpers.js', ...content.map(f => 'content/' + f), 'content/manual.js', 'circuit-ui.js', 'editor.js', 'bench.js', 'mini.js', 'visuals.js', 'tiles.js', 'calc.js', 'avatar_core.js', 'account.js', 'live.js', 'exam.js', 'app.js'].filter(f => fs.existsSync(path.join(__dirname, 'src', f)));
+const files = ['engine.js', 'content/_helpers.js', ...content.map(f => 'content/' + f), 'content/manual.js', 'circuit-ui.js', 'editor.js', 'bench.js', 'mini.js', 'visuals.js', 'tiles.js', 'calc.js', 'avatar_core.js', 'wegweiser_data.js', 'wegweiser_tour.js', 'account.js', 'live.js', 'exam.js', 'app.js'].filter(f => fs.existsSync(path.join(__dirname, 'src', f)));
 const js = files.map(f => `/* ==== ${f} ==== */\n` + src(f)).join('\n');
 if (/<\/script/i.test(js)) throw new Error('JS enthält </script>');
 const tpl = src('index.template.html');
@@ -92,7 +92,7 @@ ${portalCss}
 `;
 const portalScripts = ['portal.js'].concat(fs.readdirSync(path.join(__dirname, 'portal')).filter(f => /^portal_.*\.js$/.test(f)).sort());
 // Bibliotheken des Spiels, mit denen das Portal Schaltungen der Lernenden zeigt (Mini-Schaltung: Engine + Renderer)
-const portalLibs = ['engine.js', 'circuit-ui.js', 'editor.js', 'bench.js', 'mini.js', 'avatar_core.js'];   // avatar_core.js: Avatare und Coins (Paket A)
+const portalLibs = ['engine.js', 'circuit-ui.js', 'editor.js', 'bench.js', 'mini.js', 'avatar_core.js', 'wegweiser_data.js', 'wegweiser_tour.js'];   // wegweiser_*: Textquelle und Rundgang (Paket W)   // avatar_core.js: Avatare und Coins (Paket A)
 const QR_LIB = path.join(__dirname, 'node_modules', 'qrcode-generator', 'qrcode.js');
 const portal = portalHead('Digital Quest – Schaltungen bauen, messen, verstehen', 'Digital Quest: Lernspiel für Elektro- und Digitaltechnik mit Live-Simulation und Messgeräten. Klassen, Konten, Vorgaben und Live-Challenge für den Unterricht.')
   + P('body.html') + portalLibs.map(f => script('LABOR: ' + f, src(f))).join('')

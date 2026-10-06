@@ -792,6 +792,35 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   if (hitB.some(w => w < 22)) errors.push('mobil: Werkbank-Trefferflächen unter 24 px: ' + hitB.join('/'));
   if (await m.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) errors.push('mobil Werkbank: horizontaler Scroll');
 
+  // ===== Wegweiser (Auftrag 06.10.2026): ?-Link, Handbuch-Seite, Rundgang, Ereignisse, erste Frage, kein Rundgang bei Live-Start =====
+  {
+    const w = await browser.newPage({ viewport: { width: 1440, height: 900 } }); w.on('pageerror', e => errors.push('Wegweiser: ' + e.message));
+    await w.goto(url, { waitUntil: 'domcontentloaded' }); await w.waitForTimeout(1200);
+    if (!await w.$('#dqTourAsk')) errors.push('Wegweiser Labor: erste Frage erscheint nicht');
+    else { await w.click('#dqtAskYes'); await w.waitForTimeout(200); if (!await w.isVisible('#dqTour .dqt-card')) errors.push('Wegweiser Labor: Rundgang startet nicht aus der Frage'); }
+    const tot = +((await w.textContent('#dqtStep').catch(() => '')).match(/von (\d+)/) || [])[1] || 0;
+    if (tot < 4) errors.push('Wegweiser Labor: zu wenige Schritte: ' + tot);
+    for (let i = 1; i < tot; i++) await w.keyboard.press('ArrowRight'); await w.keyboard.press('Enter'); await w.waitForTimeout(100);
+    if (await w.isVisible('#dqTour .dqt-card')) errors.push('Wegweiser Labor: Rundgang endet nicht');
+    const ev = await w.evaluate(() => DigitalQuest.state.events.filter(e => /^tour_/.test(e.type)).map(e => e.type));
+    if (!(ev.includes('tour_start') && ev.includes('tour_done'))) errors.push('Wegweiser Labor: Ereignisse tour_start/tour_done fehlen: ' + ev.join(','));
+    if (!await w.evaluate(() => DigitalQuest.state.settings.tourAsked)) errors.push('Wegweiser Labor: tourAsked nicht gemerkt');
+    if (!await w.$('#wwLink')) errors.push('Wegweiser Labor: ?-Link fehlt');
+    await w.click('#wwLink'); await w.waitForTimeout(200);
+    if (!await w.isVisible('#scr-manual .ww-card[data-id="karte"]')) errors.push('Wegweiser Labor: Handbuch-Seite Wegweiser fehlt');
+    if (await w.$$eval('#scr-manual nav button', l => l[0].textContent) !== 'Wegweiser') errors.push('Wegweiser Labor: nicht erste Handbuch-Seite');
+    if (!/Wegweiser/.test(await w.evaluate(() => DQ.manual[0].html))) errors.push('Wegweiser Labor: Verweis in «Bedienung» fehlt');
+    await w.screenshot({ path: shots + '/14_wegweiser_handbuch.png' });
+    await w.click('#wwTour'); await w.waitForTimeout(200); if (!await w.isVisible('#dqTour .dqt-card')) errors.push('Wegweiser Labor: Rundgang von der Handbuch-Seite startet nicht');
+    await w.screenshot({ path: shots + '/15_wegweiser_rundgang.png' }); await w.keyboard.press('Escape'); await w.waitForTimeout(100);
+    if (await w.isVisible('#dqTour .dqt-card')) errors.push('Wegweiser Labor: Esc beendet nicht');
+    if (!(await w.evaluate(() => DigitalQuest.state.events.filter(e => e.type === 'tour_abort').length))) errors.push('Wegweiser Labor: tour_abort fehlt');
+    // Live-Start: keine Frage, kein Rundgang
+    const l = await browser.newPage(); await l.goto(url + '&live=1', { waitUntil: 'domcontentloaded' }); await l.waitForTimeout(1300);
+    if (await l.$('#dqTourAsk')) errors.push('Wegweiser Labor: Frage trotz Live-Start');
+    await l.close(); await w.close();
+  }
+
   const st = await page.evaluate(() => DigitalQuest.state);
   console.log('Erledigt:', Object.keys(st.done).join(', '), '| Ereignisse:', st.events.length);
   await browser.close();

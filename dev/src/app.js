@@ -110,7 +110,7 @@
     try {
       if (name === 'task' || name === 'theory') { var id = decodeURIComponent(m[2] || ''); if (id === 'sandbox' || DQ.byId[id]) openItem(id); else { renderMap(); show('map'); } }
       else if (name === 'tutorial') renderTutorial();
-      else { if (name === 'map' || name === 'award') { renderMap(); name = 'map'; } if (name === 'manual') renderManual(); if (name === 'settings') renderSettings(); show(name); }
+      else { if (name === 'map' || name === 'award') { renderMap(); name = 'map'; } if (name === 'manual') renderManual(m[2] ? decodeURIComponent(m[2]) : undefined); if (name === 'settings') renderSettings(); show(name); }
     } finally { routing.silent = false; }
     return true;
   }
@@ -1442,10 +1442,37 @@
 
   /* ================= Handbuch ================= */
   function renderManual(pageId) {
-    var pages = (DQ.manual || []).concat([{ id: 'datenblaetter', title: 'Datenblätter', html: '' }]), p = pages.filter(function (x) { return x.id === pageId; })[0] || pages[0];
+    var pages = [{ id: 'wegweiser', title: 'Wegweiser', html: '' }].concat(DQ.manual || [], [{ id: 'datenblaetter', title: 'Datenblätter', html: '' }]), p = pages.filter(function (x) { return x.id === pageId; })[0] || pages[0];
     $('#scr-manual').innerHTML = '<div class="manual"><nav>' + pages.map(function (x) { return '<button class="' + (x === p ? 'on' : '') + '" data-man="' + x.id + '">' + esc(x.title) + '</button>'; }).join('') +
-      '</nav><article>' + (p ? '<h2>' + esc(p.title) + '</h2>' + (p.id === 'datenblaetter' ? manualSheets() : p.html) : '') + '</article></div>';
+      '</nav><article>' + (p ? '<h2>' + esc(p.title) + '</h2>' + (p.id === 'datenblaetter' ? manualSheets() : p.id === 'wegweiser' ? wegweiserHtml() : p.html) : '') + '</article></div>';
     $$('[data-man]').forEach(function (b) { b.onclick = function () { renderManual(b.dataset.man); }; });
+    var tb = $('#wwTour'); if (tb) tb.onclick = function () { laborTour(); };
+    $$('[data-ww-go]').forEach(function (b) { b.onclick = function () { var g = b.dataset.wwGo; if (g === 'map') goMap(); else if (g === 'tutorial') { renderTutorial(); show('tutorial'); } else if (g === 'settings') { renderSettings(); show('settings'); } else if (g === 'manual') renderManual(); else if (g === 'calc' && root.DQCalc) root.DQCalc.toggle(); }; });
+  }
+  /* ---------- Wegweiser (Auftrag 06.10.2026, W2–W4): Handbuch-Seite aus der gemeinsamen Textquelle, Rundgang durch die Kopfzeile ---------- */
+  function wegweiserHtml() {
+    var WW = root.DQWegweiser; if (!WW) return '<p>Wegweiser nicht geladen.</p>';
+    var card = function (i) {
+      var open = i.go ? '<button class="btn small" data-ww-go="' + i.go + '">Öffnen</button>' : i.action === 'calc' ? '<button class="btn small" data-ww-go="calc">Öffnen</button>' : '';
+      return '<div class="ww-card" data-id="' + i.id + '"><div class="ww-ic" aria-hidden="true">' + i.icon + '</div><div class="ww-body"><b>' + esc(i.titel) + '</b><p>' + esc(i.text) + '</p><p class="ww-wann"><span>Wann?</span> ' + esc(i.wann) + '</p></div><div class="ww-act">' + open + '</div></div>';
+    };
+    var labor = WW.items.filter(function (i) { return i.bereich === 'labor' && (!i.portalOnly || root.DQ_PORTAL); }), aufgabe = WW.items.filter(function (i) { return i.bereich === 'aufgabe'; });
+    return '<p class="lead">Wo finde ich was? Jeder Punkt der Kopfzeile und jedes Element einer Aufgabe in einem Satz.</p>' +
+      '<div class="ww-tools"><button class="btn primary" id="wwTour">▶ Rundgang durch das Labor</button>' + (root.DQ_PORTAL ? '<a class="btn" href="../#/wegweiser">Wegweiser des Portals</a>' : '') + '</div>' +
+      '<h3>Labor</h3><div class="ww-cards">' + labor.map(card).join('') + '</div>' +
+      '<h3>In einer Aufgabe</h3><p class="dim small">Die Bedienung der Messgeräte zeigt dir das Werkbank-Tutorial Schritt für Schritt.</p><div class="ww-cards">' + aufgabe.map(card).join('') + '</div>';
+  }
+  function laborTour() {
+    var WW = root.DQWegweiser, T = root.DQTour; if (!WW || !T || current.exam || current.live || LIVE || EXAM) return;
+    var steps = WW.items.filter(function (i) { return i.bereich === 'labor' && i.tour !== false && (!i.portalOnly || root.DQ_PORTAL); }).map(function (i) { return { el: i.sel, titel: i.titel, text: i.text + ' ' + i.wann }; });
+    log('tour_start', {});
+    T.start(steps, { onDone: function () { log('tour_done', {}); }, onAbort: function (i) { log('tour_abort', { step: i }); } });
+  }
+  /* Erster Besuch: einmal die dezente Frage (settings.tourAsked, lokal) – nie in Prüfung, Live-Challenge oder Sonderstarts */
+  function maybeTourAsk(qs) {
+    var T = root.DQTour; if (!T || LIVE || EXAM || qs.get('live') || qs.get('exam') || S.settings.tourAsked) return;
+    T.ask({ text: 'Neu hier? Ein kurzer Rundgang zeigt dir die Kopfzeile des Labors.', yes: 'Rundgang starten', no: 'Nein danke',
+      onYes: function () { S.settings.tourAsked = true; save(); laborTour(); }, onNo: function () { S.settings.tourAsked = true; save(); } });
   }
 
   /* Handbuch-Seite: alle Datenblaetter zum Nachschlagen (auch ohne Maus) */
@@ -1594,6 +1621,9 @@
     else if (qs.get('frei')) openItem('sandbox');
     else if (qs.get('werkstatt')) { var w = $('#werkstatt'); if (w) w.scrollIntoView(); }
     if (ACCT) { var rd = ACCT.start(); if (LIVE) rd.then(function () { LIVE.start(); }); if (EXAM) rd.then(function () { EXAM.start(); }); }
+    // Wegweiser (Paket W): ?-Link in der Kopfzeile – im Portal-Labor zur Wegweiser-Seite des Portals, offline zur Handbuch-Seite
+    var wl = $('#wwLink'); if (wl) { if (root.DQ_PORTAL) wl.href = '../#/wegweiser'; else wl.onclick = function (ev) { ev.preventDefault(); renderManual('wegweiser'); show('manual'); }; }
+    if (!LIVE && !EXAM) setTimeout(function () { maybeTourAsk(qs); }, 900);
   }
 
   window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, get examUI() { return EXAM; }, get tutorial() { return tut; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; }, get demo() { return demo; }, get lastScope() { return lastScope; } };

@@ -148,6 +148,76 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await tctx.close(); await ctx.close();
   }
 
+  /* ================= C: Wegweiser (Auftrag 06.10.2026) ================= */
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } }); const { addUser, addClass } = await attachSite(ctx);
+    const tid = await addUser('frau.weg', 'lehrerin-1', 'teacher'); const cid = addClass('WW 1', tid, 'WEGWEI'); await addUser('wegfuchs', 'geheim1', 'student', cid);
+    const p = await ctx.newPage(); watch(p, 'Wegweiser');
+    const cards = async () => p.$$eval('.ww-card', l => l.map(c => c.dataset.id));
+    const has = (l, id) => l.includes(id);
+    // ohne Konto: Menüpunkt nach Halle, Knopf in der Halle, erste Frage genau einmal
+    await p.goto(SITE + '/'); await p.waitForSelector('.gates'); await p.waitForTimeout(400);
+    const nav0 = await p.$$eval('#topnav a', l => l.map(a => a.textContent));
+    if (nav0[1] !== 'Wegweiser') errors.push('Wegweiser: Menüpunkt nicht direkt nach Halle: ' + nav0.join(','));
+    if (!await p.$('.ww-quick a[href="#/wegweiser"]')) errors.push('Wegweiser: Knopf in der Halle fehlt');
+    await p.waitForTimeout(600);
+    if (!await p.$('#dqTourAsk')) errors.push('Wegweiser: erste Frage erscheint nicht');
+    else { await p.click('#dqtAskNo'); await p.goto(SITE + '/#/anleitung'); await p.waitForTimeout(200); await p.goto(SITE + '/#/'); await p.waitForTimeout(900); if (await p.$('#dqTourAsk')) errors.push('Wegweiser: Frage erscheint nach «Nein danke» erneut'); }
+    await p.goto(SITE + '/#/wegweiser'); await p.waitForSelector('.ww-page'); await p.screenshot({ path: shots + '/p11_wegweiser_gast.png', fullPage: true });
+    let c = await cards();
+    if (!has(c, 'anmelden') || !has(c, 'halle') || !has(c, 'tor-labor') || !has(c, 'karte') || !has(c, 'oszilloskop')) errors.push('Wegweiser Gast: Karten fehlen: ' + c.join(','));
+    if (has(c, 'leitstand') || has(c, 'admin') || has(c, 'live')) errors.push('Wegweiser Gast: Dozenten-/Admin-/Lernenden-Karten sichtbar');
+    if (await p.$$eval('.ww-card.locked .ww-lock', l => l.length) < 3) errors.push('Wegweiser Gast: «nach dem Anmelden» fehlt bei Konto-Funktionen');
+    if (!/Konto\?|Wie bekomme ich ein Konto/.test(await p.textContent('.ww-wege'))) errors.push('Wegweiser Gast: Häufige Wege ohne Konto-Frage');
+    // Suche filtert
+    await p.fill('#wwSearch', 'Oszilloskop'); await p.waitForTimeout(150); c = await cards();
+    if (!has(c, 'oszilloskop') || has(c, 'halle') || c.length > 5) errors.push('Wegweiser: Suche filtert nicht: ' + c.join(','));
+    await p.fill('#wwSearch', ''); await p.waitForTimeout(150);
+    // jeder «Öffnen»-Link mit Portal-Adresse führt zu einer Seite mit Inhalt
+    const hrefs = await p.$$eval('a.ww-open[href^="#/"]', l => [...new Set(l.map(a => a.getAttribute('href')))]);
+    for (const h of hrefs) { await p.goto(SITE + '/' + h); await p.waitForTimeout(250); const txt = (await p.textContent('#view')).trim(); if (txt.length < 20 && !/login|code/.test(h)) errors.push('Wegweiser: Link ' + h + ' führt zu leerer Seite'); }
+    const labs = await p.evaluate(() => [...document.querySelectorAll('a.ww-open[href^="labor/"]')].length);
+    // Rundgang Portal: läuft bis zum Ende, Tastatur, Esc beendet
+    await p.goto(SITE + '/#/wegweiser'); await p.waitForSelector('#wwTourPortal'); await p.click('#wwTourPortal'); await p.waitForTimeout(200);
+    if (!await p.isVisible('#dqTour .dqt-card')) errors.push('Wegweiser: Rundgang startet nicht');
+    else {
+      const total = +((await p.textContent('#dqtStep')).match(/von (\d+)/) || [])[1];
+      if (!(total >= 6)) errors.push('Wegweiser: Rundgang hat zu wenige Schritte: ' + total);
+      if (!/Halle/.test(await p.textContent('#dqtTitle'))) errors.push('Wegweiser: erster Schritt ist nicht die Halle');
+      await p.screenshot({ path: shots + '/p12_rundgang.png' });
+      for (let i = 1; i < total; i++) await p.keyboard.press('ArrowRight');
+      if (!/Fertig/.test(await p.textContent('#dqtNext'))) errors.push('Wegweiser: letzter Schritt zeigt nicht «Fertig»');
+      await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+      if (await p.isVisible('#dqTour .dqt-card')) errors.push('Wegweiser: Rundgang endet nicht mit Fertig');
+      await p.click('#wwTourPortal'); await p.waitForTimeout(150); await p.keyboard.press('Escape'); await p.waitForTimeout(100);
+      if (await p.isVisible('#dqTour .dqt-card')) errors.push('Wegweiser: Esc beendet den Rundgang nicht');
+    }
+    // Lernende
+    await loginUi(p, 'wegfuchs', 'geheim1'); await p.goto(SITE + '/#/wegweiser'); await p.waitForSelector('.ww-page'); c = await cards();
+    if (!has(c, 'live') || !has(c, 'zertifikate') || !has(c, 'avatar') || !has(c, 'konto') || has(c, 'leitstand') || has(c, 'anmelden') || has(c, 'admin')) errors.push('Wegweiser Lernende: falsche Karten: ' + c.join(','));
+    if (await p.$('.ww-card.locked')) errors.push('Wegweiser Lernende: gesperrte Karten sichtbar');
+    if (!/Vorgaben/.test(await p.textContent('.ww-wege'))) errors.push('Wegweiser Lernende: Häufiger Weg «Vorgaben» fehlt');
+    await p.screenshot({ path: shots + '/p13_wegweiser_lernende.png', fullPage: true });
+    await p.click('#logoutBtn').catch(() => {}); await p.evaluate(() => fetch('/api/logout', { method: 'POST', headers: { 'x-dquest': '1', 'content-type': 'application/json' }, body: '{}' }));
+    // Dozentin
+    await loginUi(p, 'frau.weg', 'lehrerin-1'); await p.goto(SITE + '/#/wegweiser'); await p.waitForSelector('.ww-page'); c = await cards();
+    if (!has(c, 'leitstand') || !has(c, 'meldungen') || !has(c, 'zertifikate') || has(c, 'live') || has(c, 'admin')) errors.push('Wegweiser Dozent: falsche Karten: ' + c.join(','));
+    if (!/Klasse an/.test(await p.textContent('.ww-wege'))) errors.push('Wegweiser Dozent: Häufiger Weg «Klasse anlegen» fehlt');
+    await p.evaluate(() => fetch('/api/logout', { method: 'POST', headers: { 'x-dquest': '1', 'content-type': 'application/json' }, body: '{}' }));
+    // Admin
+    await loginUi(p, 'chef', 'admin-test'); await p.goto(SITE + '/#/wegweiser'); await p.waitForSelector('.ww-page'); c = await cards();
+    if (!has(c, 'admin') || !has(c, 'leitstand') || has(c, 'zertifikate') || has(c, 'live')) errors.push('Wegweiser Admin: falsche Karten: ' + c.join(','));
+    // Handy 390 px
+    const m = await ctx.newPage(); watch(m, 'Wegweiser mobil'); await m.setViewportSize({ width: 390, height: 844 });
+    await m.goto(SITE + '/#/wegweiser'); await m.waitForSelector('.ww-page'); await m.waitForTimeout(300);
+    if (await m.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) errors.push('Wegweiser mobil: horizontaler Scroll');
+    if (await m.$$eval('.ww-cards', l => l.some(g => getComputedStyle(g).gridTemplateColumns.split(' ').length > 1))) errors.push('Wegweiser mobil: mehr als eine Spalte');
+    await m.click('#wwTourPortal'); await m.waitForTimeout(200);
+    if (!await m.isVisible('#dqTour .dqt-card')) errors.push('Wegweiser mobil: Rundgang startet nicht (Menü eingeklappt → Karten)');
+    await m.keyboard.press('Escape'); await m.screenshot({ path: shots + '/p14_wegweiser_handy.png' });
+    await ctx.close();
+  }
+
   await browser.close();
   if (errors.length) { console.log('FEHLER:\n' + errors.join('\n')); process.exit(1); }
   console.log('Portal-Durchlauf OK');

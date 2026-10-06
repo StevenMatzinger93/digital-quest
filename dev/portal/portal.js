@@ -94,6 +94,7 @@ function renderTop(){
     document.querySelectorAll('#userDrop [data-role]').forEach(a => a.hidden = a.dataset.role !== USER.role && !(a.dataset.role === 'teacher' && canTeach(USER)));
   }
   const nav = [['#/', 'Halle']];
+  EXTRA_NAV.filter(n => n.before === 'live' && n.show(USER)).forEach(n => nav.push([n.href, n.label]));   // Wegweiser (Paket W): direkt nach Halle
   if(USER && USER.role === 'student') nav.push(['#/live', 'Live-Challenge']);
   EXTRA_NAV.filter(n => n.before === 'leitstand' && n.show(USER)).forEach(n => nav.push([n.href, n.label]));
   if(canTeach(USER)) nav.push(['#/leitstand', 'Leitstand']);
@@ -246,6 +247,7 @@ async function viewHome(){
   v.innerHTML = '<section class="hero"><div class="hero-eyebrow">Lernspiel für Elektro- und Digitaltechnik</div><h1>DIGITAL <span>QUEST</span></h1>' +
     '<p class="hero-sub">Baue echte Schaltungen, sieh sie live arbeiten und miss wie im Labor — mit Multimeter, Oszilloskop und einer Werkmeisterin, die jeden Messwert sehen will.</p>' +
     '<div class="aria chief" role="note" aria-label="Funkspruch der Werkmeisterin"><div class="aria-eye" aria-hidden="true"></div><div><div class="aria-who">WERKMEISTERIN · LABOR</div><div class="aria-text" id="ariaText"></div></div><button class="aria-skip" id="ariaSkip">überspringen</button></div></section>' +
+    '<div class="quick ww-quick"><a class="btn" href="#/wegweiser">🧭 Neu hier? Wegweiser</a></div>' +
     (USER && USER.role === 'student' ? '<div class="quick"><a class="btn pri" href="#/live">⚡ Live-Challenge beitreten</a>' + QUICK.student.join('') + '</div>' : '') +
     (canTeach(USER) ? '<div class="quick"><a class="btn pri" href="#/leitstand">Leitstand öffnen</a><a class="btn" href="#/live/neu">⚡ Neue Live-Challenge</a>' + QUICK.teacher.join('') + '</div>' : '') +
     '<section class="gates g3" aria-label="Die Tore">' + GATES.map(gateHTML).join('') + '</section>' +
@@ -349,6 +351,7 @@ window.DQP = { Q, GAME, canTeach, questMeta, api, esc, dialog, confirmDlg, toast
 async function route(){
   const h = location.hash || '#/';
   renderTop();
+  try{ window.dispatchEvent(new CustomEvent('dqp:route', { detail: { hash: h } })); }catch(e){}   // Paket W: Wegweiser hört mit (erste Frage, Rundgang beenden)
   $('termOverlay').hidden = !(h.startsWith('#/login') || h.startsWith('#/code')) || !!USER;
   if(h.startsWith('#/login') && !USER) openTerminal('login');
   if(h.startsWith('#/code') && !USER){ openTerminal('code'); const c = h.split('/')[2]; if(c){ $('rgCode').value = c; $('rgCode').dispatchEvent(new Event('input')); } }

@@ -44,6 +44,7 @@ function view(m){
   const tab = TABS.find(t => t.id === (m && m[1])) || TABS[0];
   const steps = BASE[tab.id].concat(EXTRA[tab.id].map(x => [x.title, x.html]));
   $('view').innerHTML = '<div class="console man"><div class="crumbs"><a href="#/">HALLE</a> / ANLEITUNG</div><h1>' + tab.title + '</h1><p class="lead">' + tab.lead + '</p>' +
+    '<p class="man-ww">🧭 Neu hier? Der <a href="#/wegweiser">Wegweiser</a> erklärt jeden Menüpunkt in einem Satz und bietet einen kurzen Rundgang.</p>' +
     '<div class="man-tabs" role="tablist">' + TABS.map(t => '<a role="tab" aria-selected="' + (t === tab) + '" class="man-tab' + (t === tab ? ' active' : '') + '" href="#/anleitung/' + t.id + '"><span aria-hidden="true">' + t.icon + '</span> ' + t.label + '</a>').join('') + '</div>' +
     '<div class="panel man-body">' + steps.map((s, i) => step(i + 1, s[0], s[1])).join('') + '</div></div>';
 }

@@ -598,6 +598,13 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .acct-chip span { overflow: hidden; text-overflow: ellipsis; }
 .acct-chip svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .acct-chip.on { border-color: var(--accent-green); color: var(--accent-green); }
+/* Wegweiser (Paket W): ?-Link in der Kopfzeile, Handbuch-Seite mit Karten */
+.ww-link { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); color: var(--text-dim); font-weight: 800; text-decoration: none; flex: none; }
+.ww-link:hover, .ww-link:focus-visible { border-color: var(--accent-lead); color: var(--accent-lead); }
+.manual .ww-tools { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 14px; } .manual .ww-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.manual .ww-card { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-tertiary); }
+.manual .ww-ic { font-size: 24px; text-align: center; } .manual .ww-body p { margin: 3px 0 0; font-size: 13px; } .manual .ww-wann { color: var(--text-dim); } .manual .ww-wann span { font-family: var(--font-code); font-size: 11px; text-transform: uppercase; color: var(--accent-lead); }
+@media (max-width: 640px) { .manual .ww-cards { grid-template-columns: 1fr; } .manual .ww-card { grid-template-columns: 30px 1fr; } .manual .ww-act { grid-column: 1 / -1; } }
 .acct-chip .acct-av { display: inline-flex; width: 20px; height: 20px; margin: -3px 0; border-radius: 50%; overflow: hidden; flex: none; } .acct-chip .acct-av svg { width: 100%; height: 100%; stroke: none; }
 .live-av { display: inline-block; width: 96px; height: 115px; margin: 4px auto 2px; } .live-av svg { width: 100%; height: 100%; } .pod.p1 .live-av { width: 120px; height: 144px; }
 @media (max-width: 640px) { .live-av { width: 64px; height: 77px; } .pod.p1 .live-av { width: 80px; height: 96px; } }
@@ -666,6 +673,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   <a class="brand" id="brand" href="#/karte" title="Zur Startseite"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 4 12 2-6h8"/></svg><span>DIGITAL<b>QUEST</b></span></a>
   <span id="modeTag" class="mode-tag" hidden title="Dozentenmodus: mit einem Dozenten-Konto angemeldet – alle Stationen offen">DOZENT</span>
   <nav><button data-go="map">Karte</button><button data-go="manual">Handbuch</button><button data-go="tutorial" title="Bedienung der Messgeräte auf der Werkbank üben"><span class="long">Werkbank-</span>Tutorial</button><button data-go="settings">Einstellungen</button></nav>
+  <a class="ww-link" id="wwLink" href="#/handbuch/wegweiser" title="Wegweiser – wo finde ich was?" aria-label="Wegweiser: Wo finde ich was?">?</a>
   <button class="calc-btn" id="btnCalc" title="Taschenrechner (Strg+Alt+R)" aria-label="Taschenrechner"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h2M8 16h2M12 16h2M16 16v1"/></svg></button>
   <a id="acctChip" class="acct-chip" href="../" hidden></a>
   <span id="saveInd"></span>
@@ -5951,6 +5959,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   'use strict';
   root.DQ.manual = [
     { id: 'bedienung', title: 'Bedienung', html:
+      '<p class="dim">Du suchst einen Menüpunkt? Die Seite <b>Wegweiser</b> (erste Seite dieses Handbuchs, Fragezeichen in der Kopfzeile) erklärt jeden Punkt in einem Satz.</p>' +
       '<p><b>Bauteil hinzufügen:</b> Klick in der Palette. <b>Verschieben:</b> ziehen. <b>Drehen:</b> <kbd>R</kbd>. <b>Löschen:</b> <kbd>Entf</kbd>.</p>' +
       '<p><b>Leitung ziehen:</b> Anschluss anklicken, dann den Ziel-Anschluss. Leitung anklicken und <kbd>Entf</kbd> entfernt sie.</p>' +
       '<p><b>Schalter</b> schaltest du per Klick, <b>Taster</b> sind nur gedrückt, solange du sie hältst.</p>' +
@@ -9028,6 +9037,210 @@ root.SPSQAvatar = API;
 if(typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);
 
+/* ==== wegweiser_data.js ==== */
+/* Digital Quest – Wegweiser (Auftrag 06.10.2026, W1): gemeinsame Textquelle für die Wegweiser-Seite («Wo finde ich was?»)
+ * im Portal und im Labor sowie für den geführten Rundgang. Wird vom Build in Portal UND Labor eingebunden (window.DQWegweiser).
+ * Regel (Validator): jeder Menüpunkt des Portals (P.nav / renderTop) und jeder data-go-Knopf der Labor-Kopfzeile braucht hier einen Eintrag.
+ * Felder: id, bereich ('portal' | 'labor' | 'aufgabe'), icon, titel, text («Was finde ich hier?»), wann («Wann brauche ich das?»),
+ *   href (Portal-Adresse oder Datei), go (Labor data-go), sel (Element für den Rundgang), rollen (fehlt = alle: gast, student, teacher, admin),
+ *   portalOnly (nur im Portal-Labor), tour: false (kein Rundgang-Schritt). Texte: Du-Form, echte Umlaute, ss statt ß. */
+(function (root) {
+  'use strict';
+  var ANGEMELDET = ['student', 'teacher', 'admin'];
+  var items = [
+    /* ---- Portal: Hauptmenü in Menü-Reihenfolge ---- */
+    { id: 'halle', bereich: 'portal', icon: '🏛️', titel: 'Halle', href: '#/',
+      text: 'Die Startseite mit den drei Toren ins Labor, in die Übungswerkstatt und zur Freien Werkbank.', wann: 'Immer dann, wenn du spielen oder zurück zum Anfang willst.' },
+    { id: 'wegweiser', bereich: 'portal', icon: '🧭', titel: 'Wegweiser', href: '#/wegweiser',
+      text: 'Diese Übersicht: jeder Menüpunkt mit Erklärung, Suche und dem Rundgang.', wann: 'Wenn du dich zurechtfinden willst oder etwas nicht findest.' },
+    { id: 'live', bereich: 'portal', icon: '⚡', titel: 'Live-Challenge', href: '#/live', rollen: ['student'],
+      text: 'Hier gibst du den vierstelligen Code vom Beamer ein und trittst der Challenge deiner Lehrperson bei.', wann: 'Wenn im Unterricht eine Challenge läuft.' },
+    { id: 'leitstand', bereich: 'portal', icon: '🎛️', titel: 'Leitstand', href: '#/leitstand', rollen: ['teacher', 'admin'],
+      text: 'Deine Klassen: Konten erzeugen, Zugangszettel drucken, Fortschritt und Schaltungen jeder Person sehen, Vorgaben mit Frist setzen, Live-Challenge starten, Prüfung unter Aufsicht öffnen.', wann: 'Für alles, was du als Lehrperson mit deiner Klasse machst.' },
+    { id: 'avatar', bereich: 'portal', icon: '🦊', titel: 'Avatar & Coins', href: '#/avatar', rollen: ANGEMELDET,
+      text: 'Dein Tier mit Farbe und Ausrüstung; Coins verdienst du durch gelöste Aufgaben, Theorie, Challenges und Zertifikate.', wann: 'Wenn du deinen Avatar gestalten oder deinen Coin-Stand sehen willst.' },
+    { id: 'meldungen', bereich: 'portal', icon: '💬', titel: 'Meldungen', href: '#/meldungen', rollen: ['teacher', 'admin'],
+      text: 'Alle Feedback- und Fehlermeldungen, die über den Knopf 💬 geschickt wurden.', wann: 'Wenn du nachsehen willst, was Lernende gemeldet haben.' },
+    { id: 'zertifikate', bereich: 'portal', icon: '🎓', titel: 'Zertifikate', href: '#/zertifikate', rollen: ['student', 'teacher'],
+      text: 'Die Prüfung für das Zertifikat Grundstufe oder Profi-Stufe, deine bestandenen Zertifikate und der Beitritt zu einer Prüfung unter Aufsicht.', wann: 'Wenn du eine Stufe abgeschlossen hast und das Zertifikat willst.' },
+    { id: 'admin', bereich: 'portal', icon: '🛠️', titel: 'Administration', href: '#/admin', rollen: ['admin'],
+      text: 'Dozentenkonten anlegen, Startpasswörter zurücksetzen, Konten löschen, Übersicht der Zahlen.', wann: 'Wenn eine Lehrperson ein Konto braucht oder ihr Passwort vergessen hat.' },
+    { id: 'konto', bereich: 'portal', icon: '👤', titel: 'Konto', href: '#/konto', rollen: ANGEMELDET,
+      text: 'Passwort ändern, sehen, was deine Lehrperson sieht, Konto samt Spielstand löschen.', wann: 'Wenn du dein Passwort wechseln oder dein Konto verwalten willst.' },
+    { id: 'anleitung', bereich: 'portal', icon: '📖', titel: 'Anleitung', href: '#/anleitung',
+      text: 'Schritt-für-Schritt-Anleitungen für Lernende, Dozenten und Admin.', wann: 'Wenn du wissen willst, wie ein Ablauf von Anfang bis Ende geht.' },
+    /* ---- Portal: Kopfzeile rechts, Halle, Fusszeile ---- */
+    { id: 'anmelden', bereich: 'portal', icon: '🔑', titel: 'Anmelden', href: '#/login', sel: '#loginBtn', rollen: ['gast'],
+      text: 'Das Leitstand-Terminal: mit Benutzername und Passwort anmelden oder mit dem Klassencode ein Konto anlegen.', wann: 'Beim ersten Mal und auf jedem neuen Gerät.' },
+    { id: 'benutzermenue', bereich: 'portal', icon: '🪪', titel: 'Benutzermenü', sel: '#userBtn', action: 'usermenu', rollen: ANGEMELDET,
+      text: 'Dein Pseudonym mit Avatar; darunter Mein Konto, je nach Rolle Leitstand, Live-Challenge oder Administration, und Abmelden.', wann: 'Zum schnellen Wechseln und zum Abmelden an geteilten Geräten.' },
+    { id: 'tor-labor', bereich: 'portal', icon: '🔬', titel: 'Tor Labor', href: 'labor/', sel: '.gate[data-q="labor"]',
+      text: 'Die Quest mit 16 Kapiteln: bauen, messen, Theorie, Boss-Aufgaben, Abzeichen.', wann: 'Dein Hauptweg durch Digital Quest.' },
+    { id: 'tor-werkstatt', bereich: 'portal', icon: '🧰', titel: 'Tor Übungswerkstatt', href: 'labor/?werkstatt=1', sel: '.gate[data-q="werkstatt"]',
+      text: 'Zehn fertige Schaltungen, an denen du nur misst, mit Multimeter und Oszilloskop.', wann: 'Wenn du das Messen üben willst, ohne zu bauen.' },
+    { id: 'tor-frei', bereich: 'portal', icon: '🪛', titel: 'Tor Freie Werkbank', href: 'labor/?frei=1', sel: '.gate[data-q="frei"]',
+      text: 'Bauen und messen ohne Auftrag, mit allen bereits freigeschalteten Bauteilen.', wann: 'Zum Ausprobieren eigener Ideen.' },
+    { id: 'feedback', bereich: 'portal', icon: '💬', titel: 'Feedback / Fehler melden', sel: '#spsqRpBtn', action: 'feedback',
+      text: 'Ein kurzes Feedback oder eine Fehlermeldung an die Entwicklung, mit deiner aktuellen Ansicht.', wann: 'Wenn etwas nicht stimmt oder dir etwas fehlt.' },
+    { id: 'rechtliches', bereich: 'portal', icon: '§', titel: 'Impressum, Datenschutz', href: 'datenschutz.html', href2: 'impressum.html', sel: '.foot', tour: false,
+      text: 'Wer die Seite betreibt und welche Daten gespeichert werden.', wann: 'Wenn du wissen willst, was mit deinen Daten passiert.' },
+    /* ---- Labor: Kopfzeile ---- */
+    { id: 'karte', bereich: 'labor', icon: '🗺️', titel: 'Karte', go: 'map', hash: '#/karte', sel: '.top nav button[data-go="map"]',
+      text: 'Alle Kapitel in den Teilen I–V, die Übungswerkstatt, deine Sterne, Abzeichen und die Vorgaben deiner Lehrperson.', wann: 'Immer, wenn du eine Aufgabe oder Theorie auswählen willst.' },
+    { id: 'handbuch', bereich: 'labor', icon: '📘', titel: 'Handbuch', go: 'manual', hash: '#/handbuch', sel: '.top nav button[data-go="manual"]',
+      text: 'Bedienung, Konto, Live-Challenge, Prüfung, Karte, Multimeter, Oszilloskop und Bauteile zum Nachschlagen – und dieser Wegweiser.', wann: 'Wenn du nicht mehr weisst, wie etwas geht.' },
+    { id: 'tutorial', bereich: 'labor', icon: '🎓', titel: 'Werkbank-Tutorial', go: 'tutorial', hash: '#/tutorial', sel: '.top nav button[data-go="tutorial"]',
+      text: 'Eine kleine Übungs-Werkbank: Messspitzen ziehen, Messart wählen, Bereich einstellen, Oszilloskop mit Tastkopf und Erdungsclip.', wann: 'Vor der ersten Messaufgabe oder wenn das Messen hakt.' },
+    { id: 'einstellungen', bereich: 'labor', icon: '⚙️', titel: 'Einstellungen', go: 'settings', hash: '#/einstellungen', sel: '.top nav button[data-go="settings"]',
+      text: 'Design, Zoom, Stromfluss-Anzeige, Messverfahren AVG/TRMS, Spielstand sichern oder zurücksetzen.', wann: 'Wenn du das Labor an dich anpassen willst.' },
+    { id: 'rechner', bereich: 'labor', icon: '🖩', titel: 'Taschenrechner', sel: '#btnCalc', action: 'calc',
+      text: 'Ein Rechner als Fenster über dem Spiel, mit Wurzel, Potenzen und Winkelfunktionen (Strg+Alt+R).', wann: 'Für Rechenwerte im Messprotokoll.' },
+    { id: 'kontochip', bereich: 'labor', icon: '👤', titel: 'Konto-Chip', sel: '#acctChip', portalOnly: true,
+      text: 'Zeigt, ob du angemeldet bist; ein Klick führt ins Portal.', wann: 'Wenn du prüfen willst, ob dein Fortschritt im Konto gespeichert wird.' },
+    { id: 'logo', bereich: 'labor', icon: '⚡', titel: 'Logo', sel: '#brand', hash: '#/karte',
+      text: 'Zurück zur Karte.', wann: 'Von überall im Labor.' },
+    /* ---- In einer Aufgabe (nur Seite, kein Rundgang) ---- */
+    { id: 'auftrag', bereich: 'aufgabe', icon: '📋', titel: 'Auftrag und Tipps', tour: false,
+      text: 'Links der Auftrag, das Lernziel und zwei Tipps; Tipps kosten Sterne.', wann: 'Wenn du nicht weiterkommst.' },
+    { id: 'setup', bereich: 'aufgabe', icon: '🎚️', titel: 'So stellst du das Gerät ein', tour: false,
+      text: 'Für jeden Messwert: Schalterstellung, Messart, Anschlüsse, Bildbreite.', wann: 'Vor jeder Messung.' },
+    { id: 'vorfuehren', bereich: 'aufgabe', icon: '▶️', titel: 'Vorführen', tour: false,
+      text: 'Das Labor zeigt an einem Messwert, wie gemessen wird – die Spitzen gleiten von selbst.', wann: 'Wenn du eine Messung einmal sehen willst; zählt wie ein Tipp.' },
+    { id: 'protokoll', bereich: 'aufgabe', icon: '📝', titel: 'Messprotokoll', tour: false,
+      text: 'Hier trägst du deine Messwerte ein; jeder Wert wird einzeln geprüft.', wann: 'Bei jeder Messaufgabe.' },
+    { id: 'pruefen', bereich: 'aufgabe', icon: '✅', titel: 'Prüfen', tour: false,
+      text: 'Prüft Schaltung und Protokoll und vergibt Sterne.', wann: 'Wenn du fertig bist.' },
+    { id: 'werkzeuge', bereich: 'aufgabe', icon: '🧰', titel: 'Werkzeugleiste', tour: false,
+      text: 'Drehen, Löschen, Einpassen, Spannungen und Stromfluss anzeigen, Zeitlupe, Wechsel Schaltplan/Werkbank, Reparieren, Neu.', wann: 'Beim Bauen und Verstehen.' },
+    { id: 'multimeter', bereich: 'aufgabe', icon: '🔋', titel: 'Multimeter', tour: false,
+      text: 'Messart OFF, V⎓, V~, A⎓, A~, Ω; Verfahren AVG oder TRMS; auf der Werkbank Spitzen ziehen, im Schaltplan Anschlüsse anklicken.', wann: 'Für Spannung, Strom und Widerstand.' },
+    { id: 'oszilloskop', bereich: 'aufgabe', icon: '📈', titel: 'Oszilloskop', tour: false,
+      text: 'Spannung über die Zeit: Bildbreite wählen, Aufnahme/RUN, zwei Kanäle, gross anzeigen; darunter die Kennwerte.', wann: 'Für Wechselgrössen, Lade- und Taktsignale.' }
+  ];
+  /* Häufige Wege: Frage → Ziel (Portal-Adresse oder Labor-Adresse mit labor: true) */
+  var wege = [
+    { frage: 'Wo sehe ich meine Vorgaben?', href: 'labor/#/karte', labor: true, rollen: ['student'], hinweis: 'Karte, oben «Vorgaben vom Dozent»' },
+    { frage: 'Wo ändere ich mein Passwort?', href: '#/konto', rollen: ANGEMELDET },
+    { frage: 'Wie trete ich einer Live-Challenge bei?', href: '#/live', rollen: ['student'] },
+    { frage: 'Wo finde ich mein Zertifikat?', href: '#/zertifikate', rollen: ['student', 'teacher'] },
+    { frage: 'Wo übe ich das Messen?', href: 'labor/?werkstatt=1', labor: true, hinweis: 'Übungswerkstatt – oder das Werkbank-Tutorial im Labor' },
+    { frage: 'Wie bekomme ich ein Konto?', href: '#/code', rollen: ['gast'], hinweis: 'Anmelden → Klassencode' },
+    { frage: 'Wo lege ich eine Klasse an?', href: '#/leitstand', rollen: ['teacher'], hinweis: 'Leitstand → Neue Klasse' },
+    { frage: 'Wo starte ich eine Prüfung unter Aufsicht?', href: '#/leitstand', rollen: ['teacher'], hinweis: 'Leitstand → Klasse → Prüfung' },
+    { frage: 'Wo sehe ich die Schaltungen meiner Lernenden?', href: '#/leitstand', rollen: ['teacher', 'admin'], hinweis: 'Leitstand → Klasse → Schüler/in' },
+    { frage: 'Wo lege ich ein Dozentenkonto an?', href: '#/admin', rollen: ['admin'] }
+  ];
+  var BEREICH = { portal: 'Portal', labor: 'Labor', aufgabe: 'In einer Aufgabe' };
+  function roleOf(user) { return user && user.role ? user.role : 'gast'; }
+  function sees(x, role) { return !x.rollen || x.rollen.indexOf(role) >= 0; }
+  function forRole(bereich, role) { return items.filter(function (i) { return i.bereich === bereich && sees(i, role); }); }
+  root.DQWegweiser = { items: items, wege: wege, BEREICH: BEREICH, roleOf: roleOf, sees: sees, forRole: forRole, ANGEMELDET: ANGEMELDET };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.DQWegweiser;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== wegweiser_tour.js ==== */
+/* Digital Quest – Geführter Rundgang (Auftrag 06.10.2026, W3; Mechanik nach startTour/showTourStep in SPS Quest).
+ * window.DQTour.start(steps, opts): steps [{ el (Selector oder Element), titel, text }], nur sichtbare Elemente werden gezeigt.
+ *   Hintergrund abgedunkelt, Spotlight auf dem Element, Sprechblase mit Titel, Text (aria-live), «Schritt 3 von 9»,
+ *   Knöpfe Zurück / Weiter / Beenden; Tastatur: Pfeiltasten, Enter = weiter, Esc = beenden; Fokus bleibt in der Sprechblase.
+ *   opts: { onDone, onAbort, onStep(i, step) }. prefers-reduced-motion: keine Bewegung (CSS).
+ * window.DQTour.ask({ text, yes, no, onYes, onNo }): dezente, einmalige Frage «Neu hier? Rundgang starten» unten am Bildschirm.
+ * Gemeinsam für Portal und Labor; CSS wird einmal eingefügt (ensureCSS). */
+(function (root) {
+  'use strict';
+  var CSS = '#dqTour{position:fixed;inset:0;z-index:9000;font-family:inherit}#dqTour[hidden]{display:none}' +
+    '#dqTour .dqt-back{position:absolute;inset:0}' +
+    '#dqTour .dqt-spot{position:absolute;border-radius:10px;box-shadow:0 0 0 9999px rgba(0,0,0,.66),0 0 0 3px #ffb000,0 0 24px rgba(255,176,0,.6);transition:left .25s,top .25s,width .25s,height .25s;pointer-events:none}' +
+    '#dqTour .dqt-card{position:absolute;max-width:min(360px,calc(100vw - 24px));background:#0d1218;color:#e3e9ef;border:1px solid #2c3a4a;border-radius:12px;padding:14px 16px;box-shadow:0 20px 50px rgba(0,0,0,.5);font-size:14px;line-height:1.45}' +
+    '#dqTour .dqt-step{font:600 11px ui-monospace,Consolas,monospace;letter-spacing:.08em;color:#8b98a6;text-transform:uppercase}' +
+    '#dqTour h3{margin:4px 0 6px;font-size:17px;color:#ffb000}#dqTour p{margin:0 0 12px}' +
+    '#dqTour .dqt-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#dqTour button{font:inherit;font-size:13px;padding:7px 12px;border-radius:8px;border:1px solid #2c3a4a;background:#141b23;color:#e3e9ef;cursor:pointer;min-height:36px}' +
+    '#dqTour button.pri{background:#ffb000;border-color:#ffb000;color:#111}#dqTour button:focus-visible{outline:2px solid #1ec8e0;outline-offset:2px}#dqTour .dqt-end{margin-left:auto;background:none;border-color:transparent;color:#8b98a6}' +
+    '#dqTourAsk{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:8900;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 24px);background:#0d1218;color:#e3e9ef;border:1px solid #2c3a4a;border-radius:12px;padding:10px 14px;box-shadow:0 14px 40px rgba(0,0,0,.5);font-size:14px}' +
+    '#dqTourAsk[hidden]{display:none}#dqTourAsk button{font:inherit;font-size:13px;padding:6px 12px;border-radius:8px;border:1px solid #2c3a4a;background:#141b23;color:#e3e9ef;cursor:pointer;min-height:34px}#dqTourAsk button.pri{background:#ffb000;border-color:#ffb000;color:#111}' +
+    '@media (prefers-reduced-motion: reduce){#dqTour .dqt-spot{transition:none}}' +
+    '@media print{#dqTour,#dqTourAsk{display:none!important}}';
+  function ensureCSS() {
+    if (typeof document === 'undefined' || document.getElementById('dq-tour-css')) return;
+    var s = document.createElement('style'); s.id = 'dq-tour-css'; s.textContent = CSS; document.head.appendChild(s);
+  }
+  var T = null;
+  function resolve(el) { return typeof el === 'string' ? document.querySelector(el) : el; }
+  function visible(el) { if (!el) return false; var r = el.getBoundingClientRect(); return el.offsetParent !== null && r.width > 0 && r.height > 0; }
+  function box() {
+    var el = document.getElementById('dqTour');
+    if (!el) {
+      ensureCSS();
+      el = document.createElement('div'); el.id = 'dqTour'; el.hidden = true; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'dqtTitle');
+      el.innerHTML = '<div class="dqt-back"></div><div class="dqt-spot"></div><div class="dqt-card"><div class="dqt-step" id="dqtStep"></div><h3 id="dqtTitle"></h3><p id="dqtText" aria-live="polite"></p>' +
+        '<div class="dqt-btns"><button type="button" id="dqtPrev">‹ Zurück</button><button type="button" class="pri" id="dqtNext">Weiter ›</button><button type="button" class="dqt-end" id="dqtEnd">Beenden</button></div></div>';
+      document.body.appendChild(el);
+      el.querySelector('#dqtPrev').onclick = function () { go(T.i - 1); };
+      el.querySelector('#dqtNext').onclick = function () { if (T.i >= T.steps.length - 1) end(true); else go(T.i + 1); };
+      el.querySelector('#dqtEnd').onclick = function () { end(false); };
+      el.querySelector('.dqt-back').onclick = function () { end(false); };
+      el.addEventListener('keydown', function (ev) {
+        if (!T) return;
+        if (ev.key === 'Escape') { ev.preventDefault(); end(false); }
+        else if (ev.key === 'ArrowRight' || ev.key === 'Enter') { if (ev.target.id === 'dqtPrev' || ev.target.id === 'dqtEnd') return; ev.preventDefault(); if (T.i >= T.steps.length - 1) end(true); else go(T.i + 1); }
+        else if (ev.key === 'ArrowLeft') { ev.preventDefault(); go(T.i - 1); }
+        else if (ev.key === 'Tab') { // Fokus bleibt in der Sprechblase
+          var f = el.querySelectorAll('button:not([hidden])'), first = f[0], last = f[f.length - 1];
+          if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); } else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
+        }
+      });
+      window.addEventListener('resize', function () { if (T) place(); });
+    }
+    return el;
+  }
+  function place() {
+    var s = T.steps[T.i], el = resolve(s.el), b = box();
+    if (!visible(el)) { el = null; }
+    var spot = b.querySelector('.dqt-spot'), card = b.querySelector('.dqt-card');
+    if (el) { el.scrollIntoView({ block: 'center', behavior: 'auto' }); }
+    var r = el ? el.getBoundingClientRect() : { left: window.innerWidth / 2 - 40, top: 60, width: 80, height: 40, bottom: 100 }, pad = 6;
+    spot.style.display = el ? '' : 'none';
+    spot.style.left = (r.left - pad) + 'px'; spot.style.top = (r.top - pad) + 'px'; spot.style.width = (r.width + 2 * pad) + 'px'; spot.style.height = (Math.min(r.height, window.innerHeight - 40) + 2 * pad) + 'px';
+    b.querySelector('#dqtStep').textContent = 'Schritt ' + (T.i + 1) + ' von ' + T.steps.length;
+    b.querySelector('#dqtTitle').textContent = s.titel || ''; b.querySelector('#dqtText').textContent = s.text || '';
+    b.querySelector('#dqtPrev').hidden = T.i === 0;
+    b.querySelector('#dqtNext').textContent = T.i >= T.steps.length - 1 ? 'Fertig ✓' : 'Weiter ›';
+    var cw = Math.min(360, window.innerWidth - 24);
+    card.style.width = cw + 'px';
+    var left = r.left + r.width / 2 - cw / 2; left = Math.max(12, Math.min(window.innerWidth - cw - 12, left));
+    var ch = card.offsetHeight || 190, top = r.bottom + 14; if (top + ch > window.innerHeight - 8) top = Math.max(12, r.top - ch - 14);
+    card.style.left = left + 'px'; card.style.top = top + 'px';
+    if (T.opts.onStep) T.opts.onStep(T.i, s);
+    b.querySelector('#dqtNext').focus();
+  }
+  function go(i) { if (!T) return; T.i = Math.max(0, Math.min(T.steps.length - 1, i)); place(); }
+  function end(done) {
+    if (!T) return;
+    var t = T; T = null; var b = document.getElementById('dqTour'); if (b) b.hidden = true;
+    if (t.restore && t.restore.focus) try { t.restore.focus(); } catch (e) { /* weg */ }
+    if (done && t.opts.onDone) t.opts.onDone(); if (!done && t.opts.onAbort) t.opts.onAbort(t.i);
+  }
+  function start(steps, opts) {
+    if (T) end(false);
+    var list = (steps || []).filter(function (s) { return s.el === null || visible(resolve(s.el)); });
+    if (!list.length) return false;
+    T = { steps: list, i: 0, opts: opts || {}, restore: document.activeElement };
+    var b = box(); b.hidden = false; place();
+    return true;
+  }
+  function ask(o) {
+    ensureCSS();
+    var old = document.getElementById('dqTourAsk'); if (old) old.remove();
+    var el = document.createElement('div'); el.id = 'dqTourAsk'; el.setAttribute('role', 'status');
+    el.innerHTML = '<span>' + (o.text || 'Neu hier? Ein kurzer Rundgang zeigt dir, wo was ist.') + '</span><button type="button" class="pri" id="dqtAskYes">' + (o.yes || 'Rundgang starten') + '</button><button type="button" id="dqtAskNo">' + (o.no || 'Nein danke') + '</button>';
+    document.body.appendChild(el);
+    el.querySelector('#dqtAskYes').onclick = function () { el.remove(); if (o.onYes) o.onYes(); };
+    el.querySelector('#dqtAskNo').onclick = function () { el.remove(); if (o.onNo) o.onNo(); };
+    return el;
+  }
+  root.DQTour = { start: start, end: function () { end(false); }, ask: ask, ensureCSS: ensureCSS, get active() { return !!T; } };
+})(typeof window !== 'undefined' ? window : globalThis);
+
 /* ==== account.js ==== */
 /* Digital Quest – Konto-Abgleich mit dem Portal (window.DQAccount), nach dem Vorbild von SPS Quest.
  * Nur in der Portal-Version (window.DQ_PORTAL, Spiel unter /labor/). Angemeldet wird im Portal; das Spiel liest die Sitzung
@@ -9600,7 +9813,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     try {
       if (name === 'task' || name === 'theory') { var id = decodeURIComponent(m[2] || ''); if (id === 'sandbox' || DQ.byId[id]) openItem(id); else { renderMap(); show('map'); } }
       else if (name === 'tutorial') renderTutorial();
-      else { if (name === 'map' || name === 'award') { renderMap(); name = 'map'; } if (name === 'manual') renderManual(); if (name === 'settings') renderSettings(); show(name); }
+      else { if (name === 'map' || name === 'award') { renderMap(); name = 'map'; } if (name === 'manual') renderManual(m[2] ? decodeURIComponent(m[2]) : undefined); if (name === 'settings') renderSettings(); show(name); }
     } finally { routing.silent = false; }
     return true;
   }
@@ -10932,10 +11145,37 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
 
   /* ================= Handbuch ================= */
   function renderManual(pageId) {
-    var pages = (DQ.manual || []).concat([{ id: 'datenblaetter', title: 'Datenblätter', html: '' }]), p = pages.filter(function (x) { return x.id === pageId; })[0] || pages[0];
+    var pages = [{ id: 'wegweiser', title: 'Wegweiser', html: '' }].concat(DQ.manual || [], [{ id: 'datenblaetter', title: 'Datenblätter', html: '' }]), p = pages.filter(function (x) { return x.id === pageId; })[0] || pages[0];
     $('#scr-manual').innerHTML = '<div class="manual"><nav>' + pages.map(function (x) { return '<button class="' + (x === p ? 'on' : '') + '" data-man="' + x.id + '">' + esc(x.title) + '</button>'; }).join('') +
-      '</nav><article>' + (p ? '<h2>' + esc(p.title) + '</h2>' + (p.id === 'datenblaetter' ? manualSheets() : p.html) : '') + '</article></div>';
+      '</nav><article>' + (p ? '<h2>' + esc(p.title) + '</h2>' + (p.id === 'datenblaetter' ? manualSheets() : p.id === 'wegweiser' ? wegweiserHtml() : p.html) : '') + '</article></div>';
     $$('[data-man]').forEach(function (b) { b.onclick = function () { renderManual(b.dataset.man); }; });
+    var tb = $('#wwTour'); if (tb) tb.onclick = function () { laborTour(); };
+    $$('[data-ww-go]').forEach(function (b) { b.onclick = function () { var g = b.dataset.wwGo; if (g === 'map') goMap(); else if (g === 'tutorial') { renderTutorial(); show('tutorial'); } else if (g === 'settings') { renderSettings(); show('settings'); } else if (g === 'manual') renderManual(); else if (g === 'calc' && root.DQCalc) root.DQCalc.toggle(); }; });
+  }
+  /* ---------- Wegweiser (Auftrag 06.10.2026, W2–W4): Handbuch-Seite aus der gemeinsamen Textquelle, Rundgang durch die Kopfzeile ---------- */
+  function wegweiserHtml() {
+    var WW = root.DQWegweiser; if (!WW) return '<p>Wegweiser nicht geladen.</p>';
+    var card = function (i) {
+      var open = i.go ? '<button class="btn small" data-ww-go="' + i.go + '">Öffnen</button>' : i.action === 'calc' ? '<button class="btn small" data-ww-go="calc">Öffnen</button>' : '';
+      return '<div class="ww-card" data-id="' + i.id + '"><div class="ww-ic" aria-hidden="true">' + i.icon + '</div><div class="ww-body"><b>' + esc(i.titel) + '</b><p>' + esc(i.text) + '</p><p class="ww-wann"><span>Wann?</span> ' + esc(i.wann) + '</p></div><div class="ww-act">' + open + '</div></div>';
+    };
+    var labor = WW.items.filter(function (i) { return i.bereich === 'labor' && (!i.portalOnly || root.DQ_PORTAL); }), aufgabe = WW.items.filter(function (i) { return i.bereich === 'aufgabe'; });
+    return '<p class="lead">Wo finde ich was? Jeder Punkt der Kopfzeile und jedes Element einer Aufgabe in einem Satz.</p>' +
+      '<div class="ww-tools"><button class="btn primary" id="wwTour">▶ Rundgang durch das Labor</button>' + (root.DQ_PORTAL ? '<a class="btn" href="../#/wegweiser">Wegweiser des Portals</a>' : '') + '</div>' +
+      '<h3>Labor</h3><div class="ww-cards">' + labor.map(card).join('') + '</div>' +
+      '<h3>In einer Aufgabe</h3><p class="dim small">Die Bedienung der Messgeräte zeigt dir das Werkbank-Tutorial Schritt für Schritt.</p><div class="ww-cards">' + aufgabe.map(card).join('') + '</div>';
+  }
+  function laborTour() {
+    var WW = root.DQWegweiser, T = root.DQTour; if (!WW || !T || current.exam || current.live || LIVE || EXAM) return;
+    var steps = WW.items.filter(function (i) { return i.bereich === 'labor' && i.tour !== false && (!i.portalOnly || root.DQ_PORTAL); }).map(function (i) { return { el: i.sel, titel: i.titel, text: i.text + ' ' + i.wann }; });
+    log('tour_start', {});
+    T.start(steps, { onDone: function () { log('tour_done', {}); }, onAbort: function (i) { log('tour_abort', { step: i }); } });
+  }
+  /* Erster Besuch: einmal die dezente Frage (settings.tourAsked, lokal) – nie in Prüfung, Live-Challenge oder Sonderstarts */
+  function maybeTourAsk(qs) {
+    var T = root.DQTour; if (!T || LIVE || EXAM || qs.get('live') || qs.get('exam') || S.settings.tourAsked) return;
+    T.ask({ text: 'Neu hier? Ein kurzer Rundgang zeigt dir die Kopfzeile des Labors.', yes: 'Rundgang starten', no: 'Nein danke',
+      onYes: function () { S.settings.tourAsked = true; save(); laborTour(); }, onNo: function () { S.settings.tourAsked = true; save(); } });
   }
 
   /* Handbuch-Seite: alle Datenblaetter zum Nachschlagen (auch ohne Maus) */
@@ -11084,6 +11324,9 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     else if (qs.get('frei')) openItem('sandbox');
     else if (qs.get('werkstatt')) { var w = $('#werkstatt'); if (w) w.scrollIntoView(); }
     if (ACCT) { var rd = ACCT.start(); if (LIVE) rd.then(function () { LIVE.start(); }); if (EXAM) rd.then(function () { EXAM.start(); }); }
+    // Wegweiser (Paket W): ?-Link in der Kopfzeile – im Portal-Labor zur Wegweiser-Seite des Portals, offline zur Handbuch-Seite
+    var wl = $('#wwLink'); if (wl) { if (root.DQ_PORTAL) wl.href = '../#/wegweiser'; else wl.onclick = function (ev) { ev.preventDefault(); renderManual('wegweiser'); show('manual'); }; }
+    if (!LIVE && !EXAM) setTimeout(function () { maybeTourAsk(qs); }, 900);
   }
 
   window.DigitalQuest = { get state() { return S; }, get account() { return ACCT; }, get liveChallenge() { return LIVE; }, get examUI() { return EXAM; }, get tutorial() { return tut; }, summary: summary, openItem: openItem, get editor() { return ed; }, get bench() { return bench; }, get core() { return core; }, setView: setView, get view() { return viewMode; }, get live() { return live; }, engine: E, parseVal: parseVal, openAward: openAward, get visuals() { return current.visuals || []; }, get demo() { return demo; }, get lastScope() { return lastScope; } };
