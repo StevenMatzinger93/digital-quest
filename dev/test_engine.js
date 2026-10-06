@@ -292,5 +292,33 @@ ok(nearC(cv('4k7'), 4700) && nearC(cv('100n*10k'), 1e-3) && nearC(cv('2.2M'), 2.
 const bad = s => { try { cv(s); return null; } catch (e) { return e.calc ? e.message : 'Absturz: ' + e.message; } };
 ok(/Division durch 0/.test(bad('5/0')) && /Klammer/.test(bad('(2+3')) && /Klammer/.test(bad('2+3)')) && /Unbekannt/.test(bad('2 $ 3')) && /unvollständig|Operator/.test(bad('2+')) && /Nichts/.test(bad('')), 'Rechner: Fehler werden sauber gemeldet');
 ok(CALC.fmt(0.1 + 0.2) === '0.3' && CALC.fmt(1e-9) === '1.0000e-9' && CALC.fmt(1234567) === '1234567', 'Rechner: Anzeige rundet Gleitkommarauschen weg');
+// Gleichrichter und Bezugspunkt (Auftrag 06.10.2026, G5.1)
+{
+  const gen = { id: 'G1', type: 'acsource', value: 10, props: { freq: 50, shape: 'sine', offset: 0 } }, R1 = { id: 'R1', type: 'resistor', value: 1000 };
+  const d = id => ({ id, type: 'diode' });
+  const bridge = { parts: [gen, R1, d('V1'), d('V2'), d('V3'), d('V4')], wires: [W('G1.p', 'V1.a'), W('V1.k', 'R1.a'), W('G1.n', 'V2.a'), W('V2.k', 'R1.a'), W('R1.b', 'V3.a'), W('V3.k', 'G1.p'), W('R1.b', 'V4.a'), W('V4.k', 'G1.n')] };
+  const half = { parts: [gen, R1, d('V1')], wires: [W('G1.p', 'V1.a'), W('V1.k', 'R1.a'), W('R1.b', 'G1.n')] };
+  const sim = (lay, a, b) => E.simulate(lay, { dt: 1e-4, tEnd: 0.04, probes: [{ a, b }] }).samples;
+  const period = s => { // steigende Durchgänge durch den Mittelwert
+    const mean = s.reduce((x, y) => x + y.ch0, 0) / s.length, cr = []; let below = s[0].ch0 < mean;
+    for (let k = 1; k < s.length; k++) { if (below && s[k].ch0 >= mean + 0.05) { cr.push(s[k].t); below = false; } else if (!below && s[k].ch0 < mean - 0.05) below = true; }
+    return cr.length >= 2 ? (cr[cr.length - 1] - cr[0]) / (cr.length - 1) : 0;
+  };
+  const sb = sim(bridge, 'R1.a', 'R1.b'), pk = (s, t0, t1) => Math.max(...s.filter(x => x.t >= t0 && x.t < t1).map(x => x.ch0));
+  ok(Math.min(...sb.map(x => x.ch0)) >= -0.01, 'Brücke: Spannung an R1 nie unter −0,01 V', Math.min(...sb.map(x => x.ch0)));
+  const p1 = pk(sb, 0, 0.01), p2 = pk(sb, 0.01, 0.02);
+  ok(Math.abs(p1 - p2) <= 0.01 * p1, 'Brücke: beide Halbwellen gleich hoch', [p1, p2]);
+  near(p1, 10 - 2 * 0.7, 0.05, 'Brücke: Scheitel ≈ Û − 2·U_F');
+  const acb = E.acMeasure(bridge, { a: 'R1.a', b: 'R1.b' });
+  ok(acb.dc >= 4.9 && acb.dc <= 5.9, 'Brücke: Gleichanteil 4,9 … 5,9 V', acb.dc);
+  near(period(sb), 0.01, 0.02, 'Brücke: Grundperiode 10 ms');
+  const s0 = sim(bridge, 'R1.a'); ok(Math.min(...s0.map(x => x.ch0)) < -0.5 && Math.max(...s0.map(x => x.ch0)) > 9, 'Brücke gegen Knoten 0: nur eine Halbwelle (R1.a gegen G1.n)');
+  const sh = sim(half, 'R1.a', 'R1.b');
+  near(Math.max(...sh.map(x => x.ch0)), 10 - 0.7, 0.03, 'Einweg: Scheitel ≈ Û − U_F'); near(period(sh), 0.02, 0.02, 'Einweg: Grundperiode 20 ms');
+  ok(E.refPin(bridge) === 'G1.n' && E.refPin(half) === 'G1.n', 'Bezugspunkt ohne Masse-Symbol: Minuspol der ersten Quelle');
+  const withGnd = { parts: half.parts.concat([{ id: 'GND1', type: 'ground' }]), wires: half.wires.concat([W('R1.b', 'GND1.g')]) };
+  ok(E.refPin(withGnd) === 'GND1.g' && E.buildNetlist(E.clone(withGnd)).refPin === 'GND1.g', 'Bezugspunkt mit Masse-Symbol: GND1.g');
+  ok(E.refPin({ parts: [R1], wires: [] }) === null, 'Bezugspunkt ohne Quelle: null');
+}
 console.log(`Engine-Tests: ${pass} ok, ${fail} Fehler`);
 process.exit(fail ? 1 : 0);

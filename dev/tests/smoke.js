@@ -792,6 +792,69 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   if (hitB.some(w => w < 22)) errors.push('mobil: Werkbank-Trefferflächen unter 24 px: ' + hitB.join('/'));
   if (await m.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) errors.push('mobil Werkbank: horizontaler Scroll');
 
+  // ===== Gleichrichter und Bezugspunkt (Auftrag 06.10.2026, G5.2/G5.3): alle Oszilloskop-Ebenen =====
+  {
+    const g = await browser.newPage({ viewport: { width: 1440, height: 900 } }); g.on('pageerror', e => errors.push('Gleichrichter: ' + e.message));
+    await g.goto(url, { waitUntil: 'domcontentloaded' }); await g.waitForTimeout(300); if (await g.$('#dqTourAsk')) await g.click('#dqtAskNo');
+    const probes = (tip, gnd, tip2) => g.evaluate(([t, gd, t2]) => { const c = DigitalQuest.core; c.scopeProbes.tip = t; c.scopeProbes.gnd = gd; c.scopeProbes.tip2 = t2 || null; c.redraw(); }, [tip, gnd, tip2 || null]);
+    const run = async () => { await g.click('#btnScope'); await g.waitForTimeout(150); return (await g.textContent('#scopeInfo')).replace(/\s+/g, ' '); };
+    const kenn = txt => { const m = /max ([-\d.]+) ?(m?V|µV) · min ([-\d.]+) ?(m?V|µV)/.exec(txt); const f = (x, u) => +x * (u === 'mV' ? 1e-3 : u === 'µV' ? 1e-6 : 1); return m ? { max: f(m[1], m[2]), min: f(m[3], m[4]) } : null; };
+    await g.evaluate(() => { delete DigitalQuest.state.drafts['16.7']; DigitalQuest.openItem('16.7'); DigitalQuest.setView('bench'); }); await g.waitForTimeout(150);
+    await g.selectOption('#tb', await g.$$eval('#tb option', l => l.map(o => o.value).find(v => Math.abs(+v - 0.05) < 1e-9)));
+    // 1 Clip an R1.b: Zweiweg, min ≥ 0, Periode 10 ms, kein Hinweis, keine Markierung
+    await probes('R1.a', 'R1.b'); let t = await run(), k = kenn(t);
+    if (!k || k.min < -0.01 || k.max < 8.4 || k.max > 8.8) errors.push('Gleichrichter: Clip an R1.b – Kennwerte falsch: ' + t);
+    if (!/Periode 10\.0+ ms/.test(t)) errors.push('Gleichrichter: Periode 10 ms fehlt: ' + t);
+    if (!await g.$eval('#scopeWarn', e => e.hidden) || await g.$('#bench .brefmark')) errors.push('Gleichrichter: Hinweis/Markierung trotz Clip an R1.b');
+    // 2 ohne Clip: Klartext G1.–, Warnhinweis, Markierung auf der Werkbank und im Schirmtext, grosses Oszilloskop nennt den Bezugspunkt
+    await probes('R1.a', null); t = await run();
+    if (!/R1\.a gegen G1\.– \(Bezugspunkt – Erdungsclip nicht angeschlossen\)/.test(t)) errors.push('Gleichrichter: Klartext ohne Clip fehlt: ' + t);
+    if (await g.$eval('#scopeWarn', e => e.hidden) || !/Erdungsclip ist nicht angeschlossen.*G1\.–.*R1\.b/.test(await g.textContent('#scopeWarn'))) errors.push('Gleichrichter: Warnhinweis ohne Clip fehlt: ' + await g.textContent('#scopeWarn'));
+    if (!await g.$('#bench .brefmark') || !/G1\.– ⏚/.test(await g.textContent('#bench .bscinfo'))) errors.push('Gleichrichter: Markierung ⏚ auf der Werkbank fehlt');
+    await g.click('#btnScopeBig'); await g.waitForTimeout(100);
+    if (!/Bezugspunkt.*G1\.–/.test(await g.textContent('#scopeBig .sb-stats')) || !/Mittelwert/.test(await g.textContent('#scopeBig .sb-stats'))) errors.push('Gleichrichter: grosses Oszilloskop ohne Bezugspunkt/Mittelwert');
+    await g.keyboard.press('Escape'); await g.waitForTimeout(50);
+    // 3 Clip an G1.n: aufgabenbezogener Hinweis mit MATH als zweitem Weg, Mittelwert 2,5 V, Periode 20 ms
+    await probes('R1.a', 'G1.n'); t = await run();
+    if (!/Die Aufgabe misst .* zwischen R1\.a und R1\.b: Erdungsclip an R1\.b/.test(await g.textContent('#scopeWarn')) || !/MATH/.test(await g.textContent('#scopeWarn'))) errors.push('Gleichrichter: aufgabenbezogener Hinweis fehlt: ' + await g.textContent('#scopeWarn'));
+    if (!/Periode 20\.0+ ms/.test(t) || !/Mittelwert 2\.5\d* V/.test(t)) errors.push('Gleichrichter: Clip an G1.n – Mittelwert/Periode: ' + t);
+    // 4 MATH = CH1 − CH2: CH2 an R1.b, Differenz = Zweiweg-Kurve
+    await probes('R1.a', 'G1.n', 'R1.b'); await run(); await g.click('#scopeCh [data-ch="3"]'); await g.waitForTimeout(150); t = (await g.textContent('#scopeInfo')).replace(/\s+/g, ' ');
+    const mi = t.indexOf('MATH = CH1 − CH2'); const km = mi >= 0 ? kenn(t.slice(mi)) : null;
+    if (!km || km.min < -0.01 || km.max < 8.4 || km.max > 8.8 || !/Periode 10\.0+ ms/.test(t.slice(mi))) errors.push('Gleichrichter: MATH liefert keine Zweiweg-Kurve: ' + t.slice(mi, mi + 200));
+    if (!await g.$('#bench .bsctrace3') || !await g.$('#bench [data-scope="math"].on')) errors.push('Gleichrichter: MATH-Kurve/-Taste auf der Werkbank fehlt');
+    await g.screenshot({ path: shots + '/16_gleichrichter_math.png' });
+    await g.click('#scopeCh [data-ch="3"]'); await g.waitForTimeout(100);
+    // 5 Schaltplan mit nur roter Spitze: Klartext, Markierung im Schaltplan
+    await probes(null, null, null); await g.evaluate(() => DigitalQuest.setView('schema')); await g.waitForTimeout(100);
+    await g.click('[data-mm="V"]'); await g.evaluate(() => { const c = DigitalQuest.core; c.probes = { a: null, b: null }; c.clickPin('R1.a'); }); t = await run();
+    if (!/gegen G1\.– \(Bezugspunkt – schwarze Spitze nicht gesetzt\)/.test(t)) errors.push('Gleichrichter: Schaltplan-Klartext fehlt: ' + t);
+    if (!await g.$('#board .refmark')) errors.push('Gleichrichter: Markierung ⏚ im Schaltplan fehlt');
+    // 6 Einstellungs-Box 16.7: Abschnitt «potentialfrei messen», Vorführ-Modus nennt R1.b (nie «Masse»)
+    if (!/potentialfrei messen/.test(await g.textContent('#taskInfo .setup'))) errors.push('Gleichrichter: Einstellungs-Box ohne Abschnitt «potentialfrei messen»');
+    await g.evaluate(() => DigitalQuest.setView('bench')); await g.click('#btnDemo'); await g.waitForTimeout(100);
+    const steps = await g.evaluate(() => DigitalQuest.demo ? DigitalQuest.demo.steps.map(s => s.text).join(' | ') : '');
+    if (!/Erdungsclip<\/b> an <b>R1\.b/.test(steps) || /an <b>Masse/.test(steps)) errors.push('Gleichrichter: Vorführung nennt den Erdungsclip nicht konkret: ' + steps.slice(0, 200));
+    await g.click('#demoStop'); await g.waitForTimeout(100);
+    // 7 Tutorial: ohne Clip Klartext und Markierung
+    await g.click('[data-go="tutorial"]'); await g.waitForSelector('#tbench [data-probe="a"]');
+    await g.evaluate(() => { const c = DigitalQuest.tutorial.core; c.scopeProbes.tip = 'R2.a'; c.scopeProbes.gnd = null; c.redraw(); DigitalQuest.tutorial.bench.opts.onScope('run'); }); await g.waitForTimeout(150);
+    if (!/gegen B1\.– \(Bezugspunkt/.test(await g.textContent('#tutScope')) || !await g.$('#tbench .brefmark')) errors.push('Gleichrichter: Tutorial ohne Klartext/Markierung: ' + await g.textContent('#tutScope'));
+    // 8 Theorie T3C: Mini-Schaltung der Brücke mit Oszilloskop an R1, in der Sequenz nach 3.5
+    await g.evaluate(() => DigitalQuest.openItem('T3C')); await g.waitForTimeout(400);
+    if (!await g.$('#scr-theory .mini-scope') || !/Brücke|Brückengleichrichter/.test(await g.textContent('#scr-theory'))) errors.push('T3C: Mini-Schaltung mit Oszilloskop fehlt');
+    if (await g.evaluate(() => { const s = DQ.chapters.find(c => c.id === 3).sequence; return s.indexOf('T3C') !== s.indexOf('3.5') + 1; })) errors.push('T3C: nicht direkt nach 3.5');
+    if (await g.evaluate(() => DQ.byId['T3C'].exam !== false)) errors.push('T3C: exam: false fehlt');
+    await g.screenshot({ path: shots + '/17_t3c.png' });
+    // 9 Handy 390 px: Warnhinweis lesbar, kein Querscrollen
+    await g.setViewportSize({ width: 390, height: 844 }); await g.evaluate(() => { DigitalQuest.openItem('16.7'); DigitalQuest.setView('bench'); }); await g.waitForTimeout(150);
+    await probes('R1.a', null); await g.click('#btnScope'); await g.waitForTimeout(150);
+    const mb = await g.evaluate(() => { const w = document.getElementById('scopeWarn'), r = w.getBoundingClientRect(); return { hidden: w.hidden, right: r.right, fs: parseFloat(getComputedStyle(w).fontSize), sw: document.documentElement.scrollWidth, iw: innerWidth }; });
+    if (mb.hidden || mb.right > mb.iw + 1 || mb.fs < 12 || mb.sw > mb.iw + 1) errors.push('Gleichrichter mobil: Warnhinweis nicht lesbar oder Querscrollen: ' + JSON.stringify(mb));
+    await g.screenshot({ path: shots + '/18_gleichrichter_handy.png' });
+    await g.close();
+  }
+
   // ===== Wegweiser (Auftrag 06.10.2026): ?-Link, Handbuch-Seite, Rundgang, Ereignisse, erste Frage, kein Rundgang bei Live-Start =====
   {
     const w = await browser.newPage({ viewport: { width: 1440, height: 900 } }); w.on('pageerror', e => errors.push('Wegweiser: ' + e.message));
