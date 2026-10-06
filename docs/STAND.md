@@ -247,6 +247,30 @@ Zusätzliche Einordnung:
 **A4 Abnahme**: Checkliste Teil B/8 erfüllt (Tests, Platzhalter, Garderobe speichern/neu laden, Kauf/zu wenig Coins/Doppelkauf, gesperrt mit Balken und 403, fremdes Teil 403, 390 px, reduced-motion, Konto löschen); Datenschutz-Seite Abschnitt 3b «Avatar und Coins», Handbuch (Konto-Abschnitt), Anleitung (Lernende und Dozenten), CLAUDE.md. Tests: `tests/avatar.js` (29 bestanden), `tests/avatar_snap.js` (16, Referenzbilder `tests/baseline/avatar/`).
 **Offen / bewusst weggelassen**: Sudden Death (eigener Auftrag; Teile `aura_blitz`, `titel_schnell` bleiben ausgeblendet), Titel/«trägt …» in der Beamer-Lobby (C5b, kosmetisch), Vorschauseiten C9a/C9b (nicht nötig, Garderobe zeigt alles), Variante ohne Server. Item-Namen und Zeichnungen aus SPS Quest unverändert übernommen (nur Kollektions-Namen, Titel, Sockel-Boni und Bedingungstexte neu).
 
+## Gleichrichter und Bezugspunkt (06.10.2026, Auftrag `docs/AUFTRAG_GLEICHRICHTER_OSZI_2026-10-06.md`, Branch `wip/gleichrichter-oszi`)
+### G0 – Befund und Inventar
+**Befund bestätigt** (Playwright, `tests/gleichrichter_befund.js`, Screenshots `tests/shots/gleichrichter_vorher_*.png`; 16.7 Werkbank, S1 offen, 50 ms):
+
+| Tastkopf CH1 | Erdungsclip | Anzeige | Kennwerte |
+|---|---|---|---|
+| R1.a | R1.b | Zweiweg-Kurve, alle Buckel positiv | max 8,582 V, min 0 V |
+| R1.a | nicht angeschlossen | nur jede zweite Halbwelle, dazwischen leicht negativ, Text «R1.a gegen Masse» | max 9,291 V, min −0,709 V |
+| R1.a | G1.n | dasselbe Halbwellen-Bild, Text «R1.a gegen G1.n» | max 9,291 V, min −0,709 V |
+| Schaltplan, nur rote Spitze | – | Text «… gegen Masse» (Multimeter-Spitzen als CH1) | – |
+
+Engine direkt (Brücke aus 3.5, `E.simulate`, 2 Perioden): R1.a–R1.b 0 → 8,58 → 0 → 8,58 (Zweiweg, richtig); R1.a gegen Knoten 0: 0 → 9,29 → 0 → −0,71; R1.b gegen Knoten 0: 0 → 0,71 → 0 → −9,29; die Differenz ist die Zweiweg-Kurve. Knoten 0 ist ohne Masse-Symbol der Minuspol der ersten Quelle (`buildNetlist`, `autoGround`) – hier G1.n, V2.a, V4.k. `E.acMeasure` an R1: Gleichanteil 5,019 V, max 8,582 V, min 0 V. Einweg (3.4, W5): max 9,290 V, Gleichanteil 2,838 V. **Die Simulation rechnet richtig; irreführend ist nur der stillschweigende Bezugspunkt.**
+
+**Inventar Code – Kanal ohne zweiten Anschluss misst gegen Knoten 0** (alle über `scopeCurve()` in app.js, `probes: [{ a, b: sp.b || undefined }]`, Text «gegen Masse»):
+- Seitenleiste `scope()` (Aufgabe, Sandbox, Prüfung, Live-Challenge – dieselbe Funktion), Werkbank-Schirm (`bench.scope.info`), grosses Oszilloskop `scopeBig()` (Kennwerte aus `c`), Tutorial `tutScope()`.
+- Schaltplan-Ansicht: CH1 = Multimeter-Spitzen (`scopeProbes()` ohne eigenen Tastkopf), nur rote Spitze → «gegen Masse».
+- CH2 (`sp.a2`) benutzt denselben Erdungsclip.
+- Mini-Schaltungen der Theorie (`mini.js`, `spec.scope`): `b` fehlt → Knoten des Bezugspunkts; alle fünf Scopes im Bestand (T3A, T3B, T11A, T11B, T16A) haben `a` und `b`.
+- Vorführ-Modus `demoStart()`: Schritt «Erdungsclip an Masse ziehen» nur, wenn `m.b` fehlt (kommt im Bestand nicht vor); Einstellungs-Box `setupHtml()`: «Erdungsclip an Masse» / «schwarze an Masse» als Rückfall ohne `b`.
+- Tooltip der Buchsen auf der Werkbank: «… V gegen Masse» (bench.js).
+- Leitstand-Schülerdetail und Prüfung zeichnen keine eigene Kurve (Mini-Schaltung ohne Scope bzw. derselbe `scope()`).
+
+**Inventar Aufgaben**: Dioden/Zener in 3.4, 3.5, 11.7, 13.1–13.5, 15.3–15.5, 15.9, 15.10, 16.6, 16.7, 16.8, W5, W9; Prüfungsvorlagen G04 (Einweg, `a`/`b` gesetzt) und P06 (Z-Diode). **Alle 95 Messwerte mit `mode: 'AC'` oder `'VAC'` haben bereits `a` und `b`** (Messwerte ohne `b` sind ausschliesslich Rechenwerte ohne Anschlüsse). Bewusst gegen G1.n messen 11.8, 11.9, 14.1, 14.3, 14.4, 14.8, 14.9 (RC-Glieder, Ausgang gegen Generator-Minus). Ohne Masse-Symbol sind alle Gleichrichter-Aufgaben – das Problem entsteht nur, wenn Lernende den Clip weglassen oder an G1.n hängen. 3.5 fragt nur den Gleichanteil ab (kein Scheitelwert, keine Periodendauer).
+
 ## Hosting (Stand 29.09.2026)
 GitHub-Repo: github.com/StevenMatzinger93/digital-quest (Branch `main`). Cloudflare Worker `digital-quest` (`wrangler.jsonc`: `main` = `worker/index.js`, Assets aus `web/`, D1 `digitalquest` als Binding `DB`, Worker zuerst fuer `/api/*` und `/z/*`) per GitHub verbunden – jeder Push nach `main` deployt automatisch. Secrets `ADMIN_USER`/`ADMIN_PASSWORD`.
 
