@@ -113,6 +113,8 @@
         if (s.choices) { if (!s.choices.length) err.push('circuit: Auswahl ' + s.part + ' ohne choices'); return; }
         if (!(s.max > s.min) || (s.log && !(s.min > 0))) err.push('circuit: Regler ' + s.part + ' mit ungültigem Bereich');
       });
+      (v.sliders || []).forEach(function (s) { (s.choices || []).forEach(function (c) { Object.keys(c.set || {}).forEach(function (id) { if (!ids[id]) err.push('circuit: Auswahl setzt unbekanntes Bauteil ' + id); }); }); });
+      (v.readouts || []).forEach(function (x) { if (x.tau && (!ids[x.tau.r] || !ids[x.tau.c])) err.push('circuit: tau-Anzeige mit unbekanntem Bauteil'); });
       (v.readouts || []).forEach(function (x) { if (x.ac && ['rms', 'avg', 'dc', 'pp', 'peak'].indexOf(x.ac) < 0) err.push('circuit: ac muss rms|avg|dc|pp|peak sein'); if (x.sel && !ids[x.sel]) err.push('circuit: Anzeige für unbekanntes Bauteil ' + x.sel); if (x.a && !ids[x.a.split('.')[0]]) err.push('circuit: Anzeige an unbekanntem Anschluss ' + x.a); });
       if (v.scope && (!v.scope.a || !ids[v.scope.a.split('.')[0]])) err.push('circuit: Oszilloskop-Anschluss fehlt/unbekannt');
       return err;

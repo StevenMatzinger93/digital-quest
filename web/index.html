@@ -2888,6 +2888,9 @@ body.beamer-mode main{ min-height:100vh; }
  *                 oder {label, a, b, ac:'rms'|'avg'|'dc'|'pp'|'peak'} (Wechselgroesse ueber E.acMeasure; avg = Anzeige AVG-Multimeter)
  *   spec.scope    {a, b, span (s), label} – laufendes Oszilloskop (Spannung a gegen b)
  *   spec.slow     Zeitlupen-Umschalter (1× / 0,1×) fuer Schaltungen mit Zeitverhalten
+ *   spec.settle   Sekunden Einschwingzeit, die nach Start und nach jeder Auswahl sofort (ohne Wartezeit) vorgerechnet werden (z. B. Ladekondensator)
+ *   Auswahlfelder (choices) setzen bei prop 'value' die Zahl; jede Auswahl kann {set:{S1:{closed:false}}} Eigenschaften anderer Bauteile mitsetzen
+ *   readouts {label, tau:{r:'R1', c:'C1', s:'S1'}}: Zeitkonstante R·C ('–' bei offenem Schalter s)
  *   spec.height   Hoehe der Zeichenflaeche in px (Standard 260) */
 (function (root) {
   'use strict';
@@ -2918,6 +2921,7 @@ body.beamer-mode main{ min-height:100vh; }
       var b = bar.querySelector('[data-mv]'); if (b) b.textContent = mode === 'bench' ? '⊞ Schaltplan' : '▣ Werkbank';
     }
     function fmtR(r, x) {
+      if (x.tau) { var tr = core.part(x.tau.r), tc = core.part(x.tau.c), ts = x.tau.s && core.part(x.tau.s); if (!tr || !tc || (ts && !(ts.props || {}).closed)) return '–'; return E.fmt(tr.value * tc.value, 's'); }
       if (x.ac) { var m = live.ac && live.ac[x.a + '|' + x.b]; return m && m.ok ? E.fmt(m[x.ac], 'V') : '–'; }
       if (!r) return '–';
       if (x.a) { var v = r.nodeV[live.net.pinNode[x.a]] - (x.b ? r.nodeV[live.net.pinNode[x.b]] : 0); return E.fmt(v, 'V'); }
@@ -2963,6 +2967,10 @@ body.beamer-mode main{ min-height:100vh; }
       if (fresh) { live.state = E.newState(); live.trace = []; }
       try { live.net = E.buildNetlist(core.layout); } catch (e) { live.net = null; bar.querySelector('.mini-err').textContent = e.message; return; }
       live.dynamic = live.net.parts.some(function (p) { return DYN[p.type]; });
+      if (fresh && spec.settle) { // Einschwingzeit sofort vorrechnen (grober Schritt 1 ms), danach laeuft die Anzeige im eingeschwungenen Zustand weiter
+        try { E.step(live.net, live.state, {}); for (var ts0 = 0; ts0 < spec.settle - 1e-9; ts0 += 1e-3) E.step(live.net, live.state, { dt: 1e-3 }); } catch (e) { /* Anzeige zeigt dann den Anlauf */ }
+        live.trace = [];
+      }
       live.ac = {}; // Wechselgroessen einmal je Aenderung (E.acMeasure simuliert einige Perioden)
       (spec.readouts || []).forEach(function (x) { if (x.ac && !live.ac[x.a + '|' + x.b]) live.ac[x.a + '|' + x.b] = E.acMeasure(core.layout, { a: x.a, b: x.b }); });
       tick(0);
@@ -3011,11 +3019,16 @@ body.beamer-mode main{ min-height:100vh; }
       Array.prototype.forEach.call(ctl.querySelectorAll('[data-sl]'), function (inp) {
         inp.oninput = inp.onchange = function () {
           var s = spec.sliders[+inp.dataset.sl], p = core.part(s.part), v = s.choices ? inp.value : s.log ? Math.pow(10, +inp.value) : +inp.value;
-          if (s.choices) { p.props = p.props || {}; p.props[s.prop] = v; live.trace = []; rebuild(false); ed.render(); be.render(); return; }
+          if (s.choices) {
+            if (s.prop === 'value') { p.value = +v; if (p.props) delete p.props.value; } else { p.props = p.props || {}; p.props[s.prop] = v; }
+            var ch = s.choices.filter(function (c) { return String(c.value) === String(v); })[0];
+            if (ch && ch.set) Object.keys(ch.set).forEach(function (id) { var q = core.part(id); if (q) { q.props = q.props || {}; Object.keys(ch.set[id]).forEach(function (k) { q.props[k] = ch.set[id][k]; }); } });
+            live.trace = []; rebuild(!!spec.settle); ed.render(); be.render(); return;
+          }
           if (s.round) v = +v.toPrecision(s.round);
           if (s.prop === 'value') p.value = v; else { p.props = p.props || {}; p.props[s.prop] = v; }
           ctl.querySelector('[data-slv="' + inp.dataset.sl + '"]').textContent = fmtS(s, v);
-          rebuild(false); ed.render(); be.render();
+          rebuild(!!spec.settle); ed.render(); be.render();
         };
       });
       renderReadouts();
