@@ -2295,7 +2295,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     learn: 'Eine Diode lässt den Strom nur in eine Richtung durch – der Einweggleichrichter.',
     take: 'Nur jede zweite Halbwelle kommt durch: der Gleichanteil ist ≈ (Û − U_F) / π – deutlich kleiner als Û.',
     hint: 'Die Anode (V1.a) an den Generator (G1.+), die Kathode (V1.k) an R1.',
-    hint2: 'Erwartet: Û an R1 ≈ 10 V − 0,7 V ≈ 9,3 V, Gleichanteil ≈ 2,8 V.',
+    hint2: 'Erwartet: Û an R1 ≈ 10 V − 0,7 V ≈ 9,3 V, Gleichanteil ≈ 2,8 V. Messen an R1: Tastkopf (bzw. rote Spitze) an R1.a, Erdungsclip (schwarze Spitze) an R1.b – ohne Clip misst das Oszilloskop gegen G1.–.',
     palette: ['diode'], need: { diode: 1 },
     start: genR(), ref: half,
     bench: { parts: [bG1, { id: 'V1', x: 480, y: 290, rot: 0 }, bR1] },
@@ -2313,17 +2313,20 @@ body.has-exam-bar .top { padding-top: 50px; }
   defTask({
     id: '3.5', ch: 3, title: 'Brückengleichrichter', tags: ['bauteil.diode', 'elektro.gleichrichter', 'elektro.mittelwert'],
     story: 'Der Einweggleichrichter verschenkt die Hälfte. Mit vier Dioden geht es besser.',
-    brief: 'Baue einen <b>Brückengleichrichter</b> (Grätz-Brücke) aus vier Dioden: Durch R1 soll in <b>beiden</b> Halbwellen Strom in dieselbe Richtung fliessen (R1.a positiv). Miss den Gleichanteil an R1.',
+    brief: 'Baue einen <b>Brückengleichrichter</b> (Grätz-Brücke) aus vier Dioden: Durch R1 soll in <b>beiden</b> Halbwellen Strom in dieselbe Richtung fliessen (R1.a positiv). Miss an R1 den <b>Gleichanteil</b> (V⎓) und am Oszilloskop den <b>Scheitelwert</b> und die <b>Periodendauer</b> der Ausgangsspannung.',
     learn: 'Die Grätz-Brücke nutzt beide Halbwellen.',
-    take: 'Zweiweg-Gleichrichtung: etwa doppelter Gleichanteil wie beim Einweggleichrichter – dafür zwei Diodenspannungen Verlust.',
-    hint: 'R1.a bekommt die Kathoden von zwei Dioden (deren Anoden an G1.+ und G1.–). R1.b bekommt die Anoden der anderen zwei (deren Kathoden an G1.+ und G1.–).',
-    hint2: 'V1: G1.+ → R1.a · V2: G1.– → R1.a · V3: R1.b → G1.+ · V4: R1.b → G1.– (jeweils Anode → Kathode).',
+    take: 'Zweiweg-Gleichrichtung: beide Halbwellen nach oben geklappt, Periodendauer 10 ms (100 Hz) statt 20 ms – etwa doppelter Gleichanteil wie beim Einweggleichrichter, dafür zwei Diodenspannungen Verlust (Û_R ≈ Û − 2·U_F ≈ 8,6 V).',
+    hint: 'R1.a bekommt die Kathoden von zwei Dioden (deren Anoden an G1.+ und G1.–). R1.b bekommt die Anoden der anderen zwei (deren Kathoden an G1.+ und G1.–). Messen an R1: Tastkopf an R1.a, Erdungsclip an R1.b.',
+    hint2: 'V1: G1.+ → R1.a · V2: G1.– → R1.a · V3: R1.b → G1.+ · V4: R1.b → G1.– (jeweils Anode → Kathode). Hängt der Erdungsclip an G1.– statt an R1.b, siehst du nur eine Halbwelle – das ist die Spannung R1.a gegen den Generator, nicht die Spannung an R1.',
     palette: ['diode'], need: { diode: 4 },
     start: genR(), ref: bridge,
     bench: { parts: [bG1, { id: 'V1', x: 470, y: 250, rot: 0 }, { id: 'V2', x: 470, y: 620, rot: 0 }, { id: 'V3', x: 700, y: 250, rot: 180 }, { id: 'V4', x: 700, y: 620, rot: 180 }, { id: 'R1', x: 860, y: 440, rot: 90 }] },
     wrong: [named('nur Einweg (eine Diode)', half)],
     tests: [{ name: 'Zweiweg', expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [4.9, 5.9] }, { noFault: true }] }],
-    measure: [{ id: 'udc', ask: 'Gleichanteil an R1 (V⎓)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.04 }]
+    measure: [{ id: 'udc', ask: 'Gleichanteil an R1 (V⎓)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.04 },
+      { id: 'up', ask: 'Scheitelwert an R1 (Oszilloskop)', unit: 'V', mode: 'AC', q: 'peak', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'tper', ask: 'Periodendauer der Spannung an R1 (Oszilloskop)', unit: 'ms', value: 10, tol: 0.1 }],
+    setup: { tper: 'Oszilloskop an R1 (Tastkopf R1.a, Erdungsclip R1.b), Bildbreite 50 ms, RUN: Abstand zweier Buckel ablesen – unter der Kurve steht die Periode des gemessenen Signals. Jede Halbwelle gibt einen Buckel, darum 10 ms statt 20 ms.' }
   });
 
   /* ================= Theorie B ================= */
@@ -5679,7 +5682,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   var gen = function (props, v, x, y) { return { id: 'G1', type: 'acsource', value: v, props: Object.assign({ freq: 50, shape: 'sine', offset: 0 }, props || {}), x: x || 160, y: y || 300, rot: 0 }; };
   var R = function (id, v, x, y, rot) { return { id: id, type: 'resistor', value: v, x: x, y: y, rot: rot || 0 }; };
   var bG1 = { id: 'G1', x: 250, y: 460, rot: 0 };
-  var SCOPE = 'Multimeter-Spitzen setzen (rot, dann schwarz) – das Oszilloskop nutzt dieselben Spitzen. Zeitbasis wählen, „Aufnahme“ (Werkbank: RUN); unter dem Bild stehen max und min.';
+  var SCOPE = 'Werkbank: gelben Tastkopf (CH1) an den ersten Anschluss ziehen, schwarzen Erdungsclip an den zweiten – nie weglassen, sonst misst der Kanal gegen den Minuspol des Generators. Schaltplan: rote und schwarze Spitze setzen. Zeitbasis wählen, RUN („Aufnahme“); unter dem Bild stehen max, min, Mittelwert und Periode.';
   var tags = function (t) { return ['werkstatt', 'messen.oszilloskop'].concat(t || []); };
   var ok = [{ name: 'Aufbau', expect: [{ noFault: true }] }];
 
@@ -5746,7 +5749,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     story: 'Nach der Diode bleibt vom Sinus nur die obere Hälfte übrig.',
     brief: 'Schau dir die Spannung an <b>R1</b> am Oszilloskop an. Miss den <b>Scheitelwert</b> und mit V⎓ den <b>Gleichanteil</b> (arithmetischer Mittelwert).',
     learn: 'Einweggleichrichtung: nur eine Halbwelle, Mittelwert ≈ Û / π.', take: 'Û an R1 ≈ 10 V − 0,7 V = 9,3 V, Mittelwert ≈ 2,8 V (etwas weniger als 9,3 V / π wegen der Schleusenspannung).',
-    hint: SCOPE, hint2: 'Die Diode „frisst“ die Schleusenspannung.',
+    hint: SCOPE, hint2: 'Tastkopf an R1.a, Erdungsclip an R1.b. Die Diode „frisst“ die Schleusenspannung: Û_R ≈ 10 V − 0,7 V.',
     start: hw, bench: { parts: [bG1, { id: 'V1', x: 480, y: 290, rot: 0 }, { id: 'R1', x: 740, y: 460, rot: 90 }] }, tests: ok,
     measure: [
       { id: 'up', ask: 'Scheitelwert an R1', unit: 'V', mode: 'AC', q: 'peak', a: 'R1.a', b: 'R1.b', tol: 0.03 },
@@ -5832,6 +5835,17 @@ body.has-exam-bar .top { padding-top: 50px; }
   var DQ = root.DQ;
   function set(id, rw) { var t = DQ.byId[id]; if (!t) throw new Error('Rechenweg: Aufgabe ' + id + ' fehlt'); t.rechenweg = rw; }
   var S = function (text, label, expr, value, unit) { return { text: text, label: label, expr: expr, value: value, unit: unit }; };
+
+  /* ---------- Kapitel 3: Gleichrichter (Auftrag 06.10.2026, G2.3) ---------- */
+  set('3.4', {
+    udc: [S('Einweg: nur jede zweite Halbwelle, Scheitel um eine Diodenspannung kleiner. Mittelwert einer Halbwelle = Û_R/π.', 'U_DC', '(10 V − 0,71 V) / π', 2.84, 'V')],
+    up: [S('Oszilloskop an R1 (Tastkopf R1.a, Erdungsclip R1.b): Scheitel = Û minus Schleusenspannung.', 'Û_R', '10 V − 0,71 V', 9.29, 'V')]
+  });
+  set('3.5', {
+    udc: [S('Brücke: beide Halbwellen, Scheitel um zwei Diodenspannungen kleiner, Mittelwert ≈ 2Û_R/π (Simulation etwas kleiner wegen der Lücken am Nulldurchgang).', 'U_DC', '≈ 2 · 8,6 V / π', 5.02, 'V')],
+    up: [S('Oszilloskop an R1 (Tastkopf R1.a, Erdungsclip R1.b): im Strompfad liegen immer zwei Dioden in Reihe.', 'Û_R', '10 V − 2 · 0,71 V', 8.58, 'V')],
+    tper: [S('Jede Halbwelle des 50-Hz-Sinus (T = 20 ms) ergibt einen Buckel – die Ausgangsspannung hat die doppelte Frequenz.', 'T_aus', '20 ms / 2', 10, 'ms')]
+  });
 
   /* ---------- Kapitel 16 ---------- */
   set('16.1', {

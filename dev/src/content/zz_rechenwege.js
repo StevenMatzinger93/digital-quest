@@ -7,6 +7,17 @@
   function set(id, rw) { var t = DQ.byId[id]; if (!t) throw new Error('Rechenweg: Aufgabe ' + id + ' fehlt'); t.rechenweg = rw; }
   var S = function (text, label, expr, value, unit) { return { text: text, label: label, expr: expr, value: value, unit: unit }; };
 
+  /* ---------- Kapitel 3: Gleichrichter (Auftrag 06.10.2026, G2.3) ---------- */
+  set('3.4', {
+    udc: [S('Einweg: nur jede zweite Halbwelle, Scheitel um eine Diodenspannung kleiner. Mittelwert einer Halbwelle = Û_R/π.', 'U_DC', '(10 V − 0,71 V) / π', 2.84, 'V')],
+    up: [S('Oszilloskop an R1 (Tastkopf R1.a, Erdungsclip R1.b): Scheitel = Û minus Schleusenspannung.', 'Û_R', '10 V − 0,71 V', 9.29, 'V')]
+  });
+  set('3.5', {
+    udc: [S('Brücke: beide Halbwellen, Scheitel um zwei Diodenspannungen kleiner, Mittelwert ≈ 2Û_R/π (Simulation etwas kleiner wegen der Lücken am Nulldurchgang).', 'U_DC', '≈ 2 · 8,6 V / π', 5.02, 'V')],
+    up: [S('Oszilloskop an R1 (Tastkopf R1.a, Erdungsclip R1.b): im Strompfad liegen immer zwei Dioden in Reihe.', 'Û_R', '10 V − 2 · 0,71 V', 8.58, 'V')],
+    tper: [S('Jede Halbwelle des 50-Hz-Sinus (T = 20 ms) ergibt einen Buckel – die Ausgangsspannung hat die doppelte Frequenz.', 'T_aus', '20 ms / 2', 10, 'ms')]
+  });
+
   /* ---------- Kapitel 16 ---------- */
   set('16.1', {
     u: [S('V⎓, Bereich 600 V von Hand, rote Spitze an R1.a, schwarze an R1.b. Die Quelle hat 0,05 Ω Innenwiderstand, darum knapp unter 230 V.', 'U an R1', '230 V · 10 Ω / (10 Ω + 0,05 Ω)', 229.8, 'V')],

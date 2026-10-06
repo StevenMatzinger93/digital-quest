@@ -12,7 +12,7 @@
   var gen = function (props, v, x, y) { return { id: 'G1', type: 'acsource', value: v, props: Object.assign({ freq: 50, shape: 'sine', offset: 0 }, props || {}), x: x || 160, y: y || 300, rot: 0 }; };
   var R = function (id, v, x, y, rot) { return { id: id, type: 'resistor', value: v, x: x, y: y, rot: rot || 0 }; };
   var bG1 = { id: 'G1', x: 250, y: 460, rot: 0 };
-  var SCOPE = 'Multimeter-Spitzen setzen (rot, dann schwarz) – das Oszilloskop nutzt dieselben Spitzen. Zeitbasis wählen, „Aufnahme“ (Werkbank: RUN); unter dem Bild stehen max und min.';
+  var SCOPE = 'Werkbank: gelben Tastkopf (CH1) an den ersten Anschluss ziehen, schwarzen Erdungsclip an den zweiten – nie weglassen, sonst misst der Kanal gegen den Minuspol des Generators. Schaltplan: rote und schwarze Spitze setzen. Zeitbasis wählen, RUN („Aufnahme“); unter dem Bild stehen max, min, Mittelwert und Periode.';
   var tags = function (t) { return ['werkstatt', 'messen.oszilloskop'].concat(t || []); };
   var ok = [{ name: 'Aufbau', expect: [{ noFault: true }] }];
 
@@ -79,7 +79,7 @@
     story: 'Nach der Diode bleibt vom Sinus nur die obere Hälfte übrig.',
     brief: 'Schau dir die Spannung an <b>R1</b> am Oszilloskop an. Miss den <b>Scheitelwert</b> und mit V⎓ den <b>Gleichanteil</b> (arithmetischer Mittelwert).',
     learn: 'Einweggleichrichtung: nur eine Halbwelle, Mittelwert ≈ Û / π.', take: 'Û an R1 ≈ 10 V − 0,7 V = 9,3 V, Mittelwert ≈ 2,8 V (etwas weniger als 9,3 V / π wegen der Schleusenspannung).',
-    hint: SCOPE, hint2: 'Die Diode „frisst“ die Schleusenspannung.',
+    hint: SCOPE, hint2: 'Tastkopf an R1.a, Erdungsclip an R1.b. Die Diode „frisst“ die Schleusenspannung: Û_R ≈ 10 V − 0,7 V.',
     start: hw, bench: { parts: [bG1, { id: 'V1', x: 480, y: 290, rot: 0 }, { id: 'R1', x: 740, y: 460, rot: 90 }] }, tests: ok,
     measure: [
       { id: 'up', ask: 'Scheitelwert an R1', unit: 'V', mode: 'AC', q: 'peak', a: 'R1.a', b: 'R1.b', tol: 0.03 },

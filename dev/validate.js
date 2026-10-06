@@ -34,6 +34,11 @@ DQ.tasks.filter(t => t.messOnly).forEach(t => {
   try { const ex = E.expectedAnswers(t, t.ref); t.measure.forEach(m => { if (!isFinite(ex[m.id])) err(t.id, 'Messung ' + m.id + ' ohne Sollwert'); }); } catch (e) { err(t.id, 'Sollwerte: ' + e.message); }
 });
 [...DQ.tasks, ...DQ.theories].forEach(x => { if (!seen.has(x.id)) warn(x.id, 'in keiner Kapitel-Sequenz'); });
+// Gleichrichter-Auftrag 06.10.2026 (G2.1): Oszilloskop-Messwerte (mode 'AC') nennen immer beide Anschlüsse – ohne b misst der Kanal gegen den
+// stillschweigenden Bezugspunkt (Minuspol der ersten Quelle), beim Brückengleichrichter also eine Halbwelle. Erlaubt nur mit Masse-Symbol im Aufbau.
+DQ.tasks.forEach(t => (t.measure || []).forEach(m => {
+  if (m.mode === 'AC' && m.a && !m.b && !(t.ref && t.ref.parts.some(p => p.type === 'ground'))) err(t.id, 'Oszilloskop-Messwert „' + m.id + '“ ohne zweiten Anschluss b (Schaltung hat kein Masse-Symbol)');
+}));
 
 // Theorie-Bilder (visual): Typ bekannt, Pflichtfelder je Typ, Platzhalter passen zur Anzahl
 DQ.theories.forEach(th => {

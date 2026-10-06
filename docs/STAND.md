@@ -279,6 +279,12 @@ Engine direkt (Brücke aus 3.5, `E.simulate`, 2 Perioden): R1.a–R1.b 0 → 8,5
 - Einstellungs-Box und Vorführ-Modus nennen als Rückfall den Bezugspunkt statt «Masse» (im Bestand haben alle Messwerte `b`); Mini-Schaltungen der Theorie ebenso. Wertung unverändert.
 - Nachher (`tests/gleichrichter_befund.js nachher`): Clip an R1.b → max 8,582 V, min 0, Mittelwert 5,019 V, Periode 10 ms (100 Hz), kein Hinweis; ohne Clip → «gegen G1.– (Bezugspunkt …)», Hinweis; Clip an G1.n → Mittelwert 2,509 V, Periode 20 ms, aufgabenbezogener Hinweis; Schaltplan nur rote Spitze → «schwarze Spitze nicht gesetzt», Hinweis.
 
+### G2 – Aufgaben und Texte der Gleichrichter-Stationen (umgesetzt)
+- Validator-Regel: Messwert mit `mode: 'AC'` ohne `b` ist ein Fehler, ausser die Schaltung hat ein Masse-Symbol (im Bestand hatten bereits alle 95 AC/VAC-Messwerte `a` und `b`; Einstellungs-Box und Vorführ-Modus nennen seit G1 nie «Masse» ohne Punkt).
+- 3.5 neu: Scheitelwert an R1 (Oszilloskop, Soll 8,58 V) und Periodendauer der Ausgangsspannung (10 ms, Rechenwert mit eigener Einstellungs-Zeile «Abstand zweier Buckel ablesen»); Rechenwege für udc, up (Û − 2·U_F) und tper (20 ms / 2) in `zz_rechenwege.js`, dazu 3.4 (udc, up). Hinweise 3.4, 3.5, W5 nennen Tastkopf R1.a / Erdungsclip R1.b und was ohne Clip bzw. mit Clip an G1.– zu sehen ist; Werkstatt-Hinweis `SCOPE` beschreibt den eigenen Tastkopf statt «Multimeter-Spitzen».
+- Zahlen der Hinweistexte gegen die Simulation geprüft (3.4: 9,29 / 2,84 V; 3.5: 5,02 V; 16.6: 2,84 / 3,58 / 3,56 / 9,29 / 4,55 V; 16.7: 5,02 / 2,96 / 8,58 und mit C 6,65 / 1,30 / 8,58 V; W5: 9,29 / 2,84 V) – alle stimmen.
+- `tests/tasks.js 3.4 | 3.5 | W5` grün (beide Ansichten), Validator 0 Fehler, Build neu (`dq_live.json`).
+
 ## Hosting (Stand 29.09.2026)
 GitHub-Repo: github.com/StevenMatzinger93/digital-quest (Branch `main`). Cloudflare Worker `digital-quest` (`wrangler.jsonc`: `main` = `worker/index.js`, Assets aus `web/`, D1 `digitalquest` als Binding `DB`, Worker zuerst fuer `/api/*` und `/z/*`) per GitHub verbunden – jeder Push nach `main` deployt automatisch. Secrets `ADMIN_USER`/`ADMIN_PASSWORD`.
 

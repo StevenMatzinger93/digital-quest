@@ -104,7 +104,7 @@
     learn: 'Eine Diode lässt den Strom nur in eine Richtung durch – der Einweggleichrichter.',
     take: 'Nur jede zweite Halbwelle kommt durch: der Gleichanteil ist ≈ (Û − U_F) / π – deutlich kleiner als Û.',
     hint: 'Die Anode (V1.a) an den Generator (G1.+), die Kathode (V1.k) an R1.',
-    hint2: 'Erwartet: Û an R1 ≈ 10 V − 0,7 V ≈ 9,3 V, Gleichanteil ≈ 2,8 V.',
+    hint2: 'Erwartet: Û an R1 ≈ 10 V − 0,7 V ≈ 9,3 V, Gleichanteil ≈ 2,8 V. Messen an R1: Tastkopf (bzw. rote Spitze) an R1.a, Erdungsclip (schwarze Spitze) an R1.b – ohne Clip misst das Oszilloskop gegen G1.–.',
     palette: ['diode'], need: { diode: 1 },
     start: genR(), ref: half,
     bench: { parts: [bG1, { id: 'V1', x: 480, y: 290, rot: 0 }, bR1] },
@@ -122,17 +122,20 @@
   defTask({
     id: '3.5', ch: 3, title: 'Brückengleichrichter', tags: ['bauteil.diode', 'elektro.gleichrichter', 'elektro.mittelwert'],
     story: 'Der Einweggleichrichter verschenkt die Hälfte. Mit vier Dioden geht es besser.',
-    brief: 'Baue einen <b>Brückengleichrichter</b> (Grätz-Brücke) aus vier Dioden: Durch R1 soll in <b>beiden</b> Halbwellen Strom in dieselbe Richtung fliessen (R1.a positiv). Miss den Gleichanteil an R1.',
+    brief: 'Baue einen <b>Brückengleichrichter</b> (Grätz-Brücke) aus vier Dioden: Durch R1 soll in <b>beiden</b> Halbwellen Strom in dieselbe Richtung fliessen (R1.a positiv). Miss an R1 den <b>Gleichanteil</b> (V⎓) und am Oszilloskop den <b>Scheitelwert</b> und die <b>Periodendauer</b> der Ausgangsspannung.',
     learn: 'Die Grätz-Brücke nutzt beide Halbwellen.',
-    take: 'Zweiweg-Gleichrichtung: etwa doppelter Gleichanteil wie beim Einweggleichrichter – dafür zwei Diodenspannungen Verlust.',
-    hint: 'R1.a bekommt die Kathoden von zwei Dioden (deren Anoden an G1.+ und G1.–). R1.b bekommt die Anoden der anderen zwei (deren Kathoden an G1.+ und G1.–).',
-    hint2: 'V1: G1.+ → R1.a · V2: G1.– → R1.a · V3: R1.b → G1.+ · V4: R1.b → G1.– (jeweils Anode → Kathode).',
+    take: 'Zweiweg-Gleichrichtung: beide Halbwellen nach oben geklappt, Periodendauer 10 ms (100 Hz) statt 20 ms – etwa doppelter Gleichanteil wie beim Einweggleichrichter, dafür zwei Diodenspannungen Verlust (Û_R ≈ Û − 2·U_F ≈ 8,6 V).',
+    hint: 'R1.a bekommt die Kathoden von zwei Dioden (deren Anoden an G1.+ und G1.–). R1.b bekommt die Anoden der anderen zwei (deren Kathoden an G1.+ und G1.–). Messen an R1: Tastkopf an R1.a, Erdungsclip an R1.b.',
+    hint2: 'V1: G1.+ → R1.a · V2: G1.– → R1.a · V3: R1.b → G1.+ · V4: R1.b → G1.– (jeweils Anode → Kathode). Hängt der Erdungsclip an G1.– statt an R1.b, siehst du nur eine Halbwelle – das ist die Spannung R1.a gegen den Generator, nicht die Spannung an R1.',
     palette: ['diode'], need: { diode: 4 },
     start: genR(), ref: bridge,
     bench: { parts: [bG1, { id: 'V1', x: 470, y: 250, rot: 0 }, { id: 'V2', x: 470, y: 620, rot: 0 }, { id: 'V3', x: 700, y: 250, rot: 180 }, { id: 'V4', x: 700, y: 620, rot: 180 }, { id: 'R1', x: 860, y: 440, rot: 90 }] },
     wrong: [named('nur Einweg (eine Diode)', half)],
     tests: [{ name: 'Zweiweg', expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [4.9, 5.9] }, { noFault: true }] }],
-    measure: [{ id: 'udc', ask: 'Gleichanteil an R1 (V⎓)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.04 }]
+    measure: [{ id: 'udc', ask: 'Gleichanteil an R1 (V⎓)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.04 },
+      { id: 'up', ask: 'Scheitelwert an R1 (Oszilloskop)', unit: 'V', mode: 'AC', q: 'peak', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'tper', ask: 'Periodendauer der Spannung an R1 (Oszilloskop)', unit: 'ms', value: 10, tol: 0.1 }],
+    setup: { tper: 'Oszilloskop an R1 (Tastkopf R1.a, Erdungsclip R1.b), Bildbreite 50 ms, RUN: Abstand zweier Buckel ablesen – unter der Kurve steht die Periode des gemessenen Signals. Jede Halbwelle gibt einen Buckel, darum 10 ms statt 20 ms.' }
   });
 
   /* ================= Theorie B ================= */
