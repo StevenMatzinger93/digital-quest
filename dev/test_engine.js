@@ -320,5 +320,25 @@ ok(CALC.fmt(0.1 + 0.2) === '0.3' && CALC.fmt(1e-9) === '1.0000e-9' && CALC.fmt(1
   ok(E.refPin(withGnd) === 'GND1.g' && E.buildNetlist(E.clone(withGnd)).refPin === 'GND1.g', 'Bezugspunkt mit Masse-Symbol: GND1.g');
   ok(E.refPin({ parts: [R1], wires: [] }) === null, 'Bezugspunkt ohne Quelle: null');
 }
+// Glättung mit dem Ladekondensator (Auftrag 06.10.2026, K0.2): Brücke mit 10 … 2200 µF, Einschwingen bis 10 s, kein Abbruch («Gleichungssystem nicht lösbar»
+// bei schwebendem Block aus gesperrten Dioden und geschlossenem Schalter), Ergebnis stimmt mit E.acMeasure überein
+{
+  const gen = { id: 'G1', type: 'acsource', value: 10, props: { freq: 50, shape: 'sine', offset: 0 } }, R1 = { id: 'R1', type: 'resistor', value: 1000 };
+  const d = id => ({ id, type: 'diode' });
+  const mk = uF => ({ parts: [gen, R1, d('V1'), d('V2'), d('V3'), d('V4'), { id: 'S1', type: 'switch', props: { closed: true } }, { id: 'C1', type: 'capacitor', value: uF * 1e-6 }],
+    wires: [W('G1.p', 'V1.a'), W('V1.k', 'R1.a'), W('G1.n', 'V2.a'), W('V2.k', 'R1.a'), W('R1.b', 'V3.a'), W('V3.k', 'G1.p'), W('R1.b', 'V4.a'), W('V4.k', 'G1.n'), W('R1.a', 'S1.a'), W('S1.b', 'C1.a'), W('C1.b', 'R1.b')] });
+  for (const uF of [10, 47, 100, 220, 470, 1000, 2200]) {
+    for (const settleT of [3, 8, 10]) {
+      let sm = null, err = null;
+      try { sm = E.simulate(mk(uF), { dt: 5e-5, tEnd: 0.04, settle: { t: settleT, dt: 1e-4 }, probes: [{ a: 'R1.a', b: 'R1.b' }] }).samples; } catch (e) { err = e.message; }
+      ok(!err && sm && sm.length > 700, 'Glättung ' + uF + ' µF, Einschwingen ' + settleT + ' s: kein Abbruch', err);
+      if (settleT === 10 && sm) {
+        const v = sm.map(x => x.ch0), ac = E.acMeasure(mk(uF), { a: 'R1.a', b: 'R1.b' });
+        ok(v.every(isFinite), 'Glättung ' + uF + ' µF: alle Werte endlich');
+        const tau = uF * 1e-3; if (uF <= 470) { near(Math.max(...v), ac.max, 0.01, 'Glättung ' + uF + ' µF: max wie acMeasure'); near(Math.min(...v), ac.min, 0.02, 'Glättung ' + uF + ' µF: min wie acMeasure'); }
+      }
+    }
+  }
+}
 console.log(`Engine-Tests: ${pass} ok, ${fail} Fehler`);
 process.exit(fail ? 1 : 0);

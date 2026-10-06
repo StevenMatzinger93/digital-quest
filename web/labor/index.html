@@ -854,7 +854,9 @@ body.has-exam-bar .top { padding-top: 50px; }
     for (i = 0; i < n; i++) {
       var max = i;
       for (k = i + 1; k < n; k++) if (Math.abs(A[k][i]) > Math.abs(A[max][i])) max = k;
-      if (Math.abs(A[max][i]) < 1e-18) return null;
+      // Pivot (fast) 0: bei schwebenden Gruppen (alle Dioden gesperrt, nur ein Kondensator speist die Last) loescht die Rundung den letzten Pivot
+      // (Leitwerte 1e3 gegen Gmin 1e-9). Das System ist dank Gmin mathematisch loesbar: Pivot mit Gmin regularisieren statt abzubrechen (Glaettung 06.10.2026, K0).
+      if (Math.abs(A[max][i]) < 1e-18) { if (isNaN(A[max][i])) return null; A[max][i] = (A[max][i] < 0 ? -GMIN : GMIN); }
       var t = A[i]; A[i] = A[max]; A[max] = t; var tz = z[i]; z[i] = z[max]; z[max] = tz;
       for (k = i + 1; k < n; k++) {
         var f = A[k][i] / A[i][i]; if (f === 0) continue;
