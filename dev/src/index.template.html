@@ -58,7 +58,7 @@
       <div class="scopebox">
         <canvas id="scope"></canvas>
         <div class="scope-ctl"><button class="btn small" id="btnScopeBig" title="Oszilloskop gross anzeigen" aria-label="Oszilloskop vergrössern">⤢</button><select id="tb" aria-label="Zeitbasis (ganze Bildbreite)"><option value="0.005">5 ms</option><option value="0.01">10 ms</option><option value="0.02">20 ms</option><option value="0.05">50 ms</option><option value="0.1">100 ms</option><option value="1" selected>1 s</option><option value="5">5 s</option></select><button class="btn small" id="btnScope">Aufnahme</button></div>
-        <div class="scope-ch" id="scopeCh" hidden><button class="btn small ch1 on" data-ch="1" title="Kanal 1 (gelber Tastkopf) ein/aus">CH1</button><button class="btn small ch2 on" data-ch="2" title="Kanal 2 (blauer Tastkopf, gemeinsamer Erdungsclip) ein/aus">CH2</button></div>
+        <div class="scope-ch" id="scopeCh" hidden><button class="btn small ch1 on" data-ch="1" title="Kanal 1 (gelber Tastkopf) ein/aus">CH1</button><button class="btn small ch3" data-ch="3" title="MATH = CH1 − CH2: Differenz der beiden Tastköpfe (potentialfreie Messung über einem Bauteil)">MATH</button><button class="btn small ch2 on" data-ch="2" title="Kanal 2 (blauer Tastkopf, gemeinsamer Erdungsclip) ein/aus">CH2</button></div>
         <div id="scopeInfo">Kanal 1 = Messspitzen des Multimeters (neue Messtechnik-Aufgaben: eigener Tastkopf auf der Werkbank). Aufnahme mit „Aufnahme“ bzw. RUN.</div>
         <div id="scopeWarn" class="scope-warn" role="status" hidden></div>
       </div>

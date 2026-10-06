@@ -355,11 +355,12 @@
     for (var i = 1; i < 10; i++) s += '<path d="M' + (-110 + i * 15) + ' -64V48" class="bscgrid"/>';
     for (i = 1; i < 8; i++) s += '<path d="M-110 ' + (-64 + i * 14) + 'H40" class="bscgrid"/>';
     var tr = function (pts, cls) { return pts && pts.length ? '<polyline class="' + cls + '" points="' + pts.map(function (p) { return (-110 + p[0] * 150).toFixed(1) + ',' + (48 - p[1] * 112).toFixed(1); }).join(' ') + '"/>' : ''; };
-    if (sc) { if (!sc.ch || sc.ch[1] !== false) s += tr(sc.pts, 'bsctrace'); if (!sc.ch || sc.ch[2] !== false) s += tr(sc.pts2, 'bsctrace bsctrace2'); }
+    if (sc) { if (!sc.ch || sc.ch[1] !== false) s += tr(sc.pts, 'bsctrace'); if (!sc.ch || sc.ch[2] !== false) s += tr(sc.pts2, 'bsctrace bsctrace2'); if (sc.ch && sc.ch[3]) s += tr(sc.pts3, 'bsctrace bsctrace3'); }
     var ch = (sc && sc.ch) || { 1: true, 2: true };
     s += '<text class="bscinfo" x="-105" y="44">' + esc(sc && sc.info ? sc.info : own ? 'CH1: Tastkopf anschliessen · RUN' : 'CH1 = Messspitzen · RUN') + '</text>' +
       (own ? '<g data-scope="ch1" class="bscch' + (ch[1] !== false ? ' on' : '') + '"><rect x="-110" y="54" width="30" height="12" rx="3"/><circle cx="-103" cy="60" r="2.6" class="bscled1"/><text x="-90" y="63">CH1</text></g>' +
-             '<g data-scope="ch2" class="bscch' + (ch[2] !== false ? ' on' : '') + '"><rect x="-76" y="54" width="30" height="12" rx="3"/><circle cx="-69" cy="60" r="2.6" class="bscled2"/><text x="-56" y="63">CH2</text></g>' : '') +
+             '<g data-scope="ch2" class="bscch' + (ch[2] !== false ? ' on' : '') + '"><rect x="-76" y="54" width="30" height="12" rx="3"/><circle cx="-69" cy="60" r="2.6" class="bscled2"/><text x="-56" y="63">CH2</text></g>' +
+             '<g data-scope="math" class="bscch' + (ch[3] ? ' on' : '') + '"><title>MATH = CH1 − CH2 (Differenz, potentialfrei)</title><rect x="-42" y="54" width="36" height="12" rx="3"/><circle cx="-35" cy="60" r="2.6" class="bscled3"/><text x="-19" y="63">MATH</text></g>' : '') +
       '<path d="M-110-64L-30-64L-95 48H-110Z" fill="rgba(255,255,255,.04)"/>' +
       '<circle cx="70" cy="-44" r="13" fill="#1b1b1b"/><circle cx="70" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M70-44l0-9" stroke="#222" stroke-width="2"/>' +
       '<circle cx="102" cy="-44" r="13" fill="#1b1b1b"/><circle cx="102" cy="-44" r="11" fill="url(#bMetal)" stroke="#000"/><path d="M102-44l6-6" stroke="#222" stroke-width="2"/>' +

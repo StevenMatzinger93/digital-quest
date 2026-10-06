@@ -9,14 +9,14 @@ const tag = process.argv[2] || 'vorher';
   page.on('pageerror', e => console.log('PAGEERROR', e.message));
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   const rows = [];
-  for (const [id, view, tip, gnd, name] of [['16.7', 'bench', 'R1.a', 'R1.b', 'Clip an R1.b'], ['16.7', 'bench', 'R1.a', null, 'Clip nicht angeschlossen'], ['16.7', 'bench', 'R1.a', 'G1.n', 'Clip an G1.n'], ['3.5', 'schema', 'R1.a', null, 'nur rote Spitze'], ['3.5', 'schema', 'R1.a', 'R1.b', 'rot R1.a, schwarz R1.b']]) {
+  for (const [id, view, tip, gnd, name] of [['16.7', 'bench', 'R1.a', 'R1.b', 'Clip an R1.b'], ['16.7', 'bench', 'R1.a', null, 'Clip nicht angeschlossen'], ['16.7', 'bench', 'R1.a', 'G1.n', 'Clip an G1.n'], ['16.7', 'math', 'R1.a', 'G1.n', 'MATH CH1 R1.a CH2 R1.b Clip G1.n'], ['3.5', 'schema', 'R1.a', null, 'nur rote Spitze'], ['3.5', 'schema', 'R1.a', 'R1.b', 'rot R1.a, schwarz R1.b']]) {
     await page.evaluate(i => { delete DigitalQuest.state.drafts[i]; DigitalQuest.openItem(i); }, id);
-    await page.evaluate(v => DigitalQuest.setView(v), view); await page.waitForTimeout(150);
-    await page.evaluate(([v, t, g]) => { const c = DigitalQuest.core; if (v === 'bench') { c.scopeProbes.tip = t; c.scopeProbes.gnd = g; c.scopeProbes.tip2 = null; } else { document.querySelector('[data-mm="OFF"]').click(); document.querySelector('[data-mm="V"]').click(); c.probes = { a: null, b: null }; c.clickPin(t); if (g) c.clickPin(g); } c.redraw(); }, [view, tip, gnd]);
+    await page.evaluate(v => DigitalQuest.setView(v === 'math' ? 'bench' : v), view); await page.waitForTimeout(150);
+    await page.evaluate(([v, t, g]) => { const c = DigitalQuest.core; if (v === 'bench' || v === 'math') { c.scopeProbes.tip = t; c.scopeProbes.gnd = g; c.scopeProbes.tip2 = v === 'math' ? 'R1.b' : null; } else { document.querySelector('[data-mm="OFF"]').click(); document.querySelector('[data-mm="V"]').click(); c.probes = { a: null, b: null }; c.clickPin(t); if (g) c.clickPin(g); } c.redraw(); }, [view, tip, gnd]);
     const tbs = await page.$$eval('#tb option', l => l.map(o => o.value)); const tb = tbs.find(v => Math.abs(+v - 0.05) < 1e-9) || tbs[0];
-    await page.selectOption('#tb', tb); await page.click('#btnScope'); await page.waitForTimeout(200);
+    await page.selectOption('#tb', tb); if (view === 'math') { await page.click('#btnScope'); await page.waitForTimeout(100); if (!await page.$eval('#scopeCh [data-ch="3"]', b => b.classList.contains('on'))) await page.click('#scopeCh [data-ch="3"]'); } await page.click('#btnScope'); await page.waitForTimeout(200);
     const r = await page.evaluate(() => { const info = document.getElementById('scopeInfo').textContent; const m = /max ([-\d.]+) ?(m?V) · min ([-\d.]+) ?(m?V)/.exec(info); const f = (x, u) => +x * (u === 'mV' ? 1e-3 : 1); return { info: info.replace(/\s+/g, ' ').trim(), max: m ? f(m[1], m[2]) : NaN, min: m ? f(m[3], m[4]) : NaN, warn: !!document.querySelector('#scopeWarn:not([hidden])') }; });
-    rows.push([id, view, name, r.max.toFixed(3), r.min.toFixed(3), r.warn ? 'Hinweis' : '–', r.info.slice(0, 110)]);
+    rows.push([id, view, name, r.max.toFixed(3), r.min.toFixed(3), r.warn ? 'Hinweis' : '–', view === 'math' ? r.info.slice(r.info.indexOf('MATH')) : r.info.slice(0, 110)]);
     await page.screenshot({ path: path.join(__dirname, 'shots', `gleichrichter_${tag}_${id.replace('.', '_')}_${name.replace(/[^a-z0-9]+/gi, '_')}.png`) });
   }
   console.log('Aufgabe | Ansicht | Anschluss | max | min | Warnhinweis | Text');

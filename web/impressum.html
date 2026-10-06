@@ -645,8 +645,10 @@ body.beamer-mode main{ min-height:100vh; }
 .bscgrid { stroke: rgba(57,255,20,.13); stroke-width: 1; } .bsctrace { fill: none; stroke: #ffb000; stroke-width: 2; filter: drop-shadow(0 0 3px #ffb000); }
 .bscinfo { font: 8px var(--font-code); fill: #7fd98a; pointer-events: none; }
 .bsctrace2 { stroke: #38bdf8; filter: drop-shadow(0 0 3px #38bdf8); } /* zweiter Kanal (L3) */
+.bsctrace3 { stroke: #c084fc; filter: drop-shadow(0 0 3px #c084fc); } /* MATH = CH1 − CH2 (G3) */
+.bscch.on .bscled3 { fill: #c084fc; filter: drop-shadow(0 0 2px #c084fc); }
 .bscch { cursor: pointer; } .bscch rect { fill: #2a2f36; stroke: #14181d; } .bscch text { font: 700 7px var(--font-code); fill: #9aa; text-anchor: middle; pointer-events: none; } .bscch circle { fill: #333; } .bscch.on .bscled1 { fill: #ffb000; filter: drop-shadow(0 0 2px #ffb000); } .bscch.on .bscled2 { fill: #38bdf8; filter: drop-shadow(0 0 2px #38bdf8); } .bscch.on text { fill: #e8e8e8; }
-.scope-ch { display: flex; gap: 6px; margin: 4px 0; } .scope-ch button.ch1.on { border-color: #ffb000; color: #ffb000; } .scope-ch button.ch2.on { border-color: #38bdf8; color: #38bdf8; } .scope-ch button { opacity: .55; } .scope-ch button.on { opacity: 1; }
+.scope-ch { display: flex; gap: 6px; margin: 4px 0; } .scope-ch button.ch1.on { border-color: #ffb000; color: #ffb000; } .scope-ch button.ch2.on { border-color: #38bdf8; color: #38bdf8; } .scope-ch button.ch3.on { border-color: #c084fc; color: #c084fc; } .scope-ch button { opacity: .55; } .scope-ch button.on { opacity: 1; }
 .bscrun { cursor: pointer; } .bscrun rect { fill: #2e7d32; stroke: #0f3a12; } .bscrun:hover rect { fill: #43a047; } .bscrun text { font: 700 11px var(--font-code); fill: #fff; text-anchor: middle; pointer-events: none; }
 /* Touch: groessere Klickflaechen fuer Buchsen/Anschluesse */
 @media (pointer: coarse) { .bpinhit { r: 22px; } .pinhit { r: 17px; } .bdialhit { r: 17px; } }

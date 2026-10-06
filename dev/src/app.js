@@ -332,7 +332,7 @@
         onMessage: function (m) { status([{ cls: 'info', text: m }]); }
       });
       ed = new Editor($('#board'), { core: core });
-      bench = new Bench($('#bench'), { core: core, onDial: function (m) { setMeterMode(m); }, onRange: function (r) { setMeterRange(r); }, onScope: function (k) { if (k === 'ch1' || k === 'ch2') toggleChannel(+k.slice(2)); else scope(); } });
+      bench = new Bench($('#bench'), { core: core, onDial: function (m) { setMeterMode(m); }, onRange: function (r) { setMeterRange(r); }, onScope: function (k) { if (k === 'ch1' || k === 'ch2' || k === 'math') toggleChannel(k === 'math' ? 3 : +k.slice(2)); else scope(); } });
       bindSheetHover($('#board')); bindSheetHover($('#bench'));
     }
     setView(t.sandbox ? 'bench' : preferredView(), t.sandbox);
@@ -485,6 +485,7 @@
       return '<li><b>' + esc(m.ask) + ':</b> ' + parts.join(' · ') + '</li>';
     });
     return '<details class="setup"' + (t.ch === 16 || t.ch === 'W' ? ' open' : '') + '><summary>So stellst du das Gerät ein</summary><ol>' + rows.join('') + '</ol>' +
+      (t.setupNote ? '<p class="small setup-note">' + t.setupNote + '</p>' : '') +
       '<p class="dim small">Spitzen und Tastkopf auf der Werkbank ziehen, im Schaltplan auf die Anschlüsse klicken. OL heisst nur: Bereich zu klein.</p></details>';
   }
   /* Toleranz-Hinweis je Protokollzeile: Prozent aus tol (Standard 3 %), bei Rechenwerten Einheit und Stellenzahl */
@@ -963,7 +964,7 @@
     var sig = signalPeriod(s), mean = ac && ac.ok && !ac.static && isFinite(ac.dc) ? ac.dc : (sig ? sig.mean : 0), sigT = sig && !short ? sig.T : 0;
     var kenn = ' · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') + ' · Mittelwert ' + E.fmt(mean, 'V') + (sigT ? ' · Periode ' + E.fmt(sigT, 's') + ' (' + E.fmt(1 / sigT, 'Hz') + ')' : '');
     return { samples: s, top: top, bot: bot, mx: mx, mn: mn, mean: mean, sigT: sigT, pts: pts, short: short, hint: hint, periods: periods, ref: ref ? ref.pid : null, refLabel: refLbl, a: sp.a, b: sp.b || null,
-      info: 'CH' + (chNo || 1) + ' ' + sp.a + (sp.b ? '–' + sp.b : ' gegen ' + refLbl + ' ⏚') + ' · ' + bot + '…' + top + ' V · ' + label + (short ? ' · zu klein!' : ''),
+      info: (sp.math ? 'MATH ' : 'CH' + (chNo || 1) + ' ') + sp.a + (sp.b ? '–' + sp.b : ' gegen ' + refLbl + ' ⏚') + ' · ' + bot + '…' + top + ' V · ' + label + (short ? ' · zu klein!' : ''),
       text: 'Kanal: ' + sp.a + ' gegen ' + (sp.b || refLbl + ' (Bezugspunkt – ' + (sp.own === false ? 'schwarze Spitze nicht gesetzt' : 'Erdungsclip nicht angeschlossen') + ')') + ' · ' + bot + '…' + top + ' V' + kenn + (short ? ' · ' + hint : '') };
   }
   function updateMeter(r, mn) {
@@ -1034,8 +1035,8 @@
   }
   /* L3 (05.10.2026): zweiter Kanal – blauer Tastkopf CH2 gegen denselben Erdungsclip. Kanäle einzeln ein-/ausschaltbar (Gerät und Seitenleiste),
    * beide Kurven auf gemeinsamer Skala, Kennwerte je Kanal, Phasenverschiebung CH2 gegen CH1 aus den steigenden Nulldurchgängen. */
-  var scopeCh = { 1: true, 2: true };
-  function toggleChannel(n) { scopeCh[n] = !scopeCh[n]; $$('#scopeCh [data-ch]').forEach(function (b) { b.classList.toggle('on', scopeCh[+b.dataset.ch]); }); if (lastScope) { bench.scope = Object.assign({}, bench.scope, { ch: scopeCh }); bench.render(); scope(); } else if (bench) { bench.scope = Object.assign({}, bench.scope || {}, { ch: scopeCh }); bench.render(); } log('scope_ch', { ch: n, on: scopeCh[n] }); }
+  var scopeCh = { 1: true, 2: true, 3: false };   // 3 = MATH (CH1 − CH2), standardmässig aus
+  function toggleChannel(n) { if (n === 3 && !(core && core.scopeProbes.tip && core.scopeProbes.tip2)) { status([{ cls: 'warn', text: 'MATH = CH1 − CH2 braucht beide Tastköpfe: CH1 an den einen, CH2 an den anderen Anschluss des Bauteils.' }]); return; } scopeCh[n] = !scopeCh[n]; $$('#scopeCh [data-ch]').forEach(function (b) { b.classList.toggle('on', scopeCh[+b.dataset.ch]); }); if (lastScope) { bench.scope = Object.assign({}, bench.scope, { ch: scopeCh }); bench.render(); scope(); } else if (bench) { bench.scope = Object.assign({}, bench.scope || {}, { ch: scopeCh }); bench.render(); } log('scope_ch', { ch: n, on: scopeCh[n] }); }
   function phaseShift(c1, c2, T0) { // Δt der ersten steigenden Nulldurchgänge (um den Gleichanteil), als Zeit und Winkel
     if (!c1 || !c2 || !T0) return null;
     function cross(s) { var dc = 0; s.forEach(function (x) { dc += x.ch0; }); dc /= s.length || 1; for (var k = 1; k < s.length; k++) if (s[k - 1].ch0 < dc && s[k].ch0 >= dc) return s[k].t - (s[k].ch0 - dc) / ((s[k].ch0 - s[k - 1].ch0) || 1e-12) * (s[k].t - s[k - 1].t); return null; }
@@ -1055,26 +1056,27 @@
       $('#scopeInfo').textContent = sp.own ? 'Tastkopf anschliessen: den gelben Tastkopf (CH1) an den Messpunkt ziehen, den schwarzen Erdungsclip an den zweiten Anschluss des Bauteils – dann RUN.' : 'Setze zuerst die rote Messspitze (Multimeter V).';
       bench.scope = { pts: [], info: sp.own ? 'Tastkopf anschliessen' : 'Zuerst rote Messspitze setzen (V)' }; scopeWarn(null, sp); bench.render(); return;
     }
-    var c, c2 = null, label = $('#tb').selectedOptions[0].textContent;
+    var c, c2 = null, c3 = null, label = $('#tb').selectedOptions[0].textContent;
     try {
-      c = scopeCurve(ed.layout, sp, T, label);
-      if (sp.own && sp.a2 && scopeCh[2]) { // CH2 auf derselben Skala wie CH1 (gemeinsame Masse)
-        c2 = scopeCurve(ed.layout, { a: sp.a2, b: sp.b }, T, label, 2);
-        var top = Math.max(c.top, c2.top), bot = Math.min(c.bot, c2.bot);
-        if (top !== c.top || bot !== c.bot) c = scopeCurve(ed.layout, sp, T, label, 1, { top: top, bot: bot });
-        if (top !== c2.top || bot !== c2.bot) c2 = scopeCurve(ed.layout, { a: sp.a2, b: sp.b }, T, label, 2, { top: top, bot: bot });
-      }
+      // CH1, CH2 (gegen denselben Erdungsclip) und MATH = CH1 − CH2 (= Tastkopf 1 gegen Tastkopf 2, potentialfrei; G3) auf gemeinsamer Skala
+      var defs = [[sp, 1]]; if (sp.own && sp.a2 && scopeCh[2]) defs.push([{ a: sp.a2, b: sp.b }, 2]); if (sp.own && sp.a2 && scopeCh[3]) defs.push([{ a: sp.a, b: sp.a2, math: true }, 3]);
+      var cs = defs.map(function (d) { return scopeCurve(ed.layout, d[0], T, label, d[1]); });
+      var top = Math.max.apply(null, cs.map(function (x) { return x.top; })), bot = Math.min.apply(null, cs.map(function (x) { return x.bot; }));
+      cs = cs.map(function (x, k) { return x.top === top && x.bot === bot ? x : scopeCurve(ed.layout, defs[k][0], T, label, defs[k][1], { top: top, bot: bot }); });
+      c = cs[0]; cs.forEach(function (x, k) { if (defs[k][1] === 2) c2 = x; if (defs[k][1] === 3) c3 = x; });
     } catch (e) { $('#scopeInfo').textContent = e.message; return; }
     if (scopeCh[1]) drawTrace(ctx, c, T, w, h, '#ffb000');
     if (c2) drawTrace(ctx, c2, T, w, h, '#38bdf8');
+    if (c3) drawTrace(ctx, c3, T, w, h, '#c084fc');
     var fr0 = sourceFreqs(ed.layout), ph = c2 ? phaseShift(c, c2, fr0.length ? 1 / Math.min.apply(null, fr0) : 0) : null;
-    lastScope = { c: c, c2: c2, phase: ph, T: T, layout: ed.layout, label: label, sp: sp };
-    $('#scopeInfo').textContent = (c2 ? 'CH1 ' : '') + c.text + (c2 ? ' · CH2 ' + c2.text.replace(/^Kanal: /, '').replace(/ \(Bezugspunkt[^)]*\)/, '') + (ph ? ' · Phase CH2→CH1 ' + E.fmt(ph.dt, 's') + ' (' + ph.deg.toFixed(0) + '°)' : '') : '');
+    lastScope = { c: c, c2: c2, c3: c3, phase: ph, T: T, layout: ed.layout, label: label, sp: sp };
+    $('#scopeInfo').textContent = (c2 || c3 ? 'CH1 ' : '') + c.text + (c2 ? ' · CH2 ' + c2.text.replace(/^Kanal: /, '').replace(/ \(Bezugspunkt[^)]*\)/, '') + (ph ? ' · Phase CH2→CH1 ' + E.fmt(ph.dt, 's') + ' (' + ph.deg.toFixed(0) + '°)' : '') : '') +
+      (c3 ? ' · MATH = CH1 − CH2 (' + c3.a + ' gegen ' + c3.b + ', potentialfrei)' + ' ' + c3.text.replace(/^Kanal: [^·]*/, '') : '');
     scopeWarn(c, sp);
     $('#scopeCh').hidden = !sp.own;
-    bench.scope = { pts: c.pts, pts2: c2 ? c2.pts : null, info: c.info + (c2 ? ' · CH2 ' + c2.bot + '…' + c2.top + ' V' : ''), ch: scopeCh };
+    bench.scope = { pts: c.pts, pts2: c2 ? c2.pts : null, pts3: c3 ? c3.pts : null, info: c.info + (c2 ? ' · CH2 ' + c2.bot + '…' + c2.top + ' V' : '') + (c3 ? ' · MATH' : ''), ch: scopeCh, math: !!(sp.own && sp.a2) };
     bench.render();
-    log('scope', { id: current.task && current.task.id, T: T, ch2: !!c2 });
+    log('scope', { id: current.task && current.task.id, T: T, ch2: !!c2, math: !!c3 });
   }
 
   /* G1: Warnhinweis unter der Kurve und Markierung ⏚ des Bezugspunkts in Werkbank und Schaltplan, solange ohne Erdungsclip gemessen wird.
@@ -1090,7 +1092,7 @@
     }
     if (c && !quiet && current.task && (current.task.measure || []).length) {
       var m = current.task.measure.filter(function (x) { return x.mode === 'AC' && x.a === c.a && x.b && x.b !== c.b; })[0];
-      if (m) msgs.push('Die Aufgabe misst «' + m.ask + '» zwischen ' + m.a + ' und ' + m.b + ': ' + (sp.own ? 'Erdungsclip' : 'schwarze Spitze') + ' an ' + m.b + '.');
+      if (m) msgs.push('Die Aufgabe misst «' + m.ask + '» zwischen ' + m.a + ' und ' + m.b + ': ' + (sp.own ? 'Erdungsclip' : 'schwarze Spitze') + ' an ' + m.b + '.' + (sp.own ? ' Oder potentialfrei: CH2 an ' + m.b + ' und am Gerät MATH einschalten (MATH = CH1 − CH2).' : ''));
     }
     if (box) { box.hidden = !msgs.length; box.textContent = msgs.join(' '); }
     if (bench && bench.refMark !== mark) { bench.refMark = mark; bench.render(); }
@@ -1116,6 +1118,7 @@
       var c2 = sc.c2, p1 = c2 ? 'CH1 ' : '';
       var stat = [[p1 + 'Û+ (max)', E.fmt(c.mx, 'V')], [p1 + 'Û− (min)', E.fmt(c.mn, 'V')], [p1 + 'Uss', E.fmt(c.mx - c.mn, 'V')]];
       if (c2) stat.push(['CH2 Û+ (max)', E.fmt(c2.mx, 'V')], ['CH2 Û− (min)', E.fmt(c2.mn, 'V')], ['CH2 Uss', E.fmt(c2.mx - c2.mn, 'V')]);
+      var c3 = sc.c3; if (c3) stat.push(['MATH = CH1 − CH2', c3.a + ' gegen ' + c3.b], ['MATH Û+ (max)', E.fmt(c3.mx, 'V')], ['MATH Û− (min)', E.fmt(c3.mn, 'V')], ['MATH Mittelwert', E.fmt(c3.mean || 0, 'V')], ['MATH Signal T / f', c3.sigT ? E.fmt(c3.sigT, 's') + ' / ' + E.fmt(1 / c3.sigT, 'Hz') : '–']);
       if (sc.phase) stat.push(['Phase CH2→CH1', E.fmt(sc.phase.dt, 's') + ' / ' + sc.phase.deg.toFixed(0) + '°']);
       stat.push([p1 + 'Mittelwert', E.fmt(c.mean || 0, 'V')]); if (c.sigT) stat.push([p1 + 'Signal T / f', E.fmt(c.sigT, 's') + ' / ' + E.fmt(1 / c.sigT, 'Hz')]);
       if (c.ref) stat.push(['Bezugspunkt', c.refLabel + ' (kein Erdungsclip)']);
@@ -1133,7 +1136,7 @@
       for (var i = 1; i < 10; i++) { ctx.beginPath(); ctx.moveTo(w * i / 10, 0); ctx.lineTo(w * i / 10, h); ctx.stroke(); }
       for (i = 1; i < 8; i++) { ctx.beginPath(); ctx.moveTo(0, h * i / 8); ctx.lineTo(w, h * i / 8); ctx.stroke(); }
       ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = (12 * dpr) + 'px ' + 'monospace'; ctx.fillText(c.top + ' V', 6 * dpr, 14 * dpr); ctx.fillText(c.bot + ' V', 6 * dpr, h - 6 * dpr);
-      drawTrace(ctx, c, sc.T, w, h, '#ffb000'); if (c2) drawTrace(ctx, c2, sc.T, w, h, '#38bdf8');
+      drawTrace(ctx, c, sc.T, w, h, '#ffb000'); if (c2) drawTrace(ctx, c2, sc.T, w, h, '#38bdf8'); if (c3) drawTrace(ctx, c3, sc.T, w, h, '#c084fc');
     }
     el.hidden = false; document.body.classList.add('sb-open');
     var close = function () { el.hidden = true; document.body.classList.remove('sb-open'); document.removeEventListener('keydown', esc1); };

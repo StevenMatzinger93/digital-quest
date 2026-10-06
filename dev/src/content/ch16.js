@@ -398,6 +398,7 @@
     story: 'Erst die nackte Brücke, dann mit Ladekondensator: Die Zahlen auf den Geräten verändern sich drastisch.',
     brief: 'Miss an R1 <b>ohne</b> Kondensator (S1 offen) und <b>mit</b> Kondensator (S1 geschlossen): jeweils <b>V⎓</b> (Gleichanteil), <b>V~ TRMS</b> (Restwelligkeit) und den <b>Scheitelwert</b> am Oszilloskop (Zeitbasis 50 ms). Bereich 20 V.',
     learn: 'Der Ladekondensator hebt den Gleichanteil Richtung Scheitelwert und drückt die Restwelligkeit.',
+    setupNote: '<b>Alternative wie am echten Labortisch – potentialfrei messen:</b> Sind Generator und Oszilloskop beide geerdet, darf der Erdungsclip nicht an R1.b (das würde eine Diode kurzschliessen). Dann: Erdungsclip an G1.–, CH1 an R1.a, CH2 an R1.b und am Gerät <b>MATH</b> einschalten. CH1 und CH2 zeigen je eine Halbwelle, MATH = CH1 − CH2 zeigt die Spannung an R1 – die Zweiweg-Kurve mit 10 ms Periode.',
     take: 'Ohne C: U_DC ≈ 5,0 V, U_AC ≈ 3,0 V, Û ≈ 8,6 V. Mit C (10 µF an 1 kΩ, τ = 10 ms): U_DC ≈ 6,7 V, U_AC nur noch ≈ 1,3 V – ein grösserer Kondensator würde den Gleichanteil weiter Richtung Û heben.',
     hint: 'S1 auf der Werkbank anklicken. Tastkopf an R1.a, Erdungsclip an R1.b.',
     hint2: 'Mit Kondensator sieht das Oszilloskop eine Sägezahn-Welligkeit oben am Scheitelwert – das ist die Restwelligkeit, die V~ TRMS misst.',
