@@ -3,6 +3,7 @@
   'use strict';
   root.DQ.manual = [
     { id: 'bedienung', title: 'Bedienung', html:
+      '<p class="dim">Du suchst einen Menüpunkt? Die Seite <b>Wegweiser</b> (erste Seite dieses Handbuchs, Fragezeichen in der Kopfzeile) erklärt jeden Punkt in einem Satz.</p>' +
       '<p><b>Bauteil hinzufügen:</b> Klick in der Palette. <b>Verschieben:</b> ziehen. <b>Drehen:</b> <kbd>R</kbd>. <b>Löschen:</b> <kbd>Entf</kbd>.</p>' +
       '<p><b>Leitung ziehen:</b> Anschluss anklicken, dann den Ziel-Anschluss. Leitung anklicken und <kbd>Entf</kbd> entfernt sie.</p>' +
       '<p><b>Schalter</b> schaltest du per Klick, <b>Taster</b> sind nur gedrückt, solange du sie hältst.</p>' +

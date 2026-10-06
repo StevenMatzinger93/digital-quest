@@ -596,6 +596,24 @@ body.beamer-mode main{ min-height:100vh; }
 .bm-tbl .av-cell .av.mini{ width:32px; height:32px; }
 @media (max-width:760px){ .bp .bm-av.full.dance{ width:90px; height:108px; } .bp1 .bm-av.full.dance{ width:110px; height:132px; } }
 
+/* ---------- Wegweiser (Paket W, 06.10.2026): «Wo finde ich was?» ---------- */
+.ww-tools{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:0 0 14px; } .ww-tools .grow{ display:block; min-width:220px; } .ww-tools .inp{ width:100%; }
+.sr-only{ position:absolute; left:-9999px; }
+.ww-sect h2{ margin:22px 0 8px; } .ww-cards{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px; }
+.ww-card{ display:grid; grid-template-columns:40px 1fr auto; gap:10px; align-items:start; padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:var(--panel); }
+.ww-card.locked{ opacity:.7; } .ww-ic{ font-size:26px; line-height:1.2; text-align:center; } .ww-body b{ font-size:15px; } .ww-body p{ margin:4px 0 0; font-size:13.5px; color:var(--text); }
+.ww-body .ww-wann{ color:var(--dim); } .ww-wann span{ font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--term); }
+.ww-act{ display:flex; flex-direction:column; gap:6px; align-items:flex-end; } .ww-lock{ font-size:12px; color:var(--dim); white-space:nowrap; }
+.ww-wege ul{ margin:0; padding-left:20px; columns:2; column-gap:28px; } .ww-wege li{ margin:4px 0; break-inside:avoid; }
+.ww-quick{ margin-top:14px; } .man-ww{ background:rgba(255,176,0,.08); border:1px solid rgba(255,176,0,.35); border-radius:10px; padding:10px 14px; }
+.ww-foot{ display:none; }
+@media (max-width:640px){ .ww-cards{ grid-template-columns:1fr; } .ww-card{ grid-template-columns:34px 1fr; } .ww-act{ grid-column:1 / -1; flex-direction:row; align-items:center; } .ww-wege ul{ columns:1; } .ww-tools .btn{ flex:1 1 auto; } }
+@media print{
+  .ww-page .ww-tools, .ww-page .crumbs, .topbar, .foot, .hall, .spsq-rp-btn, #dqTour, #dqTourAsk{ display:none !important; }
+  .ww-page{ max-width:none; margin:0; padding:0; color:#000; } .ww-card{ border:1px solid #999; background:#fff; break-inside:avoid; color:#000; } .ww-body p, .ww-body .ww-wann{ color:#000; }
+  .ww-cards{ grid-template-columns:1fr 1fr; gap:8px; } .ww-act{ display:none; } .ww-foot{ display:block; color:#333; margin-top:12px; } .ww-sect h2 .tag{ display:none; } .ww-wege{ border:1px solid #999; }
+}
+
 /* ==== Mini-Schaltung im Portal: Variablen und Stile aus dem Spiel (style.css, CIRCUIT-Blöcke) ==== */
 :root { --sym: #d8d8d8; --wire: #d9a441; --accent-lead: #ffb000; --accent-lead-dim: #8a6000; --accent-green: #39ff14; --accent-cyan: #1ec8e0; --accent-red: #ff3333; --accent-orange: #ff8c00; --bg-editor: #0c0d0a; --bg-secondary: #0d1218; --bg-tertiary: #111821; --text-dim: #8b98a6; --text-faint: #5a6774; --font-code: var(--mono); --font-ui: var(--font); }
 

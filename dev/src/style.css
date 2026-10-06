@@ -585,6 +585,13 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .acct-chip span { overflow: hidden; text-overflow: ellipsis; }
 .acct-chip svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .acct-chip.on { border-color: var(--accent-green); color: var(--accent-green); }
+/* Wegweiser (Paket W): ?-Link in der Kopfzeile, Handbuch-Seite mit Karten */
+.ww-link { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); color: var(--text-dim); font-weight: 800; text-decoration: none; flex: none; }
+.ww-link:hover, .ww-link:focus-visible { border-color: var(--accent-lead); color: var(--accent-lead); }
+.manual .ww-tools { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 14px; } .manual .ww-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.manual .ww-card { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-tertiary); }
+.manual .ww-ic { font-size: 24px; text-align: center; } .manual .ww-body p { margin: 3px 0 0; font-size: 13px; } .manual .ww-wann { color: var(--text-dim); } .manual .ww-wann span { font-family: var(--font-code); font-size: 11px; text-transform: uppercase; color: var(--accent-lead); }
+@media (max-width: 640px) { .manual .ww-cards { grid-template-columns: 1fr; } .manual .ww-card { grid-template-columns: 30px 1fr; } .manual .ww-act { grid-column: 1 / -1; } }
 .acct-chip .acct-av { display: inline-flex; width: 20px; height: 20px; margin: -3px 0; border-radius: 50%; overflow: hidden; flex: none; } .acct-chip .acct-av svg { width: 100%; height: 100%; stroke: none; }
 .live-av { display: inline-block; width: 96px; height: 115px; margin: 4px auto 2px; } .live-av svg { width: 100%; height: 100%; } .pod.p1 .live-av { width: 120px; height: 144px; }
 @media (max-width: 640px) { .live-av { width: 64px; height: 77px; } .pod.p1 .live-av { width: 80px; height: 96px; } }

@@ -171,6 +171,19 @@ DQ.theories.forEach(th => {
   if (hits.length) err('Umlaute', hits.length + ' Umschreibung(en) statt Umlaut in sichtbaren Texten: ' + hits.slice(0, 8).join('; ') + (hits.length > 8 ? ' …' : ''));
 })();
 
+// Wegweiser (Auftrag 06.10.2026, W1): Menüpunkte des Portals (renderTop und P.nav.push) und data-go-Knöpfe der Labor-Kopfzeile brauchen einen Eintrag in src/wegweiser_data.js
+{
+  const WW = require('./src/wegweiser_data.js');
+  const pdir = path.join(__dirname, 'portal');
+  const psrc = fs.readdirSync(pdir).filter(f => /^portal.*\.js$/.test(f)).map(f => fs.readFileSync(path.join(pdir, f), 'utf8')).join('\n');
+  const hrefs = new Set([...psrc.matchAll(/nav\.push\(\{\s*href:\s*'([^']+)'/g)].map(m => m[1]).concat([...psrc.matchAll(/nav\.push\(\['([^']+)'/g)].map(m => m[1])));
+  hrefs.forEach(h => { if (!WW.items.some(i => i.bereich === 'portal' && i.href === h)) err('Wegweiser', 'Menüpunkt ' + h + ' ohne Eintrag in wegweiser_data.js'); });
+  const tpl = fs.readFileSync(path.join(__dirname, 'src/index.template.html'), 'utf8');
+  [...tpl.matchAll(/<nav>([\s\S]*?)<\/nav>/g)].forEach(n => [...n[1].matchAll(/data-go="([a-z]+)"/g)].forEach(m => { if (!WW.items.some(i => i.bereich === 'labor' && i.go === m[1])) err('Wegweiser', 'Labor-Knopf data-go=' + m[1] + ' ohne Eintrag in wegweiser_data.js'); }));
+  WW.items.forEach(i => { if (!i.titel || !i.text || !i.wann || !WW.BEREICH[i.bereich]) err('Wegweiser', 'Eintrag ' + i.id + ' unvollständig'); if (/ß|ae|oe|ue/.test(i.text + i.wann) && /[^a-z](ae|oe|ue)[a-z]/.test(' ' + (i.text + ' ' + i.wann).toLowerCase())) warn('Wegweiser', 'Eintrag ' + i.id + ': Umlaute prüfen'); });
+  const ids = new Set(); WW.items.forEach(i => { if (ids.has(i.id)) err('Wegweiser', 'doppelte id ' + i.id); ids.add(i.id); });
+}
+
 warnings.forEach(w => console.log('Warnung', w));
 errors.forEach(e => console.log('FEHLER ', e));
 
