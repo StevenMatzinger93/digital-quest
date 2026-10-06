@@ -74,7 +74,7 @@
       c.strokeStyle = '#ffb000'; c.lineWidth = 2 * (root.devicePixelRatio || 1); c.beginPath();
       tr.forEach(function (p, k) { var x = (p[0] - t0) / span * w, y = hh - (p[1] - lo) / (hi - lo) * hh; if (k) c.lineTo(x, y); else c.moveTo(x, y); }); c.stroke();
       c.fillStyle = '#8a8a8a'; c.font = (11 * (root.devicePixelRatio || 1)) + 'px monospace';
-      c.fillText((spec.scope.label || 'U') + ' · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') + ' · ' + E.fmt(span, 's') + ' Bildbreite', 6, 14 * (root.devicePixelRatio || 1));
+      c.fillText((spec.scope.label || 'U') + (spec.scope.b ? '' : ' (gegen ' + (live.net && live.net.refPin || 'Bezugspunkt') + ')') + ' · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') + ' · ' + E.fmt(span, 's') + ' Bildbreite', 6, 14 * (root.devicePixelRatio || 1));
     }
     function tick(dt) {
       if (!live.net) return;

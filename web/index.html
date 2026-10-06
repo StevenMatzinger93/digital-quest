@@ -883,11 +883,11 @@ body.beamer-mode main{ min-height:100vh; }
       [w.from, w.to].forEach(function (pid) { if (parent[pid] === undefined) throw new Error('Unbekannter Anschluss: ' + pid); });
       union(w.from, w.to);
     });
-    var groundRoots = {}, autoGround = false;
-    parts.forEach(function (p) { if (p.type === 'ground') groundRoots[find(p.id + '.g')] = true; });
+    var groundRoots = {}, autoGround = false, refPin = null; // refPin: der Anschluss, der als Bezugspunkt 0 V dient (Masse-Symbol oder Minuspol der ersten Quelle)
+    parts.forEach(function (p) { if (p.type === 'ground') { groundRoots[find(p.id + '.g')] = true; if (!refPin) refPin = p.id + '.g'; } });
     if (!Object.keys(groundRoots).length) { // ohne Masse-Symbol: Minuspol der ersten Quelle ist Bezugspunkt 0 V
       var src = parts.filter(function (p) { return p.type === 'battery' || p.type === 'acsource'; })[0];
-      if (src) { groundRoots[find(src.id + '.n')] = true; autoGround = true; }
+      if (src) { groundRoots[find(src.id + '.n')] = true; autoGround = true; refPin = src.id + '.n'; }
     }
     var names = {}, count = 0, pinNode = {};
     Object.keys(parent).forEach(function (pid) {
@@ -899,7 +899,7 @@ body.beamer-mode main{ min-height:100vh; }
     var nodes = [];
     Object.keys(names).forEach(function (r) { if (names[r] !== '0') nodes.push(names[r]); });
     nodes.sort(function (a, b) { return +a.slice(1) - +b.slice(1); });
-    return { parts: parts, byId: byId, nodes: nodes, pinNode: pinNode, hasGround: Object.keys(groundRoots).length > 0 && !autoGround, autoGround: autoGround };
+    return { parts: parts, byId: byId, nodes: nodes, pinNode: pinNode, hasGround: Object.keys(groundRoots).length > 0 && !autoGround, autoGround: autoGround, refPin: refPin };
   }
 
   /* ---------- Lineares Gleichungssystem (Gauss mit Pivotsuche) ---------- */
@@ -1504,6 +1504,8 @@ body.beamer-mode main{ min-height:100vh; }
     wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, DMM_MANUAL: DMM_MANUAL, rangeLabel: rangeLabel, acMeasure: acMeasure,
     buildNetlist: buildNetlist, solve: solve, step: step, newState: newState,
     measure: measure, simulate: simulate, runTask: runTask, fmt: fmt, clone: clone,
+    /* Bezugspunkt eines Aufbaus als Anschlussname ('GND1.g' bzw. 'G1.n'); null ohne Quelle und Masse (Gleichrichter-Auftrag 06.10.2026, G1) */
+    refPin: function (layout) { try { return buildNetlist(clone(layout)).refPin; } catch (e) { return null; } },
     analyze: function (layout, state) { var net = buildNetlist(layout); return step(net, state || newState(), {}); }
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -1907,7 +1909,7 @@ body.beamer-mode main{ min-height:100vh; }
   function Editor(svg, opts) {
     this.svg = svg; this.opts = opts || {};
     this.core = this.opts.core || new Circuit(this.opts); // Zustand + Bedienlogik (circuit-ui.js); geteilt, falls uebergeben
-    this.sim = null; this.showVolt = false; this.mouse = [0, 0];
+    this.sim = null; this.refMark = null; this.showVolt = false; this.mouse = [0, 0];
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     this.view = [0, 0, W, H];
     this.core.attach(this);
@@ -2070,6 +2072,7 @@ body.beamer-mode main{ min-height:100vh; }
         h.push('<g data-pin="' + pid + '"><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (11 * hit).toFixed(1) + '"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');
         if (self.showVolt && res && pinNode && pinNode[pid] !== undefined && pin !== 'g')
           h.push('<text class="vlabel" x="' + (xy[0] + 6) + '" y="' + (xy[1] - 6) + '">' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + '</text>');
+        if (self.refMark === pid) h.push('<text class="refmark" x="' + (xy[0] - 8) + '" y="' + (xy[1] + 18) + '">⏚ 0 V<title>Bezugspunkt 0 V – ohne schwarze Spitze misst das Oszilloskop hiergegen</title></text>'); // G1
       });
     });
     // Leitung im Entstehen
@@ -2537,7 +2540,7 @@ body.beamer-mode main{ min-height:100vh; }
     this.svg = svg; this.opts = opts || {}; this.ns = 'w' + (++benchSeq);
     this.core = this.opts.core || new Circuit(this.opts);
     this.sim = null; this.showVolt = false; this.mouse = [0, 0]; this.dirty = true;
-    this.meter = { mode: 'OFF', text: 'OFF' }; this.scope = null; this.showFlow = false; this._anim = 0; this._phase = 0;
+    this.meter = { mode: 'OFF', text: 'OFF' }; this.scope = null; this.refMark = null; this.showFlow = false; this._anim = 0; this._phase = 0;
     this.dragUX = false; this._grab = null; this._snap = null; // Ziehen der Messspitzen (measureUX 'drag')
     this.view = [0, 0, W, W * 0.62]; // gleiches Seitenverhaeltnis wie das Schema (1000 × 620), damit die Flaeche gleich gross bleibt
     svg.setAttribute('viewBox', this.view.join(' '));
@@ -2768,9 +2771,10 @@ body.beamer-mode main{ min-height:100vh; }
     L.parts.forEach(function (p) {
       Object.keys(GEO[p.type]).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = self.pinPos(p, pin), v = nodeV(pid), col = wcol(pid);
-        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (14 * HIT).toFixed(1) + '"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen Masse' : '') + '</title></circle>' +
+        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (14 * HIT).toFixed(1) + '"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen ' + ((self.sim && self.sim.ref) || 'den Bezugspunkt') : '') + (self.refMark === pid ? ' – Bezugspunkt 0 V (Oszilloskop ohne Erdungsclip misst hiergegen)' : '') + '</title></circle>' +
           '<circle class="bpin' + (core.wireStart === pid ? ' active' : '') + (used[pid] ? ' used' : '') + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="12"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
         if (col && pin !== 'g' && used[pid]) h.push('<g transform="translate(' + (xy[0] + 12) + ' ' + (xy[1] - 14) + ') scale(1 ' + (1 / K) + ')"><text class="bvlabel">' + E.fmt(v, 'V') + '</text></g>');
+        if (self.refMark === pid) h.push('<g class="brefmark" transform="translate(' + (xy[0] - 14) + ' ' + (xy[1] + 22) + ') scale(1 ' + (1 / K) + ')" pointer-events="none"><text>⏚ 0 V</text></g>'); // G1: Bezugspunkt sichtbar, solange ohne Erdungsclip gemessen wird
       });
     });
     // Kabel im Entstehen
@@ -2916,7 +2920,7 @@ body.beamer-mode main{ min-height:100vh; }
       c.strokeStyle = '#ffb000'; c.lineWidth = 2 * (root.devicePixelRatio || 1); c.beginPath();
       tr.forEach(function (p, k) { var x = (p[0] - t0) / span * w, y = hh - (p[1] - lo) / (hi - lo) * hh; if (k) c.lineTo(x, y); else c.moveTo(x, y); }); c.stroke();
       c.fillStyle = '#8a8a8a'; c.font = (11 * (root.devicePixelRatio || 1)) + 'px monospace';
-      c.fillText((spec.scope.label || 'U') + ' · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') + ' · ' + E.fmt(span, 's') + ' Bildbreite', 6, 14 * (root.devicePixelRatio || 1));
+      c.fillText((spec.scope.label || 'U') + (spec.scope.b ? '' : ' (gegen ' + (live.net && live.net.refPin || 'Bezugspunkt') + ')') + ' · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') + ' · ' + E.fmt(span, 's') + ' Bildbreite', 6, 14 * (root.devicePixelRatio || 1));
     }
     function tick(dt) {
       if (!live.net) return;

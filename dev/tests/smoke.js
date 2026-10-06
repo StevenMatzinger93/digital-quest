@@ -585,7 +585,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     // Oszilloskop ohne Tastkopf: konkreter Hinweis; Altbestand (1.5) auf der Werkbank: Spitzen ziehbar, keine Bereichstasten
     await tp.evaluate(() => DigitalQuest.openItem('1.5')); await tp.evaluate(() => DigitalQuest.setView('bench')); await tp.waitForTimeout(150);
     if (!await tp.$('#bench [data-probe="a"]') || await tp.$('#bench [data-range]') || !await tp.$eval('#mmRange', e => e.hidden)) errors.push('Phase4: Altbestand – Spitzen nicht ziehbar oder Bereichstasten sichtbar');
-    await tp.click('#btnScope'); if (!/Erdungsclip an Masse/.test(await tp.textContent('#scopeInfo'))) errors.push('Phase4: Tastkopf-Hinweis nicht konkret: ' + await tp.textContent('#scopeInfo'));
+    await tp.click('#btnScope'); if (!/Erdungsclip an den zweiten Anschluss/.test(await tp.textContent('#scopeInfo'))) errors.push('Phase4: Tastkopf-Hinweis nicht konkret: ' + await tp.textContent('#scopeInfo'));
     await tp.screenshot({ path: shots + '/29_einstellungsbox.png' });
     await tp.close();
   }

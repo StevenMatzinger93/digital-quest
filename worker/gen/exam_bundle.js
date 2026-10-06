@@ -98,11 +98,11 @@
       [w.from, w.to].forEach(function (pid) { if (parent[pid] === undefined) throw new Error('Unbekannter Anschluss: ' + pid); });
       union(w.from, w.to);
     });
-    var groundRoots = {}, autoGround = false;
-    parts.forEach(function (p) { if (p.type === 'ground') groundRoots[find(p.id + '.g')] = true; });
+    var groundRoots = {}, autoGround = false, refPin = null; // refPin: der Anschluss, der als Bezugspunkt 0 V dient (Masse-Symbol oder Minuspol der ersten Quelle)
+    parts.forEach(function (p) { if (p.type === 'ground') { groundRoots[find(p.id + '.g')] = true; if (!refPin) refPin = p.id + '.g'; } });
     if (!Object.keys(groundRoots).length) { // ohne Masse-Symbol: Minuspol der ersten Quelle ist Bezugspunkt 0 V
       var src = parts.filter(function (p) { return p.type === 'battery' || p.type === 'acsource'; })[0];
-      if (src) { groundRoots[find(src.id + '.n')] = true; autoGround = true; }
+      if (src) { groundRoots[find(src.id + '.n')] = true; autoGround = true; refPin = src.id + '.n'; }
     }
     var names = {}, count = 0, pinNode = {};
     Object.keys(parent).forEach(function (pid) {
@@ -114,7 +114,7 @@
     var nodes = [];
     Object.keys(names).forEach(function (r) { if (names[r] !== '0') nodes.push(names[r]); });
     nodes.sort(function (a, b) { return +a.slice(1) - +b.slice(1); });
-    return { parts: parts, byId: byId, nodes: nodes, pinNode: pinNode, hasGround: Object.keys(groundRoots).length > 0 && !autoGround, autoGround: autoGround };
+    return { parts: parts, byId: byId, nodes: nodes, pinNode: pinNode, hasGround: Object.keys(groundRoots).length > 0 && !autoGround, autoGround: autoGround, refPin: refPin };
   }
 
   /* ---------- Lineares Gleichungssystem (Gauss mit Pivotsuche) ---------- */
@@ -719,6 +719,8 @@
     wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, DMM_MANUAL: DMM_MANUAL, rangeLabel: rangeLabel, acMeasure: acMeasure,
     buildNetlist: buildNetlist, solve: solve, step: step, newState: newState,
     measure: measure, simulate: simulate, runTask: runTask, fmt: fmt, clone: clone,
+    /* Bezugspunkt eines Aufbaus als Anschlussname ('GND1.g' bzw. 'G1.n'); null ohne Quelle und Masse (Gleichrichter-Auftrag 06.10.2026, G1) */
+    refPin: function (layout) { try { return buildNetlist(clone(layout)).refPin; } catch (e) { return null; } },
     analyze: function (layout, state) { var net = buildNetlist(layout); return step(net, state || newState(), {}); }
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

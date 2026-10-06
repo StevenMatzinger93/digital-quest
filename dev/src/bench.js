@@ -442,7 +442,7 @@
     this.svg = svg; this.opts = opts || {}; this.ns = 'w' + (++benchSeq);
     this.core = this.opts.core || new Circuit(this.opts);
     this.sim = null; this.showVolt = false; this.mouse = [0, 0]; this.dirty = true;
-    this.meter = { mode: 'OFF', text: 'OFF' }; this.scope = null; this.showFlow = false; this._anim = 0; this._phase = 0;
+    this.meter = { mode: 'OFF', text: 'OFF' }; this.scope = null; this.refMark = null; this.showFlow = false; this._anim = 0; this._phase = 0;
     this.dragUX = false; this._grab = null; this._snap = null; // Ziehen der Messspitzen (measureUX 'drag')
     this.view = [0, 0, W, W * 0.62]; // gleiches Seitenverhaeltnis wie das Schema (1000 × 620), damit die Flaeche gleich gross bleibt
     svg.setAttribute('viewBox', this.view.join(' '));
@@ -673,9 +673,10 @@
     L.parts.forEach(function (p) {
       Object.keys(GEO[p.type]).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = self.pinPos(p, pin), v = nodeV(pid), col = wcol(pid);
-        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (14 * HIT).toFixed(1) + '"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen Masse' : '') + '</title></circle>' +
+        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (14 * HIT).toFixed(1) + '"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen ' + ((self.sim && self.sim.ref) || 'den Bezugspunkt') : '') + (self.refMark === pid ? ' – Bezugspunkt 0 V (Oszilloskop ohne Erdungsclip misst hiergegen)' : '') + '</title></circle>' +
           '<circle class="bpin' + (core.wireStart === pid ? ' active' : '') + (used[pid] ? ' used' : '') + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="12"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
         if (col && pin !== 'g' && used[pid]) h.push('<g transform="translate(' + (xy[0] + 12) + ' ' + (xy[1] - 14) + ') scale(1 ' + (1 / K) + ')"><text class="bvlabel">' + E.fmt(v, 'V') + '</text></g>');
+        if (self.refMark === pid) h.push('<g class="brefmark" transform="translate(' + (xy[0] - 14) + ' ' + (xy[1] + 22) + ') scale(1 ' + (1 / K) + ')" pointer-events="none"><text>⏚ 0 V</text></g>'); // G1: Bezugspunkt sichtbar, solange ohne Erdungsclip gemessen wird
       });
     });
     // Kabel im Entstehen

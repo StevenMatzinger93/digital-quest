@@ -469,17 +469,17 @@
   function tbLabel(v) { var o = $$('#tb option').filter(function (o) { return +o.value === v; })[0]; return o ? o.textContent : E.fmt(v, 's'); }
   function setupHtml(t) {
     if (typeof t.setup === 'string') return '<details class="setup" open><summary>So stellst du das Gerät ein</summary>' + t.setup + '</details>';
-    var soll = sollOf(t, null), manual = t.rangeUX === 'manual', rows = t.measure.map(function (m) {
+    var soll = sollOf(t, null), manual = t.rangeUX === 'manual', refL = refOf(t.ref).label, rows = t.measure.map(function (m) {
       if (t.setup && t.setup[m.id]) return '<li><b>' + esc(m.ask) + ':</b> ' + t.setup[m.id] + '</li>';
       var parts = [], setTxt = m.set ? Object.keys(m.set).map(function (k) { return k.indexOf('@') === 0 ? '' : k + ' ' + (m.set[k].closed ? 'zu' : 'offen'); }).filter(Boolean).join(', ') : '';
       if (setTxt) parts.push('Schalter: ' + setTxt);
       if (m.value !== undefined) parts.push('Rechenwert – kein Messgerät, Ergebnis in ' + (m.unit || 'der angegebenen Einheit') + ' eintragen');
       else if (m.truth && !m.mode) parts.push(m.truth.q === 'i' ? 'A⎓ in Reihe mit ' + m.truth.sel + ' (Leitung an ' + m.truth.sel + ' lösen, Spitzen in die Lücke)' : 'V⎓ an ' + m.truth.sel);
-      else if (m.mode === 'AC') parts.push('Oszilloskop: Tastkopf CH' + (m.ch || 1) + ' an ' + m.a + ', Erdungsclip an ' + (m.b || 'Masse') + ', Bildbreite ' + tbLabel(suggestTb(t.ref)) + ', RUN – ' + ({ dc: 'Mittelwert ablesen', peak: 'Scheitelwert ablesen', pp: 'Spitze-Spitze ablesen', rms: 'Effektivwert', avg: 'Gleichrichtwert' }[m.q || 'dc'] || m.q));
+      else if (m.mode === 'AC') parts.push('Oszilloskop: Tastkopf CH' + (m.ch || 1) + ' an ' + m.a + ', Erdungsclip an ' + (m.b || refL + ' (Bezugspunkt)') + ', Bildbreite ' + tbLabel(suggestTb(t.ref)) + ', RUN – ' + ({ dc: 'Mittelwert ablesen', peak: 'Scheitelwert ablesen', pp: 'Spitze-Spitze ablesen', rms: 'Effektivwert', avg: 'Gleichrichtwert' }[m.q || 'dc'] || m.q));
       else {
         var u = m.mode === 'A' || m.mode === 'AAC' ? 'A' : m.mode === 'R' ? 'Ω' : 'V', mode = m.mode === 'A' ? 'A⎓ (in Reihe: Leitung lösen, Spitzen in die Lücke)' : m.mode === 'AAC' ? 'A~, Verfahren ' + ((m.meterType || 'trms').toUpperCase()) + ' (in Reihe: Leitung lösen, Spitzen in die Lücke)' : m.mode === 'R' ? 'Ω (spannungsfrei!)' : m.mode === 'VAC' ? 'V~, Verfahren ' + ((m.meterType || 'trms').toUpperCase()) : 'V⎓';
         parts.push('Messart ' + mode);
-        if (m.mode !== 'A' && m.mode !== 'AAC') parts.push('rote Spitze an ' + m.a + ', schwarze an ' + (m.b || 'Masse'));
+        if (m.mode !== 'A' && m.mode !== 'AAC') parts.push('rote Spitze an ' + m.a + ', schwarze an ' + (m.b || refL + ' (Bezugspunkt)'));
         if (manual && soll[m.id] !== undefined) { var sc = E.UNIT_SCALE[m.unit] || 1, rg = suggestRange(u, soll[m.id] * sc); parts.push('Bereich ' + E.rangeLabel(rg, u)); }
       }
       return '<li><b>' + esc(m.ask) + ':</b> ' + parts.join(' · ') + '</li>';
@@ -646,7 +646,7 @@
     var disp = liveDisplay(r);
     if (live.dynamic) { live.hist.push(r); if (live.hist.length > HIST_MAX) live.hist.shift(); }
     updateMeter(r, mn);
-    setSim({ res: disp, pinNode: live.net.pinNode });
+    setSim({ res: disp, pinNode: live.net.pinNode, ref: pinLabel(ed.layout, live.net.refPin) });
     status(diagnose(r.faults, r));
   }
   /* ---------- L1 (05.10.2026): Anzeige bei schnellen Wechselquellen mitteln statt mit der Bildrate abzutasten ----------
@@ -731,7 +731,7 @@
     var R = live.replay; if (!R) return;
     R.i = Math.max(0, Math.min(R.steps.length - 1, i));
     $('#rpSlider').value = R.i; $('#rpLabel').textContent = R.steps[R.i].label;
-    setSim({ res: R.steps[R.i].res, pinNode: live.net.pinNode });
+    setSim({ res: R.steps[R.i].res, pinNode: live.net.pinNode, ref: pinLabel(ed.layout, live.net.refPin) });
   }
   function playReplay() {
     var R = live.replay; if (!R) return;
@@ -910,6 +910,30 @@
    * bei wenigen Perioden die Kurve selbst; Werkbank-Schirm, Seitenleiste und grosses Oszilloskop zeichnen dieselben Punkte (pts).
    * Kennwerte max/min kommen aus E.acMeasure (eingeschwungen, fein abgetastet), sobald mindestens eine Periode im Bild ist; sonst
    * aus dem Bildausschnitt mit Hinweis «Bildbreite zu klein». pts = [x 0…1, y 0…1]; bei einem Band erst die Oberkante, dann die Unterkante rückwärts. */
+  /* Anschlussname für Texte: Quellen-Pole als G1.+ / G1.– (wie in den Hinweistexten), sonst der Anschluss selbst */
+  function pinLabel(layout, pid) {
+    if (!pid) return '';
+    var p = (layout.parts || []).filter(function (x) { return x.id === pid.split('.')[0]; })[0], pin = pid.split('.')[1];
+    if (p && (p.type === 'acsource' || p.type === 'battery') && (pin === 'p' || pin === 'n')) return p.id + '.' + (pin === 'p' ? '+' : '–');
+    return pid;
+  }
+  /* Bezugspunkt eines Aufbaus (Masse-Symbol oder Minuspol der ersten Quelle) – Anschluss und Text */
+  function refOf(layout) { var pid = E.refPin(layout); return { pid: pid, label: pid ? pinLabel(layout, pid) : 'Bezugspunkt' }; }
+  /* Grundperiode des gemessenen Signals (nicht der Quelle): Abstand der steigenden Durchgänge durch den Mittelwert, mit Hysterese.
+   * Brückengleichrichter: 10 ms (100 Hz), Einweg: 20 ms, Sinus: 20 ms; ohne Wechselanteil null. */
+  function signalPeriod(s) {
+    if (!s || s.length < 8) return null;
+    var mean = 0, amp = 0, k; s.forEach(function (x) { mean += x.ch0; }); mean /= s.length;
+    s.forEach(function (x) { amp = Math.max(amp, Math.abs(x.ch0 - mean)); }); if (amp < 1e-3) return { mean: mean, T: 0 };
+    var hys = amp * 0.05, below = s[0].ch0 < mean, cr = [];
+    for (k = 1; k < s.length; k++) {
+      var v = s[k].ch0, u = s[k - 1].ch0;
+      if (below && v >= mean + hys) { cr.push(s[k - 1].t + (mean - u) / ((v - u) || 1e-12) * (s[k].t - s[k - 1].t)); below = false; }
+      else if (!below && v < mean - hys) below = true;
+    }
+    if (cr.length < 2) return { mean: mean, T: 0 };
+    return { mean: mean, T: (cr[cr.length - 1] - cr[0]) / (cr.length - 1) };
+  }
   function scopeCurve(layout, sp, T, label, chNo, scale) {
     var fr = sourceFreqs(layout), fmax = fr.length ? Math.max.apply(null, fr) : 0, fmin = fr.length ? Math.min.apply(null, fr) : 0, dt = T / 400;
     if (fmax > 0) dt = Math.min(dt, 1 / (fmax * 100)); dt = Math.max(dt, T / 40000);
@@ -934,9 +958,13 @@
       for (k = cols - 1; k >= 0; k--) if (isFinite(lo[k])) pts.push([(k + 0.5) / cols, (lo[k] - bot) / span]);
     }
     var hint = short ? 'Bildbreite zu klein: weniger als eine Periode im Bild – Scheitelwert und Spitze-Spitze sind so nicht ablesbar, grössere Bildbreite wählen.' : '';
-    return { samples: s, top: top, bot: bot, mx: mx, mn: mn, pts: pts, short: short, hint: hint, periods: periods,
-      info: 'CH' + (chNo || 1) + ' ' + sp.a + (sp.b ? '–' + sp.b : '') + ' · ' + bot + '…' + top + ' V · ' + label + (short ? ' · zu klein!' : ''),
-      text: 'Kanal: ' + sp.a + ' gegen ' + (sp.b || 'Masse') + ' · ' + bot + '…' + top + ' V · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') + (short ? ' · ' + hint : '') };
+    // Bezugspunkt nie stillschweigend (G1): ohne zweiten Anschluss misst der Kanal gegen den Bezugspunkt der Schaltung – im Klartext nennen
+    var ref = sp.b ? null : refOf(layout), refLbl = ref ? ref.label : '';
+    var sig = signalPeriod(s), mean = ac && ac.ok && !ac.static && isFinite(ac.dc) ? ac.dc : (sig ? sig.mean : 0), sigT = sig && !short ? sig.T : 0;
+    var kenn = ' · max ' + E.fmt(mx, 'V') + ' · min ' + E.fmt(mn, 'V') + ' · Mittelwert ' + E.fmt(mean, 'V') + (sigT ? ' · Periode ' + E.fmt(sigT, 's') + ' (' + E.fmt(1 / sigT, 'Hz') + ')' : '');
+    return { samples: s, top: top, bot: bot, mx: mx, mn: mn, mean: mean, sigT: sigT, pts: pts, short: short, hint: hint, periods: periods, ref: ref ? ref.pid : null, refLabel: refLbl, a: sp.a, b: sp.b || null,
+      info: 'CH' + (chNo || 1) + ' ' + sp.a + (sp.b ? '–' + sp.b : ' gegen ' + refLbl + ' ⏚') + ' · ' + bot + '…' + top + ' V · ' + label + (short ? ' · zu klein!' : ''),
+      text: 'Kanal: ' + sp.a + ' gegen ' + (sp.b || refLbl + ' (Bezugspunkt – ' + (sp.own === false ? 'schwarze Spitze nicht gesetzt' : 'Erdungsclip nicht angeschlossen') + ')') + ' · ' + bot + '…' + top + ' V' + kenn + (short ? ' · ' + hint : '') };
   }
   function updateMeter(r, mn) {
     var lcd = $('#lcd'), rg = manualRange() && meter.range !== 'AUTO' ? meter.range : undefined;
@@ -1024,8 +1052,8 @@
     for (i = 1; i < 8; i++) { ctx.beginPath(); ctx.moveTo(0, h * i / 8); ctx.lineTo(w, h * i / 8); ctx.stroke(); }
     var sp = scopeProbes();
     if (!sp.a) {
-      $('#scopeInfo').textContent = sp.own ? 'Tastkopf anschliessen: den gelben Tastkopf (CH1) an den Messpunkt ziehen, den schwarzen Erdungsclip an Masse bzw. den Bezugspunkt – dann RUN.' : 'Setze zuerst die rote Messspitze (Multimeter V).';
-      bench.scope = { pts: [], info: sp.own ? 'Tastkopf anschliessen' : 'Zuerst rote Messspitze setzen (V)' }; bench.render(); return;
+      $('#scopeInfo').textContent = sp.own ? 'Tastkopf anschliessen: den gelben Tastkopf (CH1) an den Messpunkt ziehen, den schwarzen Erdungsclip an den zweiten Anschluss des Bauteils – dann RUN.' : 'Setze zuerst die rote Messspitze (Multimeter V).';
+      bench.scope = { pts: [], info: sp.own ? 'Tastkopf anschliessen' : 'Zuerst rote Messspitze setzen (V)' }; scopeWarn(null, sp); bench.render(); return;
     }
     var c, c2 = null, label = $('#tb').selectedOptions[0].textContent;
     try {
@@ -1041,13 +1069,33 @@
     if (c2) drawTrace(ctx, c2, T, w, h, '#38bdf8');
     var fr0 = sourceFreqs(ed.layout), ph = c2 ? phaseShift(c, c2, fr0.length ? 1 / Math.min.apply(null, fr0) : 0) : null;
     lastScope = { c: c, c2: c2, phase: ph, T: T, layout: ed.layout, label: label, sp: sp };
-    $('#scopeInfo').textContent = (c2 ? 'CH1 ' : '') + c.text + (c2 ? ' · CH2 ' + c2.text.replace(/^Kanal: /, '') + (ph ? ' · Phase CH2→CH1 ' + E.fmt(ph.dt, 's') + ' (' + ph.deg.toFixed(0) + '°)' : '') : '');
+    $('#scopeInfo').textContent = (c2 ? 'CH1 ' : '') + c.text + (c2 ? ' · CH2 ' + c2.text.replace(/^Kanal: /, '').replace(/ \(Bezugspunkt[^)]*\)/, '') + (ph ? ' · Phase CH2→CH1 ' + E.fmt(ph.dt, 's') + ' (' + ph.deg.toFixed(0) + '°)' : '') : '');
+    scopeWarn(c, sp);
     $('#scopeCh').hidden = !sp.own;
     bench.scope = { pts: c.pts, pts2: c2 ? c2.pts : null, info: c.info + (c2 ? ' · CH2 ' + c2.bot + '…' + c2.top + ' V' : ''), ch: scopeCh };
     bench.render();
     log('scope', { id: current.task && current.task.id, T: T, ch2: !!c2 });
   }
 
+  /* G1: Warnhinweis unter der Kurve und Markierung ⏚ des Bezugspunkts in Werkbank und Schaltplan, solange ohne Erdungsclip gemessen wird.
+   * Aufgabenbezogener Hinweis (Messwert verlangt a und b, Tastkopf an a, Clip nicht an b) – nicht in Prüfung und Live-Challenge. */
+  function scopeWarn(c, sp) {
+    var box = $('#scopeWarn'), msgs = [], mark = c && c.ref ? c.ref : null, quiet = !!(current.exam || current.live);
+    if (c && c.ref) {
+      msgs.push((sp.own ? 'Der Erdungsclip ist nicht angeschlossen.' : 'Die schwarze Messspitze ist nicht gesetzt.') + ' Du misst ' + c.a + ' gegen ' + c.refLabel + ' (Bezugspunkt 0 V der Schaltung) und nicht über dem Bauteil.');
+      if (!quiet) {
+        var p = ed.part(c.a.split('.')[0]), pl = p ? E.PARTS[p.type].pins : [];
+        if (p && pl.length === 2) { var other = p.id + '.' + pl.filter(function (q) { return q !== c.a.split('.')[1]; })[0]; msgs.push('Für die Spannung an ' + p.id + ': ' + (sp.own ? 'Tastkopf' : 'rote Spitze') + ' an ' + c.a + ', ' + (sp.own ? 'Erdungsclip' : 'schwarze Spitze') + ' an ' + other + '.'); }
+      }
+    }
+    if (c && !quiet && current.task && (current.task.measure || []).length) {
+      var m = current.task.measure.filter(function (x) { return x.mode === 'AC' && x.a === c.a && x.b && x.b !== c.b; })[0];
+      if (m) msgs.push('Die Aufgabe misst «' + m.ask + '» zwischen ' + m.a + ' und ' + m.b + ': ' + (sp.own ? 'Erdungsclip' : 'schwarze Spitze') + ' an ' + m.b + '.');
+    }
+    if (box) { box.hidden = !msgs.length; box.textContent = msgs.join(' '); }
+    if (bench && bench.refMark !== mark) { bench.refMark = mark; bench.render(); }
+    if (ed && ed.refMark !== mark) { ed.refMark = mark; ed.render(); }
+  }
   function drawTrace(ctx, c, T, w, h, color) {
     color = color || '#ffb000';
     ctx.strokeStyle = color; ctx.lineWidth = 2 * (window.devicePixelRatio || 1); ctx.shadowColor = color; ctx.shadowBlur = 6; ctx.beginPath();
@@ -1069,11 +1117,14 @@
       var stat = [[p1 + 'Û+ (max)', E.fmt(c.mx, 'V')], [p1 + 'Û− (min)', E.fmt(c.mn, 'V')], [p1 + 'Uss', E.fmt(c.mx - c.mn, 'V')]];
       if (c2) stat.push(['CH2 Û+ (max)', E.fmt(c2.mx, 'V')], ['CH2 Û− (min)', E.fmt(c2.mn, 'V')], ['CH2 Uss', E.fmt(c2.mx - c2.mn, 'V')]);
       if (sc.phase) stat.push(['Phase CH2→CH1', E.fmt(sc.phase.dt, 's') + ' / ' + sc.phase.deg.toFixed(0) + '°']);
+      stat.push([p1 + 'Mittelwert', E.fmt(c.mean || 0, 'V')]); if (c.sigT) stat.push([p1 + 'Signal T / f', E.fmt(c.sigT, 's') + ' / ' + E.fmt(1 / c.sigT, 'Hz')]);
+      if (c.ref) stat.push(['Bezugspunkt', c.refLabel + ' (kein Erdungsclip)']);
       stat.push(['Bildbreite', sc.label], ['Raster', E.fmt(sc.T / 10, 's') + ' / Div']);
       if (f) stat.push(['Quelle f', E.fmt(f, 'Hz')], ['Periode T', E.fmt(1 / f, 's')]);
       if (c.short) stat.push(['Hinweis', 'Bildbreite zu klein – Û und Uss nicht ablesbar']);
       el.innerHTML = '<div class="sb-back"></div><div class="sb-box"><div class="sb-head"><b>Oszilloskop</b><span class="dim small">' + esc(c.info) + '</span><button class="sb-x" aria-label="Schliessen">×</button></div>' +
         '<canvas id="sbCanvas"></canvas><div class="sb-stats">' + stat.map(function (s) { return '<div><span>' + s[0] + '</span><b class="mono">' + esc(s[1]) + '</b></div>'; }).join('') + '</div>' +
+        (c.ref ? '<p class="scope-warn">Ohne Erdungsclip misst CH1 ' + esc(c.a) + ' gegen ' + esc(c.refLabel) + ' – den Bezugspunkt 0 V der Schaltung, nicht die Spannung über dem Bauteil.</p>' : '') +
         '<p class="dim small">Esc oder Klick daneben schliesst. Deine Schaltung und die Messspitzen bleiben, wie sie sind.</p></div>';
       el.hidden = false; // erst sichtbar machen, dann messen – sonst ist die Leinwand 0 × 0
       var cv = $('#sbCanvas'), ctx = cv.getContext('2d'), dpr = window.devicePixelRatio || 1;
@@ -1117,7 +1168,7 @@
     if (!isScope) steps.push({ text: 'Messart <b>' + modeLbl + '</b> am Drehschalter wählen.', run: function () { setMeterMode(m.mode); } });
     if (!isScope && manualRange() && soll !== undefined) { var u = m.mode === 'R' ? 'Ω' : 'V', rg = suggestRange(u, soll * (E.UNIT_SCALE[m.unit] || 1)); steps.push({ text: 'Bereich <b>' + esc(E.rangeLabel(rg, u)) + '</b> wählen – der kleinste, in den der Wert passt.', run: function () { setMeterRange(rg); } }); }
     steps.push({ text: (isScope ? 'Gelben <b>Tastkopf CH1</b>' : 'Rote Spitze <b>(+)</b>') + ' an <b>' + esc(m.a) + '</b> ziehen.', move: pa, pin: m.a, dur: 1.6 });
-    if (m.b || !isScope) steps.push({ text: (isScope ? 'Schwarzen <b>Erdungsclip</b>' : 'Schwarze Spitze <b>(COM)</b>') + ' an <b>' + esc(m.b || 'Masse') + '</b> ziehen.', move: pb, pin: m.b || null, dur: 1.6 });
+    if (m.b || !isScope) steps.push({ text: (isScope ? 'Schwarzen <b>Erdungsclip</b>' : 'Schwarze Spitze <b>(COM)</b>') + ' an <b>' + esc(m.b || refOf(t.ref).label + ' (Bezugspunkt)') + '</b> ziehen.', move: pb, pin: m.b || null, dur: 1.6 });
     if (isScope) steps.push({ text: 'Passende Bildbreite wählen und <b>RUN</b> drücken – das Oszilloskop zeichnet die Kurve.', run: function () { $('#tb').value = String(suggestTb(ed.layout)); scope(); } });
     steps.push({ text: 'Ablesen.', run: function () { tick(0); var txt = isScope ? $('#scopeInfo').textContent : $('#lcd').textContent + ($('#mmWarn').textContent ? ' – ' + $('#mmWarn').textContent : ''); demo.read = txt; }, after: function () { return 'Anzeige: <b class="mono">' + esc(demo.read) + '</b>'; } });
     var rw = t.rechenweg && t.rechenweg[m.id];
@@ -1384,7 +1435,7 @@
     if (!tut) return;
     var sp = { a: tut.core.scopeProbes.tip, b: tut.core.scopeProbes.gnd }, T = +$('#tutTb').value;
     if (!sp.a) { tut.bench.scope = { pts: [], info: 'Tastkopf anschliessen' }; $('#tutScope').textContent = 'Oszilloskop: zuerst den gelben Tastkopf an einen Anschluss ziehen.'; tut.bench.render(); return; }
-    try { var c = scopeCurve(tut.core.layout, sp, T, $('#tutTb').selectedOptions[0].textContent); tut.bench.scope = { pts: c.pts, info: c.info }; tut.lastScope = { c: c, T: T, layout: tut.core.layout, label: $('#tutTb').selectedOptions[0].textContent, sp: sp }; $('#tutScope').textContent = 'Oszilloskop – ' + c.text; if (sp.a === 'R2.a') tutDone('run'); }
+    try { var c = scopeCurve(tut.core.layout, sp, T, $('#tutTb').selectedOptions[0].textContent); tut.bench.scope = { pts: c.pts, info: c.info }; tut.bench.refMark = c.ref || null; tut.lastScope = { c: c, T: T, layout: tut.core.layout, label: $('#tutTb').selectedOptions[0].textContent, sp: sp }; $('#tutScope').textContent = 'Oszilloskop – ' + c.text; if (sp.a === 'R2.a') tutDone('run'); }
     catch (e) { $('#tutScope').textContent = e.message; }
     tut.bench.render();
   }

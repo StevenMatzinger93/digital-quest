@@ -183,7 +183,7 @@
   function Editor(svg, opts) {
     this.svg = svg; this.opts = opts || {};
     this.core = this.opts.core || new Circuit(this.opts); // Zustand + Bedienlogik (circuit-ui.js); geteilt, falls uebergeben
-    this.sim = null; this.showVolt = false; this.mouse = [0, 0];
+    this.sim = null; this.refMark = null; this.showVolt = false; this.mouse = [0, 0];
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     this.view = [0, 0, W, H];
     this.core.attach(this);
@@ -346,6 +346,7 @@
         h.push('<g data-pin="' + pid + '"><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (11 * hit).toFixed(1) + '"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');
         if (self.showVolt && res && pinNode && pinNode[pid] !== undefined && pin !== 'g')
           h.push('<text class="vlabel" x="' + (xy[0] + 6) + '" y="' + (xy[1] - 6) + '">' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + '</text>');
+        if (self.refMark === pid) h.push('<text class="refmark" x="' + (xy[0] - 8) + '" y="' + (xy[1] + 18) + '">⏚ 0 V<title>Bezugspunkt 0 V – ohne schwarze Spitze misst das Oszilloskop hiergegen</title></text>'); // G1
       });
     });
     // Leitung im Entstehen
