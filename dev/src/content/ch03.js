@@ -8,7 +8,7 @@
   defChapter({
     id: 3, title: 'Gleich- und Wechselgrössen',
     intro: 'Der Funktionsgenerator liefert Sinus, Rechteck und Dreieck. Du misst Scheitelwert, Mittelwert und Effektivwert – und findest heraus, warum ein billiges Multimeter bei Rechteckspannung lügt.',
-    sequence: ['T3A', '3.1', '3.2', '3.3', '3.4', '3.5', 'T3B', '3.6', '3.7', '3.8', '3.9', '3.10']
+    sequence: ['T3A', '3.1', '3.2', '3.3', '3.4', '3.5', 'T3C', 'T3B', '3.6', '3.7', '3.8', '3.9', '3.10']
   });
 
   var gen = function (props) { return { id: 'G1', type: 'acsource', value: 10, props: Object.assign({ freq: 50, shape: 'sine', offset: 0 }, props || {}), x: 160, y: 300, rot: 0 }; };
@@ -136,6 +136,31 @@
       { id: 'up', ask: 'Scheitelwert an R1 (Oszilloskop)', unit: 'V', mode: 'AC', q: 'peak', a: 'R1.a', b: 'R1.b', tol: 0.03 },
       { id: 'tper', ask: 'Periodendauer der Spannung an R1 (Oszilloskop)', unit: 'ms', value: 10, tol: 0.1 }],
     setup: { tper: 'Oszilloskop an R1 (Tastkopf R1.a, Erdungsclip R1.b), Bildbreite 50 ms, RUN: Abstand zweier Buckel ablesen – unter der Kurve steht die Periode des gemessenen Signals. Jede Halbwelle gibt einen Buckel, darum 10 ms statt 20 ms.' }
+  });
+
+  /* ================= Theorie C: Gleichrichter und Bezugspunkt (Auftrag 06.10.2026, G4; exam: false = nicht im Prüfungspool) ================= */
+  var bridgeSlow = { parts: bridge.parts.map(function (p) { return p.id === 'G1' ? gen({ freq: 1 }) : p; }), wires: bridge.wires };
+  defTheory({
+    id: 'T3C', ch: 3, title: 'Gleichrichter: Einweg, Brücke und Bezugspunkt', tags: ['elektro.gleichrichter', 'bauteil.diode', 'messen.oszilloskop'], exam: false,
+    merksatz: 'In der Brücke leiten je Halbwelle zwei Dioden, der Strom fliesst durch R1 immer gleich herum: beide Halbwellen positiv, 10 ms Periode, Scheitel Û − 2·U_F. Das Oszilloskop zeigt immer die Spannung zwischen Tastkopf und Erdungsclip – an R1 heisst das R1.a gegen R1.b.',
+    visual: { type: 'circuit', slow: true, flow: true, caption: 'Die Brücke in Zeitlupe (1 Hz): Verfolge die Punkte – in jeder Halbwelle leitet ein anderes Diodenpaar, durch R1 fliesst der Strom aber immer von R1.a nach R1.b. Das Oszilloskop hängt an R1 (Tastkopf R1.a, Erdungsclip R1.b) und zeigt beide Halbwellen nach oben geklappt.',
+      layout: bridgeSlow, bench: { parts: [bG1, { id: 'V1', x: 470, y: 250, rot: 0 }, { id: 'V2', x: 470, y: 620, rot: 0 }, { id: 'V3', x: 700, y: 250, rot: 180 }, { id: 'V4', x: 700, y: 620, rot: 180 }, { id: 'R1', x: 860, y: 440, rot: 90 }] },
+      sliders: [{ part: 'G1', prop: 'freq', label: 'Frequenz', min: 0.5, max: 4, step: 0.5, unit: 'Hz' }],
+      readouts: [{ label: 'Scheitelwert an R1', a: 'R1.a', b: 'R1.b', ac: 'peak' }, { label: 'Gleichanteil an R1', a: 'R1.a', b: 'R1.b', ac: 'dc' }],
+      scope: { a: 'R1.a', b: 'R1.b', span: 2, label: 'U an R1' } },
+    lesson:
+      '<p>Der <b>Einweggleichrichter</b> (eine Diode, Aufgabe 3.4) lässt nur jede zweite Halbwelle zu R1 durch: Scheitel Û − U<sub>F</sub> ≈ 9,3 V, dazwischen 0 V, Periodendauer 20 ms. Der <b>Brückengleichrichter</b> (Grätz-Brücke, vier Dioden, Aufgabe 3.5) nutzt beide Halbwellen.</p>' +
+      '<p><b>Positive Halbwelle</b> (G1.+ positiv): Strom G1.+ → V1 → R1.a → R1 → R1.b → V4 → G1.–. V2 und V3 sperren.<br><b>Negative Halbwelle</b> (G1.– positiv): Strom G1.– → V2 → R1.a → R1 → R1.b → V3 → G1.+. V1 und V4 sperren.<br>In beiden Fällen fliesst der Strom durch R1 <b>in dieselbe Richtung</b>, von R1.a nach R1.b.</p>' +
+      '<p><b>So sieht die Spannung an R1 aus:</b> beide Halbwellen nach oben geklappt (Betrag des Sinus); Scheitel <b>Û − 2·U<sub>F</sub> ≈ 8,6 V</b>, weil zwei Dioden in Reihe im Strompfad liegen; nie negativ; am Nulldurchgang eine kurze Lücke bei 0 V, solange die Eingangsspannung unter ≈ 1,4 V liegt; <b>Periodendauer 10 ms (100 Hz)</b> – jede Halbwelle ergibt einen Buckel. Gleichanteil ≈ 5,0 V, etwa doppelt so viel wie beim Einweggleichrichter (≈ 2,8 V).</p>' +
+      '<p><b>Wogegen misst das Oszilloskop?</b> Immer die Spannung <i>zwischen zwei Punkten</i>: Tastkopf gegen Erdungsclip. Fehlt der Clip, nimmt das Labor den <b>Bezugspunkt</b> der Schaltung (Masse-Symbol, sonst der Minuspol der ersten Quelle) und sagt es dir im Klartext. Hängt der Clip am Minuspol des Generators und der Tastkopf an R1.a, siehst du <b>nur eine Halbwelle</b> – das ist die Spannung R1.a gegen G1.–, nicht die Spannung an R1. Für die Spannung an R1: Tastkopf an R1.a, Erdungsclip an R1.b.</p>' +
+      '<p><b>Praxis:</b> Am echten Labortisch sind Generator und Oszilloskop oft beide geerdet. Der Clip an R1.b würde dann eine Diode kurzschliessen. Deshalb misst man dort mit Trenntransformator, Differenztastkopf oder mit zwei Kanälen und der Rechenfunktion <b>MATH = CH1 − CH2</b> (CH1 an R1.a, CH2 an R1.b, Clip am Generator). Im Labor von Digital Quest ist das Oszilloskop potentialfrei – der Clip an R1.b ist erlaubt, MATH gibt es trotzdem.</p>',
+    questions: [
+      { q: 'Welche Dioden der Brücke leiten in der positiven Halbwelle (G1.+ positiv)?', options: ['V1 und V4', 'V2 und V3', 'V1 und V2', 'alle vier'], correct: 0, explain: 'G1.+ → V1 → R1 → V4 → G1.–; V2 und V3 sperren. In der negativen Halbwelle ist es umgekehrt.' },
+      { q: 'Der Generator liefert 50 Hz. Welche Periodendauer hat die Spannung an R1 hinter der Brücke?', options: ['20 ms', '10 ms', '40 ms', '5 ms'], correct: 1, explain: 'Jede Halbwelle ergibt einen Buckel: T = 20 ms / 2 = 10 ms, also 100 Hz.' },
+      { q: 'Û = 10 V, U_F = 0,7 V je Diode. Welchen Scheitelwert hat die Spannung an R1 hinter der Brücke?', options: ['10 V', '9,3 V', '8,6 V', '7,07 V'], correct: 2, explain: 'Zwei Dioden liegen in Reihe im Strompfad: 10 V − 2 · 0,7 V = 8,6 V. Beim Einweggleichrichter wären es 9,3 V.' },
+      { q: 'Erdungsclip am Minuspol des Generators, Tastkopf an R1.a. Welche Kurve siehst du?', options: ['Beide Halbwellen positiv (Zweiweg)', 'Nur jede zweite Halbwelle, dazwischen leicht negativ', 'Einen glatten Gleichwert', 'Gar nichts'], correct: 1, explain: 'Du misst R1.a gegen G1.–, nicht die Spannung an R1. In der negativen Halbwelle liegt R1.a nur eine Diodenspannung unter G1.–. Clip an R1.b – oder MATH = CH1 − CH2.' },
+      { q: 'Warum ist der Gleichanteil an R1 bei der Brücke (≈ 5 V) etwa doppelt so gross wie beim Einweggleichrichter (≈ 2,8 V)?', options: ['Weil beide Halbwellen zu R1 gelangen', 'Weil die Dioden die Spannung verstärken', 'Weil der Widerstand kleiner wird', 'Weil die Frequenz halbiert wird'], correct: 0, explain: 'Die Brücke klappt die negative Halbwelle nach oben – doppelt so viele Buckel, Mittelwert ≈ 2·Û_R/π. Die zwei Diodenspannungen Verlust drücken ihn leicht darunter.' }
+    ]
   });
 
   /* ================= Theorie B ================= */

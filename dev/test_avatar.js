@@ -122,7 +122,7 @@ const imp = f => import(pathToFileURL(path.join(__dirname, '../worker/' + f)));
   const M = AB.AVATAR_META;
   ok(DB.SCHEMA_VERSION === 7, 'Schema-Version 7 (Migration avatare-coins)');
   ok(Object.keys(M).join() === 'elektro,digital,kombi,praxis,messen' && M.elektro.$.tasks === 40 && M.digital.$.tasks === 40 && M.kombi.$.tasks === 20 && M.praxis.$.tasks === 50 && M.messen.$.tasks === 18, 'AVATAR_META: Aufgaben je Kollektion', Object.keys(M).map(k => M[k].$.tasks));
-  ok(M.elektro.$.theoryAll === 8 && M.messen.$.theoryAll === 3 && M.messen.$.ids.includes('W10') && M.messen.$.theoryIds.includes('T16C'), 'AVATAR_META: Theorien, Werkstatt in der Messtechnik');
+  ok(M.elektro.$.theoryAll === 9 && M.messen.$.theoryAll === 3 && M.messen.$.ids.includes('W10') && M.messen.$.theoryIds.includes('T16C'), 'AVATAR_META: Theorien, Werkstatt in der Messtechnik');
   ok(M.kombi['10.10'] && M.kombi['10.10'].boss && !M.kombi['10.10'].final && M.praxis['15.10'] && M.praxis['15.10'].final && !M.praxis['15.10'].boss, 'AVATAR_META: 10.10 Kapitel-Boss, 15.10 Final Boss');
   ok(AB.FINAL_TASKS['15.10'] && AB.FINAL_TASKS['15.10'].final && AB.FINAL_TASKS['15.10'].tests.length && AB.FINAL_TASKS['10.10'] && !AB.FINAL_TASKS['10.10'].final, 'FINAL_TASKS: beide Boss-Aufgaben mit Tests');
   const T1 = M.elektro.$.ids;
