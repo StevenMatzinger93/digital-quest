@@ -153,7 +153,7 @@ DQ.theories.forEach(th => {
   const conv = new Set(Object.keys(liste).filter(w => liste[w].status === 'umwandeln'));
   const files = [];
   const walk = d => fs.readdirSync(d).forEach(f => { const p = path.join(d, f); if (fs.statSync(p).isDirectory()) { if (!/gen$/.test(p)) walk(p); } else if (/\.(js|html)$/.test(f)) files.push(p); });
-  walk(path.join(__dirname, 'src')); walk(path.join(__dirname, 'portal')); walk(path.join(__dirname, '..', 'worker'));
+  walk(path.join(__dirname, 'src')); walk(path.join(__dirname, 'portal')); walk(path.join(__dirname, 'studio')); walk(path.join(__dirname, '..', 'worker'));
   const RE = /[A-Za-zÄÖÜäöü]*(?:ae|oe|ue|Ae|Oe|Ue|AE|OE|UE)[A-Za-zÄÖÜäöü]*/g, hits = [];
   files.forEach(f => {
     const rel = path.relative(path.join(__dirname, '..'), f).replace(/\\/g, '/');

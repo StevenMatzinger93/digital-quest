@@ -6,7 +6,7 @@
 <title>Digital Quest</title>
 <meta name="description" content="Digital Quest – Schaltungen bauen, messen, verstehen.">
 <meta name="theme-color" content="#121212">
-<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%2296%22%20fill%3D%22%23121212%22%2F%3E%3Crect%20x%3D%2236%22%20y%3D%2236%22%20width%3D%22440%22%20height%3D%22440%22%20rx%3D%2272%22%20fill%3D%22none%22%20stroke%3D%22%232c2c2c%22%20stroke-width%3D%228%22%2F%3E%3Cpath%20d%3D%22M70%20270h90l40-120%2080%20240%2040-120h122%22%20fill%3D%22none%22%20stroke%3D%22%23ffb000%22%20stroke-width%3D%2234%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2270%22%20cy%3D%22270%22%20r%3D%2222%22%20fill%3D%22%23ffb000%22%2F%3E%3Ccircle%20cx%3D%22442%22%20cy%3D%22270%22%20r%3D%2222%22%20fill%3D%22%23ffb000%22%2F%3E%3C%2Fsvg%3E%0D%0A">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%2296%22%20fill%3D%22%23121212%22%2F%3E%3Crect%20x%3D%2236%22%20y%3D%2236%22%20width%3D%22440%22%20height%3D%22440%22%20rx%3D%2272%22%20fill%3D%22none%22%20stroke%3D%22%232c2c2c%22%20stroke-width%3D%228%22%2F%3E%3Cpath%20d%3D%22M70%20270h90l40-120%2080%20240%2040-120h122%22%20fill%3D%22none%22%20stroke%3D%22%23ffb000%22%20stroke-width%3D%2234%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2270%22%20cy%3D%22270%22%20r%3D%2222%22%20fill%3D%22%23ffb000%22%2F%3E%3Ccircle%20cx%3D%22442%22%20cy%3D%22270%22%20r%3D%2222%22%20fill%3D%22%23ffb000%22%2F%3E%3C%2Fsvg%3E%0A">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;600;800&display=swap">
 <style>/* Digital Quest – Stil. Token-Namen wie SCL Quest; Leitfarbe Bernstein (--accent-lead). */
@@ -745,7 +745,7 @@ body.has-exam-bar .top { padding-top: 50px; }
 (function (root) {
   'use strict';
 
-  var GMIN = 1e-9;            // Leitwert jedes Knotens gegen Masse (verhindert singulaere Matrix)
+  var GMIN = 1e-9;            // Leitwert jedes Knotens gegen Masse (verhindert singulaere Matrix); fuer die Konformitaetspruefung (tests/kern.js) per setGmin absenkbar
   var G_OPEN = 1e-12;         // offener Schalter, gesperrte Diode, Gattereingang
   var G_CLOSED = 1e3;         // geschlossener Schalter (1 mOhm)
   var LOGIC = { vcc: 5, vth: 2.5, rout: 25 };
@@ -770,26 +770,33 @@ body.has-exam-bar .top { padding-top: 50px; }
     led:       { label: 'LED', prefix: 'D', pins: ['a', 'k'], props: { color: 'rot', rs: 10, imax: 0.03, inom: 0.02 } },
     diode:     { label: 'Diode', prefix: 'V', pins: ['a', 'k'], props: { vf: 0.7, rs: 1, imax: 1 } },
     capacitor: { label: 'Kondensator', prefix: 'C', pins: ['a', 'b'], props: { value: 100e-6 }, unit: 'F' },
+    inductor:  { label: 'Spule', prefix: 'L', pins: ['a', 'b'], props: { value: 10e-3 }, unit: 'H' }, // Studio Stufe 2: Rückwärts-Euler wie der Kondensator, im Gleichstrom-Arbeitspunkt ein Kurzschluss
     ammeter:   { label: 'Strommesser', prefix: 'A', pins: ['a', 'b'], props: {} },
     clock:     { label: 'Taktgeber', prefix: 'CLK', pins: ['out'], props: { freq: 1 }, unit: 'Hz' },
     acsource:  { label: 'Wechselspannungsquelle', prefix: 'G', pins: ['p', 'n'], props: { value: 10, freq: 50, shape: 'sine', offset: 0, ri: 0.05, imax: 3 }, unit: 'V' }, // value = Scheitelwert Û
+    /* Gatter: props.inputs = Eingangszahl 2…8 (NICHT: 1); pins sind die Pins bei 2 Eingaengen, E.pinsOf(type, props) liefert die tatsaechlichen */
     not:  { label: 'NICHT', prefix: 'U', pins: ['in', 'out'], props: {}, logic: function (i) { return !i[0]; } },
-    and:  { label: 'UND', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] && i[1]; } },
-    or:   { label: 'ODER', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] || i[1]; } },
-    nand: { label: 'NAND', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return !(i[0] && i[1]); } },
-    nor:  { label: 'NOR', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return !(i[0] || i[1]); } },
-    xor:  { label: 'XOR', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] !== i[1]; } },
-    xnor: { label: 'XNOR', prefix: 'U', pins: ['in1', 'in2', 'out'], props: {}, logic: function (i) { return i[0] === i[1]; } },
+    and:  { label: 'UND', prefix: 'U', pins: ['in1', 'in2', 'out'], multi: true, props: { inputs: 2 }, logic: function (i) { return i.every(Boolean); } },
+    or:   { label: 'ODER', prefix: 'U', pins: ['in1', 'in2', 'out'], multi: true, props: { inputs: 2 }, logic: function (i) { return i.some(Boolean); } },
+    nand: { label: 'NAND', prefix: 'U', pins: ['in1', 'in2', 'out'], multi: true, props: { inputs: 2 }, logic: function (i) { return !i.every(Boolean); } },
+    nor:  { label: 'NOR', prefix: 'U', pins: ['in1', 'in2', 'out'], multi: true, props: { inputs: 2 }, logic: function (i) { return !i.some(Boolean); } },
+    xor:  { label: 'XOR', prefix: 'U', pins: ['in1', 'in2', 'out'], multi: true, props: { inputs: 2 }, logic: function (i) { return i.filter(Boolean).length % 2 === 1; } },   // mehr als zwei Eingaenge: ungerade Zahl von Einsen
+    xnor: { label: 'XNOR', prefix: 'U', pins: ['in1', 'in2', 'out'], multi: true, props: { inputs: 2 }, logic: function (i) { return i.filter(Boolean).length % 2 === 0; } },
     /* Experimentierboard: Pegelschalter (closed = 1 → 5 V) und Logikanzeige (leuchtet ab 2,5 V); Versorgung implizit wie bei Gattern */
     logicin:  { label: 'Pegelschalter', prefix: 'E', pins: ['out'], props: { closed: false }, digital: true },
     logicled: { label: 'Logikanzeige', prefix: 'L', pins: ['in'], props: { color: 'rot' }, digital: true },
     seg7:     { label: '7-Segment-Anzeige', prefix: 'AZ', pins: ['a', 'b', 'c', 'd', 'e', 'f', 'g'], props: {}, digital: true },
     dec7:     { label: 'BCD-7-Segment-Decoder', prefix: 'IC', pins: ['A', 'B', 'C', 'D', 'a', 'b', 'c', 'd', 'e', 'f', 'g'], ins: ['A', 'B', 'C', 'D'], outs: ['a', 'b', 'c', 'd', 'e', 'f', 'g'], props: {},
       logic: function (i) { var n = (i[0] ? 1 : 0) + (i[1] ? 2 : 0) + (i[2] ? 4 : 0) + (i[3] ? 8 : 0); return (SEG7[n] || '0000000').split('').map(function (c) { return c === '1'; }); } },
-    /* Flipflops: uebernehmen bei steigender Flanke an C (ffIns = Dateneingaenge), Ausgaenge Q und /Q */
-    dff:  { label: 'D-Flipflop', prefix: 'FF', pins: ['D', 'C', 'Q', 'Qn'], ffIns: ['D'], props: {}, ff: function (q, i) { return i[0]; } },
-    jkff: { label: 'JK-Flipflop', prefix: 'FF', pins: ['J', 'K', 'C', 'Q', 'Qn'], ffIns: ['J', 'K'], props: {}, ff: function (q, i) { return i[0] && i[1] ? !q : i[0] ? true : i[1] ? false : q; } },
-    tff:  { label: 'T-Flipflop', prefix: 'FF', pins: ['T', 'C', 'Q', 'Qn'], ffIns: ['T'], props: {}, ff: function (q, i) { return i[0] ? !q : q; } },
+    /* Flipflops: Ausgaenge Q und /Q; ffIns = Dateneingaenge; PS (preSet) und PC (preClear) wirken unabhaengig vom Takt (Vorrang vor C, bei beiden gewinnt PC).
+     * props.trig = Steuerungsart: 'pos' steigende Flanke (Standard), 'neg' fallende Flanke, 'level' taktzustandsgesteuert (uebernimmt solange C = 1).
+     * rsff: taktgesteuertes RS (Standard 'level'); jkms: Master-Slave (Master nimmt J/K bei C = 1, Slave bei fallender Flanke: Ausgang aendert sich bei C 1 → 0).
+     * props.tpd = Laufzeit je Flipflop-Stufe (nur fuer den Zeitverlauf des Studios: Flanken laufen k·tpd spaeter ein, siehe step opts.iters). */
+    dff:  { label: 'D-Flipflop', prefix: 'FF', pins: ['D', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['D'], ffAsync: ['PS', 'PC'], props: { trig: 'pos', tpd: 20e-9 }, ff: function (q, i) { return i[0]; } },
+    jkff: { label: 'JK-Flipflop', prefix: 'FF', pins: ['J', 'K', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['J', 'K'], ffAsync: ['PS', 'PC'], props: { trig: 'pos', tpd: 20e-9 }, ff: function (q, i) { return i[0] && i[1] ? !q : i[0] ? true : i[1] ? false : q; } },
+    tff:  { label: 'T-Flipflop', prefix: 'FF', pins: ['T', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['T'], ffAsync: ['PS', 'PC'], props: { trig: 'pos', tpd: 20e-9 }, ff: function (q, i) { return i[0] ? !q : q; } },
+    rsff: { label: 'RS-Flipflop', prefix: 'FF', pins: ['S', 'R', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['S', 'R'], ffAsync: ['PS', 'PC'], rs: true, props: { trig: 'level', tpd: 20e-9 }, ff: function (q, i) { return i[0] && !i[1] ? true : i[1] && !i[0] ? false : q; } },
+    jkms: { label: 'JK-MS-Flipflop', prefix: 'FF', pins: ['J', 'K', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['J', 'K'], ffAsync: ['PS', 'PC'], ms: true, props: { tpd: 20e-9 }, ff: function (q, i) { return i[0] && i[1] ? !q : i[0] ? true : i[1] ? false : q; } },
     /* Halbleiter: NPN-Transistor (sperrt / aktiv: Ic = β·Ib / Saettigung: U_CE ≈ 0,2 V), Z-Diode (Durchbruch bei U_Z in Sperrrichtung) */
     npn:   { label: 'NPN-Transistor', prefix: 'Q', pins: ['b', 'c', 'e'], props: { beta: 100, vbe: 0.7, rbe: 50, vsat: 0.2, pmax: 0.5 } },
     zener: { label: 'Z-Diode', prefix: 'Z', pins: ['a', 'k'], props: { vz: 5.1, vf: 0.7, rs: 5, pmax: 0.5 } },
@@ -797,7 +804,14 @@ body.has-exam-bar .top { padding-top: 50px; }
   };
   /* Segmente a…g fuer 0–9 (BCD), darueber dunkel */
   var SEG7 = ['1111110', '0110000', '1101101', '1111001', '0110011', '1011011', '1011111', '1110000', '1111111', '1111011'];
-  function dIns(d) { return d.ins || (d.ffIns ? d.ffIns.concat(['C']) : d.pins.filter(function (p) { return p !== 'out'; })); }
+  function dIns(d) { return d.ins || (d.ffIns ? d.ffIns.concat(['C'], d.ffAsync || []) : d.pins.filter(function (p) { return p !== 'out'; })); }
+  /* Anschluesse eines Bauteils mit seinen Eigenschaften (Gatter: Eingangszahl props.inputs) */
+  function pinsOf(type, q) {
+    var d = def(type); if (!d.multi) return d.pins;
+    var n = Math.max(2, Math.min(8, Math.round((q && q.inputs) || 2))); if (n === 2) return d.pins;
+    var a = []; for (var k = 1; k <= n; k++) a.push('in' + k); a.push('out'); return a;
+  }
+  function insOfPart(p) { var d = def(p.type); return d.multi ? Object.keys(p.n).filter(function (k) { return k !== 'out'; }) : dIns(d); }
   function dOuts(d) { return d.outs || (d.ff ? ['Q', 'Qn'] : ['out']); }
   function isDigital(d) { return !!(d.logic || d.digital || d.ff); }
   var SOURCES = { battery: 1, clock: 1, acsource: 1 };
@@ -824,8 +838,8 @@ body.has-exam-bar .top { padding-top: 50px; }
     (layout.parts || []).forEach(function (p) {
       var d = def(p.type);
       if (byId[p.id]) throw new Error('Doppelte Bauteil-ID: ' + p.id);
-      d.pins.forEach(function (pin) { add(p.id + '.' + pin); });
       var q = { id: p.id, type: p.type, props: props(p), n: {} };
+      pinsOf(p.type, q.props).forEach(function (pin) { add(p.id + '.' + pin); });
       parts.push(q); byId[p.id] = q;
     });
     var wires = (layout.wires || []).concat(extra || []);
@@ -845,7 +859,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       if (!names[r]) names[r] = groundRoots[r] ? '0' : 'N' + (++count);
       pinNode[pid] = names[r];
     });
-    parts.forEach(function (p) { def(p.type).pins.forEach(function (pin) { p.n[pin] = pinNode[p.id + '.' + pin]; }); });
+    parts.forEach(function (p) { pinsOf(p.type, p.props).forEach(function (pin) { p.n[pin] = pinNode[p.id + '.' + pin]; }); });
     var nodes = [];
     Object.keys(names).forEach(function (r) { if (names[r] !== '0') nodes.push(names[r]); });
     nodes.sort(function (a, b) { return +a.slice(1) - +b.slice(1); });
@@ -875,7 +889,7 @@ body.has-exam-bar .top { padding-top: 50px; }
 
   /* burnInfo: Werte im Moment des Durchbrennens (fuer die Diagnose), fuseInfo: Strom beim Ausloesen der Multimeter-Sicherung */
   /* tr: Transistor-Zustand ('off'|'on'|'sat'), zen: Z-Dioden-Zustand ('off'|'f'|'z'), ff: Flipflops {q, c (letzter Taktpegel)} */
-  function newState() { return { burnt: {}, vC: {}, logic: {}, diode: {}, tr: {}, zen: {}, ff: {}, fuse: false, t: 0, burnInfo: {}, fuseInfo: null }; }
+  function newState() { return { burnt: {}, vC: {}, iL: {}, logic: {}, diode: {}, tr: {}, zen: {}, ff: {}, fuse: false, t: 0, burnInfo: {}, fuseInfo: null }; }
 
   /* ---------- Loeser fuer einen Arbeitspunkt / Zeitschritt ----------
    * opts: { state, dt (null = Gleichstrom-Arbeitspunkt), t, meter:{mode,a,b} (Knoten), zeroSources, inject:{a,b,i},
@@ -947,6 +961,10 @@ body.has-exam-bar .top { padding-top: 50px; }
             if (dt) { var gc = q.value / dt; G(n.a, n.b, gc); I(n.a, n.b, gc * (st.vC[p.id] || 0)); }
             else G(n.a, n.b, G_OPEN);
             break;
+          case 'inductor': // i(n) = i(n−1) + dt/L·v  →  Leitwert dt/L parallel zu einer Stromquelle i(n−1) (a→b); ohne dt: Kurzschluss
+            if (dt) { G(n.a, n.b, dt / Math.max(q.value, 1e-12)); I(n.a, n.b, -((st.iL || {})[p.id] || 0)); }
+            else G(n.a, n.b, G_CLOSED);
+            break;
           case 'clock':
             var high = opts.zeroSources ? false : (Math.floor(t * q.freq * 2) % 2 === 0);
             norton(n.out, '0', high ? LOGIC.vcc : 0, LOGIC.rout);
@@ -954,7 +972,7 @@ body.has-exam-bar .top { padding-top: 50px; }
           default:
             var dd = def(p.type);
             if (dd.logic || dd.ff) {
-              dIns(dd).forEach(function (pin) { G(n[pin], '0', G_OPEN); });
+              insOfPart(p).forEach(function (pin) { G(n[pin], '0', G_OPEN); });
               if (dd.ff) { drive(n.Q, ffQ(p)); drive(n.Qn, !ffQ(p)); }
               else dOuts(dd).forEach(function (pin, k) { drive(n[pin], outVal(p, k)); });
             } else if (dd.digital) dd.pins.forEach(function (pin) { if (p.type !== 'logicin') G(n[pin], '0', G_OPEN); });
@@ -1019,7 +1037,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       for (var gi = 0; gi < net.parts.length && !gateChanged; gi++) {
         var g = net.parts[gi], d = def(g.type);
         if (!d.logic || st.burnt[g.id]) continue;
-        var ins = dIns(d).map(function (pin) { return volt(g.n[pin]) > LOGIC.vth; });
+        var ins = insOfPart(g).map(function (pin) { return volt(g.n[pin]) > LOGIC.vth; });
         var out = d.logic(ins); out = Array.isArray(out) ? out.map(Boolean) : !!out;
         if (JSON.stringify(out) !== JSON.stringify(logic[g.id])) gateChanged = { id: g.id, to: out };
       }
@@ -1069,6 +1087,7 @@ body.has-exam-bar .top { padding-top: 50px; }
           if (p.type === 'led') r.brightness = r.on ? Math.min(1, r.i / q.inom) : 0;
           break;
         case 'capacitor': r.v = across(n.a, n.b); r.i = dt ? q.value / dt * (r.v - (st.vC[p.id] || 0)) : 0; break;
+        case 'inductor': r.v = across(n.a, n.b); r.i = dt ? ((st.iL || {})[p.id] || 0) + dt / Math.max(q.value, 1e-12) * r.v : r.v * G_CLOSED; r.p = r.v * r.i; break;
         case 'clock': r.v = volt(n.out); r.high = r.v > LOGIC.vth; r.pin = { out: ((r.high && !opts.zeroSources ? LOGIC.vcc : 0) - r.v) / LOGIC.rout }; break;
         default:
           var dd = def(p.type);
@@ -1097,6 +1116,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     var out, guard = 0, trace = opts.trace ? [] : null;
     for (;;) {
       out = solve(net, { state: state, dt: opts.dt, t: state.t, meter: opts.meter, trace: trace });
+      if (opts.iters) opts.iters.push(out.res.nodeV); // Zwischenloesungen je Durchgang (Flipflop-Laufzeit im Zeitverlauf des Studios)
       var newDamage = false, faults = [];
       net.parts.forEach(function (p) {
         var r = out.res.parts[p.id], q = p.props;
@@ -1119,7 +1139,7 @@ body.has-exam-bar .top { padding-top: 50px; }
         if ((p.type === 'npn' || p.type === 'zener') && Math.abs(r.p) > q.pmax) faults.push({ code: 'OVERLOAD', part: p.id, p: r.p, pmax: q.pmax, v: r.v, i: r.i });
       });
       if (out.res.oscillating) faults.push({ code: 'UNSTABLE' });
-      if (!net.hasGround && !net.autoGround && net.parts.some(function (p) { return isDigital(def(p.type)) || p.type === 'clock'; })) faults.push({ code: 'NO_GROUND' });
+      if (!opts.noGroundFault && !net.hasGround && !net.autoGround && net.parts.some(function (p) { return isDigital(def(p.type)) || p.type === 'clock'; })) faults.push({ code: 'NO_GROUND' });
       out.res.faults = faults;
       // Nie Ausgang gegen Ausgang: zwei digitale Ausgaenge am selben Knoten mit unterschiedlichem Pegel
       var drv = {};
@@ -1136,22 +1156,32 @@ body.has-exam-bar .top { padding-top: 50px; }
         if (ds.some(function (x) { return x.v; }) && ds.some(function (x) { return !x.v; }))
           faults.push({ code: 'OUTPUT_CLASH', part: ds[0].id, parts: ds.map(function (x) { return x.id; }), i: LOGIC.vcc / (2 * LOGIC.rout) });
       });
-      // Flipflops: bei steigender Flanke an C die Eingaenge uebernehmen (alle gleichzeitig aus derselben Loesung)
+      // Flipflops (alle gleichzeitig aus derselben Loesung): je Steuerungsart Flanke/Zustand an C auswerten, preSet/preClear haben Vorrang
       var ffChanged = false; state.ff = state.ff || {};
       net.parts.forEach(function (p) {
         var d = def(p.type); if (!d.ff || state.burnt[p.id]) return;
-        var f = state.ff[p.id] || (state.ff[p.id] = { q: false, c: null }), c = (out.V[p.n.C] || 0) > LOGIC.vth;
-        if (f.c === false && c) {
-          var nq = !!d.ff(f.q, d.ffIns.map(function (pin) { return (out.V[p.n[pin]] || 0) > LOGIC.vth; }));
-          if (nq !== f.q) { f.q = nq; ffChanged = true; }
+        var f = state.ff[p.id] || (state.ff[p.id] = { q: false, c: null });
+        function lv(pin) { return p.n[pin] !== undefined && (out.V[p.n[pin]] || 0) > LOGIC.vth; }
+        var c = lv('C'), ins = d.ffIns.map(lv), mode = d.ms ? 'ms' : (p.props.trig || 'pos'), nq = f.q, active = false;
+        if (mode === 'pos') { if (f.c === false && c) { active = true; nq = d.ff(f.q, ins); } }
+        else if (mode === 'neg') { if (f.c === true && !c) { active = true; nq = d.ff(f.q, ins); } }
+        else if (mode === 'level') { if (c && guard === 0) { active = true; nq = d.ff(f.q, ins); } }
+        else { // Master-Slave: Master folgt J/K solange C = 1 (setzt mit J·/Q, loescht mit K·Q), Slave uebernimmt bei fallender Flanke
+          if (f.m === undefined) f.m = f.q;
+          if (c) { if (ins[0] && !f.q) f.m = true; else if (ins[1] && f.q) f.m = false; }
+          if (f.c === true && !c) nq = f.m;
         }
+        if (d.rs && active && ins[0] && ins[1]) faults.push({ code: 'FF_RS', part: p.id });
+        if (lv('PC')) { nq = false; if (d.ms) f.m = false; } else if (lv('PS')) { nq = true; if (d.ms) f.m = true; }
+        if (nq !== f.q) { f.q = nq; ffChanged = true; }
         f.c = c;
       });
       state.diode = out.diode; state.logic = out.logic; state.tr = out.tr; state.zen = out.zen;
       if (!(newDamage || ffChanged) || ++guard > 20) break;
     }
     if (opts.dt) {
-      net.parts.forEach(function (p) { if (p.type === 'capacitor') state.vC[p.id] = out.res.parts[p.id].v; });
+      state.iL = state.iL || {};
+      net.parts.forEach(function (p) { if (p.type === 'capacitor') state.vC[p.id] = out.res.parts[p.id].v; else if (p.type === 'inductor') state.iL[p.id] = out.res.parts[p.id].i; });
       state.t += opts.dt;
     }
     out.res.t = state.t;
@@ -1453,11 +1483,13 @@ body.has-exam-bar .top { padding-top: 50px; }
   var api = {
     expectedAnswers: expectedAnswers, UNIT_SCALE: UNIT_SCALE,
     version: '0.2.0', PARTS: PARTS, LED_COLORS: LED_COLORS, LOGIC: LOGIC, METER: METER, LIMITS: LIMITS, SOURCES: SOURCES, TRACE_MAX: TRACE_MAX,
-    wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, DMM_MANUAL: DMM_MANUAL, rangeLabel: rangeLabel, acMeasure: acMeasure,
+    pinsOf: pinsOf, wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, DMM_MANUAL: DMM_MANUAL, rangeLabel: rangeLabel, acMeasure: acMeasure,
     buildNetlist: buildNetlist, solve: solve, step: step, newState: newState,
     measure: measure, simulate: simulate, runTask: runTask, fmt: fmt, clone: clone,
     /* Bezugspunkt eines Aufbaus als Anschlussname ('GND1.g' bzw. 'G1.n'); null ohne Quelle und Masse (Gleichrichter-Auftrag 06.10.2026, G1) */
     refPin: function (layout) { try { return buildNetlist(clone(layout)).refPin; } catch (e) { return null; } },
+    /* Parasitaerleitwert Knoten→Masse setzen (Standard 1e-9 S); gibt den bisherigen Wert zurueck. Nur fuer tests/kern.js: Sollwerte von Hand mit 1e-9 Genauigkeit */
+    setGmin: function (g) { var old = GMIN; GMIN = g; return old; },
     analyze: function (layout, state) { var net = buildNetlist(layout); return step(net, state || newState(), {}); }
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -5657,6 +5689,12 @@ body.has-exam-bar .top { padding-top: 50px; }
       kennwerte: ['value'],
       formel: 'τ = R · C &nbsp;·&nbsp; nach 5 τ praktisch voll geladen'
     },
+    inductor: {
+      funktion: 'Spule (Induktivität): speichert Energie im Magnetfeld. Der Strom kann sich nicht sprunghaft ändern; über einen Widerstand steigt er mit der <b>Zeitkonstante τ = L / R</b>. Bei Gleichstrom (eingeschwungen) wirkt sie wie ein Kurzschluss.',
+      anschluesse: { a: 'Anschluss (Strom fliesst von a nach b positiv)', b: 'Anschluss' },
+      kennwerte: ['value'],
+      formel: 'u = L · di/dt &nbsp;·&nbsp; τ = L / R &nbsp;·&nbsp; Schwingkreis mit C: f = 1 / (2π · √(L·C))'
+    },
     ammeter: {
       funktion: 'Fest eingebauter Strommesser: wird <b>in Reihe</b> in den Stromkreis geschaltet und zeigt den Strom, der durch ihn fliesst.',
       anschluesse: { a: 'Eingang (Strom fliesst von a nach b positiv)', b: 'Ausgang' },
@@ -5707,6 +5745,8 @@ body.has-exam-bar .top { padding-top: 50px; }
     dff: ff('D-Flipflop: übernimmt bei der <b>steigenden Flanke</b> an C den Wert von D und speichert ihn bis zur nächsten Flanke.', { D: 'Dateneingang' }, 'Q<sub>neu</sub> = D'),
     jkff: ff('JK-Flipflop: bei der steigenden Flanke an C: J = 1 setzt, K = 1 setzt zurück, J = K = 1 <b>kippt</b>, J = K = 0 speichert.', { J: 'Setzen', K: 'Rücksetzen' }, 'J K = 00 halten · 10 setzen · 01 rücksetzen · 11 kippen'),
     tff: ff('T-Flipflop: <b>kippt</b> bei jeder steigenden Flanke an C, wenn T = 1 ist – teilt die Taktfrequenz durch 2. Grundbaustein von Zählern.', { T: 'Kippfreigabe (1 = kippen)' }, 'T = 1: Q<sub>neu</sub> = ¬Q'),
+    rsff: ff('RS-Flipflop (taktgesteuert): S = 1 setzt, R = 1 setzt zurück, S = R = 0 speichert. <b>S = R = 1 ist verboten</b> (Störung, der Zustand bleibt). Standard: taktzustandsgesteuert, übernimmt solange C = 1.', { S: 'Setzen', R: 'Rücksetzen' }, 'S R = 00 halten · 10 setzen · 01 rücksetzen · 11 verboten'),
+    jkms: ff('JK-Master-Slave-Flipflop: Der Master nimmt J und K auf, solange C = 1; der Ausgang ändert sich erst bei der <b>fallenden Flanke</b> an C (Slave). J = K = 1 kippt.', { J: 'Setzen', K: 'Rücksetzen' }, 'J K = 00 halten · 10 setzen · 01 rücksetzen · 11 kippen (Ausgang bei C 1 → 0)'),
     npn: {
       funktion: 'NPN-Transistor: Ein kleiner <b>Basisstrom</b> steuert einen grossen <b>Kollektorstrom</b>. Arbeitsbereiche: gesperrt, aktiv (I<sub>C</sub> = β · I<sub>B</sub>), Sättigung (voll durchgeschaltet).',
       anschluesse: { b: 'Basis – Steuereingang, immer mit Basiswiderstand', c: 'Kollektor – Last (z. B. Lampe, Motor) Richtung Plus', e: 'Emitter – an Masse' },
@@ -5739,7 +5779,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   }
   function ff(funktion, ins, formel) {
     var pins = {}; Object.keys(ins).forEach(function (k) { pins[k] = ins[k]; });
-    pins.C = 'Takteingang (steigende Flanke)'; pins.Q = 'Ausgang Q'; pins.Qn = 'Ausgang Q̄ (invertiert)';
+    pins.C = 'Takteingang (Steuerungsart einstellbar: steigende Flanke, fallende Flanke oder taktzustandsgesteuert; im Spiel steigende Flanke)'; pins.PS = 'preSet: setzt Q auf 1, unabhängig vom Takt (Vorrang vor C)'; pins.PC = 'preClear: setzt Q auf 0, unabhängig vom Takt (Vorrang vor C und vor preSet)'; pins.Q = 'Ausgang Q'; pins.Qn = 'Ausgang Q̄ (invertiert)';
     return { funktion: funktion, anschluesse: pins, extra: function (E) { return LOGIC_EXTRA(E).concat([CLASH]); }, formel: formel };
   }
 
@@ -6352,11 +6392,12 @@ body.has-exam-bar .top { padding-top: 50px; }
 (function (root) {
   'use strict';
   var E = root.DQEngine, Circuit = root.DQCircuit;
-  var GRID = 20, W = 1000, H = 620;
+  var GRID = 20;
+  function SW() { return Circuit.SPACES.schema.w; } function SH() { return Circuit.SPACES.schema.h; } // Zeichenflaeche (Spiel 1000 × 620, Studio gross – circuit-ui.js SPACES.schema)
   var TWO = { a: [-40, 0], b: [40, 0] };
   var GEO = {
     ground: { g: [0, -20] }, battery: { p: [0, -40], n: [0, 40] }, acsource: { p: [0, -40], n: [0, 40] },
-    resistor: TWO, lamp: TWO, switch: TWO, button: TWO, capacitor: TWO, ammeter: TWO,
+    resistor: TWO, lamp: TWO, switch: TWO, button: TWO, capacitor: TWO, inductor: TWO, ammeter: TWO,
     led: { a: [-40, 0], k: [40, 0] }, diode: { a: [-40, 0], k: [40, 0] },
     pot: { a: [-40, 0], b: [40, 0], w: [0, 40] }, clock: { out: [40, 0] },
     not: { in: [-40, 0], out: [40, 0] },
@@ -6397,6 +6438,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       case 'acsource': return 'Û ' + fmtVal(v) + ' V ' + ({ square: '⊓', triangle: '△' }[q.shape] || '∿') + ' ' + fmtVal(q.freq || d.props.freq) + ' Hz';
       case 'resistor': case 'pot': case 'lamp': return fmtVal(v) + ' Ω';
       case 'capacitor': return fmtVal(v) + 'F';
+      case 'inductor': return fmtVal(v) + 'H';
       case 'clock': return fmtVal(q.freq || d.props.freq) + ' Hz';
       case 'zener': return 'U_Z ' + fmtVal(q.vz || d.props.vz) + ' V';
       case 'motor': return fmtVal(v) + ' Ω';
@@ -6434,6 +6476,8 @@ body.has-exam-bar .top { padding-top: 50px; }
           (col ? '<path class="sym thin" d="M2-16l8-10M10-14l8-10"/><path class="sym fillsym" d="M10-26l-4 1 3 3zM18-24l-4 1 3 3z"/>' : ''); break;
       case 'capacitor':
         s = '<path ' + c + ' d="M-40 0H-5M5 0H40M-5-14V14M5-14V14"/>'; break;
+      case 'inductor': // Spule: vier Halbkreise
+        s = '<path ' + c + ' d="M-40 0H-24a6 6 0 0 1 12 0a6 6 0 0 1 12 0a6 6 0 0 1 12 0a6 6 0 0 1 12 0H40"/>'; break;
       case 'ammeter':
         s = '<path ' + c + ' d="M-40 0H-14M14 0H40"/><circle ' + c + ' r="14"/><text class="symtxt" y="5">A</text>'; break;
       case 'battery':
@@ -6531,22 +6575,22 @@ body.has-exam-bar .top { padding-top: 50px; }
     this.svg = svg; this.opts = opts || {};
     this.core = this.opts.core || new Circuit(this.opts); // Zustand + Bedienlogik (circuit-ui.js); geteilt, falls uebergeben
     this.sim = null; this.refMark = null; this.showVolt = false; this.mouse = [0, 0];
-    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
-    this.view = [0, 0, W, H];
+    svg.setAttribute('viewBox', '0 0 ' + SW() + ' ' + SH());
+    this.view = [0, 0, SW(), SH()];
     this.core.attach(this);
     this._bind();
   }
   /* L4 (05.10.2026): Ausschnitt setzen (begrenzt), zur Zeigerposition zoomen – dieselbe Bedienung wie die Werkbank
    * (Strg/⌘ + Rad, zwei Finger, Ziehen auf leerer Fläche); Doppeltipp auf ein Bauteil zoomt heran, auf leere Fläche passt ein. */
   Editor.prototype.setView = function (v) {
-    var w = Math.max(160, Math.min(W * 1.6, v[2])), h = v[3] * w / v[2];
-    var x = Math.max(-300, Math.min(W + 300 - w, v[0])), y = Math.max(-300, Math.min(H + 300 - h, v[1]));
+    var w = Math.max(160, Math.min(SW() * 1.6, v[2])), h = v[3] * w / v[2];
+    var x = Math.max(-300, Math.min(SW() + 300 - w, v[0])), y = Math.max(-300, Math.min(SH() + 300 - h, v[1]));
     this.view = [x, y, w, h]; this.svg.setAttribute('viewBox', this.view.join(' ')); this.render();
   };
   Editor.prototype.zoomAt = function (f, cx, cy) {
     var box = this.svg.getBoundingClientRect(), v = this.view; if (!box.width) return;
     var px = v[0] + (cx - box.left) / box.width * v[2], py = v[1] + (cy - box.top) / box.height * v[3];
-    var w = Math.max(160, Math.min(W * 1.6, v[2] * f)), k = w / v[2];
+    var w = Math.max(160, Math.min(SW() * 1.6, v[2] * f)), k = w / v[2];
     this.setView([px - (px - v[0]) * k, py - (py - v[1]) * k, w, v[3] * k]);
   };
   Editor.prototype.zoomTo = function (part) { // Doppeltipp auf ein Bauteil: halber Ausschnitt um das Bauteil
@@ -6566,9 +6610,9 @@ body.has-exam-bar .top { padding-top: 50px; }
     if (ps.length) { x0 = Math.min.apply(null, ps.map(function (p) { return p.x; })); x1 = Math.max.apply(null, ps.map(function (p) { return p.x; }));
       y0 = Math.min.apply(null, ps.map(function (p) { return p.y; })); y1 = Math.max.apply(null, ps.map(function (p) { return p.y; })); }
     var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, box = this.svg.getBoundingClientRect(), small = box.width && box.width < 600, tight = this.opts.tight; // tight: Mini-Schaltung, knapp um die Bauteile
-    var w = Math.max(tight ? 240 : small ? 380 : 640, x1 - x0 + (tight ? 150 : small ? 160 : 280)), h = Math.max(tight ? 160 : small ? 240 : 400, y1 - y0 + (tight ? 150 : small ? 160 : 280)),  ar = box.width && box.height ? box.width / box.height : W / H;
+    var w = Math.max(tight ? 240 : small ? 380 : 640, x1 - x0 + (tight ? 150 : small ? 160 : 280)), h = Math.max(tight ? 160 : small ? 240 : 400, y1 - y0 + (tight ? 150 : small ? 160 : 280)),  ar = box.width && box.height ? box.width / box.height : SW() / SH();
     if (w / h < ar) w = h * ar; else h = w / ar;
-    this.view = [Math.max(0, Math.min(W - w, cx - w / 2)), Math.max(0, Math.min(H - h, cy - h / 2)), Math.min(w, W), Math.min(h, H)];
+    this.view = [Math.max(0, Math.min(SW() - w, cx - w / 2)), Math.max(0, Math.min(SH() - h, cy - h / 2)), Math.min(w, SW()), Math.min(h, SH())];
     this.svg.setAttribute('viewBox', this.view.join(' '));
     this.render();
   };
@@ -6579,7 +6623,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   Editor.prototype.nextId = function (type) { return this.core.nextId(type); };
   /* Neues Bauteil in der Mitte des sichtbaren Ausschnitts */
   Editor.prototype.addPart = function (type) {
-    var v = this.view || [0, 0, W, H], p = this.core.addPart(type, v[0] + v[2] / 2, v[1] + v[3] / 2);
+    var v = this.view || [0, 0, SW(), SH()], p = this.core.addPart(type, v[0] + v[2] / 2, v[1] + v[3] / 2);
     if (p.x - 50 < v[0] || p.x + 50 > v[0] + v[2] || p.y - 50 < v[1] || p.y + 50 > v[1] + v[3]) this.fit(); // neues Bauteil ausserhalb des Ausschnitts: einpassen
     return p;
   };
@@ -6661,14 +6705,16 @@ body.has-exam-bar .top { padding-top: 50px; }
       return 'M' + a[0] + ' ' + a[1] + 'L' + sa[0] + ' ' + sa[1] + mid + 'L' + b[0] + ' ' + b[1];
     }
     function wcol(pid) {
-      if (!self.showVolt || !res || !pinNode) return null;
+      if (!res || !pinNode) return null;
+      var own = self.opts.wireColor && self.opts.wireColor(pid, res, pinNode); if (own) return own; // Studio: Logikleitungen nach Pegel faerben
+      if (!self.showVolt) return null;
       var n = pinNode[pid]; return n === undefined ? null : voltColor(res.nodeV[n] || 0, vmax);
     }
     var h = [];
     h.push('<defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="0" cy="0" r="1" class="griddot"/></pattern>' +
       '<radialGradient id="glowAmber"><stop offset="0" stop-color="#ffcf4a" stop-opacity="0.9"/><stop offset="1" stop-color="#ffb000" stop-opacity="0"/></radialGradient>' +
       '<filter id="blur" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="6"/></filter></defs>');
-    h.push('<rect width="' + W + '" height="' + H + '" fill="url(#grid)"/>');
+    h.push('<rect width="' + SW() + '" height="' + SH() + '" fill="url(#grid)"/>');
     // Leitungen
     var wi = self.showFlow && root.DQBench ? root.DQBench.wireCurrents(L, res) : [];
     L.wires.forEach(function (w, i) {

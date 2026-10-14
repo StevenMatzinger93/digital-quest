@@ -99,6 +99,12 @@
       kennwerte: ['value'],
       formel: 'τ = R · C &nbsp;·&nbsp; nach 5 τ praktisch voll geladen'
     },
+    inductor: {
+      funktion: 'Spule (Induktivität): speichert Energie im Magnetfeld. Der Strom kann sich nicht sprunghaft ändern; über einen Widerstand steigt er mit der <b>Zeitkonstante τ = L / R</b>. Bei Gleichstrom (eingeschwungen) wirkt sie wie ein Kurzschluss.',
+      anschluesse: { a: 'Anschluss (Strom fliesst von a nach b positiv)', b: 'Anschluss' },
+      kennwerte: ['value'],
+      formel: 'u = L · di/dt &nbsp;·&nbsp; τ = L / R &nbsp;·&nbsp; Schwingkreis mit C: f = 1 / (2π · √(L·C))'
+    },
     ammeter: {
       funktion: 'Fest eingebauter Strommesser: wird <b>in Reihe</b> in den Stromkreis geschaltet und zeigt den Strom, der durch ihn fliesst.',
       anschluesse: { a: 'Eingang (Strom fliesst von a nach b positiv)', b: 'Ausgang' },
@@ -149,6 +155,8 @@
     dff: ff('D-Flipflop: übernimmt bei der <b>steigenden Flanke</b> an C den Wert von D und speichert ihn bis zur nächsten Flanke.', { D: 'Dateneingang' }, 'Q<sub>neu</sub> = D'),
     jkff: ff('JK-Flipflop: bei der steigenden Flanke an C: J = 1 setzt, K = 1 setzt zurück, J = K = 1 <b>kippt</b>, J = K = 0 speichert.', { J: 'Setzen', K: 'Rücksetzen' }, 'J K = 00 halten · 10 setzen · 01 rücksetzen · 11 kippen'),
     tff: ff('T-Flipflop: <b>kippt</b> bei jeder steigenden Flanke an C, wenn T = 1 ist – teilt die Taktfrequenz durch 2. Grundbaustein von Zählern.', { T: 'Kippfreigabe (1 = kippen)' }, 'T = 1: Q<sub>neu</sub> = ¬Q'),
+    rsff: ff('RS-Flipflop (taktgesteuert): S = 1 setzt, R = 1 setzt zurück, S = R = 0 speichert. <b>S = R = 1 ist verboten</b> (Störung, der Zustand bleibt). Standard: taktzustandsgesteuert, übernimmt solange C = 1.', { S: 'Setzen', R: 'Rücksetzen' }, 'S R = 00 halten · 10 setzen · 01 rücksetzen · 11 verboten'),
+    jkms: ff('JK-Master-Slave-Flipflop: Der Master nimmt J und K auf, solange C = 1; der Ausgang ändert sich erst bei der <b>fallenden Flanke</b> an C (Slave). J = K = 1 kippt.', { J: 'Setzen', K: 'Rücksetzen' }, 'J K = 00 halten · 10 setzen · 01 rücksetzen · 11 kippen (Ausgang bei C 1 → 0)'),
     npn: {
       funktion: 'NPN-Transistor: Ein kleiner <b>Basisstrom</b> steuert einen grossen <b>Kollektorstrom</b>. Arbeitsbereiche: gesperrt, aktiv (I<sub>C</sub> = β · I<sub>B</sub>), Sättigung (voll durchgeschaltet).',
       anschluesse: { b: 'Basis – Steuereingang, immer mit Basiswiderstand', c: 'Kollektor – Last (z. B. Lampe, Motor) Richtung Plus', e: 'Emitter – an Masse' },
@@ -181,7 +189,7 @@
   }
   function ff(funktion, ins, formel) {
     var pins = {}; Object.keys(ins).forEach(function (k) { pins[k] = ins[k]; });
-    pins.C = 'Takteingang (steigende Flanke)'; pins.Q = 'Ausgang Q'; pins.Qn = 'Ausgang Q̄ (invertiert)';
+    pins.C = 'Takteingang (Steuerungsart einstellbar: steigende Flanke, fallende Flanke oder taktzustandsgesteuert; im Spiel steigende Flanke)'; pins.PS = 'preSet: setzt Q auf 1, unabhängig vom Takt (Vorrang vor C)'; pins.PC = 'preClear: setzt Q auf 0, unabhängig vom Takt (Vorrang vor C und vor preSet)'; pins.Q = 'Ausgang Q'; pins.Qn = 'Ausgang Q̄ (invertiert)';
     return { funktion: funktion, anschluesse: pins, extra: function (E) { return LOGIC_EXTRA(E).concat([CLASH]); }, formel: formel };
   }
 

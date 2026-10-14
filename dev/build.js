@@ -6,6 +6,7 @@
 //     data/dq.json         Kapitel, Aufgaben, Theorien, Uebungswerkstatt (fuer Leitstand und Challenge)
 //     data/dq_live.json    Musterschaltungen und Stoerungsszenarien (aus den wrong-Loesungen)
 //     sw.js                ein Service Worker fuer Portal und Spiel, /api/ nie aus dem Cache
+//   ../studio.html        Digital Quest Studio (Schaltungssimulator, eine Datei, offline) – web/studio/index.html gehostet unter /studio/
 //   ../worker/gen/exam_bundle.js   Engine + Pruefungspool fuer den Worker (Bewertung der Pruefungen auf dem Server)
 //   ../worker/gen/avatar_bundle.js Avatar-Katalog und Coin-Regeln (src/avatar_core.js), Kollektionen je Teil (AVATAR_META) und Boss-Aufgaben (FINAL_TASKS)
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
@@ -142,10 +143,34 @@ fs.writeFileSync(path.join(root, 'worker', 'gen', 'avatar_bundle.js'), avatarBun
 for (const f of files) if (/content_exam|exam_core/.test(f)) throw new Error('Prüfungspool darf nicht ins Spiel: ' + f);
 if (/defExamTask|"hidden"/.test(game)) throw new Error('Prüfungspool ist im Spiel gelandet');
 
+
+/* ---------- Digital Quest Studio: eigener Einstieg (Schaltungssimulator ohne Spiel, ohne Konto) ----------
+ * ../studio.html  eine Datei, offline;  web/studio/index.html  gehostete Fassung (Pfad /studio/).
+ * Teilt engine.js, circuit-ui.js, editor.js mit dem Spiel; eigene Oberflaeche in dev/studio/. Plan: docs/AUFTRAG_STUDIO.md */
+const SD = f => fs.readFileSync(path.join(__dirname, 'studio', f), 'utf8').split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
+const studioFiles = fs.readdirSync(path.join(__dirname, 'studio')).filter(f => /\.js$/.test(f));
+const STUDIO_ORDER = ['sim.js', 'counters.js', 'studio.js', 'scope.js', 'timing.js', 'inspector.js', 'examples.js'];   // studio.js legt S an, danach die Module; examples.js zuletzt
+const studioJs = ['engine.js', 'circuit-ui.js', 'editor.js'].map(f => '/* ==== ' + f + ' ==== */\n' + src(f))
+  .concat(STUDIO_ORDER.filter(f => studioFiles.includes(f)).map(f => '/* ==== studio/' + f + ' ==== */\n' + SD(f))).join('\n');
+studioFiles.forEach(f => { if (!STUDIO_ORDER.includes(f)) throw new Error('studio/' + f + ' fehlt in STUDIO_ORDER (build.js)'); });
+if (/<\/script/i.test(studioJs)) throw new Error('Studio-JS enthält </script>');
+const studioTpl = SD('index.template.html');
+const studioFill = pwa => studioTpl.split('/*CSS*/').join(SD('studio.css')).split('/*JS*/').join(studioJs).split('<!--PWA-->').join(pwa);
+const studioIcon = '<link rel="icon" href="data:image/svg+xml,' + encodeURIComponent(fs.readFileSync(path.join(__dirname, 'assets/icon.svg'), 'utf8')) + '">';
+const studioOffline = studioFill(studioIcon);
+fs.writeFileSync(path.join(root, 'studio.html'), studioOffline);
+fs.mkdirSync(path.join(web, 'studio'), { recursive: true });
+const studioWeb = studioFill('<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="../icon.svg"><link rel="apple-touch-icon" href="../icon-192.png">' +
+  '<script>if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));</script>');
+fs.writeFileSync(path.join(web, 'studio', 'index.html'), studioWeb);
+fs.writeFileSync(path.join(web, 'studio', 'manifest.webmanifest'), JSON.stringify({ name: 'Digital Quest Studio', short_name: 'DQ Studio', lang: 'de-CH', start_url: './', scope: './', display: 'standalone',
+  background_color: '#f6fbfc', theme_color: '#0f2d3a', description: 'Schaltungen frei bauen, simulieren und messen.', icons: icons.map(i => Object.assign({}, i, { src: i.src.replace('../', '../') })) }, null, 2));
+if (/https?:\/\/(fonts|cdn)/.test(studioOffline)) throw new Error('Studio (offline) darf keine Netzadressen laden');
+
 /* ---------- Service Worker (Wurzel): Portal und Spiel offline, /api/ und /z/ nie aus dem Cache ---------- */
 const FILES = ['./', './index.html', './impressum.html', './datenschutz.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png',
-  './data/dq.json', './data/dq_live.json', './labor/', './labor/index.html', './labor/manifest.webmanifest'];
-const ver = crypto.createHash('sha1').update(portal + game + JSON.stringify(meta)).digest('hex').slice(0, 10);
+  './data/dq.json', './data/dq_live.json', './labor/', './labor/index.html', './labor/manifest.webmanifest', './studio/', './studio/index.html', './studio/manifest.webmanifest'];
+const ver = crypto.createHash('sha1').update(portal + game + studioWeb + JSON.stringify(meta)).digest('hex').slice(0, 10);
 fs.writeFileSync(path.join(web, 'sw.js'), `// Service Worker: hält Portal und Labor offline verfügbar (Cache-first, Version ${ver})
 const CACHE = 'dquest-${ver}';
 const FILES = ${JSON.stringify(FILES)};
@@ -164,4 +189,4 @@ self.addEventListener('fetch', e => {
 });
 `);
 const kb = f => (fs.statSync(f).size / 1024).toFixed(0) + ' KB';
-console.log(`Build ok: index.html (${kb(path.join(root, 'index.html'))}), web/ Portal (${kb(path.join(web, 'index.html'))}) + labor/ (${kb(path.join(lab, 'index.html'))}), ${bugs.length} Störungsszenarien, Worker-Bundle ${(bundle.length / 1024).toFixed(0)} KB (${XP.Exam.X.tasks.length} Prüfungsvorlagen, ${XP.questions.length} Fragen), Cache ${ver}, ${files.length} Quelldateien`);
+console.log(`Build ok: index.html (${kb(path.join(root, "index.html"))}), studio.html (${kb(path.join(root, "studio.html"))}), web/ Portal (${kb(path.join(web, 'index.html'))}) + labor/ (${kb(path.join(lab, 'index.html'))}), ${bugs.length} Störungsszenarien, Worker-Bundle ${(bundle.length / 1024).toFixed(0)} KB (${XP.Exam.X.tasks.length} Prüfungsvorlagen, ${XP.questions.length} Fragen), Cache ${ver}, ${files.length} Quelldateien`);

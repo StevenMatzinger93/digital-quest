@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digital Quest Studio</title>
+<meta name="description" content="Digital Quest Studio – Schaltungen frei bauen, simulieren und messen: Gleichstrom, Zeitbereich, Oszilloskop, Digitaltechnik bis Zähler.">
+<meta name="theme-color" content="#0f2d3a">
+<!--PWA-->
+<style>/*CSS*/</style>
+</head>
+<body>
+<header class="menubar" id="menubar">
+  <div class="brand"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h4l2-6 4 12 2-6h8"/></svg><span>DIGITAL<b>QUEST</b> Studio</span></div>
+  <!--MENUS-->
+  <span class="spacer"></span><span class="ver" id="verTag">Studio · Entwurf</span>
+</header>
+<div class="toolbar" id="toolbar" role="toolbar" aria-label="Werkzeuge">
+  <div class="tgroup" aria-label="Simulation"><span class="tl">Simulation</span>
+    <button class="tb run is-running" id="btnRun" title="Simulation starten / anhalten (Leertaste)">⏸ Pause</button>
+    <button class="tb" id="btnStep" title="Einen Rechenschritt ausführen">⏭ Schritt</button>
+    <button class="tb" id="btnReset" title="Zurück auf Zeit 0, Speicher und Kondensatoren leeren">⟲ Zurück</button>
+    <label class="sr" for="selFactor" hidden>Zeitfaktor</label>
+    <select class="tsel" id="selFactor" title="Zeitfaktor: wie schnell die Simulationszeit läuft"></select>
+  </div>
+  <div class="tgroup" aria-label="Takt"><span class="tl">Takt</span>
+    <label for="clockHz" class="hint">Taktgeber</label><input class="tin" id="clockHz" type="text" inputmode="decimal" value="1" title="Frequenz aller Taktgeber, z. B. 1, 50, 1k"><span class="hint">Hz</span>
+  </div>
+  <div class="tgroup" aria-label="Werkzeuge"><span class="tl">Werkzeuge</span>
+    <button class="tb on" id="toolBuild" title="Bauen: Bauteile ziehen, Anschlüsse nacheinander anklicken = Leitung">✎ Bauen</button>
+    <button class="tb" id="toolMeasure" title="Messen: Anschluss oder Bauteil anklicken = Signal ins Oszilloskop">⌖ Messen</button>
+    <select class="tsel" id="measureKind" hidden title="Was beim Klick auf ein Bauteil gemessen wird"><option value="pv">Spannung</option><option value="pi">Strom</option></select>
+    <button class="tb" id="btnRot" title="Bauteil drehen (R)">⟳ Drehen</button>
+    <button class="tb" id="btnDel" title="Auswahl löschen (Entf)">🗑 Löschen</button>
+    <button class="tb" id="btnVolt" title="Spannungen an den Anschlüssen anzeigen" aria-pressed="false">U-Werte</button>
+    <button class="tb" id="btnFit" title="Schaltung einpassen">⛶ Einpassen</button>
+  </div>
+  <div class="tgroup" aria-label="Messen"><span class="tl">Anzeigen</span>
+    <button class="tb" id="btnScope" title="Neues Oszilloskop-Fenster">∿ Oszilloskop</button>
+    <button class="tb on" id="btnTiming" title="Zeitverlaufsdiagramm unten ein- oder ausblenden">▤ Zeitverlauf</button>
+  </div>
+</div>
+<div class="main">
+  <aside class="palette" id="palette" aria-label="Bauteile"></aside>
+  <section class="canvas" id="canvasWrap" aria-label="Zeichenfläche">
+    <svg id="board" role="img" aria-label="Schaltplan"></svg>
+  </section>
+  <aside class="inspector" id="inspector" aria-label="Eigenschaften"></aside>
+</div>
+<section class="timing" id="timing" aria-label="Zeitverlauf">
+  <div class="th"><b>Zeitverlauf</b><span class="hint" id="tlHint"></span></div>
+  <canvas id="tlCanvas"></canvas>
+</section>
+<footer class="statusbar" id="statusbar" role="status" aria-live="polite"></footer>
+<div id="floats"></div>
+<div class="modal-bg" id="modalBg"><div class="modal" role="dialog" aria-modal="true" id="modal"></div></div>
+<script>/*JS*/</script>
+</body>
+</html>

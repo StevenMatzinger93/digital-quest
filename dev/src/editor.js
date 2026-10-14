@@ -5,11 +5,12 @@
 (function (root) {
   'use strict';
   var E = root.DQEngine, Circuit = root.DQCircuit;
-  var GRID = 20, W = 1000, H = 620;
+  var GRID = 20;
+  function SW() { return Circuit.SPACES.schema.w; } function SH() { return Circuit.SPACES.schema.h; } // Zeichenflaeche (Spiel 1000 × 620, Studio gross – circuit-ui.js SPACES.schema)
   var TWO = { a: [-40, 0], b: [40, 0] };
   var GEO = {
     ground: { g: [0, -20] }, battery: { p: [0, -40], n: [0, 40] }, acsource: { p: [0, -40], n: [0, 40] },
-    resistor: TWO, lamp: TWO, switch: TWO, button: TWO, capacitor: TWO, ammeter: TWO,
+    resistor: TWO, lamp: TWO, switch: TWO, button: TWO, capacitor: TWO, inductor: TWO, ammeter: TWO,
     led: { a: [-40, 0], k: [40, 0] }, diode: { a: [-40, 0], k: [40, 0] },
     pot: { a: [-40, 0], b: [40, 0], w: [0, 40] }, clock: { out: [40, 0] },
     not: { in: [-40, 0], out: [40, 0] },
@@ -50,6 +51,7 @@
       case 'acsource': return 'Û ' + fmtVal(v) + ' V ' + ({ square: '⊓', triangle: '△' }[q.shape] || '∿') + ' ' + fmtVal(q.freq || d.props.freq) + ' Hz';
       case 'resistor': case 'pot': case 'lamp': return fmtVal(v) + ' Ω';
       case 'capacitor': return fmtVal(v) + 'F';
+      case 'inductor': return fmtVal(v) + 'H';
       case 'clock': return fmtVal(q.freq || d.props.freq) + ' Hz';
       case 'zener': return 'U_Z ' + fmtVal(q.vz || d.props.vz) + ' V';
       case 'motor': return fmtVal(v) + ' Ω';
@@ -87,6 +89,8 @@
           (col ? '<path class="sym thin" d="M2-16l8-10M10-14l8-10"/><path class="sym fillsym" d="M10-26l-4 1 3 3zM18-24l-4 1 3 3z"/>' : ''); break;
       case 'capacitor':
         s = '<path ' + c + ' d="M-40 0H-5M5 0H40M-5-14V14M5-14V14"/>'; break;
+      case 'inductor': // Spule: vier Halbkreise
+        s = '<path ' + c + ' d="M-40 0H-24a6 6 0 0 1 12 0a6 6 0 0 1 12 0a6 6 0 0 1 12 0a6 6 0 0 1 12 0H40"/>'; break;
       case 'ammeter':
         s = '<path ' + c + ' d="M-40 0H-14M14 0H40"/><circle ' + c + ' r="14"/><text class="symtxt" y="5">A</text>'; break;
       case 'battery':
@@ -184,22 +188,22 @@
     this.svg = svg; this.opts = opts || {};
     this.core = this.opts.core || new Circuit(this.opts); // Zustand + Bedienlogik (circuit-ui.js); geteilt, falls uebergeben
     this.sim = null; this.refMark = null; this.showVolt = false; this.mouse = [0, 0];
-    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
-    this.view = [0, 0, W, H];
+    svg.setAttribute('viewBox', '0 0 ' + SW() + ' ' + SH());
+    this.view = [0, 0, SW(), SH()];
     this.core.attach(this);
     this._bind();
   }
   /* L4 (05.10.2026): Ausschnitt setzen (begrenzt), zur Zeigerposition zoomen – dieselbe Bedienung wie die Werkbank
    * (Strg/⌘ + Rad, zwei Finger, Ziehen auf leerer Fläche); Doppeltipp auf ein Bauteil zoomt heran, auf leere Fläche passt ein. */
   Editor.prototype.setView = function (v) {
-    var w = Math.max(160, Math.min(W * 1.6, v[2])), h = v[3] * w / v[2];
-    var x = Math.max(-300, Math.min(W + 300 - w, v[0])), y = Math.max(-300, Math.min(H + 300 - h, v[1]));
+    var w = Math.max(160, Math.min(SW() * 1.6, v[2])), h = v[3] * w / v[2];
+    var x = Math.max(-300, Math.min(SW() + 300 - w, v[0])), y = Math.max(-300, Math.min(SH() + 300 - h, v[1]));
     this.view = [x, y, w, h]; this.svg.setAttribute('viewBox', this.view.join(' ')); this.render();
   };
   Editor.prototype.zoomAt = function (f, cx, cy) {
     var box = this.svg.getBoundingClientRect(), v = this.view; if (!box.width) return;
     var px = v[0] + (cx - box.left) / box.width * v[2], py = v[1] + (cy - box.top) / box.height * v[3];
-    var w = Math.max(160, Math.min(W * 1.6, v[2] * f)), k = w / v[2];
+    var w = Math.max(160, Math.min(SW() * 1.6, v[2] * f)), k = w / v[2];
     this.setView([px - (px - v[0]) * k, py - (py - v[1]) * k, w, v[3] * k]);
   };
   Editor.prototype.zoomTo = function (part) { // Doppeltipp auf ein Bauteil: halber Ausschnitt um das Bauteil
@@ -219,9 +223,9 @@
     if (ps.length) { x0 = Math.min.apply(null, ps.map(function (p) { return p.x; })); x1 = Math.max.apply(null, ps.map(function (p) { return p.x; }));
       y0 = Math.min.apply(null, ps.map(function (p) { return p.y; })); y1 = Math.max.apply(null, ps.map(function (p) { return p.y; })); }
     var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, box = this.svg.getBoundingClientRect(), small = box.width && box.width < 600, tight = this.opts.tight; // tight: Mini-Schaltung, knapp um die Bauteile
-    var w = Math.max(tight ? 240 : small ? 380 : 640, x1 - x0 + (tight ? 150 : small ? 160 : 280)), h = Math.max(tight ? 160 : small ? 240 : 400, y1 - y0 + (tight ? 150 : small ? 160 : 280)),  ar = box.width && box.height ? box.width / box.height : W / H;
+    var w = Math.max(tight ? 240 : small ? 380 : 640, x1 - x0 + (tight ? 150 : small ? 160 : 280)), h = Math.max(tight ? 160 : small ? 240 : 400, y1 - y0 + (tight ? 150 : small ? 160 : 280)),  ar = box.width && box.height ? box.width / box.height : SW() / SH();
     if (w / h < ar) w = h * ar; else h = w / ar;
-    this.view = [Math.max(0, Math.min(W - w, cx - w / 2)), Math.max(0, Math.min(H - h, cy - h / 2)), Math.min(w, W), Math.min(h, H)];
+    this.view = [Math.max(0, Math.min(SW() - w, cx - w / 2)), Math.max(0, Math.min(SH() - h, cy - h / 2)), Math.min(w, SW()), Math.min(h, SH())];
     this.svg.setAttribute('viewBox', this.view.join(' '));
     this.render();
   };
@@ -232,7 +236,7 @@
   Editor.prototype.nextId = function (type) { return this.core.nextId(type); };
   /* Neues Bauteil in der Mitte des sichtbaren Ausschnitts */
   Editor.prototype.addPart = function (type) {
-    var v = this.view || [0, 0, W, H], p = this.core.addPart(type, v[0] + v[2] / 2, v[1] + v[3] / 2);
+    var v = this.view || [0, 0, SW(), SH()], p = this.core.addPart(type, v[0] + v[2] / 2, v[1] + v[3] / 2);
     if (p.x - 50 < v[0] || p.x + 50 > v[0] + v[2] || p.y - 50 < v[1] || p.y + 50 > v[1] + v[3]) this.fit(); // neues Bauteil ausserhalb des Ausschnitts: einpassen
     return p;
   };
@@ -314,14 +318,16 @@
       return 'M' + a[0] + ' ' + a[1] + 'L' + sa[0] + ' ' + sa[1] + mid + 'L' + b[0] + ' ' + b[1];
     }
     function wcol(pid) {
-      if (!self.showVolt || !res || !pinNode) return null;
+      if (!res || !pinNode) return null;
+      var own = self.opts.wireColor && self.opts.wireColor(pid, res, pinNode); if (own) return own; // Studio: Logikleitungen nach Pegel faerben
+      if (!self.showVolt) return null;
       var n = pinNode[pid]; return n === undefined ? null : voltColor(res.nodeV[n] || 0, vmax);
     }
     var h = [];
     h.push('<defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="0" cy="0" r="1" class="griddot"/></pattern>' +
       '<radialGradient id="glowAmber"><stop offset="0" stop-color="#ffcf4a" stop-opacity="0.9"/><stop offset="1" stop-color="#ffb000" stop-opacity="0"/></radialGradient>' +
       '<filter id="blur" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="6"/></filter></defs>');
-    h.push('<rect width="' + W + '" height="' + H + '" fill="url(#grid)"/>');
+    h.push('<rect width="' + SW() + '" height="' + SH() + '" fill="url(#grid)"/>');
     // Leitungen
     var wi = self.showFlow && root.DQBench ? root.DQBench.wireCurrents(L, res) : [];
     L.wires.forEach(function (w, i) {
