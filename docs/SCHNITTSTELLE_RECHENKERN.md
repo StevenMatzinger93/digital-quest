@@ -44,6 +44,8 @@ Alle Funktionen sind synchron und ohne Nebenwirkung auf das Layout (der Kern kop
 | `simulate(layout, {dt, tEnd, probes, events, settle}) → {samples, state}` | Zeitreihe für einzelne Messpunkte (Oszilloskop-Rechenweg des Spiels). |
 | `acMeasure(layout, {a, b}) → {dc, rms, avg, peak, pp, …}` | Kennwerte über Perioden der langsamsten Wechselquelle. |
 | `measure(layout, {mode, a, b}) → {value, unit, display}` | Multimeter V, A, Ω, V~. |
+| `acSolve(layout, f, {source}) → {pin(pin) → [Re, Im], nodeV}` | Wechselstromanalyse bei einer Frequenz: komplexe Knotenanalyse um den Arbeitspunkt, Reiz 1 V an `source` (Standard: erste Wechselspannungsquelle), andere Quellen sind Kurzschlüsse über `ri`. |
+| `acSweep(layout, {a, b?}, {fmin, fmax, points, source}) → {freqs, mag, db, phase, re, im}` | Frequenzgang U(a, b) je 1 V Reiz, logarithmisch geteilt; Phase in Grad. |
 | `runTask(task, layout, answers)` | Aufgabenprüfung des Spiels (nicht Teil der Kernschnittstelle des Studios). |
 
 ### Rückgabe von `step` (`res`)
@@ -76,6 +78,8 @@ Einheiten: V, A, Ω, F, H, s, Hz, W. Vorzeichen der Zweipole: Strom fliesst im B
 ```js
 dc(layout)                         // → { node(pin), i(id), v(id), part(id) } im Gleichstrom-Arbeitspunkt
 transient(layout, { dt, n })       // → [ { t, node(pin), i(id), v(id) } … ] für Schritt 0 (Arbeitspunkt) bis n
+ac(layout, {a, b?}, f)            // → { re, im, mag, db, phase } bei der Frequenz f, Reiz 1 V an der ersten Wechselspannungsquelle
+session(layout)                    // → { set(id, prop, wert), eval(dt?) → Ansicht } für Digitaltechnik (Eingänge setzen, Takt, Zeit)
 ```
 
 Aufruf: `node tests/kern.js`. Exit-Code 1 bei der ersten Abweichung. Andere Kerne: `require('./tests/kern.js').run(meinAdapter)`.

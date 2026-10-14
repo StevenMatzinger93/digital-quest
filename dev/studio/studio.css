@@ -13,7 +13,7 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
-body { background: var(--bg); color: var(--dunkel); font: 15px/1.45 var(--font-ui); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; overflow: hidden; }
+body { background: var(--bg); color: var(--dunkel); font: 15px/1.45 var(--font-ui); display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto auto; overflow: hidden; }
 button, select, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 3px solid var(--hellblau); outline-offset: 1px; }
@@ -183,3 +183,47 @@ button { cursor: pointer; }
   .fwin { min-width: 260px; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+.forbid { fill: rgba(226,87,76,.12); stroke: var(--schlecht); stroke-width: 3; stroke-dasharray: 6 3; pointer-events: none; } .forbidtxt { fill: var(--sch-text); font: 700 11px var(--font-mono); text-anchor: middle; pointer-events: none; }
+.faultmark { fill: rgba(226,87,76,.10); stroke: var(--schlecht); stroke-width: 3; stroke-dasharray: 7 4; pointer-events: none; } .faulttxt { fill: var(--sch-text); font: 700 11px var(--font-mono); text-anchor: middle; pointer-events: none; }
+.warnbox { border: 2px solid var(--schlecht); background: #fdeeed; color: var(--sch-text); border-radius: 8px; padding: 6px 10px; margin: 8px 0; font-size: 14px; }
+.tl-warn { background: var(--schlecht); color: #fff; border-radius: 6px; padding: 3px 10px; font-weight: 600; font-size: 13px; }
+.timing.overdrive { outline: 3px solid var(--schlecht); outline-offset: -3px; }
+
+.sliderbar { display: flex; flex-wrap: wrap; gap: 4px 22px; padding: 4px 12px; background: #eef7fb; border-bottom: 1px solid var(--rand); }
+.sliderbar .sl { display: flex; align-items: center; gap: 8px; min-width: 280px; } .sliderbar label { white-space: nowrap; } .sliderbar input[type=range] { flex: 1; min-width: 120px; min-height: 44px; }
+.sliderbar output { min-width: 78px; text-align: right; } .sliderbar button { background: none; border: 0; min-width: 32px; min-height: 32px; color: var(--grau); font-size: 18px; }
+.slrow { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; margin: 0 0 8px; font-size: 13px; } .slrow .tin { width: 100%; min-height: 36px; } .slcfg input[type=checkbox] { width: 20px; height: 20px; vertical-align: middle; }
+
+#printArea { display: none; }
+@media print {
+  @page { size: A4 landscape; margin: 12mm; }
+  html, body { background: #fff !important; height: auto !important; overflow: visible !important; display: block !important; }
+  body > *:not(#printArea) { display: none !important; }
+  #printArea { display: block; }
+  .pr-frame { border: 1.5px solid #000; padding: 6mm; height: 181mm; display: flex; flex-direction: column; box-sizing: border-box; }
+  .pr-fig { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  .pr-svg { width: 100%; height: 150mm; }
+  .pr-title { width: 100%; border-collapse: collapse; margin-top: 4mm; }
+  .pr-title td { border: 1px solid #000; padding: 2mm 3mm; font: 12pt sans-serif; color: #000; }
+  .pr-l { background: #eee; width: 1%; white-space: nowrap; } .pr-v { min-width: 40mm; }
+}
+
+.ov { text-decoration: overline; padding: 0 1px; text-decoration-thickness: 1.5px; }
+.lg-sec { margin: 0 0 14px; } .lg-expr { font-family: var(--font-mono); font-size: 18px; } .lg-msg { margin: 8px 0; font-family: var(--font-mono); font-size: 17px; line-height: 1.7; } .lg-msg.err { color: var(--sch-text); font-family: var(--font-ui); font-size: 14px; }
+.tt { border-collapse: collapse; font-family: var(--font-mono); margin: 6px 0; } .tt th, .tt td { border: 1px solid var(--rand); padding: 2px 10px; text-align: center; } .tt th { background: var(--bg); } .tt .o { background: #eef7fb; font-weight: 700; }
+.kvw { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-start; } .kv-svg { flex: 0 1 380px; } .kv { width: 100%; max-width: 380px; display: block; } .kv-side { flex: 1; min-width: 160px; } .kv-side p { margin: 0 0 8px; }
+.kv-h { font: 600 13px var(--font-mono); fill: var(--grau); text-anchor: middle; } .kv-cell rect { fill: var(--karte); stroke: var(--rand); } .kv-v { font: 700 18px var(--font-mono); fill: #9ab; text-anchor: middle; pointer-events: none; } .kv-v.one { fill: var(--dunkel); } .kv-v.dc { fill: var(--blau-text); }
+.kv-m { font: 9px var(--font-mono); fill: #9ab; pointer-events: none; } .kv-loop { fill: none; stroke-width: 3; pointer-events: none; } .kv-term { margin-top: 8px; font: 17px var(--font-mono); } .kv-term p { font-family: var(--font-ui); } .kv-side .btn { display: none; } .kv-side .dim, .kv-side .small { color: var(--grau); font-size: 13px; }
+
+/* ---- Beamer-Modus (Nacht-Paket 10): dicke Linien, grosse Schrift, höherer Kontrast, grosse Bedienelemente ---- */
+body.beamer { font-size: 20px; --grau: #263238; --blau-text: #04485f; --gut-text: #0a5f35; --sch-text: #8a241c; --rand: #a9c1c8; --wire: #04485f; --dunkel: #000a10; }
+body.beamer .tb, body.beamer .tsel, body.beamer .tin { min-height: 58px; font-size: 19px; } body.beamer .menu > button { min-height: 52px; font-size: 19px; } body.beamer .menubar { min-height: 52px; } body.beamer .drop button { min-height: 56px; font-size: 19px; }
+body.beamer .pitem { min-height: 92px; font-size: 15px; } body.beamer .pitem .symicon { width: 64px; height: 42px; } body.beamer .palette { width: 250px; } body.beamer .main { grid-template-columns: 250px minmax(0, 1fr) 340px; }
+body.beamer .inspector { font-size: 19px; } body.beamer .field input[type="text"], body.beamer .field select { min-height: 56px; font-size: 19px; width: 170px; } body.beamer .live { font-size: 17px; } body.beamer .statusbar { font-size: 17px; min-height: 44px; }
+body.beamer .griddot { fill: #dde9ec; }
+body.beamer .sym { stroke-width: 3.6; stroke: #000; } body.beamer .sym.thin { stroke-width: 2.6; } body.beamer .sym.thick { stroke-width: 6; } body.beamer .sym.thick2 { stroke-width: 9; } body.beamer .sym.fillsym { fill: #000; }
+body.beamer .wire { stroke-width: 4.6; } body.beamer .wire.selected { stroke-width: 6.5; } body.beamer .pin { stroke-width: 2.4; r: 6; } body.beamer .pin.used { r: 6.5; }
+body.beamer .symtxt { font-size: 21px; fill: #000; } body.beamer .symtxt.small { font-size: 14px; } body.beamer .lbl { font-size: 20px; font-weight: 700; fill: #000; } body.beamer .val { font-size: 20px; font-weight: 700; fill: var(--blau-text); } body.beamer .vlabel { font-size: 17px; font-weight: 700; stroke-width: 4px; }
+body.beamer .tl-nm { font-size: 17px; } body.beamer .sc-bar, body.beamer .sc-chs { font-size: 15px; } body.beamer .itab { font-size: 15px; }
+body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkrechte Bauteile: Beschriftung weiter weg vom Symbol */

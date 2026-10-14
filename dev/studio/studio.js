@@ -91,7 +91,7 @@
     Circuit.SPACES.schema.w = 2400; Circuit.SPACES.schema.h = 1500; // grosse Zeichenflaeche (Spiel: 1000 × 620)
     svg = $('#board');
     ed = S.ed = new Editor(svg, {
-      onChange: onChange, onSelect: onSelect, onProbe: onProbe, onDouble: function (p) { return !!(E.PARTS[p.type].ctr && S.expandCounter && S.expandCounter(p)); }, onMessage: function (m) { flash(m); },
+      faultOf: function (id) { return S.faultTag(id); }, onChange: onChange, onSelect: onSelect, onProbe: onProbe, onDouble: function (p) { return !!(E.PARTS[p.type].ctr && S.expandCounter && S.expandCounter(p)); }, onMessage: function (m) { flash(m); },
       wireColor: wireColor
     });
     core = S.core = ed.core; core.tool = 'wire';
@@ -121,7 +121,7 @@
   /* Was der Schaltplan zeigt (Leuchten, Pegel, Segmente, Schaeden, Spannungsbeschriftung) – nur bei Aenderung neu zeichnen, das Bild bleibt ruhig und klickbar */
   function visSig() {
     var r = sim.res; if (!r) return 'none';
-    var a = [sim.err || '', r.faults.length, ed.showVolt ? 1 : 0];
+    var a = [sim.err || '', r.faults.map(function (f) { return f.code + (f.part || ''); }).join(), ed.showVolt ? 1 : 0];
     Object.keys(r.parts).forEach(function (id) {
       var q = r.parts[id]; a.push(q.on ? 1 : 0, q.out === undefined ? '' : Array.isArray(q.out) ? q.out.join('') : q.out ? 1 : 0, q.q ? 1 : 0, q.high ? 1 : 0, q.burnt ? 1 : 0,
         q.brightness ? Math.round(q.brightness * 12) : 0, q.seg ? q.seg.map(Number).join('') : '', q.p !== undefined && /lamp|motor/.test(id) ? Math.round(Math.min(1, Math.abs(q.p)) * 8) : '');
@@ -139,11 +139,13 @@
   }
 
   function onChange(kind) {
+    if (S.onEdit) S.onEdit(kind);
     if (kind === 'move' || kind === 'rotate') { return; }
-    sim.refresh(kind === 'add' || kind === 'delete' || kind === 'wire');
+    sim.refresh(kind === 'add' || kind === 'delete' || kind === 'wire' || kind === 'undo');
     findDigitalNodes();
     if (kind === 'add' || kind === 'delete' || kind === 'wire') { if (S.onStructure) S.onStructure(); }
-    if (kind === 'delete') selId = null;
+    if (kind === 'delete' || kind === 'undo') selId = null;
+    if (S.onCircuitChange) S.onCircuitChange();
     if (kind !== 'edit') renderInspector(true);
     S.redraw();
   }
@@ -154,7 +156,7 @@
       Object.keys(p.n).forEach(function (pin) { S.digitalNodes[p.n[pin]] = true; });
     });
   }
-  function onSelect(p) { selId = p ? p.id : null; renderInspector(true); if (p && measureTool && S.measurePart) S.measurePart(p); }
+  function onSelect(p) { if (S.onSelectHook) S.onSelectHook(p); selId = p ? p.id : null; renderInspector(true); if (p && measureTool && S.measurePart) S.measurePart(p); }
   function onProbe(pin) { if (S.measurePin) S.measurePin(pin); }
 
   /* ---------- Bauteilleiste ---------- */
@@ -190,6 +192,7 @@
     document.addEventListener('keydown', function (ev) {
       if (inField(ev.target) || ev.ctrlKey || ev.metaKey || ev.altKey) return;
       if (ev.key === ' ' && !ev.target.closest('button,summary')) { ev.preventDefault(); S.toggleRun(); return; }
+      if (ev.key === 'F9') { ev.preventDefault(); S.setBeamer(!S.beamer); return; }
       if (ev.key === 'Escape') { closeMenus(); closeModal(); }
       core.key(ev);
     });
@@ -201,10 +204,11 @@
     MENUS = [
       { id: 'datei', label: 'Datei', items: [{ label: 'Neu', act: function () { S.newCircuit(); } }, { sep: 1 }, { label: 'Schaltung einpassen', act: function () { ed.fit(); } }] },
       { id: 'bsp', label: 'Beispiele', items: [] },
-      { id: 'bearb', label: 'Bearbeiten', items: [{ label: 'Drehen', key: 'R', act: function () { core.rotateSelected('schema'); S.redraw(); } }, { label: 'Löschen', key: 'Entf', act: function () { core.removeSelected(); } }, { label: 'Auswahl aufheben', key: 'Esc', act: function () { core.cancel(); } }] },
+      { id: 'bearb', label: 'Bearbeiten', items: [{ label: 'Rückgängig', key: 'Strg+Z', act: function () { S.undo(); } }, { label: 'Wiederholen', key: 'Strg+Y', act: function () { S.redo(); } }, { sep: 1 }, { label: 'Drehen', key: 'R', act: function () { core.rotateSelected('schema'); S.redraw(); } }, { label: 'Löschen', key: 'Entf', act: function () { core.removeSelected(); } }, { label: 'Auswahl aufheben', key: 'Esc', act: function () { core.cancel(); } }] },
       { id: 'sim', label: 'Simulation', items: [{ label: 'Start / Pause', key: 'Leertaste', act: function () { S.toggleRun(); } }, { label: 'Einzelschritt', act: function () { S.stepOnce(); } }, { label: 'Zurücksetzen', act: function () { S.resetSim(); } }] },
-      { id: 'fenster', label: 'Fenster', items: [{ label: 'Neues Oszilloskop', act: function () { if (S.openScope) S.openScope(); } }, { label: 'Zeitverlauf ein/aus', act: function () { S.toggleTiming && S.toggleTiming(); } }] },
-      { id: 'hilfe', label: 'Hilfe', items: [{ label: 'Kurzanleitung', act: function () { help(); } }] }
+      { id: 'ansicht', label: 'Ansicht', items: [{ label: 'Beamer-Modus', key: 'F9', act: function () { S.setBeamer(!S.beamer); } }, { label: 'Schaltung einpassen', act: function () { ed.fit(); } }, { label: 'U-Werte ein/aus', act: function () { $('#btnVolt').click(); } }] },
+      { id: 'fenster', label: 'Fenster', items: [{ label: 'Neues Oszilloskop', act: function () { if (S.openScope) S.openScope(); } }, { label: 'Neues Bode-Diagramm', act: function () { if (S.openBode) S.openBode(); } }, { label: 'Logik: Ausdruck, Tabelle, KV', act: function () { if (S.openLogic) S.openLogic(); } }, { label: 'Zeitverlauf ein/aus', act: function () { S.toggleTiming && S.toggleTiming(); } }] },
+      { id: 'hilfe', label: 'Hilfe', items: [{ label: 'Kurzanleitung', act: function () { help(); } }, { label: 'Tastenkürzel', act: function () { openModal('<h2>Tastenkürzel</h2><table class="itab" style="font-family:var(--font-ui);font-size:14px">' + S.shortcuts.map(function (r) { return '<tr><td style="text-align:left"><kbd>' + esc(r[0]) + '</kbd></td><td style="text-align:left">' + esc(r[1]) + '</td></tr>'; }).join('') + '</table><p><button class="tb" id="mClose">Schliessen</button></p>'); } }] }
     ];
     var bar = $('#menubar'), sp = $('.spacer', bar), h = '';
     MENUS.forEach(function (m) { var el = document.createElement('div'); el.className = 'menu'; el.id = 'menu-' + m.id; el.innerHTML = '<button aria-haspopup="true" aria-expanded="false">' + esc(m.label) + '</button><div class="drop" role="menu"></div>'; bar.insertBefore(el, sp); m.el = el; fillMenu(m); });
@@ -242,8 +246,10 @@
     $('#btnReset').addEventListener('click', function () { S.resetSim(); });
     $('#toolBuild').addEventListener('click', function () { S.setTool('build'); });
     $('#toolMeasure').addEventListener('click', function () { S.setTool('measure'); });
+    $('#btnUndo').addEventListener('click', function () { S.undo(); }); $('#btnRedo').addEventListener('click', function () { S.redo(); });
     $('#btnRot').addEventListener('click', function () { core.rotateSelected('schema'); S.redraw(); });
     $('#btnDel').addEventListener('click', function () { core.removeSelected(); });
+    $('#btnBeamer').addEventListener('click', function () { S.setBeamer(!S.beamer); });
     $('#btnFit').addEventListener('click', function () { ed.fit(); });
     $('#btnVolt').addEventListener('click', function () { ed.showVolt = !ed.showVolt; this.classList.toggle('on', ed.showVolt); this.setAttribute('aria-pressed', ed.showVolt); S.redraw(); });
     $('#btnScope').addEventListener('click', function () { if (S.openScope) S.openScope(); });
@@ -277,6 +283,7 @@
     ed.load(layout, [], null); sim.clearTraces();
     sim.refresh(true); findDigitalNodes(); sim.reset();
     if (S.onLoad) S.onLoad(opts);
+    if (S.onEdit) S.onEdit('load');
     ed.fit(); renderInspector(true);
     if (opts.run !== false) sim.start(); syncRun(); S.redraw();
   };
@@ -307,6 +314,7 @@
   }
   function fieldHTML(p, f) {
     var v = getProp(p, f.k), id = 'f_' + f.k;
+    if (S.isHidden && S.isHidden(p.id, f.k)) return '<div class="field"><label for="' + id + '">' + esc(f.l) + '</label><span><input id="' + id + '" type="text" disabled value="verborgen"></span></div>';
     if (f.kind === 'bool') return '<div class="field"><label for="' + id + '">' + esc(f.l) + '</label><input id="' + id + '" data-f="' + f.k + '" type="checkbox"' + (v ? ' checked' : '') + ' style="width:28px;height:28px"></div>';
     if (f.kind === 'choice') return '<div class="field"><label for="' + id + '">' + esc(f.l) + '</label><select id="' + id + '" data-f="' + f.k + '">' + f.o.map(function (o) { return '<option value="' + o[0] + '"' + (String(o[0]) === String(v) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></div>';
     if (f.kind === 'pos') return '<div class="field wide"><label for="' + id + '">' + esc(f.l) + ': <span class="mono" id="posv">' + Math.round(v * 100) + ' %</span></label><input id="' + id + '" data-f="' + f.k + '" type="range" min="0" max="1" step="0.01" value="' + v + '"></div>';
@@ -345,19 +353,30 @@
   function fmtFactor(f) { return f >= 1 ? (+f.toPrecision(3)) + ' ×' : '1/' + Math.round(1 / f) + ' ×'; }
 
   /* ---------- Statusleiste ---------- */
+  /* Meldungen: kurz (Statusleiste), lang (Eigenschaften: was passiert ist und warum), Marke am Bauteil */
+  var U = function (v) { return E.fmt(Math.abs(v), 'V'); }, A = function (v) { return E.fmt(Math.abs(v), 'A'); }, Wt = function (v) { return E.fmt(Math.abs(v), 'W'); };
   var FAULT = {
-    SHORT: function (f) { return 'Kurzschluss an ' + f.part + ': ' + E.fmt(Math.abs(f.i), 'A') + ' (Grenze ' + E.fmt(f.imax, 'A') + ')'; },
-    OVERLOAD: function (f) { return f.part + ' überlastet: ' + E.fmt(Math.abs(f.p), 'W') + ' (Grenze ' + E.fmt(f.pmax, 'W') + ')'; },
-    LED_BURNT: function (f) { return f.part + ' durchgebrannt (' + E.fmt(f.i, 'A') + ' statt höchstens ' + E.fmt(f.imax, 'A') + ') – Zurücksetzen macht sie wieder heil'; },
-    LAMP_BURNT: function (f) { return f.part + ' durchgebrannt'; },
-    LED_REVERSE: function (f) { return f.part + ': Sperrspannung ' + E.fmt(Math.abs(f.v), 'V'); },
-    AMMETER_OVERLOAD: function (f) { return f.part + ': Strom über ' + E.fmt(f.imax, 'A'); },
-    UNSTABLE: function () { return 'Kein stabiler Zustand (Rückkopplung ohne Ruhelage)'; },
-    NO_GROUND: function () { return 'Kein Bezugspunkt: Masse-Symbol setzen'; },
-    OUTPUT_CLASH: function (f) { return 'Zwei Ausgänge gegeneinander: ' + f.parts.join(', '); },
-    FF_RS: function (f) { return f.part + ': S = R = 1 ist verboten'; }
+    SHORT: { tag: 'Kurzschluss', s: function (f) { return 'Kurzschluss an ' + f.part + ': ' + A(f.i) + ' (Grenze ' + A(f.imax) + ')'; },
+      l: function (f) { return 'Kurzschluss: ' + f.part + ' liefert ' + A(f.i) + ', erlaubt sind ' + A(f.imax) + '. Die Quelle (' + U(f.u) + ', Innenwiderstand ' + E.fmt(f.ri, 'Ω') + ') hängt praktisch ohne Last an sich selbst – nur ihr Innenwiderstand begrenzt den Strom. Einen Widerstand oder eine Last einbauen.'; } },
+    OVERLOAD: { tag: 'überlastet', s: function (f) { return f.part + ' überlastet: ' + Wt(f.p) + ' (Grenze ' + Wt(f.pmax) + ')'; },
+      l: function (f) { return f.part + ' wird zu heiss: ' + U(f.v) + ' · ' + A(f.i) + ' = ' + Wt(f.p) + ', zulässig sind ' + Wt(f.pmax) + '. In der Wirklichkeit würde das Bauteil verbrennen. Grösseren Widerstand wählen, die Spannung senken oder ein Leistungsbauteil nehmen.'; } },
+    LED_BURNT: { tag: 'durchgebrannt', s: function (f) { return f.part + ' durchgebrannt: ' + A(f.i) + ' statt höchstens ' + A(f.imax); },
+      l: function (f) { return f.part + ' ist durchgebrannt: Es flossen ' + A(f.i) + ' bei ' + U(f.v) + ', erlaubt sind ' + A(f.imax) + '. Eine LED begrenzt den Strom nicht selbst – es fehlt ein Vorwiderstand oder er ist zu klein. «Zurück» (Simulation zurücksetzen) macht sie wieder heil.'; } },
+    LAMP_BURNT: { tag: 'durchgebrannt', s: function (f) { return f.part + ' durchgebrannt: ' + Wt(f.p) + ' bei ' + U(f.v) + ' (Nennleistung ' + Wt(f.pnom) + ')'; },
+      l: function (f) { return f.part + ' ist durchgebrannt: Sie bekam ' + U(f.v) + ' und setzte ' + Wt(f.p) + ' um. Ausgelegt ist sie für ' + Wt(f.pnom) + '; ab dem ' + E.LIMITS.lampBurn + '-fachen (' + Wt(f.pnom * E.LIMITS.lampBurn) + ') schmilzt die Glühwendel. Spannung senken oder eine Lampe für höhere Spannung nehmen. «Zurück» macht sie wieder heil.'; } },
+    LED_REVERSE: { tag: 'Sperrspannung', s: function (f) { return f.part + ': Sperrspannung ' + U(f.v) + ' (ab ' + U(f.vmax) + ' gefährlich)'; },
+      l: function (f) { return f.part + ' liegt in Sperrrichtung an ' + U(f.v) + '. Eine LED leitet nur von der Anode zur Kathode, deshalb leuchtet sie nicht; ab etwa ' + U(f.vmax) + ' in Sperrrichtung würde sie in der Wirklichkeit zerstört. Anschlüsse vertauscht?'; } },
+    AMMETER_OVERLOAD: { tag: 'Sicherung', s: function (f) { return f.part + ': Strom über ' + A(f.imax); }, l: function (f) { return f.part + ' misst über ' + A(f.imax) + ': Ein Strommesser gehört in Reihe in den Stromkreis, nie parallel zu einer Quelle; die Sicherung würde auslösen.'; } },
+    UNSTABLE: { tag: 'instabil', s: function () { return 'Kein stabiler Zustand (Rückkopplung ohne Ruhelage)'; }, l: function () { return 'Die Schaltung findet keinen stabilen Zustand, weil eine Rückkopplung kein Gleichgewicht hat (z. B. ein NICHT-Glied auf sich selbst). Sie schwingt.'; } },
+    NO_GROUND: { s: function () { return 'Kein Bezugspunkt: Masse-Symbol setzen'; }, l: function () { return 'Kein Bezugspunkt: Masse-Symbol setzen.'; } },
+    OUTPUT_CLASH: { tag: 'Ausgänge gegeneinander', s: function (f) { return 'Zwei Ausgänge gegeneinander: ' + f.parts.join(', '); }, l: function (f) { return 'Die Ausgänge ' + f.parts.join(' und ') + ' sind verbunden und liefern verschiedene Pegel: Einer zieht nach 5 V, der andere nach 0 V, es fliesst ein Querstrom und der Pegel ist undefiniert.'; } },
+    FF_RS: { tag: 'verboten', s: function (f) { return f.why === 'async' ? f.part + ': preSet und preClear zugleich ist unzulässig – Q und Q̄ gehen beide auf 1 (verbotener Zustand)' : f.part + ': S = R = 1 ist verboten (verbotener Zustand)'; },
+      l: function (f) { return (f.why === 'async' ? f.part + ': preSet und preClear liegen zugleich an – unzulässig, Q und Q̄ gehen beide auf 1.' : f.part + ': S = R = 1 ist der verbotene Zustand, das Flipflop behält seinen Wert.') + ' Beim Wegnehmen eines Eingangs nimmt es den Zustand ein, den der verbleibende Eingang vorgibt.'; } }
   };
-  S.faultText = function (f) { return FAULT[f.code] ? FAULT[f.code](f) : f.code; };
+  S.faultText = function (f) { return FAULT[f.code] ? FAULT[f.code].s(f) : f.code; };
+  S.faultLong = function (f) { return FAULT[f.code] ? FAULT[f.code].l(f) : f.code; };
+  S.faultTag = function (id) { var f = (sim.faults || []).filter(function (x) { return x.part === id && FAULT[x.code] && FAULT[x.code].tag; })[0]; return f ? FAULT[f.code].tag : null; };
+  S.partFaults = function (id) { return (sim.faults || []).filter(function (x) { return x.part === id || (x.parts && x.parts.indexOf(id) >= 0); }); };
   function renderStatus() {
     var el = $('#statusbar'), h = '';
     if (sim.err) h += '<span class="err">' + esc(sim.err) + '</span>';
@@ -367,11 +386,20 @@
       h += '<span>Zeitfaktor <span class="mono">' + fmtFactor(sim.effFactor()) + '</span>' + (sim.lag ? ' <span class="warn">– Rechner kommt nicht mit, Zeitfaktor senken</span>' : '') + '</span>';
     }
     var seen = {}; (sim.faults || []).forEach(function (f) { var t = S.faultText(f); if (!seen[t]) { seen[t] = 1; h += '<span class="err">⚠ ' + esc(t) + '</span>'; } });
+    if (sim.tpdScale !== 1) h += '<span class="warn">⚠ Laufzeit überhöht ×' + (sim.tpdScale === 1e3 ? '10³' : sim.tpdScale === 1e6 ? '10⁶' : '10⁷') + '</span>';
     h += '<span class="sp"></span><span>' + (core.layout.parts.length) + ' Bauteile · ' + core.layout.wires.length + ' Leitungen</span>';
     if (el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; }
   }
   function flash(m) { var el = $('#statusbar'); el.insertAdjacentHTML('afterbegin', '<span class="warn">' + esc(m) + '</span>'); setTimeout(renderStatus, 3000); }
 
+  /* Beamer-Modus (wie «Beamer» im Portal): dicke Linien, grosse Schrift, hoher Kontrast, grosse Bedienelemente. Ändert die Schaltung nicht. */
+  S.beamer = false;
+  S.setBeamer = function (on) {
+    S.beamer = !!on; document.body.classList.toggle('beamer', S.beamer);
+    var b = $('#btnBeamer'); if (b) { b.classList.toggle('on', S.beamer); b.setAttribute('aria-pressed', S.beamer); }
+    ed.fit(); S.redraw(); if (S.timingDraw) S.timingDraw(); S.scopes.forEach(function (sc) { sc.dirty(); });
+  };
+  S.refreshInspector = function () { renderInspector(true); };
   S.selected = function () { return selId && core.part(selId); };
   S.start = init;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

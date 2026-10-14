@@ -23,7 +23,7 @@ const Kern = {
   setup() { this.oldGmin = E.setGmin(1e-16); },
   teardown() { E.setGmin(this.oldGmin); },
   _view(net, res, t) {
-    return { t, node: pin => res.nodeV[net.pinNode[pin]], i: id => res.parts[id].i, v: id => res.parts[id].v, part: id => res.parts[id], res };
+    return { t, faults: res.faults, node: pin => res.nodeV[net.pinNode[pin]], i: id => res.parts[id].i, v: id => res.parts[id].v, part: id => res.parts[id], res };
   },
   /* session(layout) → { set(id, prop, wert), eval(dt?) → Ansicht }: Schaltung bedienen und rechnen (Digitaltechnik: Eingaenge setzen, Takt, Zeit) */
   session(layout) {
@@ -34,6 +34,8 @@ const Kern = {
       eval(dt) { const r = E.step(net, st, dt ? { dt, noGroundFault: true } : { noGroundFault: true }); if (dt) t += dt; return self._view(net, r, t); }
     };
   },
+  /* ac(layout, probe {a, b?}, f) → { re, im, mag, db, phase }: Wechselstromanalyse bei einer Frequenz, Reiz 1 V an der ersten Wechselspannungsquelle */
+  ac(layout, probe, f) { const r = E.acSolve(layout, f), a = r.pin(probe.a), b = probe.b ? r.pin(probe.b) : [0, 0], re = a[0] - b[0], im = a[1] - b[1]; return { re, im, mag: Math.hypot(re, im), db: 20 * Math.log10(Math.hypot(re, im)), phase: Math.atan2(im, re) * 180 / Math.PI }; },
   dc(layout) { const net = E.buildNetlist(layout), res = E.step(net, E.newState(), {}); return this._view(net, res, 0); },
   transient(layout, o) {
     const net = E.buildNetlist(layout), st = E.newState(), rows = [];
@@ -228,6 +230,48 @@ const transient = [
     } }
 ];
 
+/* ---------- Wechselstromanalyse (Stufe 7) ----------
+ * Quelle G1 mit ri = 0,05 Ω (Reiz 1 V). Alle Sollwerte mit der Gesamtimpedanz einschliesslich ri. */
+const acCases = [
+  { name: 'A1 RC-Tiefpass: H(jω) = 1/(1 + jωRC) bis 1e-9',
+    // R = 1 kΩ + ri 0,05 Ω = 1000,05 Ω, C = 100 nF. H = 1/(1 + jωτ) mit τ = 1000,05·1e-7. Betrag 1/√(1+(ωτ)²), Phase −atan(ωτ).
+    layout: { parts: [P('G1', 'acsource', { value: 1, ri: 0.05 }), P('R1', 'resistor', { value: 1000 }), P('C1', 'capacitor', { value: 1e-7 })], wires: [W('G1.p', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'G1.n')] },
+    check(kern) {
+      const tau = 1000.05 * 1e-7, out = [];
+      [10, 500, 1591.5494, 10000, 100000].forEach(f => { const h = kern.ac(this.layout, { a: 'C1.a', b: 'C1.b' }, f), wt = 2 * Math.PI * f * tau;
+        out.push({ what: '|H| bei ' + f + ' Hz', got: h.mag, want: 1 / Math.sqrt(1 + wt * wt) }); out.push({ what: 'Phase bei ' + f + ' Hz', got: h.phase, want: -Math.atan(wt) * 180 / Math.PI, abs: 1e-7 }); });
+      return out;
+    } },
+  { name: 'A2 RC-Tiefpass: −3 dB bei fg = 1/(2πRC) auf 1 %, −20 dB je Dekade, Phase −45° bei fg',
+    layout: { parts: [P('G1', 'acsource', { value: 1, ri: 0.05 }), P('R1', 'resistor', { value: 1000 }), P('C1', 'capacitor', { value: 1e-7 })], wires: [W('G1.p', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'G1.n')] },
+    // fg = 1/(2π·1000·100 nF) = 1591,55 Hz. Abfall: bei 10·fg und 100·fg ≈ −20,04 dB bzw. −40,00 dB (Steigung −20 dB/Dekade).
+    check(kern) {
+      const fg = 1 / (2 * Math.PI * 1000 * 1e-7), out = [], at = f => kern.ac(this.layout, { a: 'C1.a', b: 'C1.b' }, f);
+      // −3 dB-Frequenz suchen (Halbierung der Betragsgleichung)
+      let lo = fg / 4, hi = fg * 4; for (let k = 0; k < 60; k++) { const m = Math.sqrt(lo * hi); if (at(m).db > -3.0103) lo = m; else hi = m; }
+      out.push({ what: '−3 dB bei ' + lo.toFixed(2) + ' Hz, fg = ' + fg.toFixed(2) + ' Hz', got: lo, want: fg, rel: 0.01 });
+      const d1 = at(10 * fg).db, d2 = at(100 * fg).db; out.push({ what: 'Abfall 10·fg → 100·fg = ' + (d2 - d1).toFixed(3) + ' dB/Dekade', got: d2 - d1, want: -20, rel: 0.01 });
+      out.push({ what: 'Phase bei fg = ' + at(fg).phase.toFixed(3) + '°', got: at(fg).phase, want: -45, rel: 0.01 });
+      return out;
+    } },
+  { name: 'A3 RLC-Reihenschwingkreis: Resonanzfrequenz und Güte',
+    // R = 10 Ω (+ ri 0,05), L = 10 mH, C = 10 µF; Ausgang an R. f0 = 1/(2π√(LC)) = 503,29 Hz; Rges = 10,05 Ω; Q = (1/Rges)·√(L/C) = 3,1466;
+    // Bandbreite zwischen den −3-dB-Punkten Δf = f0/Q. Bei f0 ist H = R/Rges = 0,99502.
+    layout: { parts: [P('G1', 'acsource', { value: 1, ri: 0.05 }), P('L1', 'inductor', { value: 10e-3 }), P('C1', 'capacitor', { value: 1e-5 }), P('R1', 'resistor', { value: 10 })],
+      wires: [W('G1.p', 'L1.a'), W('L1.b', 'C1.a'), W('C1.b', 'R1.a'), W('R1.b', 'G1.n')] },
+    check(kern) {
+      const f0 = 1 / (2 * Math.PI * Math.sqrt(10e-3 * 1e-5)), Q = Math.sqrt(10e-3 / 1e-5) / 10.05, at = f => kern.ac(this.layout, { a: 'R1.a', b: 'R1.b' }, f), out = [];
+      let best = f0 * 0.5, bm = 0; for (let f = f0 * 0.5; f < f0 * 1.5; f *= 1.0005) { const m = at(f).mag; if (m > bm) { bm = m; best = f; } }
+      out.push({ what: 'Resonanzfrequenz ' + best.toFixed(2) + ' Hz, f0 = ' + f0.toFixed(2) + ' Hz', got: best, want: f0, rel: 0.01 });
+      out.push({ what: 'Betrag bei f0 = R/Rges', got: at(f0).mag, want: 10 / 10.05, rel: 1e-6 });
+      const inside = f => at(f).mag > bm / Math.SQRT2, edge = (outer, inner) => { for (let k = 0; k < 80; k++) { const m = (outer + inner) / 2; if (inside(m)) inner = m; else outer = m; } return (outer + inner) / 2; };
+      const fl = edge(f0 * 0.5, f0), fu = edge(f0 * 2, f0), Qm = f0 / (fu - fl);
+      out.push({ what: 'Güte aus der Bandbreite Q = ' + Qm.toFixed(3) + ', Rechnung ' + Q.toFixed(3), got: Qm, want: Q, rel: 0.01 });
+      out.push({ what: 'Phase bei f0 = 0°', got: Math.abs(at(f0).phase), want: 0, abs: 0.05 });
+      return out;
+    } }
+];
+
 /* ---------- Digitaltechnik (Stufe 3) ----------
  * Wahrheits- und Folgetabellen als Literale (Standardtabellen der Digitaltechnik, nicht aus der Engine abgeleitet).
  * Jeder Fall: layout + steps; Schritt = { set: [[id, prop, wert]…], dt?, expect: { 'U1.out': true … } }. Quelle fuer Pegel: Pegelschalter E1…, Takt EC, preSet EP, preClear EQ. */
@@ -284,7 +328,7 @@ ffCase('D RS-Flipflop (taktzustandsgesteuert): 00 halten, 01 zurück, 10 setzen'
   ['S', 'R'], [[F, F, F, F], [F, F, T, T], [F, T, F, F], [F, T, T, F], [T, F, F, T], [T, F, T, T]]);
 ffCase('D JK-MS-Flipflop (Slave bei fallender Flanke): Tabelle wie JK', 'jkms', 'ms',
   ['J', 'K'], [[F, F, F, F], [F, F, T, T], [F, T, F, F], [F, T, T, F], [T, F, F, T], [T, F, T, T], [T, T, F, T], [T, T, T, F]]);
-digital.push({ name: 'D preSet/preClear setzen Q unabhängig vom Takt (Vorrang vor C, bei beiden gewinnt preClear)',
+digital.push({ name: 'D preSet/preClear setzen Q unabhängig vom Takt (Vorrang vor C, beide zugleich = unzulässig)',
   layout: { parts: [P('FF1', 'dff'), lin('EC'), lin('ED', true), lin('EP'), lin('EQ')], wires: [W('EC.out', 'FF1.C'), W('ED.out', 'FF1.D'), W('EP.out', 'FF1.PS'), W('EQ.out', 'FF1.PC')] },
   steps: [
     { set: [['EP', 'closed', true]], expect: { 'FF1.q': true } },                         // preSet ohne Takt
@@ -294,7 +338,7 @@ digital.push({ name: 'D preSet/preClear setzen Q unabhängig vom Takt (Vorrang v
     { set: [['EC', 'closed', true]], expect: { 'FF1.q': false } },                         // steigende Flanke bei gedrücktem preClear: Takt wird übergangen
     { set: [['EQ', 'closed', false], ['EC', 'closed', false]], expect: { 'FF1.q': false } },
     { set: [['EC', 'closed', true]], expect: { 'FF1.q': true } },                          // jetzt übernimmt der Takt D = 1
-    { set: [['EP', 'closed', true], ['EQ', 'closed', true]], expect: { 'FF1.q': false } }   // beide aktiv: preClear gewinnt
+    { set: [['EP', 'closed', true], ['EQ', 'closed', true]], expect: { 'FF1.forbidden': true } }   // beide aktiv: unzulässig, markiert
   ] });
 
 // Zähler (Stufe 4): Takt EC am Pegelschalter, Zählerstand nach jeder steigenden Flanke (Literal-Folgen)
@@ -318,6 +362,33 @@ digital.push({ name: 'D Zähler: Rückstellen R setzt auf 0, unabhängig vom Tak
 digital.push({ name: 'D Zähler mit fallender Taktflanke zählt bei C 1 → 0',
   layout: { parts: [P('Z1', 'ctr_bcd', { trig: 'neg' }), lin('EC', true)], wires: [W('EC.out', 'Z1.C')] },
   steps: [{ set: [['EC', 'closed', false]], expect: { 'Z1.count': 1 } }, { set: [['EC', 'closed', true]], expect: { 'Z1.count': 1 } }, { set: [['EC', 'closed', false]], expect: { 'Z1.count': 2 } }] });
+
+/* preSet/preClear: alle Kombinationen aus PS, PC, Takt und Dateneingang je Flipflop-Typ. Beide gleichzeitig = unzulaessig: Q und /Q beide 1, gemeldet (FF_RS, why async).
+ * Verlassen: bleibt nur PS, gilt Q = 1; bleibt nur PC, gilt Q = 0. */
+function asyncCheck(kern, chk) {
+  const types = { dff: ['D'], tff: ['T'], jkff: ['J', 'K'], rsff: ['S', 'R'], jkms: ['J', 'K'] };
+  Object.keys(types).forEach(type => {
+    const ins = types[type], name = 'D preSet/preClear-Kombinationen ' + type;
+    for (let ps = 0; ps < 2; ps++) for (let pc = 0; pc < 2; pc++) for (let clk = 0; clk < 2; clk++) for (let dv = 0; dv < 2; dv++) {
+      const parts = [P('FF1', type), lin('EC'), lin('EP'), lin('EQ')], wires = [W('EC.out', 'FF1.C'), W('EP.out', 'FF1.PS'), W('EQ.out', 'FF1.PC')];
+      ins.forEach((pin, k) => { parts.push(lin('I' + k)); wires.push(W('I' + k + '.out', 'FF1.' + pin)); });
+      const s = kern.session({ parts, wires });
+      ins.forEach((pin, k) => s.set('I' + k, 'closed', !!dv));
+      s.eval(); s.set('EC', 'closed', !!clk); s.set('EP', 'closed', !!ps); s.set('EQ', 'closed', !!pc); s.eval(); const v = s.eval();
+      const tag = ' [PS=' + ps + ' PC=' + pc + ' C=' + clk + ' Dat=' + dv + ']', flagged = v.faults.some(f => f.code === 'FF_RS' && f.why === 'async');
+      chk(name, 'unzulässig gemeldet nur bei PS und PC' + tag, flagged, !!(ps && pc));
+      if (ps && pc) { chk(name, 'Q = 1' + tag, v.node('FF1.Q') > 2.5, true); chk(name, '/Q = 1' + tag, v.node('FF1.Qn') > 2.5, true); chk(name, 'Bauteil als verboten markiert' + tag, !!v.part('FF1').forbidden, true);
+        s.set('EC', 'closed', false); s.set('EQ', 'closed', false); const a = s.eval(); chk(name, 'nach Wegnahme von PC: Q = 1' + tag, a.part('FF1').q, true); chk(name, 'nicht mehr gemeldet' + tag, a.faults.some(f => f.why === 'async'), false);
+        const s2 = kern.session({ parts, wires }); s2.set('EP', 'closed', true); s2.set('EQ', 'closed', true); s2.eval(); s2.set('EP', 'closed', false); const b = s2.eval(); chk(name, 'nach Wegnahme von PS: Q = 0' + tag, b.part('FF1').q, false); }
+      else if (ps) chk(name, 'nur preSet: Q = 1' + tag, v.part('FF1').q, true);
+      else if (pc) chk(name, 'nur preClear: Q = 0' + tag, v.part('FF1').q, false);
+    }
+  });
+  // RS-Flipflop: S = R = 1 wird genauso markiert (eine Darstellung)
+  const rs = kern.session({ parts: [P('FF1', 'rsff'), lin('EC', true), lin('S', true), lin('R', true)], wires: [W('EC.out', 'FF1.C'), W('S.out', 'FF1.S'), W('R.out', 'FF1.R')] });
+  rs.eval(); const r = rs.eval();
+  chk('D RS verboten', 'S = R = 1 markiert wie der unzulässige preSet/preClear-Zustand', !!r.part('FF1').forbidden && r.faults.some(f => f.code === 'FF_RS' && f.why === 'rs'), true);
+}
 
 function runDigital(kern, c, chk, log) {
   const sess = kern.session(c.layout); let before = 0;
@@ -359,11 +430,18 @@ function run(kern, log) {
       Object.keys(c.out || {}).forEach(k => chk(c.name, 'Ausgang ' + k, r.part(k).out, c.out[k]));
       log((bad === before ? '  ✓ ' : '  ✗ ') + c.name);
     });
+    acCases.forEach(c => {
+      if (!kern.ac) { log('  – ' + c.name + ' (Kern ohne ac)'); return; }
+      const before = bad; let xs; try { xs = c.check(kern); } catch (e) { fail(c.name, 'Rechnung', e.message, 'Ergebnis'); return; }
+      xs.forEach(x => { if (x.abs !== undefined && !x.rel) { if (Math.abs(x.got - x.want) <= x.abs) ok++; else fail(c.name, x.what, x.got, x.want); } else chk(c.name, x.what, x.got, x.want, x.rel); });
+      log((bad === before ? '  ✓ ' : '  ✗ ') + c.name);
+    });
     digital.forEach(c => {
       const before = bad;
       try { runDigital(kern, c, chk, log); } catch (e) { fail(c.name, 'Rechnung', e.message, 'Ergebnis'); }
       log((bad === before ? '  ✓ ' : '  ✗ ') + c.name);
     });
+    { const before = bad; asyncCheck(kern, chk); log((bad === before ? '  ✓ ' : '  ✗ ') + 'D preSet/preClear alle Kombinationen je Flipflop-Typ'); }
     { const before = bad; mirrorCheck(kern, chk); log((bad === before ? '  ✓ ' : '  ✗ ') + 'D JK fallende Flanke ≙ steigende Flanke (Spiegelbild im Zeitverlauf)'); }
     transient.forEach(c => {
       let rows; try { rows = kern.transient(c.layout, { dt: c.dt, n: c.n }); } catch (e) { fail(c.name, 'Rechnung', e.message, 'Ergebnis'); return; }
@@ -372,7 +450,7 @@ function run(kern, log) {
       log((bad === before ? '  ✓ ' : '  ✗ ') + c.name);
     });
   } finally { kern.teardown && kern.teardown(); }
-  return { ok, bad, cases: cases.length + transient.length + digital.length + 1 };
+  return { ok, bad, cases: cases.length + transient.length + acCases.length + digital.length + 1 };
 }
 
 module.exports = { cases, transient, digital, run, Kern, near, TOL, P, W };

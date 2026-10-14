@@ -29,18 +29,24 @@
   <div class="tgroup" aria-label="Werkzeuge"><span class="tl">Werkzeuge</span>
     <button class="tb on" id="toolBuild" title="Bauen: Bauteile ziehen, Anschlüsse nacheinander anklicken = Leitung">✎ Bauen</button>
     <button class="tb" id="toolMeasure" title="Messen: Anschluss oder Bauteil anklicken = Signal ins Oszilloskop">⌖ Messen</button>
-    <select class="tsel" id="measureTarget" hidden title="Wohin das Signal kommt: Auto = digitale Anschlüsse in den Zeitverlauf, analoge ins Oszilloskop"><option value="auto">Ziel: Auto</option><option value="scope">Oszilloskop</option><option value="timing">Zeitverlauf</option></select>
+    <select class="tsel" id="measureTarget" hidden title="Wohin das Signal kommt: Auto = digitale Anschlüsse in den Zeitverlauf, analoge ins Oszilloskop"><option value="auto">Ziel: Auto</option><option value="scope">Oszilloskop</option><option value="bode">Bode-Diagramm</option><option value="timing">Zeitverlauf</option></select>
     <select class="tsel" id="measureKind" hidden title="Was beim Klick auf ein Bauteil gemessen wird"><option value="pv">Spannung</option><option value="pi">Strom</option></select>
+    <button class="tb" id="btnUndo" title="Rückgängig (Strg+Z)">↶ Zurück</button>
+    <button class="tb" id="btnRedo" title="Wiederholen (Strg+Y)">↷ Wieder</button>
     <button class="tb" id="btnRot" title="Bauteil drehen (R)">⟳ Drehen</button>
     <button class="tb" id="btnDel" title="Auswahl löschen (Entf)">🗑 Löschen</button>
     <button class="tb" id="btnVolt" title="Spannungen an den Anschlüssen anzeigen" aria-pressed="false">U-Werte</button>
+    <button class="tb" id="btnBeamer" title="Beamer-Modus: dicke Linien, grosse Schrift, hoher Kontrast (F9)" aria-pressed="false">🎥 Beamer</button>
     <button class="tb" id="btnFit" title="Schaltung einpassen">⛶ Einpassen</button>
   </div>
   <div class="tgroup" aria-label="Messen"><span class="tl">Anzeigen</span>
     <button class="tb" id="btnScope" title="Neues Oszilloskop-Fenster">∿ Oszilloskop</button>
+    <button class="tb" id="btnLogic" title="Boolescher Ausdruck, Wahrheitstabelle, KV-Diagramm">∧ Logik</button>
+    <button class="tb" id="btnBode" title="Neues Bode-Diagramm (Frequenzgang)">📈 Bode</button>
     <button class="tb on" id="btnTiming" title="Zeitverlaufsdiagramm unten ein- oder ausblenden">▤ Zeitverlauf</button>
   </div>
 </div>
+<div class="sliderbar" id="sliderBar" hidden aria-label="Schieberegler"></div>
 <div class="main">
   <aside class="palette" id="palette" aria-label="Bauteile"></aside>
   <section class="canvas" id="canvasWrap" aria-label="Zeichenfläche">

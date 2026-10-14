@@ -22,7 +22,7 @@ Grösse `studio.html`: rund 240 KB (eine Datei, ohne Schrift- oder Netzabhängig
 **Nach Stufe 1 – Oszilloskop:** Fühlt sich das Oszilloskop besser an als Falstads? Bedienung: Werkzeug «Messen», Anschluss anklicken; Fenster an der Titelleiste ziehen, an der Ecke vergrössern; «↔ Cursor» hält die Anzeige an; «τ bestimmen» setzt die Cursor selbst. Beispiel «RC-Glied» zeigt es sofort.
 
 **Nach Stufe 3 – Flipflop-Tabellen:** Stimmen Analyse- und Ansteuertabellen mit dem Lehrmittel überein? Die Tabellen sind Standardtabellen (D, T, JK, RS, JK-MS), berechnet aus den Engine-Definitionen. Beim Vergleichen besonders prüfen:
-- preSet (PS) und preClear (PC) sind hier **aktiv bei 1** (nicht bei 0 wie bei manchen TTL-Bausteinen); bei beiden gleichzeitig gewinnt preClear.
+- preSet (PS) und preClear (PC) sind hier **aktiv bei 1** (nicht bei 0 wie bei manchen TTL-Bausteinen); **beide gleichzeitig = unzulässiger Zustand** (seit Nacht-Paket 1: Q und Q̄ beide 1, rot markiert, im Klartext erklärt).
 - RS-Flipflop: Standard taktzustandsgesteuert (übernimmt solange C = 1); S = R = 1 gibt eine Störung und der Zustand bleibt.
 - JK-MS: Master nimmt J/K bei C = 1 auf (mit «1s-Catching»), Ausgang wechselt bei C 1 → 0.
 - XOR und XNOR mit mehr als zwei Eingängen: ungerade bzw. gerade Zahl von Einsen (Parität).
@@ -38,3 +38,57 @@ Grösse `studio.html`: rund 240 KB (eine Datei, ohne Schrift- oder Netzabhängig
 - Gatter haben keine Laufzeit; nur Flipflops und Zähler (`tpd`, Standard 20 ns). Die Laufzeit gilt in der Zeitsimulation, im Arbeitspunkt (Schalter umlegen im Stillstand) wirken Flipflops sofort.
 - Quellen werden zum Beginn des Rechenschritts ausgewertet (Eigenschaft der Engine seit dem Spiel); bei dt = τ/100 ist das 1 % Verschiebung der Flanke.
 - Die Zeichenfläche misst 2400 × 1500; Zoom und Verschieben wie im Labor.
+
+---
+
+# Zusammenfassung Nachtauftrag (14./15.10.2026)
+
+Branch `wip/studio`, nichts nach `main`. Testkette zum Schluss: `test_engine` 174 ok · `tests/kern.js` 57 Schaltungen / 782 Prüfwerte · `validate.js` 0 Fehler · `tests/studio.js` 181 Prüfungen · `tests/smoke.js` und `tests/tasks.js` (341 Durchläufe) grün auf einer Momentaufnahme des Standes.
+Smoke- und Aufgabentest liefen wegen ihrer Dauer (rund 15 Minuten) auf Momentaufnahmen nach Paket 1, 4, 7 und 11, nicht nach jedem Paket einzeln; der Stand nach Paket 11 enthält alle früheren Änderungen. **Die Pakete sind in zwei Commits zusammengefasst, nicht je Paket einzeln.**
+
+## Pakete
+
+| Paket | Stand |
+|---|---|
+| 1a preSet/preClear zugleich | **fertig** (unzulässiger Zustand, beide Ausgänge 1, markiert, Klartext; Test über alle Kombinationen je Flipflop-Typ) |
+| 1b Laufzeit sichtbar | **fertig** (Zoom bis 1 ns/Div, «Laufzeit überhöht» ×10³, ×10⁶, ×10⁷, rot gekennzeichnet). **Einschränkung:** bei 1 Hz und ×10⁶ liegen die Stufen nur 2 Bildpunkte auseinander (Bild 10 s auf 1000 Punkte), «ohne Zoom erkennbar» ist knapp erfüllt; ×10⁷ (20 Punkte) ist deutlich |
+| 2 Wechselstromanalyse (Stufe 7) | **fertig** (RC-Tiefpass −3 dB, −20 dB je Dekade, −45° auf 1 %; RLC Resonanz 1 %, Güte 1 %; Bode-Fenster) |
+| 3 Editorgrundlagen | **fertig** (Rückgängig 200 Schritte, byteweise geprüft über 50 Zufallsschritte; Zwischenspeichern mit Wiederherstellung; Tastatur) |
+| 4 Schieberegler | **fertig** (Zeitkonstante folgt dem Regler auf 2 %) |
+| 5 Stufe 8 und Export | **fertig** (Dateien mit Formatversion, ältere Formate, SVG/PNG, Druck-PDF A4, Stückliste; SVG mit strengem XML-Parser geprüft) |
+| 6 Robustheit und Leistung | **fertig** (misst, ein echter Fehler behoben) |
+| 7 Überlastung sichtbar | **fertig** |
+| 8 Wahrheitstabelle und KV | **fertig** (13 bekannte Schaltungen, Minimalform gegen unabhängige Berechnung) |
+| 9 Ausdruck ⇄ Schaltung | **fertig** (16 Gleichungen inkl. De Morgan, Hin- und Rückweg über die Wahrheitstabelle) |
+| 10 Beamer-Modus | **fertig** (benannt wie im Portal) |
+| 11 Aufgabe stellen | **fertig, zur Prüfung durch Steven angemeldet** |
+| 12 Bedienungsanleitung | **fertig** (`docs/ANLEITUNG_STUDIO.md`) |
+
+Kein Paket wurde übersprungen, `docs/FRAGEN_STUDIO.md` gibt es nicht.
+
+## Robustheitslauf (`docs/ROBUSTHEIT_STUDIO.md`)
+
+2 553 Durchläufe mit Startzahl 20261015 und 2 553 mit Startzahl 7, je 28 gezielt pathologische Fälle: **keine Ausnahme, keine NaN oder Unendlich, `Gleichungssystem nicht lösbar` trat nie auf.** Gefunden und behoben: Schwingende Schaltungen (kein stabiler Zustand) machten einzelne Bilder über 130 ms lang. Offen: Die Engine selbst bleibt bei Schwingungen bei bis zu 400 Iterationen je Schritt (betrifft das Spiel; dort nichts geändert); schwebende Teile und offene Eingänge bleiben ohne Meldung.
+
+## Leistung (`docs/LEISTUNG_STUDIO.md`)
+
+**Flüssig bis etwa 50 Bauteile:** reine Logik bis 50, reine Analogschaltung bis 100, gemischt bis 25 (Chromium ohne Grafikkarte; mit «U-Werte» halbiert sich die Grenze). Gemessen wurde nicht auf Telefon und Tablet.
+
+## Was Steven prüfen muss
+
+- **Paket 1a:** Stimmt die Darstellung des unzulässigen Zustands (beide Ausgänge 1, rot «verboten», Hinweiskasten) mit dem, was er im Unterricht zeigt?
+- **Paket 1b:** Reicht ×10⁶ (siehe Einschränkung), oder soll ×10⁷ der Standardvorschlag sein?
+- **Paket 8/9:** Stimmt die Schreibweise auf dem Bildschirm (Überstreichung, « v », Klammern wie `e1 ( e2 v e3 )`) mit dem Lehrmittel? Texte in `dev/studio/bool.js` (`fmtHtml`).
+- **Paket 10:** Beamer-Modus an einem echten Beamer ansehen (F9).
+- **Paket 11, der wichtigste Punkt:** passt der Ablauf zu seinem Unterricht? Zwei Dateien (Aufgabe, Lösung); die verborgenen Werte sind **verschleiert, nicht verschlüsselt**; Eingabe der Werte mit 5 % Toleranz im Aufgabenfenster; Störungsarten Leitung unterbrechen, falscher Wert, vertauschte Anschlüsse.
+- **Paket 12:** Anleitung gegenlesen, besonders Fachbegriffe.
+- Weiter offen aus dem ersten Auftrag: Digitaluhr in unter 15 Minuten nachbauen, Flipflop-Tabellen gegen das Lehrmittel.
+
+## Entscheidungen, die ich selbst getroffen habe
+
+Alle in `docs/ENTSCHEIDUNGEN_STUDIO.md` unter «Nacht 14./15.10.2026». Die wichtigsten: «Beamer» statt «Vorführ-Modus» (der Vorführ-Modus des Spiels ist eine automatische Messvorführung); `maxIter` 150 und Zeitbudget je Schritt in der Studio-Schleife; XOR-Verschleierung der verborgenen Werte statt Verschlüsselung; keine Zwischenspeicherung während einer Aufgabe; Ausdrucksminimierung über `DQVisuals.minimize` aus dem Spiel; Zugabe ×10⁷ bei der Laufzeit-Überhöhung.
+
+## Bekannte Schwächen
+
+- Die Testkette `tests/studio.js` hat zeitabhängige Stellen (Doppelklick-Erkennung, Neuzeichnen bei laufender Simulation); ich habe Wiederholungen und Wartezeiten eingebaut und den Lauf mehrfach wiederholt, ein seltenes Flackern kann nicht ausgeschlossen werden.
+- Zeichnet die Bildschleife schwere Schaltungen, kann ein Bild bis rund 100 ms dauern (ein Rechenschritt ist nicht unterbrechbar).

@@ -86,6 +86,7 @@
     this.factor = 'auto'; this.running = opts.running !== false; this.acc = 0; this.last = 0;
     this.traces = []; this.lag = false; this.rate = 0; this.steps = 0; this.dynamic = false; this.span = null;
     this.iters = true;  // Zwischenloesungen je Rechenschritt aufzeichnen (Zeitverlauf: Laufzeit der Flipflops), siehe E.step opts.iters
+    this.tpdScale = 1;  // Laufzeit ueberhoehen (1, 1e3, 1e6): streckt die Flipflop-Laufzeit, damit sie im Zeitverlauf sichtbar wird
     this.tpd = 20e-9;   // Laufzeit je Flipflop-Stufe (aus den Bauteilen, groesster Wert)
     this.hooks = [];    // function (res, t, iterList) nach jedem Schritt
     this.version = 0;   // zaehlt jede Aenderung der Zeit/des Ergebnisses (fuer Neuzeichnen)
@@ -121,7 +122,7 @@
     if (!this.net) return;
     try {
       if (!this.dynamic) this.res = E.step(this.net, this.state, { noGroundFault: true });
-      else this.res = E.step(this.net, E.clone(this.state), { dt: this.dt, noGroundFault: true });
+      else this.res = E.step(this.net, E.clone(this.state), { dt: this.dt, noGroundFault: true, tpdScale: this.tpdScale });
       this.err = null;
     } catch (e) { this.err = e.message; this.res = null; this.running = false; }
     this.faults = this.res ? this.res.faults : [];
@@ -129,7 +130,7 @@
   };
   Sim.prototype.stepOnce = function () {
     var net = this.net; if (!net) return false;
-    var o = { dt: this.dt, noGroundFault: true }; if (this.iters) o.iters = [];
+    var o = { dt: this.dt, noGroundFault: true, tpdScale: this.tpdScale, maxIter: 150 }; if (this.iters) o.iters = [];
     var res;
     try { res = E.step(net, this.state, o); } catch (e) { this.err = e.message; this.running = false; return false; }
     this.res = res; this.faults = res.faults; this.steps++;
@@ -185,7 +186,7 @@
     while (this.acc >= this.dt - 1e-18) {
       if (!this.stepOnce()) break;
       this.acc -= this.dt; n++;
-      if ((n & 7) === 0 && NOW() - t0 > 12) { this.lag = true; break; }
+      if (NOW() - t0 > 12) { this.lag = true; break; } // Zeitbudget je Bild; bei schwingenden Schaltungen (teure Schritte) nach jedem Schritt pruefen
       if (n >= 20000) { this.lag = true; break; }
     }
     if (this.lag) this.acc = 0; // nicht aufholen: Rueckstand verwerfen (Anzeige zeigt, dass der Rechner nicht mitkommt)

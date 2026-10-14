@@ -127,12 +127,15 @@
     el.innerHTML = '<div class="th"><b>Zeitverlauf</b><span class="hint" id="tlHint"></span><span class="sp" style="flex:1"></span>' +
       '<button class="tl-btn" id="tlAuto" title="Takt und alle Flipflop- und Zähler-Ausgänge einfügen">Takt und Ausgänge</button>' +
       '<button class="tl-btn" id="tlBus" title="Markierte Zeilen zu einer Zahl zusammenfassen: oberste markierte Zeile = niederwertigstes Bit">Zählerstand aus Markierten</button>' +
+      '<select class="tl-btn" id="tlTpd" title="Laufzeit der Flipflops für die Darstellung strecken. Nur zum Zeigen: die echten Laufzeiten sind Nanosekunden."><option value="1">Laufzeit: echt</option><option value="1000">Laufzeit überhöht ×10³</option><option value="1000000">Laufzeit überhöht ×10⁶</option><option value="10000000">Laufzeit überhöht ×10⁷</option></select>' +
+      '<span class="tl-warn" id="tlWarn" hidden>⚠ Laufzeit überhöht – keine echten Werte</span>' +
       '<select class="tl-btn" id="tlSpan" title="Dauer des Bildes"></select>' +
       '<button class="tl-btn" id="tlFreeze" title="Anzeige anhalten, die Simulation läuft weiter">⏸ Anhalten</button>' +
       '<button class="tl-btn" id="tlClear" title="Alle Zeilen entfernen">Leeren</button></div>' +
       '<div class="tl-body"><div id="tlRows" class="tl-rows"></div><div class="tl-axisrow"><span></span><canvas id="tlAxis"></canvas></div></div>';
     $('#tlSpan').innerHTML = '<option value="auto">Zeit: Auto</option>' + SPANS.map(function (s) { return '<option value="' + s + '">' + S.fmtT(s / 10) + '/Div</option>'; }).join('');
     $('#tlSpan').addEventListener('change', function () { spanMan = this.value === 'auto' ? null : +this.value; version = -1; });
+    $('#tlTpd').addEventListener('change', function () { S.sim.tpdScale = +this.value; var w = $('#tlWarn'); w.hidden = S.sim.tpdScale === 1; w.textContent = '⚠ Laufzeit überhöht ×' + (S.sim.tpdScale === 1e3 ? '10³' : S.sim.tpdScale === 1e6 ? '10⁶' : '10⁷') + ' – keine echten Werte'; $('#timing').classList.toggle('overdrive', S.sim.tpdScale !== 1); S.sim.version++; });
     $('#tlAuto').addEventListener('click', function () { autoRows(); });
     $('#tlClear').addEventListener('click', function () { clearRows(); });
     $('#tlFreeze').addEventListener('click', function () { frozen = frozen === null ? S.sim.state.t : null; this.textContent = frozen === null ? '⏸ Anhalten' : '▶ Weiter'; this.classList.toggle('on', frozen !== null); version = -1; });

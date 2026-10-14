@@ -1016,6 +1016,7 @@ body.beamer-mode main{ min-height:100vh; }
     });
     function outVal(p, k) { var v = logic[p.id]; return Array.isArray(v) ? !!v[k] : !!v; }
     function ctrBitsOf(p) { var c = (st.ctr || {})[p.id], nb = ctrBitCount(def(p.type), p.props); return c && c.bits ? c.bits : numToBits(0, nb).map(function () { return false; }); }
+    function ffForb(p) { var f = (st.ff || {})[p.id]; return !!(f && (f.forb || f.rsBad)); } // unzulaessig: preSet und preClear zugleich (beide Ausgaenge 1) oder S = R = 1 beim RS-Flipflop
     function ffQ(p) { return !!((st.ff || {})[p.id] || {}).q; }
     var V = null, iter = 0, converged = false, oscillating = false;
 
@@ -1080,7 +1081,7 @@ body.beamer-mode main{ min-height:100vh; }
             var dd = def(p.type);
             if (dd.logic || dd.ff) {
               insOfPart(p).forEach(function (pin) { G(n[pin], '0', G_OPEN); });
-              if (dd.ff) { drive(n.Q, ffQ(p)); drive(n.Qn, !ffQ(p)); }
+              if (dd.ff) { var fb = !!((st.ff || {})[p.id] || {}).forb; drive(n.Q, ffQ(p) || fb); drive(n.Qn, !ffQ(p) || fb); }
               else dOuts(dd).forEach(function (pin, k) { drive(n[pin], outVal(p, k)); });
             } else if (dd.ctr) {
               insOfPart(p).forEach(function (pin) { G(n[pin], '0', G_OPEN); });
@@ -1104,7 +1105,7 @@ body.beamer-mode main{ min-height:100vh; }
       trace.push({ iter: iter, kind: kind, changed: changed, res: evaluate() });
       if (trace.length > TRACE_MAX) trace.shift();
     }
-    for (iter = 0; iter < 400; iter++) {
+    for (iter = 0; iter < (opts.maxIter || 400); iter++) {
       var sys = build();
       var x = solveLinear(sys.A, sys.z);
       if (!x) throw new Error('Gleichungssystem nicht lösbar');
@@ -1205,7 +1206,7 @@ body.beamer-mode main{ min-height:100vh; }
             var eb = ctrBitsOf(p); r.bits = eb; r.count = ctrCount(p, eb); r.out = r.count; r.pin = {};
             eb.forEach(function (bit, k) { r.pin['Q' + k] = ((bit ? LOGIC.vcc : 0) - volt(n['Q' + k])) / LOGIC.rout; });
           }
-          else if (dd.ff) { r.q = ffQ(p); r.out = r.q; r.v = volt(n.Q); r.pin = { Q: ((r.q ? LOGIC.vcc : 0) - volt(n.Q)) / LOGIC.rout, Qn: ((r.q ? 0 : LOGIC.vcc) - volt(n.Qn)) / LOGIC.rout }; }
+          else if (dd.ff) { var fb2 = !!((st.ff || {})[p.id] || {}).forb; r.q = ffQ(p); r.out = r.q; r.forbidden = ffForb(p); r.v = volt(n.Q); r.pin = { Q: (((r.q || fb2) ? LOGIC.vcc : 0) - volt(n.Q)) / LOGIC.rout, Qn: (((!r.q || fb2) ? LOGIC.vcc : 0) - volt(n.Qn)) / LOGIC.rout }; }
           else if (dd.logic) {
             r.out = logic[p.id]; r.pin = {};
             dOuts(dd).forEach(function (pin, k) { r.pin[pin] = ((outVal(p, k) ? LOGIC.vcc : 0) - volt(n[pin])) / LOGIC.rout; });
@@ -1233,7 +1234,7 @@ body.beamer-mode main{ min-height:100vh; }
     var delayMode = !!opts.dt, t1s = state.t + (opts.dt || 0), tv = state.t;
     state.pend = state.pend || [];
     for (;;) {
-      out = solve(net, { state: state, dt: opts.dt, t: state.t, meter: opts.meter, trace: trace });
+      out = solve(net, { state: state, dt: opts.dt, t: state.t, meter: opts.meter, trace: trace, maxIter: opts.maxIter });
       if (opts.iters) opts.iters.push({ t: tv, nodeV: out.res.nodeV }); // Zwischenloesungen je Durchgang mit Zeitpunkt (Flipflop-Laufzeit im Zeitverlauf des Studios)
       var newDamage = false, faults = [];
       net.parts.forEach(function (p) {
@@ -1267,7 +1268,7 @@ body.beamer-mode main{ min-height:100vh; }
         if (p.type === 'logicin') add('out', p.props.closed);
         else if (p.type === 'clock') add('out', Math.floor(state.t * p.props.freq * 2) % 2 === 0);
         else if (d.ctr) { r.bits.forEach(function (bit, k) { add('Q' + k, bit); }); }
-        else if (d.ff) { add('Q', r.q); add('Qn', !r.q); }
+        else if (d.ff) { add('Q', r.q || (state.ff[p.id] || {}).forb); add('Qn', !r.q || (state.ff[p.id] || {}).forb); }
         else if (d.logic) dOuts(d).forEach(function (pin, k) { add(pin, Array.isArray(r.out) ? r.out[k] : r.out); });
       });
       Object.keys(drv).forEach(function (nd) {
@@ -1278,7 +1279,7 @@ body.beamer-mode main{ min-height:100vh; }
       // Flipflops und Zaehler (alle gleichzeitig aus derselben Loesung): Flanke/Zustand an C je Steuerungsart auswerten, preSet/preClear haben Vorrang.
       // Aenderungen werden mit Laufzeit eingeplant (plan) und von flush() wirksam gemacht.
       var ffChanged = false; state.ff = state.ff || {}; state.ctr = state.ctr || {};
-      function plan(ev, tpd) { ev.t = delayMode ? tv + (tpd || 0) : tv; state.pend.push(ev); }
+      function plan(ev, tpd) { ev.t = delayMode ? tv + (tpd || 0) * (opts.tpdScale || 1) : tv; state.pend.push(ev); } // opts.tpdScale: Laufzeit ueberhoeht (Studio, Darstellung des Zeitverlaufs)
       function pending(id, type, key, val) { return state.pend.some(function (e) { return e.id === id && e.type === type && e[key] === val; }); }
       net.parts.forEach(function (p) {
         var d = def(p.type); if (!d.ff || state.burnt[p.id]) return;
@@ -1293,8 +1294,14 @@ body.beamer-mode main{ min-height:100vh; }
           if (c) { if (ins[0] && !f.q) f.m = true; else if (ins[1] && f.q) f.m = false; }
           if (f.c === true && !c) nq = f.m;
         }
-        if (d.rs && active && ins[0] && ins[1]) faults.push({ code: 'FF_RS', part: p.id });
-        if (lv('PC')) { nq = false; if (d.ms) f.m = false; } else if (lv('PS')) { nq = true; if (d.ms) f.m = true; }
+        var wasBad = !!(f.forb || f.rsBad);
+        if (d.rs) { if (active && ins[0] && ins[1]) f.rsBad = true; else if (!(ins[0] && ins[1])) f.rsBad = false; } // S = R = 1: verboten, Zustand bleibt
+        var ps = lv('PS'), pc = lv('PC');
+        f.forb = ps && pc; // preSet und preClear zugleich: unzulaessig, beide Ausgaenge 1; der Zustand f.q bleibt, bis einer der Eingaenge wegfaellt
+        if (f.forb) nq = f.q;
+        else if (pc) { nq = false; if (d.ms) f.m = false; } else if (ps) { nq = true; if (d.ms) f.m = true; }
+        if (f.forb || f.rsBad) faults.push({ code: 'FF_RS', part: p.id, why: f.forb ? 'async' : 'rs' });
+        if (wasBad !== !!(f.forb || f.rsBad)) ffChanged = true; // Ausgaenge und Markierung neu rechnen
         if (nq !== f.q && !pending(p.id, 'ff', 'q', nq)) plan({ id: p.id, type: 'ff', q: nq }, p.props.tpd);
         f.c = c;
       });
@@ -1417,6 +1424,77 @@ body.beamer-mode main{ min-height:100vh; }
     var rect = last.reduce(function (s, v) { return s + Math.abs(v - dc); }, 0) / n;
     var mx = Math.max.apply(null, last), mn = Math.min.apply(null, last);
     return { ok: true, static: false, dc: dc, rms: rms, avg: FORM_FACTOR_SINE * rect, peak: Math.max(Math.abs(mx), Math.abs(mn)), pp: mx - mn, max: mx, min: mn, period: T };
+  }
+
+  /* ---------- Wechselstromanalyse (Studio Stufe 7) ----------
+   * Komplexe Knotenanalyse um den Arbeitspunkt: dieselbe Netzliste, anderer Loeser. R, L, C, Quellen (nur ri), Schalter, Strommesser sind linear;
+   * Dioden/LED/Z-Diode gelten mit dem Kleinsignalwiderstand ihres Arbeitspunkts (leitend: r_s, sonst offen), der Transistor im Arbeitspunkt mit
+   * g_m = β/r_BE. Reiz: die Quelle opts.source (Standard: erste Wechselspannungsquelle, sonst erste Spannungsquelle) mit 1 V Amplitude, alle anderen
+   * Quellen sind Kurzschluesse ueber ihren ri. Logik bleibt aussen vor. Gibt Knotenspannungen als [Re, Im] je Knoten (V je 1 V Reiz). */
+  function acSolve(layout, f, opts) {
+    opts = opts || {};
+    var net = buildNetlist(clone(layout)), st = newState(); step(net, st, { noGroundFault: true });
+    var idx = {}; net.nodes.forEach(function (n, i) { idx[n] = i; });
+    var N = net.nodes.length, w = 2 * Math.PI * f, Ar = [], Ai = [], zr = new Float64Array(N), zi = new Float64Array(N), i, j;
+    for (i = 0; i < N; i++) { Ar.push(new Float64Array(N)); Ai.push(new Float64Array(N)); Ar[i][i] += GMIN; }
+    function Y(a, b, gr, gi) {
+      var ia = idx[a], ib = idx[b];
+      if (ia !== undefined) { Ar[ia][ia] += gr; Ai[ia][ia] += gi; }
+      if (ib !== undefined) { Ar[ib][ib] += gr; Ai[ib][ib] += gi; }
+      if (ia !== undefined && ib !== undefined) { Ar[ia][ib] -= gr; Ai[ia][ib] -= gi; Ar[ib][ia] -= gr; Ai[ib][ia] -= gi; }
+    }
+    function vccs(op, on, cp, cn, gm) { var io = idx[op], jo = idx[on], ic = idx[cp], jc = idx[cn]; if (io !== undefined) { if (ic !== undefined) Ar[io][ic] += gm; if (jc !== undefined) Ar[io][jc] -= gm; } if (jo !== undefined) { if (ic !== undefined) Ar[jo][ic] -= gm; if (jc !== undefined) Ar[jo][jc] += gm; } }
+    var srcId = opts.source;
+    if (!srcId) { var sp = net.parts.filter(function (p) { return p.type === 'acsource'; })[0] || net.parts.filter(function (p) { return p.type === 'battery'; })[0]; srcId = sp && sp.id; }
+    if (!srcId) return { ok: false, error: 'Keine Quelle als Reiz' };
+    net.parts.forEach(function (p) {
+      var q = p.props, n = p.n;
+      switch (p.type) {
+        case 'resistor': case 'lamp': case 'motor': Y(n.a, n.b, q.defect ? G_OPEN : 1 / Math.max(q.value, 1e-3), 0); break;
+        case 'pot': Y(n.a, n.w, 1 / Math.max(q.value * q.pos, 1e-3), 0); Y(n.w, n.b, 1 / Math.max(q.value * (1 - q.pos), 1e-3), 0); break;
+        case 'capacitor': Y(n.a, n.b, 0, w * q.value); break;
+        case 'inductor': if (w > 0) Y(n.a, n.b, 0, -1 / (w * q.value)); else Y(n.a, n.b, G_CLOSED, 0); break;
+        case 'switch': case 'button': Y(n.a, n.b, q.closed ? G_CLOSED : G_OPEN, 0); break;
+        case 'ammeter': Y(n.a, n.b, 1 / METER.rA, 0); break;
+        case 'battery': case 'acsource':
+          Y(n.p, n.n, 1 / q.ri, 0);
+          if (p.id === srcId) { var ip = idx[n.p], inn = idx[n.n]; if (ip !== undefined) zr[ip] += 1 / q.ri; if (inn !== undefined) zr[inn] -= 1 / q.ri; }
+          break;
+        case 'led': case 'diode': Y(n.a, n.k, st.diode[p.id] ? 1 / q.rs : G_OPEN, 0); break;
+        case 'zener': Y(n.a, n.k, (st.zen || {})[p.id] && st.zen[p.id] !== 'off' ? 1 / q.rs : G_OPEN, 0); break;
+        case 'npn': var ts = (st.tr || {})[p.id] || 'off'; if (ts === 'off') { Y(n.b, n.e, G_OPEN, 0); Y(n.c, n.e, G_OPEN, 0); } else { Y(n.b, n.e, 1 / q.rbe, 0); if (ts === 'sat') Y(n.c, n.e, 1, 0); else { Y(n.c, n.e, G_OPEN, 0); vccs(n.c, n.e, n.b, n.e, q.beta / q.rbe); } } break;
+      }
+    });
+    // komplexes Gauss-Verfahren mit Pivotsuche
+    for (i = 0; i < N; i++) {
+      var mx = i, mv = Ar[i][i] * Ar[i][i] + Ai[i][i] * Ai[i][i], k;
+      for (k = i + 1; k < N; k++) { var v2 = Ar[k][i] * Ar[k][i] + Ai[k][i] * Ai[k][i]; if (v2 > mv) { mv = v2; mx = k; } }
+      if (mv < 1e-60) { Ar[i][i] = GMIN; Ai[i][i] = 0; mv = GMIN * GMIN; mx = i; }
+      if (mx !== i) { var t1 = Ar[i]; Ar[i] = Ar[mx]; Ar[mx] = t1; t1 = Ai[i]; Ai[i] = Ai[mx]; Ai[mx] = t1; var t2 = zr[i]; zr[i] = zr[mx]; zr[mx] = t2; t2 = zi[i]; zi[i] = zi[mx]; zi[mx] = t2; }
+      var pr = Ar[i][i], pi = Ai[i][i], pd = pr * pr + pi * pi;
+      for (k = i + 1; k < N; k++) {
+        var fr = (Ar[k][i] * pr + Ai[k][i] * pi) / pd, fi = (Ai[k][i] * pr - Ar[k][i] * pi) / pd; if (fr === 0 && fi === 0) continue;
+        for (j = i; j < N; j++) { Ar[k][j] -= fr * Ar[i][j] - fi * Ai[i][j]; Ai[k][j] -= fr * Ai[i][j] + fi * Ar[i][j]; }
+        zr[k] -= fr * zr[i] - fi * zi[i]; zi[k] -= fr * zi[i] + fi * zr[i];
+      }
+    }
+    var xr = new Float64Array(N), xi = new Float64Array(N);
+    for (i = N - 1; i >= 0; i--) {
+      var sr = zr[i], si = zi[i]; for (j = i + 1; j < N; j++) { sr -= Ar[i][j] * xr[j] - Ai[i][j] * xi[j]; si -= Ar[i][j] * xi[j] + Ai[i][j] * xr[j]; }
+      var d2 = Ar[i][i] * Ar[i][i] + Ai[i][i] * Ai[i][i]; xr[i] = (sr * Ar[i][i] + si * Ai[i][i]) / d2; xi[i] = (si * Ar[i][i] - sr * Ai[i][i]) / d2;
+    }
+    var nodeV = { '0': [0, 0] }; net.nodes.forEach(function (nn, ii) { nodeV[nn] = [xr[ii], xi[ii]]; });
+    return { ok: true, f: f, nodeV: nodeV, net: net, source: srcId, pin: function (pin) { return nodeV[net.pinNode[pin]] || [0, 0]; } };
+  }
+  /* Frequenzgang: Verstaerkung U(a,b) je 1 V Reiz ueber Frequenzen; probe {a, b?}; opts {fmin, fmax, points, source}. Gibt {freqs, mag, db, phase (Grad), re, im} */
+  function acSweep(layout, probe, opts) {
+    opts = opts || {}; var fmin = opts.fmin || 1, fmax = opts.fmax || 1e6, n = opts.points || 200, out = { ok: true, freqs: [], mag: [], db: [], phase: [], re: [], im: [] };
+    for (var k = 0; k < n; k++) {
+      var f = fmin * Math.pow(fmax / fmin, n === 1 ? 0 : k / (n - 1)), r = acSolve(layout, f, opts); if (!r.ok) return r;
+      var va = r.pin(probe.a), vb = probe.b ? r.pin(probe.b) : [0, 0], re = va[0] - vb[0], im = va[1] - vb[1], m = Math.hypot(re, im);
+      out.freqs.push(f); out.re.push(re); out.im.push(im); out.mag.push(m); out.db.push(20 * Math.log10(Math.max(m, 1e-300))); out.phase.push(Math.atan2(im, re) * 180 / Math.PI);
+    }
+    return out;
   }
 
   function measure(layout, probe, state) {
@@ -1636,7 +1714,7 @@ body.beamer-mode main{ min-height:100vh; }
   var api = {
     expectedAnswers: expectedAnswers, UNIT_SCALE: UNIT_SCALE,
     version: '0.2.0', PARTS: PARTS, LED_COLORS: LED_COLORS, LOGIC: LOGIC, METER: METER, LIMITS: LIMITS, SOURCES: SOURCES, TRACE_MAX: TRACE_MAX,
-    pinsOf: pinsOf, ctrNext: ctrNext, ctrCount: ctrCount, ctrBitCount: ctrBitCount, bitsToNum: bitsToNum, numToBits: numToBits, wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, DMM_MANUAL: DMM_MANUAL, rangeLabel: rangeLabel, acMeasure: acMeasure,
+    acSolve: acSolve, acSweep: acSweep, pinsOf: pinsOf, ctrNext: ctrNext, ctrCount: ctrCount, ctrBitCount: ctrBitCount, bitsToNum: bitsToNum, numToBits: numToBits, wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, DMM_MANUAL: DMM_MANUAL, rangeLabel: rangeLabel, acMeasure: acMeasure,
     buildNetlist: buildNetlist, solve: solve, step: step, newState: newState,
     measure: measure, simulate: simulate, runTask: runTask, fmt: fmt, clone: clone,
     /* Bezugspunkt eines Aufbaus als Anschlussname ('GND1.g' bzw. 'G1.n'); null ohne Quelle und Masse (Gleichrichter-Auftrag 06.10.2026, G1) */
@@ -2042,6 +2120,7 @@ body.beamer-mode main{ min-height:100vh; }
           if (trig === 'neg') s += '<circle class="sym thin" cx="-30" cy="' + cy + '" r="3.5" style="fill:var(--karte, #fff)"/>';
           if (trig === 'ms') s += '<text class="symtxt small" x="6" y="-26">MS</text><path class="sym thin" d="M16-24h6v4"/>';
           if (EXTRA.async && E.PARTS[p.type].ffAsync) s += '<path ' + c + ' d="M0-36V-60M0 36V60"/><text class="symtxt small" x="10" y="-42">PS</text><text class="symtxt small" x="10" y="52">PC</text>';
+          if (r.forbidden) s += '<rect class="forbid" x="-30" y="-40" width="60" height="80" rx="4"/><text class="forbidtxt" x="0" y="-46">verboten</text>'; // unzulaessiger Zustand (preSet+preClear, S = R = 1)
           s += '<path ' + c + ' d="M26-20H40M31 20H40"/><circle ' + c + ' cx="28.5" cy="20" r="2.5"/>' +
             (qv !== undefined ? '<circle cx="34" cy="-30" r="3" class="' + (qv ? 'lamp-on' : 'lamp-off') + '"/>' : '');
           break;
@@ -2062,7 +2141,7 @@ body.beamer-mode main{ min-height:100vh; }
     if (p.type === 'seg7' || p.type === 'dec7') return '<text class="lbl" y="-78">' + esc(p.id) + '</text>';
     if (E.PARTS[p.type].ctr) return '<text class="lbl" y="' + (-ctrHalf(p) - 8) + '">' + esc(p.id) + '</text><text class="val" y="' + (ctrHalf(p) + 16) + '">' + esc(valueText(p)) + '</text>';
     var vert = (p.type === 'battery' || p.type === 'ground' || p.type === 'acsource') ? (p.rot || 0) % 180 === 0 : (p.rot || 0) % 180 === 90;
-    var v = esc(valueText(p));
+    var mk = Editor.mask && Editor.mask(p), v = esc(mk !== undefined ? mk : valueText(p)); // Studio: verborgene Werte als «?»
     if (vert) return '<text class="lbl" x="24" y="-4" text-anchor="start">' + esc(p.id) + '</text><text class="val" x="24" y="12" text-anchor="start">' + v + '</text>';
     var big = GATE_SIGN[p.type] || FF_SIGN[p.type] || p.type === 'npn', up = big ? -44 : -24, dn = big ? 52 : 30;
     if (GATE_SIGN[p.type] && p.type !== 'not' && gateInputs(p) > 2) { var gk = 20 * Math.floor(gateInputs(p) / 2) + 10; up = -gk - 14; dn = gk + 22; }
@@ -2236,6 +2315,7 @@ body.beamer-mode main{ min-height:100vh; }
       if (!self.showVolt) return null;
       var n = pinNode[pid]; return n === undefined ? null : voltColor(res.nodeV[n] || 0, vmax);
     }
+    function faultMark(p) { var ft = self.opts.faultOf && self.opts.faultOf(p.id); return ft ? '<rect class="faultmark" x="-46" y="-36" width="92" height="72" rx="6"/><text class="faulttxt" y="-42">' + esc(ft) + '</text>' : ''; } // Studio: Bauteil mit Meldung markieren
     var h = [];
     h.push('<defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="0" cy="0" r="1" class="griddot"/></pattern>' +
       '<radialGradient id="glowAmber"><stop offset="0" stop-color="#ffcf4a" stop-opacity="0.9"/><stop offset="1" stop-color="#ffb000" stop-opacity="0"/></radialGradient>' +
@@ -2249,12 +2329,12 @@ body.beamer-mode main{ min-height:100vh; }
     });
     // Bauteile
     L.parts.forEach(function (p) {
-      var r = res && res.parts[p.id], sel = self.sel === p.id;
+      var r = res && res.parts[p.id], sel = self.sel === p.id || !!(self.opts.selected && self.opts.selected(p.id));
       var tip = partTip(p, r);
       h.push('<g class="part' + (sel ? ' selected' : '') + (self.locked[p.id] ? ' locked' : '') + '" data-part="' + p.id + '" transform="translate(' + p.x + ' ' + p.y + ')">' +
         '<title>' + esc(tip) + '</title><rect class="hit" x="-44" y="-34" width="88" height="68"/>' +
         '<g transform="rotate(' + (p.rot || 0) + ')">' + symbol(p, r) + '</g>' +
-        labels(p) + '</g>');
+        labels(p) + faultMark(p) + '</g>');
     });
     if (self.showFlow) h.push('<g class="bflow" pointer-events="none"></g>');
     // Anschluesse

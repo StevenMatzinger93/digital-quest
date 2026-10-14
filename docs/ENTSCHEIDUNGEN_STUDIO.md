@@ -82,3 +82,84 @@ Was `docs/AUFTRAG_STUDIO.md` Abschnitt 2 nicht regelt, steht hier mit einer Zeil
 | Einer = Dezimalzähler, Zehner = Modulo-6-Zähler (fallende Flanke), getaktet von Q3 des Einers; Taktgeber 1 Hz | 9 → 0 lässt Q3 fallen, genau einmal je 10 Sekunden |
 | `D` des Zehner-Dekoders an Masse | Eingang bleibt definiert 0 |
 | Weitere Beispiele im Menü: asynchroner Zähler mit Zeitverlauf (1 MHz), RC-Glied, Schwingkreis, Spannungsteiler, Halbaddierer | zeigen Oszilloskop, Zeitverlauf und Logik ohne Aufbau (Stufe 8 baut die Sammlung später aus) |
+
+## Nacht 14./15.10.2026
+
+### Paket 1 – Korrekturen
+
+| Entscheidung | Begründung |
+|---|---|
+| preSet und preClear zugleich: **unzulässiger Zustand**, Q und Q̄ beide 1, Meldung `FF_RS` (`why: 'async'`), Bauteil rot markiert («verboten»), Klartext im Inspektor und in der Statusleiste. Bleibt nur ein Eingang, gilt dessen Zustand; der gespeicherte Zustand bleibt während des unzulässigen Zustands erhalten. Ersetzt die frühere Regel «preClear gewinnt» | Beim 7474 und 7476 sind beide Eingänge low-aktiv; liegen beide an, gehen Q und Q̄ gemeinsam auf HIGH, und die Datenblätter führen das als unzulässige Kombination. Didaktisch ist das entscheidend: Der verbotene Zustand R = S = 1 beim RS-Flipflop ist ein Kernpunkt des Unterrichts, eine stille Auflösung nach preClear würde genau das verstecken, was die Lernenden sehen sollen |
+| Eine Darstellung für beide verbotenen Zustände: derselbe Fehlercode `FF_RS`, dieselbe rote Markierung, derselbe Hinweiskasten; nur der Text nennt den Grund. Beim RS-Flipflop bleibt der Zustand bei S = R = 1 erhalten (nur markiert), beim preSet/preClear-Fall gehen die Ausgänge auf 1 | Auftrag: «eine Darstellung, nicht zwei»; das RS-Verhalten wurde nicht verändert |
+| «Laufzeit überhöhen» (1×, 10³×, 10⁶×, zusätzlich 10⁷×): `opts.tpdScale` streckt die Laufzeit im Rechenschritt; Kennzeichnung rot im Zeitverlauf (Warnfeld, Rahmen) und in der Statusleiste | Die Überhöhung wirkt auf die Ereigniszeiten, nicht auf die Logik: die Zählerfolge ist identisch (Test). Bei 1 Hz und ×10⁶ liegen die Stufen genau 2 Bildpunkte auseinander (Bild 10 s auf 1000 Punkte) – knapp erkennbar; deshalb als Zugabe ×10⁷ (20 Punkte) |
+| Hineinzoomen: Auswahl «Zeit/Div» im Zeitverlauf bis 1 ns/Div, die Zeitspanne steht in der Auswahl | Weg 1 des Auftrags |
+
+### Paket 2 – Wechselstromanalyse (Stufe 7)
+
+| Entscheidung | Begründung |
+|---|---|
+| `E.acSolve(layout, f, {source})` und `E.acSweep(layout, probe, {fmin, fmax, points})`: komplexe Knotenanalyse (Gauss mit Pivotsuche) auf derselben Netzliste; Arbeitspunkt aus einem Gleichstromschritt | Auftrag: eigener Rechenweg, dieselbe Netzliste |
+| Reiz: 1 V Amplitude an der ersten Wechselspannungsquelle (sonst erste Spannungsquelle), andere Quellen sind Kurzschlüsse über ihren ri; die Verstärkung bezieht sich auf die Quellen-EMF, nicht auf die Klemmenspannung | bei ri = 0,05 Ω ist der Unterschied 5·10⁻⁵ bei 1 kΩ; die EMF ist die eindeutige Bezugsgrösse |
+| Dioden, LED, Z-Diode: Kleinsignalwiderstand des Arbeitspunkts (leitend r_s, sonst offen); Transistor g_m = β/r_BE; Gatter und andere Logik bleiben ausser Betracht | stückweise lineare Modelle der Engine haben nur diesen einen Kleinsignalwert; ein genaueres Modell ist Sache des Operationsverstärker-Auftrags |
+| Bode-Fenster: dB oben, Phase unten, logarithmische Frequenzachse 1 Hz … 1 MHz (einstellbar), 200 Stützstellen, Neuberechnung bei jeder Änderung der Schaltung; «−3 dB markieren» bezogen auf die höchste Verstärkung des ersten Kanals | gilt für Tiefpass (eine Marke) und Bandpass (zwei Marken) |
+| `kern.js` bekommt die dritte Schnittstellenfunktion `ac(layout, probe, f)` | Konformität ist auch für den Wechselstromweg prüfbar |
+
+### Paket 3 – Editorgrundlagen
+
+| Entscheidung | Begründung |
+|---|---|
+| Rückgängig als Liste vollständiger Zustände der Schaltung (`JSON.stringify(layout)`), 200 Schritte; Umlegen eines Schalters zählt als Schritt | Byte-genauer Vergleich ist trivial; jede Änderung (auch Aufklappen, Laden, Einfügen) läuft durch denselben Weg `onChange` |
+| Reglerziehen zählt erst beim Loslassen als Schritt, Verschieben (Pfeiltasten) je Tastendruck | sonst füllt ein Zug die Liste |
+| Zwischenspeicher: `localStorage` Schlüssel `dqstudio_autosave_v1`, alle 3 s und beim Schliessen, leere Schaltung löscht ihn; nach dem Start Rückfrage; **nicht während einer Aufgabe** | Browserspeicher immer in try/catch; bei einer Aufgabe stünden sonst die verborgenen Werte im Klartext im Speicher |
+| Mehrfachauswahl nur über Strg + A und Umschalt + Klick (kein Gummiband); Kopieren versetzt um 40 | genügt für Auftrag 3c; Gummiband ist eine Zugabe |
+
+### Paket 4 – Schieberegler
+
+| Entscheidung | Begründung |
+|---|---|
+| Regler je Zahlenwert über «Schieberegler» im Eigenschaftenfeld; Bereich, linear/logarithmisch, Schrittweite einstellbar; Leiste unter der Werkzeugleiste; bei Standardwerten (value, freq) logarithmisch mit Faktor 10 nach oben und unten | Falstad-ähnlich; die Leiste blendet sich ohne Regler aus |
+| Während des Ziehens wird nur neu aufgebaut (`refresh(false)`), der Zustand bleibt | Simulation läuft unterbrechungsfrei, Kondensatorladung bleibt |
+
+### Paket 5 – Dateien, Export, Drucken, Stückliste
+
+| Entscheidung | Begründung |
+|---|---|
+| Format `dqstudio` Version 2 (`layout`, `name`, `sliders`); Version 1 flach (`parts`/`wires` oben), Version 0 reines Layout; höhere Versionen abgelehnt | Auftrag: ältere Dateien öffnen; die Umwandlung steht in `S.parseFile` |
+| Export: eigenständiges SVG (eingebettete Stile, `XMLSerializer`, weisser Grund), PNG über Canvas mit 2-facher Auflösung; Schwarzweiss erzwingt Schwarz per `!important` | für Word sauber; mit einem strengen XML-Parser (Python `minidom`) und in Chromium geprüft |
+| Druck: A4 quer, eigene `@media print`, ein Rahmen mit Schaltplan und Titelfeld (Schaltung, Datum, Name zum Eintragen) | Prüfung als PDF: eine Seite, 841,89 × 595,28 pt |
+| Stückliste: gleiche Bauteile mit gleichem Wert zusammengefasst, Masse ausgenommen; CSV mit UTF-8-Marke und Semikolon | öffnet in Excel mit Umlauten |
+
+### Paket 6 – Messungen (keine Funktion ergänzt)
+
+Schleifenzeitbudget wird nach jedem Schritt geprüft und die Iterationen je Schritt auf 150 begrenzt (`maxIter`), weil der Robustheitslauf bei schwingenden Schaltungen Bilder über 130 ms fand. Siehe `docs/ROBUSTHEIT_STUDIO.md` und `docs/LEISTUNG_STUDIO.md`.
+
+### Paket 7 – Überlastung
+
+| Entscheidung | Begründung |
+|---|---|
+| Je Meldung drei Texte: kurz (Statusleiste), lang (Eigenschaften, mit Zahlen und Ursache), Marke am Bauteil; Bauteile mit Meldung rot gestrichelt umrandet | Auftrag: markiert, Klartext, was und warum |
+| LED in Sperrrichtung bleibt eine Warnung ab 5 V (wie in der Engine `ledReverse`), wird nicht zerstört | die Engine kennt hier keine Zerstörung, nichts erfunden |
+
+### Pakete 8 und 9 – Wahrheitstabelle, KV, Ausdruck
+
+| Entscheidung | Begründung |
+|---|---|
+| `dev/studio/bool.js`: Eingabe der Schreibweise des Lehrmittels (v, Nebeneinanderstellen, Überstreichung als `<span class="ov">`), Ersatzzeichen `/ ! ¬ ' * · + ∨ ∧`, Vorrang NICHT vor UND vor ODER; Eingänge `e<Nummer>`, Ausgang `A` | verbindliche Schreibweise des Auftrags |
+| Eingänge = Pegelschalter, Ausgänge = Logikanzeigen (ohne solche: freie Gatterausgänge); Namen `e<Nummer>` aus der Bezeichnung `E<Nummer>`; Tabelle bis 6 Eingänge, KV 2 bis 4 | Auftrag: automatisch erkannt |
+| Tabelle über `LG.table` (`content/_logic.js`), KV und Päckchen über `DQVisuals.mount('kmap')` und `DQVisuals.minimize` aus dem Spiel; `visuals.js` und `_logic.js` sind im Studio-Build | Auftrag: nutzen, nicht neu bauen |
+| NICHT vor UND/ODER wird NAND/NOR, NICHT einer Variablen ein geteiltes NICHT-Glied; XOR beim Ablesen als UND/ODER/NICHT ausgeschrieben; Rückkopplung wird gemeldet | Lehrmittel kennt kein XOR-Zeichen |
+| Schaltungen mit Flipflops, Zähler oder Taktgeber: Warnung, Tabelle zeigt den Zustand beim Einschalten | die Tabelle gilt nur ohne Gedächtnis |
+
+### Paket 10 – Beamer-Modus
+
+Benannt wie im Portal («Beamer»); der **Vorführ-Modus** des Spiels ist etwas anderes (automatisches Vorführen einer Messung). Umschalten mit F9, Menü Ansicht oder Knopf; wirkt über `body.beamer` nur auf Darstellung (Schrift, Linien, Knöpfe, Kontrast), nicht auf die Schaltung.
+
+### Paket 11 – Aufgabe stellen
+
+| Entscheidung | Begründung |
+|---|---|
+| Zwei Dateien: `….aufgabe.dqstudio.json` (Format `dqstudio-aufgabe`) und `….loesung.dqstudio.json` (`dqstudio-loesung`, gleiche `taskId`); Aufbau der Störungen (`cause`, `symptom`) wie `bugs` in `web/data/dq_live.json` | Auftrag: getrennt; Aufbau übernommen |
+| Verborgene Werte als XOR mit der Aufgabennummer und Base64 in `hiddenData`, im Klartext der Datei steht 0; die Schaltung rechnet mit den echten Werten | die Lernenden sollen messen können; echte Verschlüsselung (WebCrypto) braucht ein Passwort und einen sicheren Kontext. **Grenze offen benannt: Verschleierung, keine Sicherheit** |
+| Störungen: Leitung unterbrechen, falscher Wert, vertauschte Anschlüsse (zwei Anschlüsse eines Bauteils tauschen ihre Leitungen); Symptom wird aus dem Vergleich beider Schaltungen berechnet | in der Aufgabendatei steht die Störung nirgends |
+| Eingabe der verborgenen Werte im Aufgabenfenster, Toleranz 5 %; während der Aufgabe sind Wertfeld, Beschriftung und Stückliste maskiert; Speichern schreibt wieder eine Aufgabendatei (mit Antworten) | sonst verriete jedes Speichern die Werte |
+| «Zur Prüfung durch Steven angemeldet» | der Arbeitsablauf hängt davon ab, wie er unterrichtet |

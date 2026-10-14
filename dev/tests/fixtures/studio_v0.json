@@ -1,0 +1,1 @@
+{"parts":[{"id":"B1","type":"battery","x":200,"y":300,"rot":0,"value":5},{"id":"R1","type":"resistor","x":400,"y":300,"rot":0,"value":100}],"wires":[{"from":"B1.p","to":"R1.a"},{"from":"R1.b","to":"B1.n"}]}

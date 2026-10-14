@@ -136,6 +136,7 @@
   /* ---------- Einbau in den Inspektor ---------- */
   S.inspectorExtra = (function (prev) { return function (p) {
     var h = prev ? prev(p) : '', t = p.type, d = E.PARTS[t];
+    h = '<div class="warnbox" id="insForbid" hidden role="alert"></div>' + h;
     if (FUNKTION[t]) h = '<h3>Funktion</h3><p class="fn">' + FUNKTION[t] + '</p>' + h;
     var tables = '';
     if (d.logic && !d.outs) tables = '<h3>Analysetabelle</h3>' + gateTable(p);
@@ -149,6 +150,8 @@
   S.liveInspector = function (p, r) {
     var el = document.getElementById('inspector'); if (!el || !p || !r) return;
     var d = E.PARTS[p.type], key = null, key2 = null, state = null;
+    var wb = document.getElementById('insForbid');
+    if (wb) { var fl = S.partFaults(p.id), ft = fl.map(function (f) { return S.faultLong(f); }).filter(function (x, i, a) { return a.indexOf(x) === i; }).join(' '); if (wb.hidden === !!ft) wb.hidden = !ft; if (wb.textContent !== ft) wb.textContent = ft; }
     if (d.logic && !d.outs) { var pins = E.pinsOf(p.type, fullProps(p)).filter(function (x) { return x !== 'out'; }); key = pins.map(function (x) { return b2(levelOf(p.id + '.' + x)); }).join(''); }
     else if (p.type === 'dec7') key = ['D', 'C', 'B', 'A'].map(function (x) { return b2(levelOf(p.id + '.' + x)); }).join('');
     else if (d.ff) {

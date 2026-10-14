@@ -179,6 +179,7 @@
           if (trig === 'neg') s += '<circle class="sym thin" cx="-30" cy="' + cy + '" r="3.5" style="fill:var(--karte, #fff)"/>';
           if (trig === 'ms') s += '<text class="symtxt small" x="6" y="-26">MS</text><path class="sym thin" d="M16-24h6v4"/>';
           if (EXTRA.async && E.PARTS[p.type].ffAsync) s += '<path ' + c + ' d="M0-36V-60M0 36V60"/><text class="symtxt small" x="10" y="-42">PS</text><text class="symtxt small" x="10" y="52">PC</text>';
+          if (r.forbidden) s += '<rect class="forbid" x="-30" y="-40" width="60" height="80" rx="4"/><text class="forbidtxt" x="0" y="-46">verboten</text>'; // unzulaessiger Zustand (preSet+preClear, S = R = 1)
           s += '<path ' + c + ' d="M26-20H40M31 20H40"/><circle ' + c + ' cx="28.5" cy="20" r="2.5"/>' +
             (qv !== undefined ? '<circle cx="34" cy="-30" r="3" class="' + (qv ? 'lamp-on' : 'lamp-off') + '"/>' : '');
           break;
@@ -199,7 +200,7 @@
     if (p.type === 'seg7' || p.type === 'dec7') return '<text class="lbl" y="-78">' + esc(p.id) + '</text>';
     if (E.PARTS[p.type].ctr) return '<text class="lbl" y="' + (-ctrHalf(p) - 8) + '">' + esc(p.id) + '</text><text class="val" y="' + (ctrHalf(p) + 16) + '">' + esc(valueText(p)) + '</text>';
     var vert = (p.type === 'battery' || p.type === 'ground' || p.type === 'acsource') ? (p.rot || 0) % 180 === 0 : (p.rot || 0) % 180 === 90;
-    var v = esc(valueText(p));
+    var mk = Editor.mask && Editor.mask(p), v = esc(mk !== undefined ? mk : valueText(p)); // Studio: verborgene Werte als «?»
     if (vert) return '<text class="lbl" x="24" y="-4" text-anchor="start">' + esc(p.id) + '</text><text class="val" x="24" y="12" text-anchor="start">' + v + '</text>';
     var big = GATE_SIGN[p.type] || FF_SIGN[p.type] || p.type === 'npn', up = big ? -44 : -24, dn = big ? 52 : 30;
     if (GATE_SIGN[p.type] && p.type !== 'not' && gateInputs(p) > 2) { var gk = 20 * Math.floor(gateInputs(p) / 2) + 10; up = -gk - 14; dn = gk + 22; }
@@ -373,6 +374,7 @@
       if (!self.showVolt) return null;
       var n = pinNode[pid]; return n === undefined ? null : voltColor(res.nodeV[n] || 0, vmax);
     }
+    function faultMark(p) { var ft = self.opts.faultOf && self.opts.faultOf(p.id); return ft ? '<rect class="faultmark" x="-46" y="-36" width="92" height="72" rx="6"/><text class="faulttxt" y="-42">' + esc(ft) + '</text>' : ''; } // Studio: Bauteil mit Meldung markieren
     var h = [];
     h.push('<defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="0" cy="0" r="1" class="griddot"/></pattern>' +
       '<radialGradient id="glowAmber"><stop offset="0" stop-color="#ffcf4a" stop-opacity="0.9"/><stop offset="1" stop-color="#ffb000" stop-opacity="0"/></radialGradient>' +
@@ -386,12 +388,12 @@
     });
     // Bauteile
     L.parts.forEach(function (p) {
-      var r = res && res.parts[p.id], sel = self.sel === p.id;
+      var r = res && res.parts[p.id], sel = self.sel === p.id || !!(self.opts.selected && self.opts.selected(p.id));
       var tip = partTip(p, r);
       h.push('<g class="part' + (sel ? ' selected' : '') + (self.locked[p.id] ? ' locked' : '') + '" data-part="' + p.id + '" transform="translate(' + p.x + ' ' + p.y + ')">' +
         '<title>' + esc(tip) + '</title><rect class="hit" x="-44" y="-34" width="88" height="68"/>' +
         '<g transform="rotate(' + (p.rot || 0) + ')">' + symbol(p, r) + '</g>' +
-        labels(p) + '</g>');
+        labels(p) + faultMark(p) + '</g>');
     });
     if (self.showFlow) h.push('<g class="bflow" pointer-events="none"></g>');
     // Anschluesse

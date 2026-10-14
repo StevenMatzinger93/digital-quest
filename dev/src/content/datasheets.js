@@ -194,7 +194,7 @@
   }
   function ff(funktion, ins, formel) {
     var pins = {}; Object.keys(ins).forEach(function (k) { pins[k] = ins[k]; });
-    pins.C = 'Takteingang (Steuerungsart einstellbar: steigende Flanke, fallende Flanke oder taktzustandsgesteuert; im Spiel steigende Flanke)'; pins.PS = 'preSet: setzt Q auf 1, unabhängig vom Takt (Vorrang vor C)'; pins.PC = 'preClear: setzt Q auf 0, unabhängig vom Takt (Vorrang vor C und vor preSet)'; pins.Q = 'Ausgang Q'; pins.Qn = 'Ausgang Q̄ (invertiert)';
+    pins.C = 'Takteingang (Steuerungsart einstellbar: steigende Flanke, fallende Flanke oder taktzustandsgesteuert; im Spiel steigende Flanke)'; pins.PS = 'preSet: setzt Q auf 1, unabhängig vom Takt (Vorrang vor C)'; pins.PC = 'preClear: setzt Q auf 0, unabhängig vom Takt (Vorrang vor C). preSet und preClear zugleich ist unzulässig: Q und Q̄ gehen beide auf 1'; pins.Q = 'Ausgang Q'; pins.Qn = 'Ausgang Q̄ (invertiert)';
     return { funktion: funktion, anschluesse: pins, extra: function (E) { return LOGIC_EXTRA(E).concat([CLASH]); }, formel: formel };
   }
 

@@ -50,10 +50,22 @@
       wires: [W('E1.out', 'U1.in1'), W('E2.out', 'U1.in2'), W('E1.out', 'U2.in1'), W('E2.out', 'U2.in2'), W('U1.out', 'L1.in'), W('U2.out', 'L2.in')] }, run: false };
   }
 
+  function tiefpass() {
+    return { layout: { parts: [part('G1', 'acsource', 240, 300, { freq: 1000, shape: 'sine', ri: 0.05 }, 1), part('R1', 'resistor', 520, 200, null, 1000), part('C1', 'capacitor', 800, 300, null, 1e-7), part('GND1', 'ground', 520, 440)],
+      wires: [W('G1.p', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'G1.n'), W('G1.n', 'GND1.g')] },
+      bode: [{ channels: [{ a: 'C1.a' }] }], run: false };
+  }
+  function rlc() {
+    return { layout: { parts: [part('G1', 'acsource', 240, 300, { freq: 500, shape: 'sine', ri: 0.05 }, 1), part('L1', 'inductor', 480, 200, null, 10e-3), part('C1', 'capacitor', 720, 200, null, 10e-6), part('R1', 'resistor', 900, 300, null, 10), part('GND1', 'ground', 520, 440)],
+      wires: [W('G1.p', 'L1.a'), W('L1.b', 'C1.a'), W('C1.b', 'R1.a'), W('R1.b', 'G1.n'), W('G1.n', 'GND1.g')] },
+      bode: [{ channels: [{ a: 'R1.a' }] }], run: false };
+  }
   var LIST = [
     { id: 'uhr', name: 'Digitaluhr (Sekunden 00 – 59)', text: 'Taktgeber 1 Hz, Einer (0–9) und Zehner (0–5), BCD-Dekoder, zwei Siebensegmentanzeigen.', build: digitaluhr },
     { id: 'zaehler', name: 'Asynchroner Zähler mit Zeitverlauf', text: '4 Bit aus Flipflops bei 1 MHz: Die höheren Stufen schalten mit Laufzeit später.', build: asyncZaehler },
     { id: 'rc', name: 'RC-Glied an Rechteckquelle', text: 'Lade- und Entladekurve im Oszilloskop; «τ bestimmen» liefert R·C = 1 ms.', build: rcGlied },
+    { id: 'tiefpass', name: 'RC-Tiefpass: Bode-Diagramm', text: '−3 dB bei fg = 1/(2π·R·C) = 1,59 kHz, −20 dB je Dekade, Phase −45° bei fg.', build: tiefpass },
+    { id: 'rlc', name: 'Reihenschwingkreis: Resonanzkurve', text: 'Resonanz bei 503 Hz, Güte Q ≈ 3,1 (Bandpass über R).', build: rlc },
     { id: 'lc', name: 'Schwingkreis aus L und C', text: 'Sprungantwort einer Reihenschaltung: f = 1 / (2π·√(L·C)) = 503 Hz.', build: schwingkreis },
     { id: 'teiler', name: 'Spannungsteiler', text: '9 V an 1 kΩ und 2 kΩ: Bauteil anklicken zeigt Spannung und Strom.', build: teiler },
     { id: 'logik', name: 'Halbaddierer (XOR und UND)', text: 'Pegelschalter links anklicken: Summe (XOR) und Übertrag (UND).', build: logik }
@@ -61,7 +73,7 @@
   S.examples = LIST;
   S.loadExample = function (id) {
     var ex = LIST.filter(function (e) { return e.id === id; })[0]; if (!ex) return false;
-    var b = ex.build(); S.loadLayout(b.layout, { scopes: b.scopes, timing: b.timing, run: b.run }); return true;
+    var b = ex.build(); S.loadLayout(b.layout, { scopes: b.scopes, timing: b.timing, bode: b.bode, run: b.run }); return true;
   };
   S.initExamples = function () {
     S.setMenu('bsp', LIST.map(function (e) { return { label: e.name, act: function () { S.loadExample(e.id); } }; }));
