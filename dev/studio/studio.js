@@ -5,7 +5,7 @@
 (function (root) {
   'use strict';
   var E = root.DQEngine, Circuit = root.DQCircuit, Editor = root.DQEditor, Sim = root.DQStudioSim;
-  var S = root.Studio = { E: E, version: '0.1', scopes: [], hooks: {} };
+  var S = root.Studio = { E: E, version: '0.1', scopes: [], hooks: {}, initFns: [] };
   var $ = function (s, el) { return (el || document).querySelector(s); };
   var $$ = function (s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); };
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -34,8 +34,8 @@
     { name: 'Bauteile', items: ['resistor', 'pot', 'capacitor', 'inductor', 'switch', 'button', 'lamp', 'motor', 'ammeter'] },
     { name: 'Halbleiter', items: ['diode', 'led', 'zener', 'npn'] },
     { name: 'Gatter', items: ['not', 'and', 'or', 'nand', 'nor', 'xor', 'xnor'] },
-    { name: 'Flipflops', items: ['dff', 'jkff', 'tff'] },
-    { name: 'Zähler', items: [] },
+    { name: 'Flipflops', items: ['dff', 'tff', 'jkff', 'rsff', 'jkms'] },
+    { name: 'Zähler', items: ['ctr_async', 'ctr_sync', 'ctr_bcd', 'ctr_johnson', 'ctr_mod'] },
     { name: 'Anzeigen', items: ['logicin', 'logicled', 'seg7', 'dec7'] }
   ];
   S.PALETTE = PALETTE;
@@ -55,6 +55,20 @@
     diode: [{ k: 'vf', l: 'Durchlassspannung', u: 'V' }], zener: [{ k: 'vz', l: 'Z-Spannung', u: 'V' }, { k: 'vf', l: 'Durchlassspannung', u: 'V' }],
     npn: [{ k: 'beta', l: 'Stromverstärkung β', u: '' }]
   };
+  var TRIG = { k: 'trig', l: 'Steuerungsart', kind: 'choice', o: [['pos', 'Flanke steigend ↑'], ['neg', 'Flanke fallend ↓'], ['level', 'Taktzustand (C = 1)']] };
+  var TPD = { k: 'tpd', l: 'Laufzeit t_pd', u: 's' };
+  ['dff', 'tff', 'jkff', 'rsff'].forEach(function (t) { FIELDS[t] = [TRIG, TPD]; }); FIELDS.jkms = [TPD];
+  /* Gatter: Eingangszahl; zu viele Leitungen an wegfallenden Eingaengen werden entfernt */
+  function dropDangling() {
+    var ok = {}; core.layout.parts.forEach(function (p) { E.pinsOf(p.type, Object.assign({}, E.PARTS[p.type].props, p.props || {})).forEach(function (pin) { ok[p.id + '.' + pin] = 1; }); });
+    core.layout.wires = core.layout.wires.filter(function (w) { return ok[w.from] && ok[w.to]; });
+  }
+  ['and', 'or', 'nand', 'nor', 'xor', 'xnor'].forEach(function (t) { FIELDS[t] = [{ k: 'inputs', l: 'Eingänge', kind: 'choice', num: true, o: [2, 3, 4, 5, 6, 7, 8].map(function (n) { return [n, String(n)]; }), rerender: true, onSet: dropDangling }]; });
+  var CTR_TRIG = { k: 'trig', l: 'Taktflanke', kind: 'choice', o: [['pos', 'steigend ↑'], ['neg', 'fallend ↓']] };
+  var CTR_DIR = { k: 'dir', l: 'Richtung', kind: 'choice', o: [['up', 'aufwärts'], ['down', 'abwärts']] };
+  var CTR_BITS = { k: 'bits', l: 'Bitzahl', kind: 'choice', num: true, o: [2, 3, 4, 5, 6, 7, 8].map(function (n) { return [n, String(n)]; }), rerender: true, onSet: dropDangling };
+  FIELDS.ctr_async = [CTR_BITS, CTR_DIR, CTR_TRIG, TPD]; FIELDS.ctr_sync = [CTR_BITS, CTR_DIR, CTR_TRIG, TPD]; FIELDS.ctr_johnson = [CTR_BITS, CTR_TRIG, TPD]; FIELDS.ctr_bcd = [CTR_TRIG, TPD];
+  FIELDS.ctr_mod = [{ k: 'modn', l: 'Modulus n', int: [2, 64], rerender: true, onSet: dropDangling }, CTR_TRIG, TPD];
   S.FIELDS = FIELDS;
   var CHOICE_LABEL = { sine: 'Sinus', square: 'Rechteck', triangle: 'Dreieck' };
 
@@ -73,10 +87,11 @@
   S.digitalNodes = {}; S.logicColors = true;
 
   function init() {
+    Editor.extra.async = true; // Flipflops mit preSet/preClear zeichnen (im Spiel nicht)
     Circuit.SPACES.schema.w = 2400; Circuit.SPACES.schema.h = 1500; // grosse Zeichenflaeche (Spiel: 1000 × 620)
     svg = $('#board');
     ed = S.ed = new Editor(svg, {
-      onChange: onChange, onSelect: onSelect, onProbe: onProbe, onMessage: function (m) { flash(m); },
+      onChange: onChange, onSelect: onSelect, onProbe: onProbe, onDouble: function (p) { return !!(E.PARTS[p.type].ctr && S.expandCounter && S.expandCounter(p)); }, onMessage: function (m) { flash(m); },
       wireColor: wireColor
     });
     core = S.core = ed.core; core.tool = 'wire';
@@ -89,6 +104,7 @@
     if (S.initScopes) S.initScopes();
     if (S.initTiming) S.initTiming();
     if (S.initExamples) S.initExamples();
+    S.initFns.forEach(function (f) { f(); });
     var loop = function (now) { rafId = requestAnimationFrame(loop); sim.frame(now); if (sim.version !== lastVersion) { lastVersion = sim.version; draw(now); } if (S.frame) S.frame(now); };
     rafId = requestAnimationFrame(loop);
   }
@@ -241,7 +257,7 @@
   }
   S.setTool = function (t) {
     measureTool = t === 'measure'; core.tool = measureTool ? 'probe' : 'wire'; core.wireStart = null;
-    $('#toolBuild').classList.toggle('on', !measureTool); $('#toolMeasure').classList.toggle('on', measureTool); $('#measureKind').hidden = !measureTool;
+    $('#toolBuild').classList.toggle('on', !measureTool); $('#toolMeasure').classList.toggle('on', measureTool); $('#measureKind').hidden = !measureTool; $('#measureTarget').hidden = !measureTool;
     svg.style.cursor = measureTool ? 'crosshair' : ''; ed.render();
   };
   S.measureKind = function () { return $('#measureKind').value; };
@@ -292,7 +308,7 @@
   function fieldHTML(p, f) {
     var v = getProp(p, f.k), id = 'f_' + f.k;
     if (f.kind === 'bool') return '<div class="field"><label for="' + id + '">' + esc(f.l) + '</label><input id="' + id + '" data-f="' + f.k + '" type="checkbox"' + (v ? ' checked' : '') + ' style="width:28px;height:28px"></div>';
-    if (f.kind === 'choice') return '<div class="field"><label for="' + id + '">' + esc(f.l) + '</label><select id="' + id + '" data-f="' + f.k + '">' + f.o.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === String(v) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></div>';
+    if (f.kind === 'choice') return '<div class="field"><label for="' + id + '">' + esc(f.l) + '</label><select id="' + id + '" data-f="' + f.k + '">' + f.o.map(function (o) { return '<option value="' + o[0] + '"' + (String(o[0]) === String(v) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></div>';
     if (f.kind === 'pos') return '<div class="field wide"><label for="' + id + '">' + esc(f.l) + ': <span class="mono" id="posv">' + Math.round(v * 100) + ' %</span></label><input id="' + id + '" data-f="' + f.k + '" type="range" min="0" max="1" step="0.01" value="' + v + '"></div>';
     return '<div class="field"><label for="' + id + '">' + esc(f.l) + '</label><span><input id="' + id + '" data-f="' + f.k + '" type="text" inputmode="decimal" value="' + esc(fmtVal(v)) + '"><span class="unit">' + esc(f.u || '') + '</span></span></div>';
   }
@@ -301,7 +317,7 @@
     if (f.kind === 'bool') { setProp(p, k, i.checked); }
     else if (f.kind === 'choice') { setProp(p, k, f.num ? +i.value : i.value); if (f.onSet) f.onSet(p); }
     else if (f.kind === 'pos') { setProp(p, k, +i.value); var pv = $('#posv'); if (pv) pv.textContent = Math.round(+i.value * 100) + ' %'; }
-    else { var v = parseSI(i.value); if (!isFinite(v) || (k !== 'offset' && v < 0) || ((k === 'ri' || k === 'freq') && v <= 0)) { i.classList.add('bad'); return; } i.classList.remove('bad'); setProp(p, k, v); i.value = fmtVal(v); }
+    else { var v = parseSI(i.value); if (!isFinite(v) || (k !== 'offset' && v < 0) || ((k === 'ri' || k === 'freq') && v <= 0)) { i.classList.add('bad'); return; } i.classList.remove('bad'); if (f.int) v = Math.max(f.int[0], Math.min(f.int[1], Math.round(v))); setProp(p, k, v); i.value = fmtVal(v); if (f.onSet) f.onSet(p); }
     onChange('edit'); if (f.rerender) renderInspector(true);
   }
   S.applyField = applyField;

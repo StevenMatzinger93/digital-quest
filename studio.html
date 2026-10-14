@@ -113,7 +113,7 @@ button { cursor: pointer; }
 .ins-icon { float: right; width: 70px; height: 46px; margin: 0 0 6px 8px; }
 .field { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 8px; margin: 6px 0; }
 .field label { color: var(--dunkel); }
-.field input[type="text"], .field select { width: 128px; min-height: 44px; border: 1px solid var(--rand); border-radius: 8px; padding: 0 8px; background: var(--bg); font-family: var(--font-mono); }
+.field input[type="text"], .field select { width: 150px; min-height: 44px; border: 1px solid var(--rand); border-radius: 8px; padding: 0 8px; background: var(--bg); font-family: var(--font-mono); }
 .field input.bad { border-color: var(--schlecht); background: #fdeeed; }
 .field .unit { color: var(--grau); font-size: 13px; margin-left: 4px; }
 .field.wide { grid-template-columns: 1fr; }
@@ -124,12 +124,29 @@ button { cursor: pointer; }
 .bigon { color: var(--gut-text); font-weight: 600; } .bigoff { color: var(--grau); }
 
 /* ---- Zeitverlauf (fest unten) ---- */
-.timing { background: var(--karte); border-top: 1px solid var(--rand); min-height: 0; height: 190px; display: flex; flex-direction: column; }
-.timing.collapsed { height: 38px; }
-.timing .th { display: flex; align-items: center; gap: 10px; padding: 0 10px; min-height: 38px; flex: none; }
+.timing { background: var(--karte); border-top: 1px solid var(--rand); min-height: 0; height: 230px; display: flex; flex-direction: column; }
+.timing.collapsed { height: auto; } .timing.collapsed .tl-body { display: none; }
+.timing .th { display: flex; align-items: center; gap: 8px; padding: 2px 10px; min-height: 40px; flex: none; flex-wrap: wrap; }
 .timing .th b { font-weight: 600; }
-.timing canvas { flex: 1; min-height: 0; width: 100%; display: block; }
-.timing .tl-btn { background: none; border: 1px solid var(--rand); border-radius: 6px; min-height: 30px; padding: 0 8px; }
+.tl-btn { background: var(--bg); border: 1px solid var(--rand); border-radius: 6px; min-height: 32px; padding: 0 10px; color: var(--dunkel); }
+.tl-btn.on { background: var(--dunkel); color: #fff; border-color: var(--dunkel); }
+.tl-body { flex: 1; min-height: 0; display: flex; flex-direction: column; } .tl-rows { flex: 1; min-height: 0; overflow: auto; }
+.tl-row { display: grid; grid-template-columns: 190px minmax(0, 1fr); border-top: 1px solid var(--rand); }
+.tl-lab { display: flex; align-items: center; gap: 2px; padding: 0 4px; min-width: 0; }
+.tl-lab input { width: 18px; height: 18px; margin: 0 4px 0 2px; }
+.tl-nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: 13px; }
+.tl-lab button { background: none; border: 0; min-width: 26px; min-height: 26px; color: var(--grau); border-radius: 4px; padding: 0; } .tl-lab button:hover { background: var(--bg); color: var(--dunkel); }
+.tl-cv { width: 100%; display: block; }
+.tl-axisrow { flex: none; display: grid; grid-template-columns: 190px minmax(0, 1fr); border-top: 1px solid var(--rand); } .tl-axisrow canvas { width: 100%; }
+.tl-empty { padding: 10px 12px; }
+
+.itab { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 12px; margin: 2px 0 6px; }
+.itab th, .itab td { border: 1px solid var(--rand); padding: 2px 5px; text-align: center; } .itab th { background: var(--bg); font-weight: 600; }
+.itab tr.act td { background: #cdeefc; font-weight: 700; color: var(--dunkel); }
+.itab-wrap { max-height: 240px; overflow: auto; border: 1px solid var(--rand); border-radius: 4px; } .itab-wrap .itab { margin: 0; }
+.inspector .fn { margin: 0 0 6px; font-size: 14px; }
+.sfd { width: 100%; height: auto; max-height: 220px; } .sfd circle { fill: var(--karte); stroke: var(--dunkel); stroke-width: 2; } .sfd path { fill: none; stroke: var(--dunkel); stroke-width: 1.6; }
+.sfd text { font: 600 11px var(--font-mono); fill: var(--dunkel); } .sfd g.cur circle { fill: #cdeefc; stroke: var(--blau-text); stroke-width: 3.5; }
 
 /* ---- Statusleiste ---- */
 .statusbar { background: var(--dunkel); color: #e7f3f7; display: flex; gap: 6px 18px; flex-wrap: wrap; align-items: center; min-height: 36px; padding: 4px 12px; font-size: 13px; }
@@ -170,7 +187,7 @@ button { cursor: pointer; }
   .palette { max-height: 220px; border-right: 0; border-bottom: 1px solid var(--rand); }
   .canvas { height: 62vh; min-height: 360px; }
   .inspector { border-left: 0; border-top: 1px solid var(--rand); }
-  .timing { height: 190px; }
+  .timing { height: 260px; } .tl-row, .tl-axisrow { grid-template-columns: 130px minmax(0, 1fr); }
   .statusbar { position: sticky; bottom: 0; }
   .fwin { min-width: 260px; }
 }
@@ -197,6 +214,7 @@ button { cursor: pointer; }
   <div class="tgroup" aria-label="Werkzeuge"><span class="tl">Werkzeuge</span>
     <button class="tb on" id="toolBuild" title="Bauen: Bauteile ziehen, Anschlüsse nacheinander anklicken = Leitung">✎ Bauen</button>
     <button class="tb" id="toolMeasure" title="Messen: Anschluss oder Bauteil anklicken = Signal ins Oszilloskop">⌖ Messen</button>
+    <select class="tsel" id="measureTarget" hidden title="Wohin das Signal kommt: Auto = digitale Anschlüsse in den Zeitverlauf, analoge ins Oszilloskop"><option value="auto">Ziel: Auto</option><option value="scope">Oszilloskop</option><option value="timing">Zeitverlauf</option></select>
     <select class="tsel" id="measureKind" hidden title="Was beim Klick auf ein Bauteil gemessen wird"><option value="pv">Spannung</option><option value="pi">Strom</option></select>
     <button class="tb" id="btnRot" title="Bauteil drehen (R)">⟳ Drehen</button>
     <button class="tb" id="btnDel" title="Auswahl löschen (Entf)">🗑 Löschen</button>
@@ -215,10 +233,7 @@ button { cursor: pointer; }
   </section>
   <aside class="inspector" id="inspector" aria-label="Eigenschaften"></aside>
 </div>
-<section class="timing" id="timing" aria-label="Zeitverlauf">
-  <div class="th"><b>Zeitverlauf</b><span class="hint" id="tlHint"></span></div>
-  <canvas id="tlCanvas"></canvas>
-</section>
+<section class="timing" id="timing" aria-label="Zeitverlauf"></section>
 <footer class="statusbar" id="statusbar" role="status" aria-live="polite"></footer>
 <div id="floats"></div>
 <div class="modal-bg" id="modalBg"><div class="modal" role="dialog" aria-modal="true" id="modal"></div></div>
@@ -258,7 +273,7 @@ button { cursor: pointer; }
     led:       { label: 'LED', prefix: 'D', pins: ['a', 'k'], props: { color: 'rot', rs: 10, imax: 0.03, inom: 0.02 } },
     diode:     { label: 'Diode', prefix: 'V', pins: ['a', 'k'], props: { vf: 0.7, rs: 1, imax: 1 } },
     capacitor: { label: 'Kondensator', prefix: 'C', pins: ['a', 'b'], props: { value: 100e-6 }, unit: 'F' },
-    inductor:  { label: 'Spule', prefix: 'L', pins: ['a', 'b'], props: { value: 10e-3 }, unit: 'H' }, // Studio Stufe 2: Rückwärts-Euler wie der Kondensator, im Gleichstrom-Arbeitspunkt ein Kurzschluss
+    inductor:  { label: 'Spule', studio: true, prefix: 'L', pins: ['a', 'b'], props: { value: 10e-3 }, unit: 'H' }, // Studio Stufe 2: Rückwärts-Euler wie der Kondensator, im Gleichstrom-Arbeitspunkt ein Kurzschluss
     ammeter:   { label: 'Strommesser', prefix: 'A', pins: ['a', 'b'], props: {} },
     clock:     { label: 'Taktgeber', prefix: 'CLK', pins: ['out'], props: { freq: 1 }, unit: 'Hz' },
     acsource:  { label: 'Wechselspannungsquelle', prefix: 'G', pins: ['p', 'n'], props: { value: 10, freq: 50, shape: 'sine', offset: 0, ri: 0.05, imax: 3 }, unit: 'V' }, // value = Scheitelwert Û
@@ -283,8 +298,16 @@ button { cursor: pointer; }
     dff:  { label: 'D-Flipflop', prefix: 'FF', pins: ['D', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['D'], ffAsync: ['PS', 'PC'], props: { trig: 'pos', tpd: 20e-9 }, ff: function (q, i) { return i[0]; } },
     jkff: { label: 'JK-Flipflop', prefix: 'FF', pins: ['J', 'K', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['J', 'K'], ffAsync: ['PS', 'PC'], props: { trig: 'pos', tpd: 20e-9 }, ff: function (q, i) { return i[0] && i[1] ? !q : i[0] ? true : i[1] ? false : q; } },
     tff:  { label: 'T-Flipflop', prefix: 'FF', pins: ['T', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['T'], ffAsync: ['PS', 'PC'], props: { trig: 'pos', tpd: 20e-9 }, ff: function (q, i) { return i[0] ? !q : q; } },
-    rsff: { label: 'RS-Flipflop', prefix: 'FF', pins: ['S', 'R', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['S', 'R'], ffAsync: ['PS', 'PC'], rs: true, props: { trig: 'level', tpd: 20e-9 }, ff: function (q, i) { return i[0] && !i[1] ? true : i[1] && !i[0] ? false : q; } },
-    jkms: { label: 'JK-MS-Flipflop', prefix: 'FF', pins: ['J', 'K', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['J', 'K'], ffAsync: ['PS', 'PC'], ms: true, props: { tpd: 20e-9 }, ff: function (q, i) { return i[0] && i[1] ? !q : i[0] ? true : i[1] ? false : q; } },
+    rsff: { label: 'RS-Flipflop', studio: true, prefix: 'FF', pins: ['S', 'R', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['S', 'R'], ffAsync: ['PS', 'PC'], rs: true, props: { trig: 'level', tpd: 20e-9 }, ff: function (q, i) { return i[0] && !i[1] ? true : i[1] && !i[0] ? false : q; } },
+    jkms: { label: 'JK-MS-Flipflop', studio: true, prefix: 'FF', pins: ['J', 'K', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['J', 'K'], ffAsync: ['PS', 'PC'], ms: true, props: { tpd: 20e-9 }, ff: function (q, i) { return i[0] && i[1] ? !q : i[0] ? true : i[1] ? false : q; } },
+    /* Zaehler als fertige Bausteine (Studio Stufe 4, klappen sich im Studio in Flipflops und Gatter auf): C = Takt, R = Rueckstellen (asynchron, aktiv 1), Q0 = niederwertigstes Bit.
+     * ctr: 'async' (Ripple: Bit k kippt erst, wenn Bit k−1 ueberlaeuft – eine Laufzeitstufe spaeter), 'sync' (alle Bits gleichzeitig), 'bcd' (0…9), 'johnson' (Schiebekette mit invertierter Rueckkopplung), 'mod' (0 … modn−1).
+     * props.trig = Taktflanke 'pos' | 'neg', props.dir = 'up' | 'down' (async, sync), props.bits = Bitzahl 2…8 (async, sync, johnson), props.modn = Modulus 2…256 (mod). */
+    ctr_async:   { label: 'Asynchroner Dualzähler', studio: true, prefix: 'Z', pins: ['C', 'R', 'Q0', 'Q1', 'Q2', 'Q3'], ctr: 'async', props: { bits: 4, dir: 'up', trig: 'pos', tpd: 20e-9 } },
+    ctr_sync:    { label: 'Synchroner Dualzähler', studio: true, prefix: 'Z', pins: ['C', 'R', 'Q0', 'Q1', 'Q2', 'Q3'], ctr: 'sync', props: { bits: 4, dir: 'up', trig: 'pos', tpd: 20e-9 } },
+    ctr_bcd:     { label: 'Dezimalzähler (BCD)', studio: true, prefix: 'Z', pins: ['C', 'R', 'Q0', 'Q1', 'Q2', 'Q3'], ctr: 'bcd', props: { trig: 'pos', tpd: 20e-9 } },
+    ctr_johnson: { label: 'Johnson-Zähler', studio: true, prefix: 'Z', pins: ['C', 'R', 'Q0', 'Q1', 'Q2', 'Q3'], ctr: 'johnson', props: { bits: 4, trig: 'pos', tpd: 20e-9 } },
+    ctr_mod:     { label: 'Modulo-n-Zähler', studio: true, prefix: 'Z', pins: ['C', 'R', 'Q0', 'Q1', 'Q2'], ctr: 'mod', props: { modn: 6, trig: 'pos', tpd: 20e-9 } },
     /* Halbleiter: NPN-Transistor (sperrt / aktiv: Ic = β·Ib / Saettigung: U_CE ≈ 0,2 V), Z-Diode (Durchbruch bei U_Z in Sperrrichtung) */
     npn:   { label: 'NPN-Transistor', prefix: 'Q', pins: ['b', 'c', 'e'], props: { beta: 100, vbe: 0.7, rbe: 50, vsat: 0.2, pmax: 0.5 } },
     zener: { label: 'Z-Diode', prefix: 'Z', pins: ['a', 'k'], props: { vz: 5.1, vf: 0.7, rs: 5, pmax: 0.5 } },
@@ -295,13 +318,39 @@ button { cursor: pointer; }
   function dIns(d) { return d.ins || (d.ffIns ? d.ffIns.concat(['C'], d.ffAsync || []) : d.pins.filter(function (p) { return p !== 'out'; })); }
   /* Anschluesse eines Bauteils mit seinen Eigenschaften (Gatter: Eingangszahl props.inputs) */
   function pinsOf(type, q) {
-    var d = def(type); if (!d.multi) return d.pins;
+    var d = def(type);
+    if (d.ctr) { var nb = ctrBitCount(d, q), a0 = ['C', 'R']; for (var j = 0; j < nb; j++) a0.push('Q' + j); return a0; }
+    if (!d.multi) return d.pins;
     var n = Math.max(2, Math.min(8, Math.round((q && q.inputs) || 2))); if (n === 2) return d.pins;
     var a = []; for (var k = 1; k <= n; k++) a.push('in' + k); a.push('out'); return a;
   }
-  function insOfPart(p) { var d = def(p.type); return d.multi ? Object.keys(p.n).filter(function (k) { return k !== 'out'; }) : dIns(d); }
+  /* Zaehler: Bitzahl, Folgezustand, Zaehlerstand */
+  function ctrBitCount(d, q) {
+    q = q || {};
+    if (d.ctr === 'bcd') return 4;
+    if (d.ctr === 'mod') { var m = Math.max(2, Math.min(256, Math.round(q.modn || 6))); return Math.max(1, Math.ceil(Math.log(m) / Math.LN2 - 1e-9)); }
+    return Math.max(2, Math.min(8, Math.round(q.bits || 4)));
+  }
+  function bitsToNum(b) { var n = 0; for (var i = 0; i < b.length; i++) if (b[i]) n += Math.pow(2, i); return n; }
+  function numToBits(n, nb) { var b = []; for (var i = 0; i < nb; i++) b.push(Math.floor(n / Math.pow(2, i)) % 2 === 1); return b; }
+  function ctrCount(p, b) {
+    var kind = def(p.type).ctr;
+    if (kind !== 'johnson') return bitsToNum(b);
+    var ones = b.filter(Boolean).length; return b[b.length - 1] ? b.length + (b.length - ones) : ones;   // Index in der Folge 0000, 0001, 0011, 0111, 1111, 1110, 1100, 1000
+  }
+  /* naechster Zaehlerstand (nicht asynchron) */
+  function ctrNext(p, b) {
+    var d = def(p.type), q = p.props, nb = b.length, n = bitsToNum(b);
+    switch (d.ctr) {
+      case 'bcd': return numToBits((n + 1) % 10, 4);
+      case 'mod': return numToBits((n + 1) % Math.max(2, Math.round(q.modn || 6)), nb);
+      case 'johnson': return [!b[nb - 1]].concat(b.slice(0, nb - 1));
+      default: var m = Math.pow(2, nb); return numToBits(q.dir === 'down' ? (n + m - 1) % m : (n + 1) % m, nb);
+    }
+  }
+  function insOfPart(p) { var d = def(p.type); if (d.ctr) return ['C', 'R']; return d.multi ? Object.keys(p.n).filter(function (k) { return k !== 'out'; }) : dIns(d); }
   function dOuts(d) { return d.outs || (d.ff ? ['Q', 'Qn'] : ['out']); }
-  function isDigital(d) { return !!(d.logic || d.digital || d.ff); }
+  function isDigital(d) { return !!(d.logic || d.digital || d.ff || d.ctr); }
   var SOURCES = { battery: 1, clock: 1, acsource: 1 };
   /* Momentanwert einer Wechselspannungsquelle zur Zeit t (Kurvenform sine | square | triangle, Scheitelwert value, Gleichanteil offset) */
   function wave(q, t) {
@@ -377,7 +426,7 @@ button { cursor: pointer; }
 
   /* burnInfo: Werte im Moment des Durchbrennens (fuer die Diagnose), fuseInfo: Strom beim Ausloesen der Multimeter-Sicherung */
   /* tr: Transistor-Zustand ('off'|'on'|'sat'), zen: Z-Dioden-Zustand ('off'|'f'|'z'), ff: Flipflops {q, c (letzter Taktpegel)} */
-  function newState() { return { burnt: {}, vC: {}, iL: {}, logic: {}, diode: {}, tr: {}, zen: {}, ff: {}, fuse: false, t: 0, burnInfo: {}, fuseInfo: null }; }
+  function newState() { return { burnt: {}, vC: {}, iL: {}, ctr: {}, logic: {}, diode: {}, tr: {}, zen: {}, ff: {}, fuse: false, t: 0, burnInfo: {}, fuseInfo: null }; }
 
   /* ---------- Loeser fuer einen Arbeitspunkt / Zeitschritt ----------
    * opts: { state, dt (null = Gleichstrom-Arbeitspunkt), t, meter:{mode,a,b} (Knoten), zeroSources, inject:{a,b,i},
@@ -397,6 +446,7 @@ button { cursor: pointer; }
       if (d.logic) logic[p.id] = st.logic[p.id] !== undefined ? st.logic[p.id] : (dOuts(d).length > 1 ? dOuts(d).map(function () { return false; }) : false);
     });
     function outVal(p, k) { var v = logic[p.id]; return Array.isArray(v) ? !!v[k] : !!v; }
+    function ctrBitsOf(p) { var c = (st.ctr || {})[p.id], nb = ctrBitCount(def(p.type), p.props); return c && c.bits ? c.bits : numToBits(0, nb).map(function () { return false; }); }
     function ffQ(p) { return !!((st.ff || {})[p.id] || {}).q; }
     var V = null, iter = 0, converged = false, oscillating = false;
 
@@ -463,6 +513,9 @@ button { cursor: pointer; }
               insOfPart(p).forEach(function (pin) { G(n[pin], '0', G_OPEN); });
               if (dd.ff) { drive(n.Q, ffQ(p)); drive(n.Qn, !ffQ(p)); }
               else dOuts(dd).forEach(function (pin, k) { drive(n[pin], outVal(p, k)); });
+            } else if (dd.ctr) {
+              insOfPart(p).forEach(function (pin) { G(n[pin], '0', G_OPEN); });
+              var cb = ctrBitsOf(p); cb.forEach(function (bit, k) { drive(n['Q' + k], bit); });
             } else if (dd.digital) dd.pins.forEach(function (pin) { if (p.type !== 'logicin') G(n[pin], '0', G_OPEN); });
         }
       });
@@ -579,7 +632,11 @@ button { cursor: pointer; }
         case 'clock': r.v = volt(n.out); r.high = r.v > LOGIC.vth; r.pin = { out: ((r.high && !opts.zeroSources ? LOGIC.vcc : 0) - r.v) / LOGIC.rout }; break;
         default:
           var dd = def(p.type);
-          if (dd.ff) { r.q = ffQ(p); r.out = r.q; r.v = volt(n.Q); r.pin = { Q: ((r.q ? LOGIC.vcc : 0) - volt(n.Q)) / LOGIC.rout, Qn: ((r.q ? 0 : LOGIC.vcc) - volt(n.Qn)) / LOGIC.rout }; }
+          if (dd.ctr) {
+            var eb = ctrBitsOf(p); r.bits = eb; r.count = ctrCount(p, eb); r.out = r.count; r.pin = {};
+            eb.forEach(function (bit, k) { r.pin['Q' + k] = ((bit ? LOGIC.vcc : 0) - volt(n['Q' + k])) / LOGIC.rout; });
+          }
+          else if (dd.ff) { r.q = ffQ(p); r.out = r.q; r.v = volt(n.Q); r.pin = { Q: ((r.q ? LOGIC.vcc : 0) - volt(n.Q)) / LOGIC.rout, Qn: ((r.q ? 0 : LOGIC.vcc) - volt(n.Qn)) / LOGIC.rout }; }
           else if (dd.logic) {
             r.out = logic[p.id]; r.pin = {};
             dOuts(dd).forEach(function (pin, k) { r.pin[pin] = ((outVal(p, k) ? LOGIC.vcc : 0) - volt(n[pin])) / LOGIC.rout; });
@@ -602,9 +659,13 @@ button { cursor: pointer; }
     opts = opts || {};
     state = state || newState();
     var out, guard = 0, trace = opts.trace ? [] : null;
+    /* Laufzeit der Flipflops und Zaehler (props.tpd): in der Zeitsimulation (dt) werden Ausgangsaenderungen als Ereignisse in state.pend eingeplant und
+     * nach tpd wirksam – auch ueber Rechenschritte hinweg. Ohne dt (Arbeitspunkt) gelten sie sofort. tv = Zeit des aktuellen Durchgangs innerhalb des Schritts. */
+    var delayMode = !!opts.dt, t1s = state.t + (opts.dt || 0), tv = state.t;
+    state.pend = state.pend || [];
     for (;;) {
       out = solve(net, { state: state, dt: opts.dt, t: state.t, meter: opts.meter, trace: trace });
-      if (opts.iters) opts.iters.push(out.res.nodeV); // Zwischenloesungen je Durchgang (Flipflop-Laufzeit im Zeitverlauf des Studios)
+      if (opts.iters) opts.iters.push({ t: tv, nodeV: out.res.nodeV }); // Zwischenloesungen je Durchgang mit Zeitpunkt (Flipflop-Laufzeit im Zeitverlauf des Studios)
       var newDamage = false, faults = [];
       net.parts.forEach(function (p) {
         var r = out.res.parts[p.id], q = p.props;
@@ -636,6 +697,7 @@ button { cursor: pointer; }
         function add(pin, v) { var nd = p.n[pin]; if (nd === undefined) return; (drv[nd] = drv[nd] || []).push({ id: p.id, v: !!v }); }
         if (p.type === 'logicin') add('out', p.props.closed);
         else if (p.type === 'clock') add('out', Math.floor(state.t * p.props.freq * 2) % 2 === 0);
+        else if (d.ctr) { r.bits.forEach(function (bit, k) { add('Q' + k, bit); }); }
         else if (d.ff) { add('Q', r.q); add('Qn', !r.q); }
         else if (d.logic) dOuts(d).forEach(function (pin, k) { add(pin, Array.isArray(r.out) ? r.out[k] : r.out); });
       });
@@ -644,8 +706,11 @@ button { cursor: pointer; }
         if (ds.some(function (x) { return x.v; }) && ds.some(function (x) { return !x.v; }))
           faults.push({ code: 'OUTPUT_CLASH', part: ds[0].id, parts: ds.map(function (x) { return x.id; }), i: LOGIC.vcc / (2 * LOGIC.rout) });
       });
-      // Flipflops (alle gleichzeitig aus derselben Loesung): je Steuerungsart Flanke/Zustand an C auswerten, preSet/preClear haben Vorrang
-      var ffChanged = false; state.ff = state.ff || {};
+      // Flipflops und Zaehler (alle gleichzeitig aus derselben Loesung): Flanke/Zustand an C je Steuerungsart auswerten, preSet/preClear haben Vorrang.
+      // Aenderungen werden mit Laufzeit eingeplant (plan) und von flush() wirksam gemacht.
+      var ffChanged = false; state.ff = state.ff || {}; state.ctr = state.ctr || {};
+      function plan(ev, tpd) { ev.t = delayMode ? tv + (tpd || 0) : tv; state.pend.push(ev); }
+      function pending(id, type, key, val) { return state.pend.some(function (e) { return e.id === id && e.type === type && e[key] === val; }); }
       net.parts.forEach(function (p) {
         var d = def(p.type); if (!d.ff || state.burnt[p.id]) return;
         var f = state.ff[p.id] || (state.ff[p.id] = { q: false, c: null });
@@ -653,7 +718,7 @@ button { cursor: pointer; }
         var c = lv('C'), ins = d.ffIns.map(lv), mode = d.ms ? 'ms' : (p.props.trig || 'pos'), nq = f.q, active = false;
         if (mode === 'pos') { if (f.c === false && c) { active = true; nq = d.ff(f.q, ins); } }
         else if (mode === 'neg') { if (f.c === true && !c) { active = true; nq = d.ff(f.q, ins); } }
-        else if (mode === 'level') { if (c && guard === 0) { active = true; nq = d.ff(f.q, ins); } }
+        else if (mode === 'level') { if (c && (delayMode || guard === 0)) { active = true; nq = d.ff(f.q, ins); } }
         else { // Master-Slave: Master folgt J/K solange C = 1 (setzt mit J·/Q, loescht mit K·Q), Slave uebernimmt bei fallender Flanke
           if (f.m === undefined) f.m = f.q;
           if (c) { if (ins[0] && !f.q) f.m = true; else if (ins[1] && f.q) f.m = false; }
@@ -661,9 +726,40 @@ button { cursor: pointer; }
         }
         if (d.rs && active && ins[0] && ins[1]) faults.push({ code: 'FF_RS', part: p.id });
         if (lv('PC')) { nq = false; if (d.ms) f.m = false; } else if (lv('PS')) { nq = true; if (d.ms) f.m = true; }
-        if (nq !== f.q) { f.q = nq; ffChanged = true; }
+        if (nq !== f.q && !pending(p.id, 'ff', 'q', nq)) plan({ id: p.id, type: 'ff', q: nq }, p.props.tpd);
         f.c = c;
       });
+      // Zaehlerbausteine: Taktflanke auswerten; asynchron plant jede Stufe die naechste (Uebertrag), sonst wechseln alle Bits zugleich
+      net.parts.forEach(function (p) {
+        var d = def(p.type); if (!d.ctr || state.burnt[p.id]) return;
+        var nb = ctrBitCount(d, p.props), c0 = state.ctr[p.id] || (state.ctr[p.id] = { bits: numToBits(0, nb).map(function () { return false; }), c: null });
+        if (c0.bits.length !== nb) c0.bits = numToBits(0, nb).map(function () { return false; });
+        function lv(pin) { return p.n[pin] !== undefined && (out.V[p.n[pin]] || 0) > LOGIC.vth; }
+        var c = lv('C'), edge = p.props.trig === 'neg' ? (c0.c === true && !c) : (c0.c === false && c), up = p.props.dir !== 'down';
+        if (lv('R')) { if (c0.bits.some(Boolean) && !pending(p.id, 'ctrset', 'zero', true)) plan({ id: p.id, type: 'ctrset', zero: true, bits: c0.bits.map(function () { return false; }) }, p.props.tpd); }
+        else if (edge) {
+          if (d.ctr === 'async') plan({ id: p.id, type: 'flip', k: 0 }, p.props.tpd);
+          else plan({ id: p.id, type: 'ctrset', bits: ctrNext(p, c0.bits) }, p.props.tpd);
+        }
+        c0.c = c;
+      });
+      function apply(ev) {
+        if (ev.type === 'ff') { state.ff[ev.id].q = ev.q; return; }
+        var c0 = state.ctr[ev.id], pp = net.byId[ev.id];
+        if (ev.type === 'ctrset') { c0.bits = ev.bits.slice(); return; }
+        var was = c0.bits[ev.k]; c0.bits[ev.k] = !was; // asynchron: Bit kippt, bei Uebertrag kippt die naechste Stufe eine Laufzeit spaeter
+        if ((pp.props.dir !== 'down' ? was : !was) && ev.k + 1 < c0.bits.length) plan({ id: ev.id, type: 'flip', k: ev.k + 1 }, pp.props.tpd);
+      }
+      // faellige Ereignisse: im Arbeitspunkt alle sofort, in der Zeitsimulation die naechste Gruppe gleicher Zeit innerhalb dieses Schritts (danach wird neu geloest)
+      var applied = false;
+      for (;;) {
+        var bi2 = -1; state.pend.forEach(function (e, i) { if (bi2 < 0 || e.t < state.pend[bi2].t) bi2 = i; });
+        if (bi2 < 0) break;
+        var ev0 = state.pend[bi2];
+        if (delayMode && (ev0.t >= t1s - 1e-18 || (applied && ev0.t > tv + 1e-18))) break;
+        tv = Math.max(tv, ev0.t); state.pend.splice(bi2, 1); apply(ev0); applied = true;
+      }
+      if (applied) ffChanged = true;
       state.diode = out.diode; state.logic = out.logic; state.tr = out.tr; state.zen = out.zen;
       if (!(newDamage || ffChanged) || ++guard > 20) break;
     }
@@ -971,7 +1067,7 @@ button { cursor: pointer; }
   var api = {
     expectedAnswers: expectedAnswers, UNIT_SCALE: UNIT_SCALE,
     version: '0.2.0', PARTS: PARTS, LED_COLORS: LED_COLORS, LOGIC: LOGIC, METER: METER, LIMITS: LIMITS, SOURCES: SOURCES, TRACE_MAX: TRACE_MAX,
-    pinsOf: pinsOf, wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, DMM_MANUAL: DMM_MANUAL, rangeLabel: rangeLabel, acMeasure: acMeasure,
+    pinsOf: pinsOf, ctrNext: ctrNext, ctrCount: ctrCount, ctrBitCount: ctrBitCount, bitsToNum: bitsToNum, numToBits: numToBits, wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, DMM_MANUAL: DMM_MANUAL, rangeLabel: rangeLabel, acMeasure: acMeasure,
     buildNetlist: buildNetlist, solve: solve, step: step, newState: newState,
     measure: measure, simulate: simulate, runTask: runTask, fmt: fmt, clone: clone,
     /* Bezugspunkt eines Aufbaus als Anschlussname ('GND1.g' bzw. 'G1.n'); null ohne Quelle und Masse (Gleichrichter-Auftrag 06.10.2026, G1) */
@@ -1057,7 +1153,7 @@ button { cursor: pointer; }
   /* Freien Rasterplatz nahe (cx, cy) im Raum suchen, spiralfoermig */
   /* Halbe Abmessungen je Bauteiltyp [x, y] fuer die Platzsuche (unrotiert), je Ansicht */
   var HALF = {
-    schema: { _: [45, 35], battery: [30, 45], acsource: [30, 45], dec7: [45, 80], seg7: [45, 80], dff: [45, 45], jkff: [45, 45], tff: [45, 45], npn: [40, 45], pot: [45, 45] },
+    schema: { _: [45, 35], battery: [30, 45], acsource: [30, 45], dec7: [45, 80], seg7: [45, 80], dff: [45, 45], jkff: [45, 45], tff: [45, 45], rsff: [45, 45], jkms: [45, 45], npn: [40, 45], pot: [45, 45] },
     bench: { _: [65, 32], battery: [75, 56], acsource: [75, 56], dec7: [88, 90], seg7: [75, 88], dff: [75, 55], jkff: [75, 55], tff: [75, 55], npn: [65, 55], motor: [75, 55],
       lamp: [65, 35], pot: [65, 47], clock: [62, 40], logicin: [56, 39], logicled: [46, 35], ground: [30, 35], and: [65, 46], or: [65, 46], nand: [65, 46], nor: [65, 46], xor: [65, 46], xnor: [65, 46], not: [65, 46] }
   };
@@ -1214,12 +1310,37 @@ button { cursor: pointer; }
     dff: { D: [-40, -20], C: [-40, 20], Q: [40, -20], Qn: [40, 20] },
     tff: { T: [-40, -20], C: [-40, 20], Q: [40, -20], Qn: [40, 20] },
     jkff: { J: [-40, -20], C: [-40, 0], K: [-40, 20], Q: [40, -20], Qn: [40, 20] },
+    jkms: { J: [-40, -20], C: [-40, 0], K: [-40, 20], Q: [40, -20], Qn: [40, 20] },
+    rsff: { S: [-40, -20], C: [-40, 0], R: [-40, 20], Q: [40, -20], Qn: [40, 20] },
     seg7: {}, dec7: { A: [-40, -60], B: [-40, -40], C: [-40, -20], D: [-40, 0] }
   };
   'abcdefg'.split('').forEach(function (k, i) { GEO.seg7[k] = [-40, -60 + 20 * i]; GEO.dec7[k] = [40, -60 + 20 * i]; });
   ['and', 'or', 'nand', 'nor', 'xor', 'xnor'].forEach(function (g) { GEO[g] = { in1: [-40, -20], in2: [-40, 20], out: [40, 0] }; });
+  /* Dynamische Geometrie: Gatter mit einstellbarer Eingangszahl, Flipflops mit preSet/preClear (nur wenn Editor.extra.async, Studio) und Bausteine des Studios
+   * (Editor.DYNGEO[type] = function (part) → {pin: [x, y]}, z. B. Zaehler) */
+  var DYNGEO = {}, EXTRA = { async: false };
+  function gateInputs(p) { var q = p.props || {}; return Math.max(2, Math.min(8, Math.round(q.inputs || 2))); }
+  function slots(n) { var k = Math.floor(n / 2), a = []; for (var i = -k; i <= k; i++) { if (i === 0 && n % 2 === 0) continue; a.push(i * 20); } return a; }
+  function geoOf(p) {
+    var f = DYNGEO[p.type]; if (f) return f(p);
+    if (E.PARTS[p.type] && E.PARTS[p.type].multi) {
+      var n = gateInputs(p), ys = slots(n), g = { out: [40, 0] }; ys.forEach(function (y, i) { g['in' + (i + 1)] = [-40, y]; }); return g;
+    }
+    var base = GEO[p.type];
+    if (EXTRA.async && E.PARTS[p.type] && E.PARTS[p.type].ffAsync) { var o = {}; Object.keys(base).forEach(function (k) { o[k] = base[k]; }); o.PS = [0, -60]; o.PC = [0, 60]; return o; }
+    return base;
+  }
+  Object.keys(E.PARTS).forEach(function (t) {
+    if (!E.PARTS[t].ctr) return;
+    DYNGEO[t] = function (p) {
+      var nb = E.ctrBitCount(E.PARTS[t], Object.assign({}, E.PARTS[t].props, p.props || {})), ys = slots(nb), g = { C: [-40, -20], R: [-40, 20] };
+      ys.forEach(function (y, i) { g['Q' + i] = [40, y]; }); return g;
+    };
+  });
+  function ctrHalf(p) { var nb = E.ctrBitCount(E.PARTS[p.type], Object.assign({}, E.PARTS[p.type].props, p.props || {})); return Math.max(30, 20 * Math.floor(nb / 2) + 10); }
+  var CTR_TXT = { async: 'ASYNC', sync: 'SYNC', bcd: 'BCD', johnson: 'JOHNSON', mod: 'MOD' };
   var GATE_SIGN = { and: '&amp;', nand: '&amp;', or: '≥1', nor: '≥1', xor: '=1', xnor: '=1', not: '1' };
-  var FF_SIGN = { dff: ['1D', 'C1'], tff: ['1T', 'C1'], jkff: ['1J', 'C1', '1K'] };
+  var FF_SIGN = { dff: ['1D', 'C1'], tff: ['1T', 'C1'], jkff: ['1J', 'C1', '1K'], rsff: ['1S', 'C1', '1R'], jkms: ['1J', 'C1', '1K'] };
   /* 7-Segment: Segment-Pfade a…g in einem Feld von 24 × 40 um den Ursprung */
   var SEGP = ['M-8-20h16', 'M10-18v16', 'M10 2v16', 'M-8 20h16', 'M-10 2v16', 'M-10-18v16', 'M-8 0h16'];
 
@@ -1227,7 +1348,7 @@ button { cursor: pointer; }
     var x = p[0], y = p[1];
     switch (((rot || 0) % 360 + 360) % 360) { case 90: return [-y, x]; case 180: return [-x, -y]; case 270: return [y, -x]; default: return [x, y]; }
   }
-  function pinPos(part, pin) { var o = rotPt(GEO[part.type][pin], part.rot); return [part.x + o[0], part.y + o[1]]; }
+  function pinPos(part, pin) { var o = rotPt(geoOf(part)[pin], part.rot); return [part.x + o[0], part.y + o[1]]; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   function fmtVal(v) { // 4700 -> '4.7k', 1e-4 -> '100µ'
@@ -1251,6 +1372,13 @@ button { cursor: pointer; }
       case 'motor': return fmtVal(v) + ' Ω';
       case 'npn': return 'β ' + (q.beta || d.props.beta);
       case 'logicin': return q.closed ? '1' : '0';
+      case 'dff': case 'tff': case 'jkff': case 'rsff': return ({ pos: '↑ Flanke', neg: '↓ Flanke', level: 'Pegel' })[q.trig || d.props.trig] || '';
+      case 'jkms': return '↓ (MS)';
+      case 'ctr_async': case 'ctr_sync': return (q.bits || 4) + ' Bit ' + ((q.dir || 'up') === 'down' ? '↓' : '↑');
+      case 'ctr_johnson': return (q.bits || 4) + ' Bit';
+      case 'ctr_bcd': return '0 … 9';
+      case 'ctr_mod': return '0 … ' + ((q.modn || 6) - 1);
+      case 'and': case 'or': case 'nand': case 'nor': case 'xor': case 'xnor': return (q.inputs || 2) > 2 ? q.inputs + ' Eingänge' : '';
       case 'led': return q.color || d.props.color;
       default: return '';
     }
@@ -1321,20 +1449,34 @@ button { cursor: pointer; }
         s = '<rect ' + c + ' x="-22" y="-18" width="44" height="36" rx="3"/><path class="sym thin" d="M-14 8H-7V-8H0V8H7V-8H14"/><path ' + c + ' d="M22 0H40"/>' +
           '<circle cx="15" cy="-12" r="3" class="' + (hi ? 'lamp-on' : 'lamp-off') + '"/>'; break;
       default:
-        if (FF_SIGN[p.type]) { // Flipflop: Kasten mit Abhaengigkeitsnotation, Takteingang mit Dreieck
-          var fs = FF_SIGN[p.type], fy = p.type === 'jkff' ? [-20, 0, 20] : [-20, 20], qv = r.q;
+        if (E.PARTS[p.type].ctr) { // Zaehlerbaustein: Kasten mit Zaehlerstand, Takt (Dreieck, bei fallender Flanke mit Kreis), Rueckstellen R, Ausgaenge Q0 …
+          var cdef = E.PARTS[p.type], cq = Object.assign({}, cdef.props, q), cnb = E.ctrBitCount(cdef, cq), cgh = ctrHalf(p), cys = slots(cnb);
+          s = '<rect ' + c + ' x="-26" y="' + (-cgh) + '" width="52" height="' + (2 * cgh) + '" rx="2"/>' +
+            '<text class="symtxt small" y="' + (-cgh + 12) + '">' + CTR_TXT[cdef.ctr] + (cdef.ctr === 'mod' ? ' ' + cq.modn : '') + '</text>' +
+            '<path ' + c + ' d="M-40-20H-26M-40 20H-26"/><text class="symtxt small" x="-15" y="-16">C</text><text class="symtxt small" x="-16" y="24">R</text>';
+          if (cq.trig === 'neg') s += '<circle class="sym thin" cx="-30" cy="-20" r="3.5" style="fill:var(--karte, #fff)"/>';
+          s += '<path class="sym thin" d="M-26-25L-20-20L-26-15"/>';
+          cys.forEach(function (y, i) { s += '<path ' + c + ' d="M26 ' + y + 'H40"/><text class="symtxt small" x="14" y="' + (y + 4) + '">Q' + i + '</text>'; });
+          if (r.count !== undefined) s += '<text class="symtxt" y="6" style="font-size:20px">' + r.count + '</text>';
+          break;
+        }
+        if (FF_SIGN[p.type]) { // Flipflop: Kasten mit Abhaengigkeitsnotation, Takteingang: Dreieck = Flanke, Kreis davor = fallend, ohne Dreieck = Taktzustand
+          var fs = FF_SIGN[p.type], three = p.type === 'jkff' || p.type === 'rsff' || p.type === 'jkms', fy = three ? [-20, 0, 20] : [-20, 20], qv = r.q;
+          var trig = p.type === 'jkms' ? 'ms' : q.trig || E.PARTS[p.type].props.trig || 'pos', cy = three ? 0 : 20;
           s = '<rect ' + c + ' x="-26" y="-36" width="52" height="72" rx="2"/>';
           fy.forEach(function (y, k) { s += '<path ' + c + ' d="M-40 ' + y + 'H-26"/><text class="symtxt small" x="-14" y="' + (y + 4) + '">' + fs[k] + '</text>'; });
-          var cy = p.type === 'jkff' ? 0 : 20;
-          s += '<path class="sym thin" d="M-26 ' + (cy - 5) + 'L-20 ' + cy + 'L-26 ' + (cy + 5) + '"/>' +
-            '<path ' + c + ' d="M26-20H40M31 20H40"/><circle ' + c + ' cx="28.5" cy="20" r="2.5"/>' +
+          if (trig === 'pos' || trig === 'neg') s += '<path class="sym thin" d="M-26 ' + (cy - 5) + 'L-20 ' + cy + 'L-26 ' + (cy + 5) + '"/>';
+          if (trig === 'neg') s += '<circle class="sym thin" cx="-30" cy="' + cy + '" r="3.5" style="fill:var(--karte, #fff)"/>';
+          if (trig === 'ms') s += '<text class="symtxt small" x="6" y="-26">MS</text><path class="sym thin" d="M16-24h6v4"/>';
+          if (EXTRA.async && E.PARTS[p.type].ffAsync) s += '<path ' + c + ' d="M0-36V-60M0 36V60"/><text class="symtxt small" x="10" y="-42">PS</text><text class="symtxt small" x="10" y="52">PC</text>';
+          s += '<path ' + c + ' d="M26-20H40M31 20H40"/><circle ' + c + ' cx="28.5" cy="20" r="2.5"/>' +
             (qv !== undefined ? '<circle cx="34" cy="-30" r="3" class="' + (qv ? 'lamp-on' : 'lamp-off') + '"/>' : '');
           break;
         }
         if (GATE_SIGN[p.type]) {
-          var inv = /^n|not|xnor/.test(p.type), two = p.type !== 'not';
-          s = '<rect ' + c + ' x="-22" y="-30" width="44" height="60" rx="2"/><text class="symtxt" y="6">' + GATE_SIGN[p.type] + '</text>' +
-            (two ? '<path ' + c + ' d="M-40-20H-22M-40 20H-22"/>' : '<path ' + c + ' d="M-40 0H-22"/>') +
+          var inv = /^n|not|xnor/.test(p.type), gn = p.type === 'not' ? 1 : gateInputs(p), gys = gn === 1 ? [0] : slots(gn), gh = gn === 1 ? 30 : 20 * Math.floor(gn / 2) + 10;
+          s = '<rect ' + c + ' x="-22" y="' + (-gh) + '" width="44" height="' + (2 * gh) + '" rx="2"/><text class="symtxt" y="6">' + GATE_SIGN[p.type] + '</text>' +
+            gys.map(function (y) { return '<path ' + c + ' d="M-40 ' + y + 'H-22"/>'; }).join('') +
             (inv ? '<circle ' + c + ' cx="27" r="5"/><path ' + c + ' d="M32 0H40"/>' : '<path ' + c + ' d="M22 0H40"/>') +
             (r.out !== undefined ? '<circle cx="34" cy="-10" r="3" class="' + (r.out ? 'lamp-on' : 'lamp-off') + '"/>' : '');
         }
@@ -1345,10 +1487,13 @@ button { cursor: pointer; }
 
   function labels(p) { // Beschriftung neben senkrechten, ueber/unter waagrechten Bauteilen
     if (p.type === 'seg7' || p.type === 'dec7') return '<text class="lbl" y="-78">' + esc(p.id) + '</text>';
+    if (E.PARTS[p.type].ctr) return '<text class="lbl" y="' + (-ctrHalf(p) - 8) + '">' + esc(p.id) + '</text><text class="val" y="' + (ctrHalf(p) + 16) + '">' + esc(valueText(p)) + '</text>';
     var vert = (p.type === 'battery' || p.type === 'ground' || p.type === 'acsource') ? (p.rot || 0) % 180 === 0 : (p.rot || 0) % 180 === 90;
     var v = esc(valueText(p));
     if (vert) return '<text class="lbl" x="24" y="-4" text-anchor="start">' + esc(p.id) + '</text><text class="val" x="24" y="12" text-anchor="start">' + v + '</text>';
     var big = GATE_SIGN[p.type] || FF_SIGN[p.type] || p.type === 'npn', up = big ? -44 : -24, dn = big ? 52 : 30;
+    if (GATE_SIGN[p.type] && p.type !== 'not' && gateInputs(p) > 2) { var gk = 20 * Math.floor(gateInputs(p) / 2) + 10; up = -gk - 14; dn = gk + 22; }
+    if (FF_SIGN[p.type] && EXTRA.async) { up = -68; dn = 76; }
     return '<text class="lbl" y="' + up + '">' + esc(p.id) + '</text><text class="val" y="' + dn + '">' + v + '</text>';
   }
   /* Tooltip eines Bauteils mit Simulationswerten (auch fuer die Werkbank) */
@@ -1404,7 +1549,7 @@ button { cursor: pointer; }
     var v = this.view, w = Math.max(160, Math.min(v[2], 360)), h = w * v[3] / v[2];
     this.setView([part.x - w / 2, part.y - h / 2, w, h]);
   };
-  Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText; Editor.partTip = partTip; Editor.voltColor = voltColor; Editor.icon = icon;
+  Editor.DYNGEO = DYNGEO; Editor.extra = EXTRA; Editor.geoOf = geoOf; Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText; Editor.partTip = partTip; Editor.voltColor = voltColor; Editor.icon = icon;
   // Zustand liegt im Kern; die bisherigen Eigenschaften bleiben fuer app.js erhalten
   ['layout', 'locked', 'sel', 'wireStart', 'tool', 'probes', 'drag'].forEach(function (k) {
     Object.defineProperty(Editor.prototype, k, { get: function () { return this.core[k]; }, set: function (v) { this.core[k] = v; } });
@@ -1447,6 +1592,7 @@ button { cursor: pointer; }
     var self = this, svg = this.svg, core = this.core, pan = null, pinch = null, touches = {}, lastTap = { t: 0, x: 0, y: 0 };
     function dblAt(ev) { // Doppeltipp/Doppelklick: Bauteil → heranzoomen, leere Fläche → einpassen
       var t = ev.target.closest('[data-part]'), p = t && core.part(t.dataset.part);
+      if (p && self.opts.onDouble && self.opts.onDouble(p)) return; // Studio: Zaehler aufklappen
       if (p) self.zoomTo(p); else self.fit();
     }
     svg.addEventListener('pointerdown', function (ev) {
@@ -1495,7 +1641,7 @@ button { cursor: pointer; }
     var byId = {}; L.parts.forEach(function (p) { byId[p.id] = p; });
     var pinWireCount = {}; L.wires.forEach(function (w) { pinWireCount[w.from] = (pinWireCount[w.from] || 0) + 1; pinWireCount[w.to] = (pinWireCount[w.to] || 0) + 1; });
     function pp(pid) { var s = pid.split('.'); return byId[s[0]] ? pinPos(byId[s[0]], s[1]) : [0, 0]; }
-    function dir(pid) { var s = pid.split('.'), p = byId[s[0]]; if (!p) return [0, 0]; var o = rotPt(GEO[p.type][s[1]], p.rot); return [Math.sign(o[0]), Math.abs(o[0]) >= Math.abs(o[1]) ? 0 : Math.sign(o[1])]; }
+    function dir(pid) { var s = pid.split('.'), p = byId[s[0]]; if (!p) return [0, 0]; var o = rotPt(geoOf(p)[s[1]], p.rot); return [Math.sign(o[0]), Math.abs(o[0]) >= Math.abs(o[1]) ? 0 : Math.sign(o[1])]; }
     function route(fa, fb) { // kurzer Stummel aus jedem Anschluss heraus, dazwischen rechtwinklig
       var a = pp(fa), b = pp(fb), da = dir(fa), db = dir(fb);
       if (da[1] !== 0) da[0] = 0; if (db[1] !== 0) db[0] = 0;
@@ -1540,7 +1686,7 @@ button { cursor: pointer; }
     if (self.showFlow) h.push('<g class="bflow" pointer-events="none"></g>');
     // Anschluesse
     L.parts.forEach(function (p) {
-      Object.keys(GEO[p.type]).forEach(function (pin) {
+      Object.keys(geoOf(p)).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = pinPos(p, pin), col = wcol(pid);
         var cls = 'pin' + (self.wireStart === pid ? ' active' : '') + (pinWireCount[pid] ? ' used' : '') + (pinWireCount[pid] > 1 ? ' junction' : '');
         h.push('<g data-pin="' + pid + '"><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (11 * hit).toFixed(1) + '"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');
@@ -1655,7 +1801,8 @@ button { cursor: pointer; }
     this.dtAuto = true; this.dtManual = 1e-3; this.dt = 1e-3;
     this.factor = 'auto'; this.running = opts.running !== false; this.acc = 0; this.last = 0;
     this.traces = []; this.lag = false; this.rate = 0; this.steps = 0; this.dynamic = false; this.span = null;
-    this.iters = false; // Zwischenergebnisse je Rechenschritt aufzeichnen (Zeitverlauf: Laufzeit der Flipflops), siehe E.step opts.iters
+    this.iters = true;  // Zwischenloesungen je Rechenschritt aufzeichnen (Zeitverlauf: Laufzeit der Flipflops), siehe E.step opts.iters
+    this.tpd = 20e-9;   // Laufzeit je Flipflop-Stufe (aus den Bauteilen, groesster Wert)
     this.hooks = [];    // function (res, t, iterList) nach jedem Schritt
     this.version = 0;   // zaehlt jede Aenderung der Zeit/des Ergebnisses (fuer Neuzeichnen)
   }
@@ -1680,6 +1827,7 @@ button { cursor: pointer; }
     this.dynamic = this.net.parts.some(function (p) { return DYN[p.type]; });
     this.dt = this.dtAuto ? chooseDt(this.net) : this.dtManual;
     this.span = chooseSpan(this.net);
+    var tp = 0; this.net.parts.forEach(function (p) { if (p.props.tpd > tp && (E.PARTS[p.type].ff || E.PARTS[p.type].ctr)) tp = p.props.tpd; }); this.tpd = tp || 20e-9;
     this.evaluate();
     return true;
   };
@@ -1701,8 +1849,18 @@ button { cursor: pointer; }
     var res;
     try { res = E.step(net, this.state, o); } catch (e) { this.err = e.message; this.running = false; return false; }
     this.res = res; this.faults = res.faults; this.steps++;
-    var tr = this.traces, t = this.state.t;
-    for (var i = 0; i < tr.length; i++) { var v = tr[i].read(res, net); if (!isNaN(v)) tr[i].push(t, v); }
+    var tr = this.traces, t = this.state.t, it = o.iters, K = it ? it.length - 1 : 0, i, v;
+    if (K > 0) { // Flipflops haben geschaltet: jeder Durchgang traegt seinen Zeitpunkt (Taktflanke + Laufzeiten)
+      for (var k = 0; k <= K; k++) {
+        var pseudo = { nodeV: it[k].nodeV, parts: res.parts };
+        for (i = 0; i < tr.length; i++) { var kd = tr[i].desc.kind; if (kd === 'node' || kd === 'dig' || kd === 'diff') { v = tr[i].read(pseudo, net); if (!isNaN(v)) tr[i].push(it[k].t, v); } }
+      }
+    }
+    else if (it && it.length) { // keine Flipflop-Ereignisse: Pegelsignale trotzdem zum Schrittanfang eintragen (die Flanke einer Quelle gehoert zu t − dt, nicht zum Schrittende)
+      var ps0 = { nodeV: it[0].nodeV, parts: res.parts };
+      for (i = 0; i < tr.length; i++) if (tr[i].desc.kind === 'dig') { v = tr[i].read(ps0, net); if (!isNaN(v)) tr[i].push(it[0].t, v); }
+    }
+    for (i = 0; i < tr.length; i++) { v = tr[i].read(res, net); if (!isNaN(v)) tr[i].push(t, v); }
     for (var h = 0; h < this.hooks.length; h++) this.hooks[h](res, t, o.iters || null, this.dt);
     return true;
   };
@@ -1763,7 +1921,7 @@ button { cursor: pointer; }
 (function (root) {
   'use strict';
   var E = root.DQEngine, Circuit = root.DQCircuit, Editor = root.DQEditor, Sim = root.DQStudioSim;
-  var S = root.Studio = { E: E, version: '0.1', scopes: [], hooks: {} };
+  var S = root.Studio = { E: E, version: '0.1', scopes: [], hooks: {}, initFns: [] };
   var $ = function (s, el) { return (el || document).querySelector(s); };
   var $$ = function (s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); };
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -1792,8 +1950,8 @@ button { cursor: pointer; }
     { name: 'Bauteile', items: ['resistor', 'pot', 'capacitor', 'inductor', 'switch', 'button', 'lamp', 'motor', 'ammeter'] },
     { name: 'Halbleiter', items: ['diode', 'led', 'zener', 'npn'] },
     { name: 'Gatter', items: ['not', 'and', 'or', 'nand', 'nor', 'xor', 'xnor'] },
-    { name: 'Flipflops', items: ['dff', 'jkff', 'tff'] },
-    { name: 'Zähler', items: [] },
+    { name: 'Flipflops', items: ['dff', 'tff', 'jkff', 'rsff', 'jkms'] },
+    { name: 'Zähler', items: ['ctr_async', 'ctr_sync', 'ctr_bcd', 'ctr_johnson', 'ctr_mod'] },
     { name: 'Anzeigen', items: ['logicin', 'logicled', 'seg7', 'dec7'] }
   ];
   S.PALETTE = PALETTE;
@@ -1813,6 +1971,20 @@ button { cursor: pointer; }
     diode: [{ k: 'vf', l: 'Durchlassspannung', u: 'V' }], zener: [{ k: 'vz', l: 'Z-Spannung', u: 'V' }, { k: 'vf', l: 'Durchlassspannung', u: 'V' }],
     npn: [{ k: 'beta', l: 'Stromverstärkung β', u: '' }]
   };
+  var TRIG = { k: 'trig', l: 'Steuerungsart', kind: 'choice', o: [['pos', 'Flanke steigend ↑'], ['neg', 'Flanke fallend ↓'], ['level', 'Taktzustand (C = 1)']] };
+  var TPD = { k: 'tpd', l: 'Laufzeit t_pd', u: 's' };
+  ['dff', 'tff', 'jkff', 'rsff'].forEach(function (t) { FIELDS[t] = [TRIG, TPD]; }); FIELDS.jkms = [TPD];
+  /* Gatter: Eingangszahl; zu viele Leitungen an wegfallenden Eingaengen werden entfernt */
+  function dropDangling() {
+    var ok = {}; core.layout.parts.forEach(function (p) { E.pinsOf(p.type, Object.assign({}, E.PARTS[p.type].props, p.props || {})).forEach(function (pin) { ok[p.id + '.' + pin] = 1; }); });
+    core.layout.wires = core.layout.wires.filter(function (w) { return ok[w.from] && ok[w.to]; });
+  }
+  ['and', 'or', 'nand', 'nor', 'xor', 'xnor'].forEach(function (t) { FIELDS[t] = [{ k: 'inputs', l: 'Eingänge', kind: 'choice', num: true, o: [2, 3, 4, 5, 6, 7, 8].map(function (n) { return [n, String(n)]; }), rerender: true, onSet: dropDangling }]; });
+  var CTR_TRIG = { k: 'trig', l: 'Taktflanke', kind: 'choice', o: [['pos', 'steigend ↑'], ['neg', 'fallend ↓']] };
+  var CTR_DIR = { k: 'dir', l: 'Richtung', kind: 'choice', o: [['up', 'aufwärts'], ['down', 'abwärts']] };
+  var CTR_BITS = { k: 'bits', l: 'Bitzahl', kind: 'choice', num: true, o: [2, 3, 4, 5, 6, 7, 8].map(function (n) { return [n, String(n)]; }), rerender: true, onSet: dropDangling };
+  FIELDS.ctr_async = [CTR_BITS, CTR_DIR, CTR_TRIG, TPD]; FIELDS.ctr_sync = [CTR_BITS, CTR_DIR, CTR_TRIG, TPD]; FIELDS.ctr_johnson = [CTR_BITS, CTR_TRIG, TPD]; FIELDS.ctr_bcd = [CTR_TRIG, TPD];
+  FIELDS.ctr_mod = [{ k: 'modn', l: 'Modulus n', int: [2, 64], rerender: true, onSet: dropDangling }, CTR_TRIG, TPD];
   S.FIELDS = FIELDS;
   var CHOICE_LABEL = { sine: 'Sinus', square: 'Rechteck', triangle: 'Dreieck' };
 
@@ -1831,10 +2003,11 @@ button { cursor: pointer; }
   S.digitalNodes = {}; S.logicColors = true;
 
   function init() {
+    Editor.extra.async = true; // Flipflops mit preSet/preClear zeichnen (im Spiel nicht)
     Circuit.SPACES.schema.w = 2400; Circuit.SPACES.schema.h = 1500; // grosse Zeichenflaeche (Spiel: 1000 × 620)
     svg = $('#board');
     ed = S.ed = new Editor(svg, {
-      onChange: onChange, onSelect: onSelect, onProbe: onProbe, onMessage: function (m) { flash(m); },
+      onChange: onChange, onSelect: onSelect, onProbe: onProbe, onDouble: function (p) { return !!(E.PARTS[p.type].ctr && S.expandCounter && S.expandCounter(p)); }, onMessage: function (m) { flash(m); },
       wireColor: wireColor
     });
     core = S.core = ed.core; core.tool = 'wire';
@@ -1847,6 +2020,7 @@ button { cursor: pointer; }
     if (S.initScopes) S.initScopes();
     if (S.initTiming) S.initTiming();
     if (S.initExamples) S.initExamples();
+    S.initFns.forEach(function (f) { f(); });
     var loop = function (now) { rafId = requestAnimationFrame(loop); sim.frame(now); if (sim.version !== lastVersion) { lastVersion = sim.version; draw(now); } if (S.frame) S.frame(now); };
     rafId = requestAnimationFrame(loop);
   }
@@ -1999,7 +2173,7 @@ button { cursor: pointer; }
   }
   S.setTool = function (t) {
     measureTool = t === 'measure'; core.tool = measureTool ? 'probe' : 'wire'; core.wireStart = null;
-    $('#toolBuild').classList.toggle('on', !measureTool); $('#toolMeasure').classList.toggle('on', measureTool); $('#measureKind').hidden = !measureTool;
+    $('#toolBuild').classList.toggle('on', !measureTool); $('#toolMeasure').classList.toggle('on', measureTool); $('#measureKind').hidden = !measureTool; $('#measureTarget').hidden = !measureTool;
     svg.style.cursor = measureTool ? 'crosshair' : ''; ed.render();
   };
   S.measureKind = function () { return $('#measureKind').value; };
@@ -2050,7 +2224,7 @@ button { cursor: pointer; }
   function fieldHTML(p, f) {
     var v = getProp(p, f.k), id = 'f_' + f.k;
     if (f.kind === 'bool') return '<div class="field"><label for="' + id + '">' + esc(f.l) + '</label><input id="' + id + '" data-f="' + f.k + '" type="checkbox"' + (v ? ' checked' : '') + ' style="width:28px;height:28px"></div>';
-    if (f.kind === 'choice') return '<div class="field"><label for="' + id + '">' + esc(f.l) + '</label><select id="' + id + '" data-f="' + f.k + '">' + f.o.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === String(v) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></div>';
+    if (f.kind === 'choice') return '<div class="field"><label for="' + id + '">' + esc(f.l) + '</label><select id="' + id + '" data-f="' + f.k + '">' + f.o.map(function (o) { return '<option value="' + o[0] + '"' + (String(o[0]) === String(v) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></div>';
     if (f.kind === 'pos') return '<div class="field wide"><label for="' + id + '">' + esc(f.l) + ': <span class="mono" id="posv">' + Math.round(v * 100) + ' %</span></label><input id="' + id + '" data-f="' + f.k + '" type="range" min="0" max="1" step="0.01" value="' + v + '"></div>';
     return '<div class="field"><label for="' + id + '">' + esc(f.l) + '</label><span><input id="' + id + '" data-f="' + f.k + '" type="text" inputmode="decimal" value="' + esc(fmtVal(v)) + '"><span class="unit">' + esc(f.u || '') + '</span></span></div>';
   }
@@ -2059,7 +2233,7 @@ button { cursor: pointer; }
     if (f.kind === 'bool') { setProp(p, k, i.checked); }
     else if (f.kind === 'choice') { setProp(p, k, f.num ? +i.value : i.value); if (f.onSet) f.onSet(p); }
     else if (f.kind === 'pos') { setProp(p, k, +i.value); var pv = $('#posv'); if (pv) pv.textContent = Math.round(+i.value * 100) + ' %'; }
-    else { var v = parseSI(i.value); if (!isFinite(v) || (k !== 'offset' && v < 0) || ((k === 'ri' || k === 'freq') && v <= 0)) { i.classList.add('bad'); return; } i.classList.remove('bad'); setProp(p, k, v); i.value = fmtVal(v); }
+    else { var v = parseSI(i.value); if (!isFinite(v) || (k !== 'offset' && v < 0) || ((k === 'ri' || k === 'freq') && v <= 0)) { i.classList.add('bad'); return; } i.classList.remove('bad'); if (f.int) v = Math.max(f.int[0], Math.min(f.int[1], Math.round(v))); setProp(p, k, v); i.value = fmtVal(v); if (f.onSet) f.onSet(p); }
     onChange('edit'); if (f.rerender) renderInspector(true);
   }
   S.applyField = applyField;
@@ -2118,6 +2292,141 @@ button { cursor: pointer; }
   S.start = init;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })(window);
+
+/* ==== studio/counters.js ==== */
+/* Digital Quest Studio – Zähler aufklappen (Stufe 4)
+ * Die Zählerbausteine der Engine (ctr_async, ctr_sync, ctr_bcd, ctr_johnson, ctr_mod) sind fertige Kästen. expansion() beschreibt ihre
+ * innere Schaltung aus D-Flipflops und Gattern; Studio.expandCounter() ersetzt den Kasten an derselben Stelle durch diese Schaltung, die
+ * Leitungen an den Anschlüssen des Kastens werden auf die inneren Anschlüsse umgelegt (der umgekehrte Weg gibt es nicht).
+ * Kein DOM in expansion() und minimize() – laeuft auch in Node (Vergleichstest in tests/studio.js). */
+(function (root) {
+  'use strict';
+  var E = root.DQEngine;
+
+  /* ---------- Quine-McCluskey: minimale Summe von Produkttermen ----------
+   * ones/dcs: Listen von Zahlen (Minterme / Don't-Cares) über nv Variablen. Gibt [{mask, val}] – mask 1 = Variable kommt im Term vor, val = ihr Wert. */
+  function minimize(nv, ones, dcs) {
+    var full = (1 << nv) - 1; if (!ones.length) return [];
+    var cur = {}; ones.concat(dcs).forEach(function (m) { cur[full + ':' + m] = { mask: full, val: m, used: false }; });
+    var primes = [];
+    for (;;) {
+      var keys = Object.keys(cur), next = {}, any = false;
+      keys.forEach(function (k) { cur[k].used = false; });
+      for (var i = 0; i < keys.length; i++) for (var j = i + 1; j < keys.length; j++) {
+        var a = cur[keys[i]], b = cur[keys[j]]; if (a.mask !== b.mask) continue;
+        var d = a.val ^ b.val; if (d && !(d & (d - 1))) { a.used = b.used = true; var m = a.mask & ~d, v = a.val & m; next[m + ':' + v] = { mask: m, val: v, used: false }; any = true; }
+      }
+      keys.forEach(function (k) { if (!cur[k].used) primes.push(cur[k]); });
+      if (!any) break; cur = next;
+    }
+    var seen = {}; primes = primes.filter(function (p) { var k = p.mask + ':' + p.val; if (seen[k]) return false; seen[k] = 1; return true; });
+    function covers(p, m) { return (m & p.mask) === p.val; }
+    var left = ones.slice(), chosen = [];
+    while (left.length) { // wesentliche Primimplikanten zuerst, dann gierig nach Abdeckung
+      var ess = null;
+      for (var li = 0; li < left.length && !ess; li++) { var cs = primes.filter(function (p) { return covers(p, left[li]); }); if (cs.length === 1) ess = cs[0]; }
+      var pick = ess || primes.slice().sort(function (x, y) { return left.filter(function (m) { return covers(y, m); }).length - left.filter(function (m) { return covers(x, m); }).length; })[0];
+      chosen.push(pick); left = left.filter(function (m) { return !covers(pick, m); });
+    }
+    return chosen;
+  }
+
+  /* ---------- Innenschaltung ----------
+   * Rueckgabe: { parts:[{key, type, x, y, props}], wires:[[a, b]], map:{C, R, Q0…} } mit lokalen Schluesseln 'f0', 'g3' …, Anschluesse 'f0.Q'.
+   * Koordinaten relativ zur Mitte des Kastens (Vielfache von 20). */
+  function expansion(type, props) {
+    var d = E.PARTS[type], q = Object.assign({}, d.props, props || {}), nb = E.ctrBitCount(d, q), kind = d.ctr, up = q.dir !== 'down';
+    var parts = [], wires = [], map = {}, ng = 0, tops = {};
+    var X = function (k) { return Math.round((k - (nb - 1) / 2) * 160 / 20) * 20; };
+    function ff(k) { parts.push({ key: 'f' + k, type: 'dff', x: X(k), y: 0, props: { trig: kind === 'async' && k > 0 ? 'pos' : q.trig || 'pos', tpd: q.tpd } }); }
+    function gate(kk, type2, inputs) { // Gatter ueber Bit kk stapeln
+      var g = 'g' + (ng++); tops[kk] = (tops[kk] || 0) + 1;
+      parts.push({ key: g, type: type2, x: X(kk), y: -140 - 120 * (tops[kk] - 1), props: inputs > 2 ? { inputs: inputs } : {} }); return g;
+    }
+    function tie(a, b) { wires.push([a, b]); }
+    function andOf(kk, lits) { if (lits.length === 1) return lits[0]; var g = gate(kk, 'and', lits.length); lits.forEach(function (l, i) { tie(l, g + '.in' + (i + 1)); }); return g + '.out'; }
+    function orOf(kk, sigs) {
+      if (sigs.length === 1) return sigs[0];
+      while (sigs.length > 8) { var head = sigs.splice(0, 8); sigs.unshift(orOf(kk, head)); }
+      var g = gate(kk, 'or', sigs.length); sigs.forEach(function (l, i) { tie(l, g + '.in' + (i + 1)); }); return g + '.out';
+    }
+    var Q = function (k) { return 'f' + k + '.Q'; }, N = function (k) { return 'f' + k + '.Qn'; };
+    for (var k = 0; k < nb; k++) ff(k);
+    for (k = 1; k < nb; k++) { tie('f0.PC', 'f' + k + '.PC'); }
+    map.R = 'f0.PC'; map.C = 'f0.C';
+    for (k = 0; k < nb; k++) map['Q' + k] = Q(k);
+    if (kind === 'async') {
+      for (k = 0; k < nb; k++) { tie(N(k), 'f' + k + '.D'); if (k > 0) tie(up ? N(k - 1) : Q(k - 1), 'f' + k + '.C'); }
+    } else {
+      for (k = 1; k < nb; k++) tie('f0.C', 'f' + k + '.C');
+      if (kind === 'sync') {
+        tie(N(0), 'f0.D'); // Bit 0 kippt immer
+        for (k = 1; k < nb; k++) { var lits = []; for (var j = 0; j < k; j++) lits.push(up ? Q(j) : N(j)); var carry = andOf(k, lits), x = gate(k, 'xor', 2); tie(Q(k), x + '.in1'); tie(carry, x + '.in2'); tie(x + '.out', 'f' + k + '.D'); }
+      } else if (kind === 'bcd') { // D0 = /Q0 · D1 = Q1 ⊕ (Q0 ∧ /Q3) · D2 = Q2 ⊕ (Q0 ∧ Q1) · D3 = Q0 Q1 Q2 ∨ Q3 /Q0
+        tie(N(0), 'f0.D');
+        var c1 = andOf(1, [Q(0), N(3)]), x1 = gate(1, 'xor', 2); tie(Q(1), x1 + '.in1'); tie(c1, x1 + '.in2'); tie(x1 + '.out', 'f1.D');
+        var c2 = andOf(2, [Q(0), Q(1)]), x2 = gate(2, 'xor', 2); tie(Q(2), x2 + '.in1'); tie(c2, x2 + '.in2'); tie(x2 + '.out', 'f2.D');
+        var a3 = andOf(3, [Q(0), Q(1), Q(2)]), b3 = andOf(3, [Q(3), N(0)]), o3 = orOf(3, [a3, b3]); tie(o3, 'f3.D');
+      } else if (kind === 'johnson') {
+        tie(N(nb - 1), 'f0.D'); for (k = 1; k < nb; k++) tie(Q(k - 1), 'f' + k + '.D');
+      } else { // mod: naechster Zustand je Bit als minimale Summe, unbenutzte Zustaende sind Don't-Care
+        var m = Math.max(2, Math.round(q.modn || 6)), dcs = []; for (var s = m; s < (1 << nb); s++) dcs.push(s);
+        for (k = 0; k < nb; k++) {
+          var ones = []; for (s = 0; s < m; s++) if ((((s + 1) % m) >> k) & 1) ones.push(s);
+          if (!ones.length) continue; // Bit bleibt 0: D offen (= 0)
+          var terms = minimize(nb, ones, dcs), sigs = [];
+          if (terms.length === 1 && terms[0].mask === 0) { var hi = gate(k, 'or', 2); parts[parts.length - 1].type = 'logicin'; parts[parts.length - 1].props = { closed: true }; tie(hi + '.out', 'f' + k + '.D'); continue; } // Konstante 1 (Pegelschalter)
+          terms.forEach(function (t) { var l = []; for (var b = 0; b < nb; b++) if (t.mask & (1 << b)) l.push((t.val >> b) & 1 ? Q(b) : N(b)); sigs.push(andOf(k, l)); });
+          tie(orOf(k, sigs), 'f' + k + '.D');
+        }
+      }
+    }
+    return { parts: parts, wires: wires, map: map };
+  }
+
+  var api = { minimize: minimize, expansion: expansion };
+  root.DQStudioCounters = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+
+  /* ---------- Studio: Aufklappen ---------- */
+  var S = root.Studio; if (!S) return;
+  var $ = function (s) { return document.querySelector(s); };
+  function snap(v) { return Math.round(v / 20) * 20; }
+  S.expandCounter = function (part) {
+    var core = S.core, d = E.PARTS[part.type]; if (!d || !d.ctr) return false;
+    var ex = expansion(part.type, part.props), W = root.DQCircuit.SPACES.schema;
+    var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    ex.parts.forEach(function (p) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); });
+    var dx = Math.max(100 - x0, Math.min(snap(part.x), W.w - 100 - x1)), dy = Math.max(100 - y0, Math.min(snap(part.y), W.h - 100 - y1));
+    var idMap = {};
+    // Kasten und seine Leitungen herausnehmen, innere Teile mit neuen Nummern einsetzen
+    var old = core.layout.wires.filter(function (w) { return w.from.split('.')[0] === part.id || w.to.split('.')[0] === part.id; });
+    core.layout.wires = core.layout.wires.filter(function (w) { return old.indexOf(w) < 0; });
+    core.layout.parts = core.layout.parts.filter(function (p) { return p.id !== part.id; });
+    ex.parts.forEach(function (p) {
+      var id = core.nextId(p.type), np = { id: id, type: p.type, x: snap(dx + p.x), y: snap(dy + p.y), rot: 0, props: Object.assign({}, p.props) };
+      core.layout.parts.push(np); idMap[p.key] = id;
+    });
+    function ren(pin) { var a = pin.split('.'); return idMap[a[0]] + '.' + a[1]; }
+    ex.wires.forEach(function (w) { core.layout.wires.push({ from: ren(w[0]), to: ren(w[1]) }); });
+    old.forEach(function (w) {
+      var f = w.from.split('.'), t = w.to.split('.');
+      var nf = f[0] === part.id ? ren(ex.map[f[1]] || ex.map.C) : w.from, nt = t[0] === part.id ? ren(ex.map[t[1]] || ex.map.C) : w.to;
+      if (nf !== nt) core.layout.wires.push({ from: nf, to: nt });
+    });
+    core.sel = null; core.changed('delete');
+    S.ed.fit();
+    return true;
+  };
+  S.inspectorExtra = (function (prev) { return function (p) {
+    var h = prev ? prev(p) : '';
+    if (E.PARTS[p.type].ctr) h += '<p><button class="tb" data-act="expand" title="Kasten durch Flipflops und Gatter ersetzen (nicht rückgängig)">▤ Aufklappen</button></p><p class="hint">Doppelklick auf den Baustein klappt ihn ebenfalls auf: Flipflops und Gatter, verdrahtet, an derselben Stelle.</p>';
+    return h;
+  }; })(S.inspectorExtra);
+  S.initFns.push(function () {
+    $('#inspector').addEventListener('click', function (ev) { var b = ev.target.closest('[data-act="expand"]'); if (b && S.selected()) S.expandCounter(S.selected()); });
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
 
 /* ==== studio/scope.js ==== */
 /* Digital Quest Studio – Oszilloskop-Fenster (Stufe 1)
@@ -2392,9 +2701,426 @@ button { cursor: pointer; }
     var sc = active || S.openScope(); sc.addChannel({ kind: kind, id: p.id }); setActive(sc);
   };
   S.closeScopes = function () { S.scopes.slice().forEach(function (s) { s.close(); }); };
-  S.onLoad = (function (prev) { return function (o) { S.closeScopes(); if (prev) prev(o); (o.scopes || []).forEach(function (sc) { S.openScope(sc.channels || sc); }); }; })(S.onLoad);
+  S.onLoad = (function (prev) { return function (o) { S.closeScopes(); if (prev) prev(o); (o.scopes || []).forEach(function (sc) { var w = S.openScope(sc.channels || sc); if (sc.span) { w.spanMan = sc.span; var sel = w.el.querySelector('[data-a="span"]'); sel.value = String(sc.span); } }); }; })(S.onLoad);
   S.onReset = function () { S.scopes.forEach(function (sc) { sc.autoSpan = null; sc.cls = {}; if (sc.frozen) sc.setFrozen(false); sc.dirty(); }); };
   S.Scope = Scope;
+})(window);
+
+/* ==== studio/timing.js ==== */
+/* Digital Quest Studio – Zeitverlaufsdiagramm (Stufe 5)
+ * Feste Leiste unten im Fenster (kein Oszilloskop-Fenster): digitale Signale untereinander, zeitlich ausgerichtet, dazu Zeilen mit dem
+ * Zählerstand als Zahl (Bus aus markierten Zeilen, unterstes Bit zuerst). Signale per Klick hinzufügen (Werkzeug «Messen») und mit ▲ ▼ umordnen.
+ * Die Laufzeit der Flipflops steht im Bild: Die Aufzeichnung enthält die Zwischenloesungen je Rechenschritt (sim.js), Stufe k einen Durchgang spaeter. */
+(function (root) {
+  'use strict';
+  var S = root.Studio, E = S.E;
+  var $ = function (s, el) { return (el || document).querySelector(s); };
+  var rows = [], collapsed = false, spanMan = null, frozen = null, autoSpan = null, autoAt = -1e9, version = -1, lastDraw = 0;
+  var ROW_H = root.matchMedia && root.matchMedia('(pointer: coarse)').matches ? 44 : 32; // Zeilenhoehe: Touch 44 px
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var SPANS = []; (function () { for (var e = -8; e <= 3; e++) [1, 2, 5].forEach(function (m) { SPANS.push(m * Math.pow(10, e)); }); })();
+
+  /* ---------- Zeilen ---------- */
+  /* Signalzeile: tr = Aufzeichnung (Pegel). Zaehlerstand-Zeile (bus): bits = Liste von Aufzeichnungen, niederwertigstes zuerst; oder tr vom Typ cnt (Zahl). */
+  function addRow(desc) {
+    var key = JSON.stringify(desc); if (rows.some(function (r) { return r.key === key; })) return null;
+    var r = { key: key, desc: desc, tr: S.sim.addTrace(desc), mark: false, label: null }; rows.push(r); renderRows(); return r;
+  }
+  function addBus(label, descs) {
+    var r = { key: 'bus:' + descs.map(JSON.stringify).join('|'), bus: true, bits: descs.map(function (d) { return S.sim.addTrace(d); }), mark: false, label: label || 'Zählerstand' };
+    rows.push(r); renderRows(); return r;
+  }
+  function removeRow(i) {
+    var r = rows.splice(i, 1)[0]; if (!r) return; if (r.tr) S.sim.removeTrace(r.tr); (r.bits || []).forEach(function (t) { S.sim.removeTrace(t); }); renderRows();
+  }
+  function clearRows() { while (rows.length) removeRow(0); }
+  function labelOf(r) { return r.label || r.tr.label.replace(/^U\((.*)\)$/, '$1'); }
+  S.timing = { rows: rows, addRow: addRow, addBus: addBus, clear: clearRows, estSpan: function () { return span(true); } };
+
+  /* Standardzeilen: Takt, alle Flipflop-Ausgaenge Q, Zaehlerausgaenge; dazu der Zaehlerstand aus allen Q (in Bauteilreihenfolge) */
+  function autoRows() {
+    var net = S.sim.net; if (!net) return; var qs = [];
+    var num = function (id) { return +(id.match(/\d+/) || [0])[0]; };
+    net.parts.filter(function (p) { return p.type === 'clock'; }).sort(function (a, b) { return num(a.id) - num(b.id); }).forEach(function (p) { addRow({ kind: 'dig', a: p.id + '.out' }); });
+    var ffs = net.parts.filter(function (p) { return E.PARTS[p.type].ff; }).sort(function (a, b) { return num(a.id) - num(b.id); });
+    ffs.forEach(function (p) { var d = { kind: 'dig', a: p.id + '.Q' }; addRow(d); qs.push(d); });
+    net.parts.filter(function (p) { return E.PARTS[p.type].ctr; }).forEach(function (p) {
+      var nb = E.ctrBitCount(E.PARTS[p.type], p.props), bits = []; for (var k = 0; k < nb; k++) { var d = { kind: 'dig', a: p.id + '.Q' + k }; addRow(d); bits.push(d); }
+      addBus('Zählerstand ' + p.id, bits);
+    });
+    if (ffs.length >= 2) addBus('Zählerstand', qs);
+  }
+  S.timing.auto = autoRows;
+
+  /* ---------- Darstellung ---------- */
+  function renderRows() {
+    var box = $('#tlRows'); if (!box) return;
+    box.innerHTML = rows.map(function (r, i) {
+      return '<div class="tl-row" data-i="' + i + '"><div class="tl-lab"><input type="checkbox" data-a="mark" ' + (r.mark ? 'checked' : '') + ' aria-label="Zeile markieren" title="Markieren für «Zählerstand aus Markierten»"><span class="tl-nm" title="' + esc(labelOf(r)) + '">' + esc(labelOf(r)) + '</span>' +
+        '<button data-a="up" title="nach oben" aria-label="nach oben">▲</button><button data-a="down" title="nach unten" aria-label="nach unten">▼</button><button data-a="rm" title="Zeile entfernen" aria-label="Zeile entfernen">×</button></div><canvas class="tl-cv"></canvas></div>';
+    }).join('') || '<div class="tl-empty hint">Keine Signale. «Takt und Ausgänge» fügt Takt und alle Flipflop-Ausgänge ein; oder Werkzeug «Messen» wählen und einen Anschluss anklicken.</div>';
+    version = -1;
+  }
+  function span(forceNow) {
+    if (spanMan) return spanMan;
+    var now = performance.now();
+    if (forceNow || now - autoAt > 400 || autoSpan === null) {
+      autoAt = now; var best = 0;
+      rows.forEach(function (r) { var trs = r.tr ? [r.tr] : r.bits; trs.forEach(function (t) { var p = S.estPeriod && S.estPeriod(t); if (p) best = Math.max(best, p); }); });
+      var want = best ? 1.25 * best : (S.sim.span || Math.max(S.sim.state.t * 1.1, 20 * S.sim.dt));
+      var sn = SPANS.filter(function (x) { return x >= want * 0.9999; })[0] || SPANS[SPANS.length - 1]; autoSpan = sn;
+    }
+    return autoSpan;
+  }
+  function levelAt(tr, t) { var v = tr.at(t); return isNaN(v) ? null : v > E.LOGIC.vth; }
+
+  function draw() {
+    var wrap = $('#tlRows'); if (!wrap) return;
+    var sim = S.sim, sp = span(), tEnd = frozen !== null ? frozen : sim.state.t, t0 = tEnd > sp ? tEnd - sp : 0, t1 = t0 + sp;
+    var dpr = root.devicePixelRatio || 1, font = getComputedStyle(document.body).getPropertyValue('--font-mono');
+    var cvs = wrap.querySelectorAll('.tl-cv');
+    rows.forEach(function (r, i) {
+      var cv = cvs[i]; if (!cv) return; var W = Math.max(50, cv.clientWidth), H = ROW_H;
+      if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + 'px'; cv.parentNode.style.height = H + 'px'; }
+      var ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+      var px = function (t) { return (t - t0) / sp * W; };
+      ctx.strokeStyle = '#e2eef0'; ctx.lineWidth = 1; for (var g = 0; g <= 10; g++) { var gx = Math.round(g * W / 10) + .5; ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+      ctx.font = '12px ' + font;
+      if (r.tr && r.desc.kind !== 'cnt') drawDigital(ctx, r.tr, t0, t1, W, H, px);
+      else drawBus(ctx, r, t0, t1, W, H, px);
+    });
+    // Zeitachse
+    var ax = $('#tlAxis'); if (ax) {
+      var W2 = Math.max(50, ax.clientWidth); if (ax.width !== Math.round(W2 * dpr)) { ax.width = Math.round(W2 * dpr); ax.height = Math.round(20 * dpr); ax.style.height = '20px'; }
+      var c2 = ax.getContext('2d'); c2.setTransform(dpr, 0, 0, dpr, 0, 0); c2.clearRect(0, 0, W2, 20); c2.font = '11px ' + font; c2.fillStyle = '#5b6b73'; c2.textBaseline = 'top';
+      for (var k = 0; k <= 10; k += 2) { var x = k * W2 / 10; c2.textAlign = k === 0 ? 'left' : k === 10 ? 'right' : 'center'; c2.fillText(S.fmtT(t0 + sp * k / 10), x, 3); }
+    }
+    var sel = $('#tlSpan'); if (sel && !spanMan && document.activeElement !== sel) sel.options[0].textContent = 'Zeit: Auto (' + S.fmtT(sp / 10) + '/Div)';
+    version = sim.version;
+  }
+  /* Pegelverlauf als Treppe: Flanken genau zu den aufgezeichneten Zeiten (Flipflop-Laufzeit sichtbar) */
+  function drawDigital(ctx, tr, t0, t1, W, H, px) {
+    var a = Math.max(0, tr.lower(t0) - 1), b = Math.min(tr.n, tr.lower(t1 + 1e-15) + 1); if (b <= a) return;
+    var hi = 6, lo = H - 6, lvl = tr.v[a] > E.LOGIC.vth, segs = [[t0, lvl]];
+    for (var i = a + 1; i < b; i++) { var L = tr.v[i] > E.LOGIC.vth; if (L !== lvl) { segs.push([tr.t[i], L]); lvl = L; } }
+    ctx.lineWidth = 2; ctx.lineJoin = 'miter';
+    ctx.beginPath();
+    segs.forEach(function (sg, k) { var x = px(Math.max(sg[0], t0)), y = sg[1] ? hi : lo; if (k === 0) ctx.moveTo(x, y); else { ctx.lineTo(x, segs[k - 1][1] ? hi : lo); ctx.lineTo(x, y); } });
+    ctx.lineTo(px(Math.min(t1, tr.t[b - 1])), segs[segs.length - 1][1] ? hi : lo);
+    ctx.strokeStyle = '#11864f'; ctx.stroke();
+  }
+  /* Zahlenband: Wert aus den Bits (oder Zaehlerstand-Aufzeichnung); jede Aenderung beginnt ein neues Feld */
+  function drawBus(ctx, r, t0, t1, W, H, px) {
+    var changes = [], trs = r.bits || [r.tr], i;
+    trs.forEach(function (tr) { var a = Math.max(0, tr.lower(t0) - 1), b = Math.min(tr.n, tr.lower(t1 + 1e-15) + 1), last = null; for (i = a; i < b; i++) { var L = r.bits ? tr.v[i] > E.LOGIC.vth : tr.v[i]; if (L !== last) { changes.push(tr.t[i]); last = L; } } });
+    changes.push(t0); changes.sort(function (x, y) { return x - y; });
+    var times = changes.filter(function (t, k) { return k === 0 || t - changes[k - 1] > 1e-15; }).filter(function (t) { return t >= t0 && t <= t1; });
+    if (!times.length) times = [t0];
+    function valAt(t) { // Wert kurz nach t (Flanke bei t gehoert schon zum neuen Wert)
+      if (!r.bits) { var tr = r.tr, j = tr.lower(t + 1e-15); j = Math.min(j, tr.n - 1); return j < 0 ? null : (tr.t[j] <= t + 1e-15 ? tr.v[j] : tr.v[Math.max(0, j - 1)]); }
+      var n = 0; for (var k = 0; k < r.bits.length; k++) { var tr2 = r.bits[k], j2 = tr2.lower(t + 1e-15); if (j2 >= tr2.n || tr2.t[j2] > t + 1e-15) j2--; if (j2 < 0) return null; if (tr2.v[j2] > E.LOGIC.vth) n += Math.pow(2, k); } return n;
+    }
+    var tend = Math.min(t1, Math.max(t0, (trs[0].n ? trs[0].t[trs[0].n - 1] : t0)));
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    for (var s = 0; s < times.length; s++) {
+      var ta = times[s], tb = s + 1 < times.length ? times[s + 1] : tend, xa = px(ta), xb = px(tb), v = valAt(ta); if (v === null || xb - xa < 0.5) continue;
+      ctx.strokeStyle = '#0b6e94'; ctx.lineWidth = 1.5; ctx.fillStyle = 'rgba(79,195,247,.14)';
+      var x1 = xa + 1.5, x2 = Math.max(xa + 3, xb - 1.5); ctx.beginPath(); ctx.moveTo(x1 + 3, 6); ctx.lineTo(x2 - 3, 6); ctx.lineTo(x2, H / 2); ctx.lineTo(x2 - 3, H - 6); ctx.lineTo(x1 + 3, H - 6); ctx.lineTo(x1, H / 2); ctx.closePath(); ctx.fill(); ctx.stroke();
+      var txt = String(v); if (x2 - x1 > ctx.measureText(txt).width + 10) { ctx.fillStyle = '#0f2d3a'; ctx.fillText(txt, (x1 + x2) / 2, H / 2 + 1); }
+    }
+  }
+
+  /* ---------- Aufbau der Leiste ---------- */
+  S.initTiming = function () {
+    var el = $('#timing');
+    el.innerHTML = '<div class="th"><b>Zeitverlauf</b><span class="hint" id="tlHint"></span><span class="sp" style="flex:1"></span>' +
+      '<button class="tl-btn" id="tlAuto" title="Takt und alle Flipflop- und Zähler-Ausgänge einfügen">Takt und Ausgänge</button>' +
+      '<button class="tl-btn" id="tlBus" title="Markierte Zeilen zu einer Zahl zusammenfassen: oberste markierte Zeile = niederwertigstes Bit">Zählerstand aus Markierten</button>' +
+      '<select class="tl-btn" id="tlSpan" title="Dauer des Bildes"></select>' +
+      '<button class="tl-btn" id="tlFreeze" title="Anzeige anhalten, die Simulation läuft weiter">⏸ Anhalten</button>' +
+      '<button class="tl-btn" id="tlClear" title="Alle Zeilen entfernen">Leeren</button></div>' +
+      '<div class="tl-body"><div id="tlRows" class="tl-rows"></div><div class="tl-axisrow"><span></span><canvas id="tlAxis"></canvas></div></div>';
+    $('#tlSpan').innerHTML = '<option value="auto">Zeit: Auto</option>' + SPANS.map(function (s) { return '<option value="' + s + '">' + S.fmtT(s / 10) + '/Div</option>'; }).join('');
+    $('#tlSpan').addEventListener('change', function () { spanMan = this.value === 'auto' ? null : +this.value; version = -1; });
+    $('#tlAuto').addEventListener('click', function () { autoRows(); });
+    $('#tlClear').addEventListener('click', function () { clearRows(); });
+    $('#tlFreeze').addEventListener('click', function () { frozen = frozen === null ? S.sim.state.t : null; this.textContent = frozen === null ? '⏸ Anhalten' : '▶ Weiter'; this.classList.toggle('on', frozen !== null); version = -1; });
+    $('#tlBus').addEventListener('click', function () {
+      var marked = rows.filter(function (r) { return r.mark && r.tr && r.desc.kind !== 'cnt'; }); if (marked.length < 2) { $('#tlHint').textContent = 'Mindestens zwei Zeilen markieren.'; return; }
+      $('#tlHint').textContent = ''; addBus('Zählerstand', marked.map(function (r) { return r.desc; })); rows.forEach(function (r) { r.mark = false; }); renderRows();
+    });
+    $('#tlRows').addEventListener('click', function (ev) {
+      var b = ev.target.closest('[data-a]'), row = ev.target.closest('.tl-row'); if (!b || !row) return; var i = +row.dataset.i, a = b.dataset.a;
+      if (a === 'mark') { rows[i].mark = b.checked; return; }
+      if (a === 'rm') removeRow(i);
+      else if (a === 'up' && i > 0) { rows.splice(i - 1, 0, rows.splice(i, 1)[0]); renderRows(); }
+      else if (a === 'down' && i < rows.length - 1) { rows.splice(i + 1, 0, rows.splice(i, 1)[0]); renderRows(); }
+    });
+    renderRows();
+  };
+  S.toggleTiming = function () {
+    collapsed = !collapsed; var el = $('#timing'); el.classList.toggle('collapsed', collapsed); $('#btnTiming').classList.toggle('on', !collapsed); version = -1;
+  };
+  S.timingFrame = function (now) {
+    if (collapsed || now - lastDraw < 50) return; lastDraw = now;
+    if (frozen === null && version === S.sim.version) return; if (frozen !== null && version !== -1) return;
+    draw();
+  };
+  S.timingDraw = draw;
+  /* Messen-Werkzeug: digitale Anschluesse gehen in den Zeitverlauf (Ziel einstellbar) */
+  var prevPin = S.measurePin, prevPart = S.measurePart;
+  S.measureTarget = function () { var t = $('#measureTarget'); return t ? t.value : 'auto'; };
+  S.measurePin = function (pin) {
+    var net = S.sim.net, node = net && net.pinNode[pin], dig = node !== undefined && S.digitalNodes[node], tg = S.measureTarget();
+    if (tg === 'timing' || (tg === 'auto' && dig)) { addRow({ kind: 'dig', a: pin }); if (collapsed) S.toggleTiming(); } else if (prevPin) prevPin(pin);
+  };
+  S.measurePart = function (p) {
+    var d = E.PARTS[p.type], tg = S.measureTarget();
+    if ((tg === 'timing' || (tg === 'auto' && (d.ff || d.ctr || d.logic))) && (d.ff || d.logic || d.ctr || p.type === 'clock' || p.type === 'logicin')) {
+      var outs = d.ff ? ['Q'] : d.ctr ? E.pinsOf(p.type, p.props).filter(function (x) { return /^Q/.test(x); }) : p.type === 'clock' || p.type === 'logicin' ? ['out'] : d.outs || ['out'];
+      outs.forEach(function (pin) { addRow({ kind: 'dig', a: p.id + '.' + pin }); }); if (collapsed) S.toggleTiming();
+    } else if (prevPart) prevPart(p);
+  };
+  S.onLoad = (function (prev) { return function (o) { clearRows(); frozen = null; autoSpan = null; spanMan = null; var sp = $('#tlSpan'); if (sp) sp.value = 'auto'; var fb = $('#tlFreeze'); if (fb) { fb.textContent = '⏸ Anhalten'; fb.classList.remove('on'); } if (prev) prev(o); var t = o.timing; if (t) { (t.rows || []).forEach(function (d) { addRow(d); }); (t.buses || []).forEach(function (b) { addBus(b.label, b.bits); }); } if (t && t.auto) autoRows(); }; })(S.onLoad);
+  S.onReset = (function (prev) { return function () { if (prev) prev(); autoSpan = null; frozen = null; version = -1; }; })(S.onReset);
+})(window);
+
+/* ==== studio/inspector.js ==== */
+/* Digital Quest Studio – Bauteil-Inspektor (Stufe 5)
+ * Rechts, nach dem Entwurf: Funktion und Schaltzeichen, Analysetabelle (Wahrheitstabelle, aktive Zeile hervorgehoben), Ansteuertabelle mit
+ * Don't-Care als X und Zustandsfolgediagramm. Die Begriffe stammen aus Stevens Lehrmittel und der «FlipFlop Lernwelt».
+ * Alle Tabellen werden aus den Definitionen der Engine berechnet (E.PARTS[type].logic / .ff, E.ctrNext) – nichts ist von Hand eingetragen. */
+(function (root) {
+  'use strict';
+  var S = root.Studio, E = S.E;
+  var $$ = function (s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); };
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var b2 = function (x) { return x ? '1' : '0'; };
+  var NAMES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+  function fullProps(p) { return Object.assign({}, E.PARTS[p.type].props, p.props || {}); }
+
+  var FUNKTION = {
+    not: 'NICHT-Glied (Inverter): Der Ausgang ist 1, wenn der Eingang 0 ist. Y = Ā.',
+    and: 'UND-Glied (Konjunktion): Der Ausgang ist 1, nur wenn <b>alle</b> Eingänge 1 sind. Y = A ∧ B.',
+    or: 'ODER-Glied (Disjunktion): Der Ausgang ist 1, wenn <b>mindestens ein</b> Eingang 1 ist. Y = A ∨ B.',
+    nand: 'NAND (NICHT-UND): Der Ausgang ist 0, nur wenn alle Eingänge 1 sind. Y = ¬(A ∧ B).',
+    nor: 'NOR (NICHT-ODER): Der Ausgang ist 1, nur wenn alle Eingänge 0 sind. Y = ¬(A ∨ B).',
+    xor: 'XOR (Antivalenz): Der Ausgang ist 1, wenn eine <b>ungerade Zahl</b> von Eingängen 1 ist; bei zwei Eingängen: wenn sie verschieden sind.',
+    xnor: 'XNOR (Äquivalenz): Der Ausgang ist 1, wenn eine <b>gerade Zahl</b> von Eingängen 1 ist; bei zwei Eingängen: wenn sie gleich sind.',
+    dff: 'D-Flipflop: Bei der aktiven Taktflanke übernimmt Q den Wert von D und speichert ihn. Q⁺ = D.',
+    tff: 'T-Flipflop: Bei der aktiven Taktflanke kippt Q, wenn T = 1 ist; bei T = 0 bleibt Q. Teilt die Takt­frequenz durch 2.',
+    jkff: 'JK-Flipflop: J = 1 setzt, K = 1 setzt zurück, J = K = 1 kippt, J = K = 0 speichert (bei aktiver Taktflanke).',
+    rsff: 'RS-Flipflop (taktgesteuert): S = 1 setzt, R = 1 setzt zurück, S = R = 0 speichert. S = R = 1 ist verboten.',
+    jkms: 'JK-Master-Slave-Flipflop: Der Master nimmt J und K bei C = 1 auf, der Ausgang ändert sich erst bei der fallenden Flanke von C.',
+    ctr_async: 'Asynchroner Dualzähler (Ripple-Zähler): Jede Stufe taktet die nächste, die höheren Bits kippen mit Laufzeit später.',
+    ctr_sync: 'Synchroner Dualzähler: Alle Flipflops haben denselben Takt, alle Bits wechseln gleichzeitig.',
+    ctr_bcd: 'Synchroner Dezimalzähler: zählt 0 bis 9 und springt auf 0 (BCD-Code).',
+    ctr_johnson: 'Johnson-Zähler: Schieberegister mit invertierter Rückkopplung; n Flipflops ergeben 2n Zustände.',
+    ctr_mod: 'Modulo-n-Zähler: zählt von 0 bis n − 1 und springt auf 0.',
+    dec7: 'BCD-7-Segment-Dekoder: wandelt den BCD-Code an A bis D in die Segmente a bis g. Die Codes 10 bis 15 bleiben dunkel.',
+    seg7: '7-Segment-Anzeige: Jedes Segment leuchtet bei 1 am zugehörigen Eingang.',
+    clock: 'Taktgeber: Rechteckspannung 0 V / 5 V mit einstellbarer Frequenz.',
+    logicin: 'Pegelschalter: gibt per Klick 1 (5 V) oder 0 (0 V) aus.', logicled: 'Logikanzeige: leuchtet bei 1 am Eingang.'
+  };
+
+  function levelOf(pin) {
+    var net = S.sim.net, r = S.sim.res; if (!net || !r) return false;
+    var n = net.pinNode[pin]; return n !== undefined && (r.nodeV[n] || 0) > E.LOGIC.vth;
+  }
+  function table(cls, head, rowsHtml) { return '<table class="itab ' + cls + '"><thead><tr>' + head.map(function (h) { return '<th>' + h + '</th>'; }).join('') + '</tr></thead><tbody>' + rowsHtml + '</tbody></table>'; }
+  function tr(key, cells) { return '<tr data-k="' + key + '">' + cells.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }
+
+  /* ---------- Gatter, Dekoder: Analysetabelle ---------- */
+  function gateTable(p) {
+    var d = E.PARTS[p.type], pins = E.pinsOf(p.type, fullProps(p)).filter(function (x) { return x !== 'out'; }), n = pins.length, h = '';
+    if (n > 6) return '<p class="hint">Mehr als 6 Eingänge: Tabelle zu gross, die Funktion steht oben.</p>';
+    for (var i = 0; i < (1 << n); i++) {
+      var ins = pins.map(function (x, k) { return !!((i >> (n - 1 - k)) & 1); }), out = d.logic(ins);
+      h += tr(ins.map(b2).join(''), ins.map(b2).concat([b2(out)]));
+    }
+    return table('gate', pins.map(function (x, k) { return n === 1 ? 'A' : NAMES[k]; }).concat(['Y']), h);
+  }
+  function dec7Table() {
+    var d = E.PARTS.dec7, h = '';
+    for (var i = 0; i < 16; i++) { var ins = [0, 1, 2, 3].map(function (k) { return !!((i >> k) & 1); }), out = d.logic(ins); h += tr(ins.slice().reverse().map(b2).join(''), ins.slice().reverse().map(b2).concat(out.map(b2))); }
+    return table('gate', ['D', 'C', 'B', 'A', 'a', 'b', 'c', 'd', 'e', 'f', 'g'], h);
+  }
+
+  /* ---------- Flipflops ---------- */
+  function ffRows(d) {
+    var pins = d.ffIns, n = pins.length, rows = [];
+    for (var q = 0; q < 2; q++) for (var i = 0; i < (1 << n); i++) {
+      var ins = pins.map(function (x, k) { return !!((i >> (n - 1 - k)) & 1); }), forb = !!d.rs && ins[0] && ins[1];
+      rows.push({ q: !!q, ins: ins, qn: forb ? null : !!d.ff(!!q, ins) });
+    }
+    return rows;
+  }
+  function ffAnalysis(p) {
+    var d = E.PARTS[p.type], pins = d.ffIns, h = '';
+    ffRows(d).forEach(function (r) { h += tr(r.ins.map(b2).join('') + b2(r.q), r.ins.map(b2).concat([b2(r.q), r.qn === null ? '–' : b2(r.qn)])); });
+    return table('ff', pins.concat(['Q', 'Q⁺']), h);
+  }
+  /* Ansteuertabelle: welche Eingaenge braucht der Uebergang Q → Q⁺? Eingaenge, die beide Werte erlauben, sind X (Don't-Care) */
+  function excitation(d) {
+    var pins = d.ffIns, rows = ffRows(d), out = [];
+    [[false, false], [false, true], [true, false], [true, true]].forEach(function (t) {
+      var ok = rows.filter(function (r) { return r.q === t[0] && r.qn === t[1]; }), vals = pins.map(function (x, k) {
+        var s = {}; ok.forEach(function (r) { s[r.ins[k] ? 1 : 0] = 1; }); return s[0] && s[1] ? 'X' : s[1] ? '1' : '0';
+      });
+      out.push({ q: t[0], qn: t[1], vals: vals });
+    });
+    return out;
+  }
+  function ffExcitation(p) {
+    var d = E.PARTS[p.type], ex = excitation(d), h = '';
+    ex.forEach(function (r) { h += tr('x' + b2(r.q) + b2(r.qn), [b2(r.q), b2(r.qn)].concat(r.vals)); });
+    return table('ffx', ['Q', 'Q⁺'].concat(d.ffIns), h);
+  }
+  /* Zustandsfolgediagramm: zwei Zustaende Q = 0 und Q = 1, Pfeile beschriftet mit den Eingaben der Ansteuertabelle */
+  function ffDiagram(p) {
+    var d = E.PARTS[p.type], ex = excitation(d), lab = function (r) { return d.ffIns.join('') + ' = ' + r.vals.join(' '); };
+    var s = '<svg class="sfd" viewBox="0 0 280 150" role="img" aria-label="Zustandsfolgediagramm"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#0f2d3a"/></marker></defs>';
+    s += '<g data-state="0"><circle cx="70" cy="78" r="22"/><text x="70" y="83" text-anchor="middle">0</text></g><g data-state="1"><circle cx="210" cy="78" r="22"/><text x="210" y="83" text-anchor="middle">1</text></g>';
+    s += '<path d="M90 66C115 48 165 48 190 66" marker-end="url(#arr)"/><text x="140" y="42" text-anchor="middle">' + esc(lab(ex[1])) + '</text>';
+    s += '<path d="M190 90C165 108 115 108 90 90" marker-end="url(#arr)"/><text x="140" y="124" text-anchor="middle">' + esc(lab(ex[2])) + '</text>';
+    s += '<path d="M58 58C40 22 82 22 76 56" marker-end="url(#arr)"/><text x="62" y="16" text-anchor="middle">' + esc(lab(ex[0])) + '</text>';
+    s += '<path d="M198 58C180 22 222 22 216 56" marker-end="url(#arr)"/><text x="202" y="16" text-anchor="middle">' + esc(lab(ex[3])) + '</text></svg>';
+    return s;
+  }
+
+  /* ---------- Zaehler ---------- */
+  function ctrOrbit(p) {
+    var q = fullProps(p), nb = E.ctrBitCount(E.PARTS[p.type], q), lp = { type: p.type, props: q }, bits = E.numToBits(0, nb), start = bits.join(), rows = [];
+    for (var k = 0; k < 64; k++) { var nx = E.ctrNext(lp, bits); rows.push({ count: E.ctrCount(lp, bits), bits: bits, next: nx }); bits = nx; if (bits.join() === start) break; }
+    return { rows: rows, nb: nb, more: rows.length === 64 };
+  }
+  function ctrTables(p) {
+    var o = ctrOrbit(p), nb = o.nb, qh = [], jh = [], i, h1 = '', h2 = '';
+    for (i = nb - 1; i >= 0; i--) { qh.push('Q' + i); jh.push('J' + i, 'K' + i); }
+    o.rows.forEach(function (r) {
+      var rev = function (b) { return b.slice().reverse().map(b2); }, jk = [];
+      // Uebergaenge je Bit: 0→0: J=0 K=X · 0→1: J=1 K=X · 1→0: J=X K=1 · 1→1: J=X K=0
+      for (var k = nb - 1; k >= 0; k--) { var a0 = r.bits[k], c0 = r.next[k]; jk.push(a0 ? 'X' : c0 ? '1' : '0', a0 ? (c0 ? '0' : '1') : 'X'); }
+      h1 += tr(String(r.count), [r.count].concat(rev(r.bits), [E.ctrCount({ type: p.type, props: fullProps(p) }, r.next)]).concat(rev(r.next)));
+      h2 += tr(String(r.count), [r.count].concat(jk));
+    });
+    var t1 = table('ctr', ['Z'].concat(qh, ['Z⁺'], qh.map(function (x) { return x + '⁺'; })), h1), t2 = table('ctr', ['Z'].concat(jh), h2);
+    return { seq: t1, drive: t2, more: o.more, count: o.rows.length };
+  }
+  function ctrDiagram(p) {
+    var o = ctrOrbit(p); if (o.rows.length > 16) return '<p class="hint">Zustandsfolgediagramm bis 16 Zustände – hier ' + (o.more ? 'mehr als 64' : o.rows.length) + '.</p>';
+    var n = o.rows.length, R = n > 8 ? 78 : 62, cx = 140, cy = 100, s = '<svg class="sfd" viewBox="0 0 280 200" role="img" aria-label="Zustandsfolgediagramm"><defs><marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#0f2d3a"/></marker></defs>';
+    function pos(i) { var a = -Math.PI / 2 + 2 * Math.PI * i / n; return [cx + R * Math.cos(a), cy + R * Math.sin(a)]; }
+    var rr = n > 8 ? 11 : 14;
+    o.rows.forEach(function (r, i) {
+      var a = pos(i), b = pos((i + 1) % n), dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1;
+      if (n === 1) return;
+      s += '<path d="M' + (a[0] + dx / L * rr).toFixed(1) + ' ' + (a[1] + dy / L * rr).toFixed(1) + 'L' + (b[0] - dx / L * (rr + 2)).toFixed(1) + ' ' + (b[1] - dy / L * (rr + 2)).toFixed(1) + '" marker-end="url(#arr2)"/>';
+    });
+    o.rows.forEach(function (r, i) { var a = pos(i); s += '<g data-state="' + r.count + '"><circle cx="' + a[0].toFixed(1) + '" cy="' + a[1].toFixed(1) + '" r="' + rr + '"/><text x="' + a[0].toFixed(1) + '" y="' + (a[1] + 4).toFixed(1) + '" text-anchor="middle">' + r.count + '</text></g>'; });
+    return s + '</svg>';
+  }
+
+  /* ---------- Einbau in den Inspektor ---------- */
+  S.inspectorExtra = (function (prev) { return function (p) {
+    var h = prev ? prev(p) : '', t = p.type, d = E.PARTS[t];
+    if (FUNKTION[t]) h = '<h3>Funktion</h3><p class="fn">' + FUNKTION[t] + '</p>' + h;
+    var tables = '';
+    if (d.logic && !d.outs) tables = '<h3>Analysetabelle</h3>' + gateTable(p);
+    else if (t === 'dec7') tables = '<h3>Analysetabelle</h3><div class="itab-wrap">' + dec7Table() + '</div>';
+    else if (d.ff) tables = '<h3>Analysetabelle</h3>' + ffAnalysis(p) + '<h3>Ansteuertabelle</h3>' + ffExcitation(p) + '<p class="hint">X = beliebig (Don\'t-Care). Aktive Zeile: jetziger Zustand.</p><h3>Zustandsfolgediagramm</h3>' + ffDiagram(p);
+    else if (d.ctr) { var c = ctrTables(p); tables = '<h3>Zustandsfolgetabelle</h3><div class="itab-wrap">' + c.seq + '</div>' + (c.more ? '<p class="hint">Nur die ersten 64 Zustände.</p>' : '') + '<h3>Ansteuertabelle (JK-Flipflops)</h3><div class="itab-wrap">' + c.drive + '</div><p class="hint">Je Bit: J und K für den Übergang zum nächsten Zustand, X = beliebig.</p><h3>Zustandsfolgediagramm</h3>' + ctrDiagram(p); }
+    return h + tables;
+  }; })(S.inspectorExtra);
+
+  /* aktive Zeile live hervorheben */
+  S.liveInspector = function (p, r) {
+    var el = document.getElementById('inspector'); if (!el || !p || !r) return;
+    var d = E.PARTS[p.type], key = null, key2 = null, state = null;
+    if (d.logic && !d.outs) { var pins = E.pinsOf(p.type, fullProps(p)).filter(function (x) { return x !== 'out'; }); key = pins.map(function (x) { return b2(levelOf(p.id + '.' + x)); }).join(''); }
+    else if (p.type === 'dec7') key = ['D', 'C', 'B', 'A'].map(function (x) { return b2(levelOf(p.id + '.' + x)); }).join('');
+    else if (d.ff) {
+      var q = !!(r.parts[p.id] && r.parts[p.id].q), ins = d.ffIns.map(function (x) { return levelOf(p.id + '.' + x); });
+      key = ins.map(b2).join('') + b2(q); var qn = d.ff(q, ins); key2 = b2(q) + b2(qn); state = b2(q);
+    } else if (d.ctr) { key = String(r.parts[p.id] ? r.parts[p.id].count : ''); state = key; }
+    $$('tr[data-k]', el).forEach(function (row) {
+      var on = row.dataset.k === key || (key2 !== null && row.dataset.k === 'x' + key2);
+      if (row.classList.contains('act') !== on) row.classList.toggle('act', on);
+    });
+    $$('g[data-state]', el).forEach(function (g) { var on = g.dataset.state === state; if (g.classList.contains('cur') !== on) g.classList.toggle('cur', on); });
+  };
+})(window);
+
+/* ==== studio/examples.js ==== */
+/* Digital Quest Studio – Beispiele (Stufe 6, Menü «Beispiele»)
+ * Mitgelieferte Schaltungen. Jedes Beispiel: {id, name, text, build() → {layout, scopes?, timing?, run?}}.
+ * Die Digitaluhr ist das Zielbild des Studios: Taktgeber 1 Hz, Sekundenzähler (Einer 0–9, Zehner 0–5), BCD-Dekoder, zwei Siebensegmentanzeigen. */
+(function (root) {
+  'use strict';
+  var S = root.Studio, E = root.DQEngine;
+  var W = function (a, b) { return { from: a, to: b }; };
+  function part(id, type, x, y, props, value) { var p = { id: id, type: type, x: x, y: y, rot: 0 }; if (props) p.props = props; if (value !== undefined) p.value = value; return p; }
+
+  /* Digitaluhr: Sekunden 00 … 59. Der Zehnerzähler zählt bei der fallenden Flanke von Q3 des Einerzählers (9 → 0). */
+  function digitaluhr() {
+    var parts = [
+      part('CLK1', 'clock', 200, 300, { freq: 1 }),
+      part('Z1', 'ctr_bcd', 460, 300), part('Z2', 'ctr_mod', 460, 560, { modn: 6, trig: 'neg' }),
+      part('IC1', 'dec7', 760, 300), part('IC2', 'dec7', 760, 560),
+      part('AZ1', 'seg7', 1060, 300), part('AZ2', 'seg7', 1060, 560),
+      part('GND1', 'ground', 620, 700)
+    ], wires = [W('CLK1.out', 'Z1.C'), W('Z1.Q3', 'Z2.C'), W('GND1.g', 'IC2.D')];
+    ['A', 'B', 'C', 'D'].forEach(function (p, k) { wires.push(W('Z1.Q' + k, 'IC1.' + p)); });
+    ['A', 'B', 'C'].forEach(function (p, k) { wires.push(W('Z2.Q' + k, 'IC2.' + p)); });
+    'abcdefg'.split('').forEach(function (s) { wires.push(W('IC1.' + s, 'AZ1.' + s)); wires.push(W('IC2.' + s, 'AZ2.' + s)); });
+    return { layout: { parts: parts, wires: wires },
+      timing: { rows: [{ kind: 'dig', a: 'CLK1.out' }], buses: [{ label: 'Einer', bits: [0, 1, 2, 3].map(function (k) { return { kind: 'dig', a: 'Z1.Q' + k }; }) }, { label: 'Zehner', bits: [0, 1, 2].map(function (k) { return { kind: 'dig', a: 'Z2.Q' + k }; }) }] } };
+  }
+  function rcGlied() {
+    return { layout: { parts: [part('G1', 'acsource', 240, 300, { freq: 50, shape: 'square', ri: 0.05 }, 5), part('R1', 'resistor', 520, 200, null, 1000), part('C1', 'capacitor', 800, 300, null, 1e-6), part('GND1', 'ground', 520, 440)],
+      wires: [W('G1.p', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'G1.n'), W('G1.n', 'GND1.g')].map(function (w) { return w; }) },
+      scopes: [{ channels: [{ kind: 'node', a: 'R1.b' }, { kind: 'node', a: 'G1.p' }] }] };
+  }
+  function schwingkreis() {
+    return { layout: { parts: [part('B1', 'battery', 240, 300, { ri: 0.05 }, 5), part('L1', 'inductor', 520, 200, null, 10e-3), part('C1', 'capacitor', 800, 300, null, 10e-6), part('GND1', 'ground', 520, 440)],
+      wires: [W('B1.p', 'L1.a'), W('L1.b', 'C1.a'), W('C1.b', 'B1.n'), W('B1.n', 'GND1.g')] },
+      scopes: [{ channels: [{ kind: 'node', a: 'C1.a' }], span: 0.01 }] };
+  }
+  function teiler() {
+    return { layout: { parts: [part('B1', 'battery', 240, 300, null, 9), part('R1', 'resistor', 520, 200, null, 1000), part('R2', 'resistor', 800, 300, null, 2000), part('GND1', 'ground', 520, 440)],
+      wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'B1.n'), W('B1.n', 'GND1.g')] }, run: false };
+  }
+  /* Asynchroner 4-Bit-Zähler aus Flipflops (aufgeklappt) bei 1 MHz: im Zeitverlauf kommen die Flanken der höheren Stufen später */
+  function asyncZaehler() {
+    var C = root.DQStudioCounters, ex = C.expansion('ctr_async', { bits: 4 }), parts = [part('CLK1', 'clock', 200, 300, { freq: 1e6 }), part('GND1', 'ground', 200, 460)], wires = [];
+    var id = {}; ex.parts.forEach(function (p, i) { id[p.key] = 'FF' + (i + 1); parts.push(part(id[p.key], p.type, 420 + p.x + 280, 300 + p.y + 120, p.props)); });
+    var ren = function (pin) { var a = pin.split('.'); return id[a[0]] + '.' + a[1]; };
+    ex.wires.forEach(function (w) { wires.push(W(ren(w[0]), ren(w[1]))); });
+    wires.push(W('CLK1.out', ren(ex.map.C)));
+    return { layout: { parts: parts, wires: wires }, timing: { auto: true } };
+  }
+  function logik() {
+    return { layout: { parts: [part('E1', 'logicin', 240, 260), part('E2', 'logicin', 240, 360), part('U1', 'xor', 520, 310), part('U2', 'and', 520, 460), part('L1', 'logicled', 800, 310), part('L2', 'logicled', 800, 460), part('GND1', 'ground', 240, 520)],
+      wires: [W('E1.out', 'U1.in1'), W('E2.out', 'U1.in2'), W('E1.out', 'U2.in1'), W('E2.out', 'U2.in2'), W('U1.out', 'L1.in'), W('U2.out', 'L2.in')] }, run: false };
+  }
+
+  var LIST = [
+    { id: 'uhr', name: 'Digitaluhr (Sekunden 00 – 59)', text: 'Taktgeber 1 Hz, Einer (0–9) und Zehner (0–5), BCD-Dekoder, zwei Siebensegmentanzeigen.', build: digitaluhr },
+    { id: 'zaehler', name: 'Asynchroner Zähler mit Zeitverlauf', text: '4 Bit aus Flipflops bei 1 MHz: Die höheren Stufen schalten mit Laufzeit später.', build: asyncZaehler },
+    { id: 'rc', name: 'RC-Glied an Rechteckquelle', text: 'Lade- und Entladekurve im Oszilloskop; «τ bestimmen» liefert R·C = 1 ms.', build: rcGlied },
+    { id: 'lc', name: 'Schwingkreis aus L und C', text: 'Sprungantwort einer Reihenschaltung: f = 1 / (2π·√(L·C)) = 503 Hz.', build: schwingkreis },
+    { id: 'teiler', name: 'Spannungsteiler', text: '9 V an 1 kΩ und 2 kΩ: Bauteil anklicken zeigt Spannung und Strom.', build: teiler },
+    { id: 'logik', name: 'Halbaddierer (XOR und UND)', text: 'Pegelschalter links anklicken: Summe (XOR) und Übertrag (UND).', build: logik }
+  ];
+  S.examples = LIST;
+  S.loadExample = function (id) {
+    var ex = LIST.filter(function (e) { return e.id === id; })[0]; if (!ex) return false;
+    var b = ex.build(); S.loadLayout(b.layout, { scopes: b.scopes, timing: b.timing, run: b.run }); return true;
+  };
+  S.initExamples = function () {
+    S.setMenu('bsp', LIST.map(function (e) { return { label: e.name, act: function () { S.loadExample(e.id); } }; }));
+  };
+  S.digitaluhr = digitaluhr;
 })(window);
 </script>
 </body>

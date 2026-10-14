@@ -35,7 +35,7 @@
     led:       { label: 'LED', prefix: 'D', pins: ['a', 'k'], props: { color: 'rot', rs: 10, imax: 0.03, inom: 0.02 } },
     diode:     { label: 'Diode', prefix: 'V', pins: ['a', 'k'], props: { vf: 0.7, rs: 1, imax: 1 } },
     capacitor: { label: 'Kondensator', prefix: 'C', pins: ['a', 'b'], props: { value: 100e-6 }, unit: 'F' },
-    inductor:  { label: 'Spule', prefix: 'L', pins: ['a', 'b'], props: { value: 10e-3 }, unit: 'H' }, // Studio Stufe 2: Rückwärts-Euler wie der Kondensator, im Gleichstrom-Arbeitspunkt ein Kurzschluss
+    inductor:  { label: 'Spule', studio: true, prefix: 'L', pins: ['a', 'b'], props: { value: 10e-3 }, unit: 'H' }, // Studio Stufe 2: Rückwärts-Euler wie der Kondensator, im Gleichstrom-Arbeitspunkt ein Kurzschluss
     ammeter:   { label: 'Strommesser', prefix: 'A', pins: ['a', 'b'], props: {} },
     clock:     { label: 'Taktgeber', prefix: 'CLK', pins: ['out'], props: { freq: 1 }, unit: 'Hz' },
     acsource:  { label: 'Wechselspannungsquelle', prefix: 'G', pins: ['p', 'n'], props: { value: 10, freq: 50, shape: 'sine', offset: 0, ri: 0.05, imax: 3 }, unit: 'V' }, // value = Scheitelwert Û
@@ -60,8 +60,16 @@
     dff:  { label: 'D-Flipflop', prefix: 'FF', pins: ['D', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['D'], ffAsync: ['PS', 'PC'], props: { trig: 'pos', tpd: 20e-9 }, ff: function (q, i) { return i[0]; } },
     jkff: { label: 'JK-Flipflop', prefix: 'FF', pins: ['J', 'K', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['J', 'K'], ffAsync: ['PS', 'PC'], props: { trig: 'pos', tpd: 20e-9 }, ff: function (q, i) { return i[0] && i[1] ? !q : i[0] ? true : i[1] ? false : q; } },
     tff:  { label: 'T-Flipflop', prefix: 'FF', pins: ['T', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['T'], ffAsync: ['PS', 'PC'], props: { trig: 'pos', tpd: 20e-9 }, ff: function (q, i) { return i[0] ? !q : q; } },
-    rsff: { label: 'RS-Flipflop', prefix: 'FF', pins: ['S', 'R', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['S', 'R'], ffAsync: ['PS', 'PC'], rs: true, props: { trig: 'level', tpd: 20e-9 }, ff: function (q, i) { return i[0] && !i[1] ? true : i[1] && !i[0] ? false : q; } },
-    jkms: { label: 'JK-MS-Flipflop', prefix: 'FF', pins: ['J', 'K', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['J', 'K'], ffAsync: ['PS', 'PC'], ms: true, props: { tpd: 20e-9 }, ff: function (q, i) { return i[0] && i[1] ? !q : i[0] ? true : i[1] ? false : q; } },
+    rsff: { label: 'RS-Flipflop', studio: true, prefix: 'FF', pins: ['S', 'R', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['S', 'R'], ffAsync: ['PS', 'PC'], rs: true, props: { trig: 'level', tpd: 20e-9 }, ff: function (q, i) { return i[0] && !i[1] ? true : i[1] && !i[0] ? false : q; } },
+    jkms: { label: 'JK-MS-Flipflop', studio: true, prefix: 'FF', pins: ['J', 'K', 'C', 'PS', 'PC', 'Q', 'Qn'], ffIns: ['J', 'K'], ffAsync: ['PS', 'PC'], ms: true, props: { tpd: 20e-9 }, ff: function (q, i) { return i[0] && i[1] ? !q : i[0] ? true : i[1] ? false : q; } },
+    /* Zaehler als fertige Bausteine (Studio Stufe 4, klappen sich im Studio in Flipflops und Gatter auf): C = Takt, R = Rueckstellen (asynchron, aktiv 1), Q0 = niederwertigstes Bit.
+     * ctr: 'async' (Ripple: Bit k kippt erst, wenn Bit k−1 ueberlaeuft – eine Laufzeitstufe spaeter), 'sync' (alle Bits gleichzeitig), 'bcd' (0…9), 'johnson' (Schiebekette mit invertierter Rueckkopplung), 'mod' (0 … modn−1).
+     * props.trig = Taktflanke 'pos' | 'neg', props.dir = 'up' | 'down' (async, sync), props.bits = Bitzahl 2…8 (async, sync, johnson), props.modn = Modulus 2…256 (mod). */
+    ctr_async:   { label: 'Asynchroner Dualzähler', studio: true, prefix: 'Z', pins: ['C', 'R', 'Q0', 'Q1', 'Q2', 'Q3'], ctr: 'async', props: { bits: 4, dir: 'up', trig: 'pos', tpd: 20e-9 } },
+    ctr_sync:    { label: 'Synchroner Dualzähler', studio: true, prefix: 'Z', pins: ['C', 'R', 'Q0', 'Q1', 'Q2', 'Q3'], ctr: 'sync', props: { bits: 4, dir: 'up', trig: 'pos', tpd: 20e-9 } },
+    ctr_bcd:     { label: 'Dezimalzähler (BCD)', studio: true, prefix: 'Z', pins: ['C', 'R', 'Q0', 'Q1', 'Q2', 'Q3'], ctr: 'bcd', props: { trig: 'pos', tpd: 20e-9 } },
+    ctr_johnson: { label: 'Johnson-Zähler', studio: true, prefix: 'Z', pins: ['C', 'R', 'Q0', 'Q1', 'Q2', 'Q3'], ctr: 'johnson', props: { bits: 4, trig: 'pos', tpd: 20e-9 } },
+    ctr_mod:     { label: 'Modulo-n-Zähler', studio: true, prefix: 'Z', pins: ['C', 'R', 'Q0', 'Q1', 'Q2'], ctr: 'mod', props: { modn: 6, trig: 'pos', tpd: 20e-9 } },
     /* Halbleiter: NPN-Transistor (sperrt / aktiv: Ic = β·Ib / Saettigung: U_CE ≈ 0,2 V), Z-Diode (Durchbruch bei U_Z in Sperrrichtung) */
     npn:   { label: 'NPN-Transistor', prefix: 'Q', pins: ['b', 'c', 'e'], props: { beta: 100, vbe: 0.7, rbe: 50, vsat: 0.2, pmax: 0.5 } },
     zener: { label: 'Z-Diode', prefix: 'Z', pins: ['a', 'k'], props: { vz: 5.1, vf: 0.7, rs: 5, pmax: 0.5 } },
@@ -72,13 +80,39 @@
   function dIns(d) { return d.ins || (d.ffIns ? d.ffIns.concat(['C'], d.ffAsync || []) : d.pins.filter(function (p) { return p !== 'out'; })); }
   /* Anschluesse eines Bauteils mit seinen Eigenschaften (Gatter: Eingangszahl props.inputs) */
   function pinsOf(type, q) {
-    var d = def(type); if (!d.multi) return d.pins;
+    var d = def(type);
+    if (d.ctr) { var nb = ctrBitCount(d, q), a0 = ['C', 'R']; for (var j = 0; j < nb; j++) a0.push('Q' + j); return a0; }
+    if (!d.multi) return d.pins;
     var n = Math.max(2, Math.min(8, Math.round((q && q.inputs) || 2))); if (n === 2) return d.pins;
     var a = []; for (var k = 1; k <= n; k++) a.push('in' + k); a.push('out'); return a;
   }
-  function insOfPart(p) { var d = def(p.type); return d.multi ? Object.keys(p.n).filter(function (k) { return k !== 'out'; }) : dIns(d); }
+  /* Zaehler: Bitzahl, Folgezustand, Zaehlerstand */
+  function ctrBitCount(d, q) {
+    q = q || {};
+    if (d.ctr === 'bcd') return 4;
+    if (d.ctr === 'mod') { var m = Math.max(2, Math.min(256, Math.round(q.modn || 6))); return Math.max(1, Math.ceil(Math.log(m) / Math.LN2 - 1e-9)); }
+    return Math.max(2, Math.min(8, Math.round(q.bits || 4)));
+  }
+  function bitsToNum(b) { var n = 0; for (var i = 0; i < b.length; i++) if (b[i]) n += Math.pow(2, i); return n; }
+  function numToBits(n, nb) { var b = []; for (var i = 0; i < nb; i++) b.push(Math.floor(n / Math.pow(2, i)) % 2 === 1); return b; }
+  function ctrCount(p, b) {
+    var kind = def(p.type).ctr;
+    if (kind !== 'johnson') return bitsToNum(b);
+    var ones = b.filter(Boolean).length; return b[b.length - 1] ? b.length + (b.length - ones) : ones;   // Index in der Folge 0000, 0001, 0011, 0111, 1111, 1110, 1100, 1000
+  }
+  /* naechster Zaehlerstand (nicht asynchron) */
+  function ctrNext(p, b) {
+    var d = def(p.type), q = p.props, nb = b.length, n = bitsToNum(b);
+    switch (d.ctr) {
+      case 'bcd': return numToBits((n + 1) % 10, 4);
+      case 'mod': return numToBits((n + 1) % Math.max(2, Math.round(q.modn || 6)), nb);
+      case 'johnson': return [!b[nb - 1]].concat(b.slice(0, nb - 1));
+      default: var m = Math.pow(2, nb); return numToBits(q.dir === 'down' ? (n + m - 1) % m : (n + 1) % m, nb);
+    }
+  }
+  function insOfPart(p) { var d = def(p.type); if (d.ctr) return ['C', 'R']; return d.multi ? Object.keys(p.n).filter(function (k) { return k !== 'out'; }) : dIns(d); }
   function dOuts(d) { return d.outs || (d.ff ? ['Q', 'Qn'] : ['out']); }
-  function isDigital(d) { return !!(d.logic || d.digital || d.ff); }
+  function isDigital(d) { return !!(d.logic || d.digital || d.ff || d.ctr); }
   var SOURCES = { battery: 1, clock: 1, acsource: 1 };
   /* Momentanwert einer Wechselspannungsquelle zur Zeit t (Kurvenform sine | square | triangle, Scheitelwert value, Gleichanteil offset) */
   function wave(q, t) {
@@ -154,7 +188,7 @@
 
   /* burnInfo: Werte im Moment des Durchbrennens (fuer die Diagnose), fuseInfo: Strom beim Ausloesen der Multimeter-Sicherung */
   /* tr: Transistor-Zustand ('off'|'on'|'sat'), zen: Z-Dioden-Zustand ('off'|'f'|'z'), ff: Flipflops {q, c (letzter Taktpegel)} */
-  function newState() { return { burnt: {}, vC: {}, iL: {}, logic: {}, diode: {}, tr: {}, zen: {}, ff: {}, fuse: false, t: 0, burnInfo: {}, fuseInfo: null }; }
+  function newState() { return { burnt: {}, vC: {}, iL: {}, ctr: {}, logic: {}, diode: {}, tr: {}, zen: {}, ff: {}, fuse: false, t: 0, burnInfo: {}, fuseInfo: null }; }
 
   /* ---------- Loeser fuer einen Arbeitspunkt / Zeitschritt ----------
    * opts: { state, dt (null = Gleichstrom-Arbeitspunkt), t, meter:{mode,a,b} (Knoten), zeroSources, inject:{a,b,i},
@@ -174,6 +208,7 @@
       if (d.logic) logic[p.id] = st.logic[p.id] !== undefined ? st.logic[p.id] : (dOuts(d).length > 1 ? dOuts(d).map(function () { return false; }) : false);
     });
     function outVal(p, k) { var v = logic[p.id]; return Array.isArray(v) ? !!v[k] : !!v; }
+    function ctrBitsOf(p) { var c = (st.ctr || {})[p.id], nb = ctrBitCount(def(p.type), p.props); return c && c.bits ? c.bits : numToBits(0, nb).map(function () { return false; }); }
     function ffQ(p) { return !!((st.ff || {})[p.id] || {}).q; }
     var V = null, iter = 0, converged = false, oscillating = false;
 
@@ -240,6 +275,9 @@
               insOfPart(p).forEach(function (pin) { G(n[pin], '0', G_OPEN); });
               if (dd.ff) { drive(n.Q, ffQ(p)); drive(n.Qn, !ffQ(p)); }
               else dOuts(dd).forEach(function (pin, k) { drive(n[pin], outVal(p, k)); });
+            } else if (dd.ctr) {
+              insOfPart(p).forEach(function (pin) { G(n[pin], '0', G_OPEN); });
+              var cb = ctrBitsOf(p); cb.forEach(function (bit, k) { drive(n['Q' + k], bit); });
             } else if (dd.digital) dd.pins.forEach(function (pin) { if (p.type !== 'logicin') G(n[pin], '0', G_OPEN); });
         }
       });
@@ -356,7 +394,11 @@
         case 'clock': r.v = volt(n.out); r.high = r.v > LOGIC.vth; r.pin = { out: ((r.high && !opts.zeroSources ? LOGIC.vcc : 0) - r.v) / LOGIC.rout }; break;
         default:
           var dd = def(p.type);
-          if (dd.ff) { r.q = ffQ(p); r.out = r.q; r.v = volt(n.Q); r.pin = { Q: ((r.q ? LOGIC.vcc : 0) - volt(n.Q)) / LOGIC.rout, Qn: ((r.q ? 0 : LOGIC.vcc) - volt(n.Qn)) / LOGIC.rout }; }
+          if (dd.ctr) {
+            var eb = ctrBitsOf(p); r.bits = eb; r.count = ctrCount(p, eb); r.out = r.count; r.pin = {};
+            eb.forEach(function (bit, k) { r.pin['Q' + k] = ((bit ? LOGIC.vcc : 0) - volt(n['Q' + k])) / LOGIC.rout; });
+          }
+          else if (dd.ff) { r.q = ffQ(p); r.out = r.q; r.v = volt(n.Q); r.pin = { Q: ((r.q ? LOGIC.vcc : 0) - volt(n.Q)) / LOGIC.rout, Qn: ((r.q ? 0 : LOGIC.vcc) - volt(n.Qn)) / LOGIC.rout }; }
           else if (dd.logic) {
             r.out = logic[p.id]; r.pin = {};
             dOuts(dd).forEach(function (pin, k) { r.pin[pin] = ((outVal(p, k) ? LOGIC.vcc : 0) - volt(n[pin])) / LOGIC.rout; });
@@ -379,9 +421,13 @@
     opts = opts || {};
     state = state || newState();
     var out, guard = 0, trace = opts.trace ? [] : null;
+    /* Laufzeit der Flipflops und Zaehler (props.tpd): in der Zeitsimulation (dt) werden Ausgangsaenderungen als Ereignisse in state.pend eingeplant und
+     * nach tpd wirksam – auch ueber Rechenschritte hinweg. Ohne dt (Arbeitspunkt) gelten sie sofort. tv = Zeit des aktuellen Durchgangs innerhalb des Schritts. */
+    var delayMode = !!opts.dt, t1s = state.t + (opts.dt || 0), tv = state.t;
+    state.pend = state.pend || [];
     for (;;) {
       out = solve(net, { state: state, dt: opts.dt, t: state.t, meter: opts.meter, trace: trace });
-      if (opts.iters) opts.iters.push(out.res.nodeV); // Zwischenloesungen je Durchgang (Flipflop-Laufzeit im Zeitverlauf des Studios)
+      if (opts.iters) opts.iters.push({ t: tv, nodeV: out.res.nodeV }); // Zwischenloesungen je Durchgang mit Zeitpunkt (Flipflop-Laufzeit im Zeitverlauf des Studios)
       var newDamage = false, faults = [];
       net.parts.forEach(function (p) {
         var r = out.res.parts[p.id], q = p.props;
@@ -413,6 +459,7 @@
         function add(pin, v) { var nd = p.n[pin]; if (nd === undefined) return; (drv[nd] = drv[nd] || []).push({ id: p.id, v: !!v }); }
         if (p.type === 'logicin') add('out', p.props.closed);
         else if (p.type === 'clock') add('out', Math.floor(state.t * p.props.freq * 2) % 2 === 0);
+        else if (d.ctr) { r.bits.forEach(function (bit, k) { add('Q' + k, bit); }); }
         else if (d.ff) { add('Q', r.q); add('Qn', !r.q); }
         else if (d.logic) dOuts(d).forEach(function (pin, k) { add(pin, Array.isArray(r.out) ? r.out[k] : r.out); });
       });
@@ -421,8 +468,11 @@
         if (ds.some(function (x) { return x.v; }) && ds.some(function (x) { return !x.v; }))
           faults.push({ code: 'OUTPUT_CLASH', part: ds[0].id, parts: ds.map(function (x) { return x.id; }), i: LOGIC.vcc / (2 * LOGIC.rout) });
       });
-      // Flipflops (alle gleichzeitig aus derselben Loesung): je Steuerungsart Flanke/Zustand an C auswerten, preSet/preClear haben Vorrang
-      var ffChanged = false; state.ff = state.ff || {};
+      // Flipflops und Zaehler (alle gleichzeitig aus derselben Loesung): Flanke/Zustand an C je Steuerungsart auswerten, preSet/preClear haben Vorrang.
+      // Aenderungen werden mit Laufzeit eingeplant (plan) und von flush() wirksam gemacht.
+      var ffChanged = false; state.ff = state.ff || {}; state.ctr = state.ctr || {};
+      function plan(ev, tpd) { ev.t = delayMode ? tv + (tpd || 0) : tv; state.pend.push(ev); }
+      function pending(id, type, key, val) { return state.pend.some(function (e) { return e.id === id && e.type === type && e[key] === val; }); }
       net.parts.forEach(function (p) {
         var d = def(p.type); if (!d.ff || state.burnt[p.id]) return;
         var f = state.ff[p.id] || (state.ff[p.id] = { q: false, c: null });
@@ -430,7 +480,7 @@
         var c = lv('C'), ins = d.ffIns.map(lv), mode = d.ms ? 'ms' : (p.props.trig || 'pos'), nq = f.q, active = false;
         if (mode === 'pos') { if (f.c === false && c) { active = true; nq = d.ff(f.q, ins); } }
         else if (mode === 'neg') { if (f.c === true && !c) { active = true; nq = d.ff(f.q, ins); } }
-        else if (mode === 'level') { if (c && guard === 0) { active = true; nq = d.ff(f.q, ins); } }
+        else if (mode === 'level') { if (c && (delayMode || guard === 0)) { active = true; nq = d.ff(f.q, ins); } }
         else { // Master-Slave: Master folgt J/K solange C = 1 (setzt mit J·/Q, loescht mit K·Q), Slave uebernimmt bei fallender Flanke
           if (f.m === undefined) f.m = f.q;
           if (c) { if (ins[0] && !f.q) f.m = true; else if (ins[1] && f.q) f.m = false; }
@@ -438,9 +488,40 @@
         }
         if (d.rs && active && ins[0] && ins[1]) faults.push({ code: 'FF_RS', part: p.id });
         if (lv('PC')) { nq = false; if (d.ms) f.m = false; } else if (lv('PS')) { nq = true; if (d.ms) f.m = true; }
-        if (nq !== f.q) { f.q = nq; ffChanged = true; }
+        if (nq !== f.q && !pending(p.id, 'ff', 'q', nq)) plan({ id: p.id, type: 'ff', q: nq }, p.props.tpd);
         f.c = c;
       });
+      // Zaehlerbausteine: Taktflanke auswerten; asynchron plant jede Stufe die naechste (Uebertrag), sonst wechseln alle Bits zugleich
+      net.parts.forEach(function (p) {
+        var d = def(p.type); if (!d.ctr || state.burnt[p.id]) return;
+        var nb = ctrBitCount(d, p.props), c0 = state.ctr[p.id] || (state.ctr[p.id] = { bits: numToBits(0, nb).map(function () { return false; }), c: null });
+        if (c0.bits.length !== nb) c0.bits = numToBits(0, nb).map(function () { return false; });
+        function lv(pin) { return p.n[pin] !== undefined && (out.V[p.n[pin]] || 0) > LOGIC.vth; }
+        var c = lv('C'), edge = p.props.trig === 'neg' ? (c0.c === true && !c) : (c0.c === false && c), up = p.props.dir !== 'down';
+        if (lv('R')) { if (c0.bits.some(Boolean) && !pending(p.id, 'ctrset', 'zero', true)) plan({ id: p.id, type: 'ctrset', zero: true, bits: c0.bits.map(function () { return false; }) }, p.props.tpd); }
+        else if (edge) {
+          if (d.ctr === 'async') plan({ id: p.id, type: 'flip', k: 0 }, p.props.tpd);
+          else plan({ id: p.id, type: 'ctrset', bits: ctrNext(p, c0.bits) }, p.props.tpd);
+        }
+        c0.c = c;
+      });
+      function apply(ev) {
+        if (ev.type === 'ff') { state.ff[ev.id].q = ev.q; return; }
+        var c0 = state.ctr[ev.id], pp = net.byId[ev.id];
+        if (ev.type === 'ctrset') { c0.bits = ev.bits.slice(); return; }
+        var was = c0.bits[ev.k]; c0.bits[ev.k] = !was; // asynchron: Bit kippt, bei Uebertrag kippt die naechste Stufe eine Laufzeit spaeter
+        if ((pp.props.dir !== 'down' ? was : !was) && ev.k + 1 < c0.bits.length) plan({ id: ev.id, type: 'flip', k: ev.k + 1 }, pp.props.tpd);
+      }
+      // faellige Ereignisse: im Arbeitspunkt alle sofort, in der Zeitsimulation die naechste Gruppe gleicher Zeit innerhalb dieses Schritts (danach wird neu geloest)
+      var applied = false;
+      for (;;) {
+        var bi2 = -1; state.pend.forEach(function (e, i) { if (bi2 < 0 || e.t < state.pend[bi2].t) bi2 = i; });
+        if (bi2 < 0) break;
+        var ev0 = state.pend[bi2];
+        if (delayMode && (ev0.t >= t1s - 1e-18 || (applied && ev0.t > tv + 1e-18))) break;
+        tv = Math.max(tv, ev0.t); state.pend.splice(bi2, 1); apply(ev0); applied = true;
+      }
+      if (applied) ffChanged = true;
       state.diode = out.diode; state.logic = out.logic; state.tr = out.tr; state.zen = out.zen;
       if (!(newDamage || ffChanged) || ++guard > 20) break;
     }
@@ -748,7 +829,7 @@
   var api = {
     expectedAnswers: expectedAnswers, UNIT_SCALE: UNIT_SCALE,
     version: '0.2.0', PARTS: PARTS, LED_COLORS: LED_COLORS, LOGIC: LOGIC, METER: METER, LIMITS: LIMITS, SOURCES: SOURCES, TRACE_MAX: TRACE_MAX,
-    pinsOf: pinsOf, wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, DMM_MANUAL: DMM_MANUAL, rangeLabel: rangeLabel, acMeasure: acMeasure,
+    pinsOf: pinsOf, ctrNext: ctrNext, ctrCount: ctrCount, ctrBitCount: ctrBitCount, bitsToNum: bitsToNum, numToBits: numToBits, wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, DMM_MANUAL: DMM_MANUAL, rangeLabel: rangeLabel, acMeasure: acMeasure,
     buildNetlist: buildNetlist, solve: solve, step: step, newState: newState,
     measure: measure, simulate: simulate, runTask: runTask, fmt: fmt, clone: clone,
     /* Bezugspunkt eines Aufbaus als Anschlussname ('GND1.g' bzw. 'G1.n'); null ohne Quelle und Masse (Gleichrichter-Auftrag 06.10.2026, G1) */

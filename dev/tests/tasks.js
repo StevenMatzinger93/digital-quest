@@ -180,7 +180,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
     } catch (e) { fail('Bedienung gescheitert: ' + e.message.split('\n')[0]); await page.screenshot({ path: path.join(__dirname, 'shots', 'fehler_' + t.id + '_' + view + '.png') }); }
   }
   // ===== Bauteilkatalog in beiden Ansichten (Freie Werkbank mit ?alle) =====
-  const catalog = await page.evaluate(() => Object.keys(DigitalQuest.engine.PARTS).map(k => ({ type: k, pins: DigitalQuest.engine.PARTS[k].pins })));
+  const catalog = await page.evaluate(() => Object.keys(DigitalQuest.engine.PARTS).filter(k => !DigitalQuest.engine.PARTS[k].studio).map(k => ({ type: k, pins: DigitalQuest.engine.PARTS[k].pins.filter(p => !(DigitalQuest.engine.PARTS[k].ffAsync || []).includes(p)) })));
   const FIELDS = { battery: ['value'], resistor: ['value'], lamp: ['value'], pot: ['value', 'pos'], capacitor: ['value'], clock: ['freq'], led: ['color'], acsource: ['value', 'freq', 'shape', 'offset'], switch: [], zener: ['vz'], npn: ['beta'], motor: ['value'] };
   // ===== Bedienung der Messgeraete (measureUX 'drag'): Ziehen, Tastkopf, Messbereich =====
   if (!only || only === 'bedienung') {

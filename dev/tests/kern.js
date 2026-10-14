@@ -297,6 +297,28 @@ digital.push({ name: 'D preSet/preClear setzen Q unabhängig vom Takt (Vorrang v
     { set: [['EP', 'closed', true], ['EQ', 'closed', true]], expect: { 'FF1.q': false } }   // beide aktiv: preClear gewinnt
   ] });
 
+// Zähler (Stufe 4): Takt EC am Pegelschalter, Zählerstand nach jeder steigenden Flanke (Literal-Folgen)
+function ctrCase(name, type, props, expectSeq, bitsOf) {
+  const steps = [];
+  expectSeq.forEach(n => { steps.push({ set: [['EC', 'closed', true]], expect: { 'Z1.count': n } }, { set: [['EC', 'closed', false]], expect: { 'Z1.count': n } }); });
+  digital.push({ name: name, layout: { parts: [P('Z1', type, props), lin('EC')], wires: [W('EC.out', 'Z1.C')] }, steps });
+}
+ctrCase('D Dezimalzähler (BCD) zählt 0 bis 9 und springt auf 0', 'ctr_bcd', {}, [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2]);
+ctrCase('D Modulo-6-Zähler zählt 0 bis 5', 'ctr_mod', { modn: 6 }, [1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0]);
+ctrCase('D Modulo-10-Zähler (4 Bit) zählt 0 bis 9', 'ctr_mod', { modn: 10 }, [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]);
+ctrCase('D Asynchroner Dualzähler 3 Bit aufwärts', 'ctr_async', { bits: 3 }, [1, 2, 3, 4, 5, 6, 7, 0, 1]);
+ctrCase('D Asynchroner Dualzähler 3 Bit abwärts', 'ctr_async', { bits: 3, dir: 'down' }, [7, 6, 5, 4, 3, 2, 1, 0, 7]);
+ctrCase('D Synchroner Dualzähler 4 Bit aufwärts (16 Zustände, dann 0)', 'ctr_sync', { bits: 4 }, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 1]);
+ctrCase('D Johnson-Zähler 4 Bit (8 Zustände)', 'ctr_johnson', { bits: 4 }, [1, 2, 3, 4, 5, 6, 7, 0, 1]);
+digital.push({ name: 'D Zähler: Rückstellen R setzt auf 0, unabhängig vom Takt',
+  layout: { parts: [P('Z1', 'ctr_bcd', {}), lin('EC'), lin('ER')], wires: [W('EC.out', 'Z1.C'), W('ER.out', 'Z1.R')] },
+  steps: [{ set: [['EC', 'closed', true]], expect: { 'Z1.count': 1 } }, { set: [['EC', 'closed', false]] }, { set: [['EC', 'closed', true]], expect: { 'Z1.count': 2 } },
+    { set: [['ER', 'closed', true]], expect: { 'Z1.count': 0 } }, { set: [['EC', 'closed', false]] }, { set: [['EC', 'closed', true]], expect: { 'Z1.count': 0 } },
+    { set: [['ER', 'closed', false], ['EC', 'closed', false]], expect: { 'Z1.count': 0 } }, { set: [['EC', 'closed', true]], expect: { 'Z1.count': 1 } }] });
+digital.push({ name: 'D Zähler mit fallender Taktflanke zählt bei C 1 → 0',
+  layout: { parts: [P('Z1', 'ctr_bcd', { trig: 'neg' }), lin('EC', true)], wires: [W('EC.out', 'Z1.C')] },
+  steps: [{ set: [['EC', 'closed', false]], expect: { 'Z1.count': 1 } }, { set: [['EC', 'closed', true]], expect: { 'Z1.count': 1 } }, { set: [['EC', 'closed', false]], expect: { 'Z1.count': 2 } }] });
+
 function runDigital(kern, c, chk, log) {
   const sess = kern.session(c.layout); let before = 0;
   c.steps.forEach((st, k) => {

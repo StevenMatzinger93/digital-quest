@@ -85,7 +85,8 @@
     this.dtAuto = true; this.dtManual = 1e-3; this.dt = 1e-3;
     this.factor = 'auto'; this.running = opts.running !== false; this.acc = 0; this.last = 0;
     this.traces = []; this.lag = false; this.rate = 0; this.steps = 0; this.dynamic = false; this.span = null;
-    this.iters = false; // Zwischenergebnisse je Rechenschritt aufzeichnen (Zeitverlauf: Laufzeit der Flipflops), siehe E.step opts.iters
+    this.iters = true;  // Zwischenloesungen je Rechenschritt aufzeichnen (Zeitverlauf: Laufzeit der Flipflops), siehe E.step opts.iters
+    this.tpd = 20e-9;   // Laufzeit je Flipflop-Stufe (aus den Bauteilen, groesster Wert)
     this.hooks = [];    // function (res, t, iterList) nach jedem Schritt
     this.version = 0;   // zaehlt jede Aenderung der Zeit/des Ergebnisses (fuer Neuzeichnen)
   }
@@ -110,6 +111,7 @@
     this.dynamic = this.net.parts.some(function (p) { return DYN[p.type]; });
     this.dt = this.dtAuto ? chooseDt(this.net) : this.dtManual;
     this.span = chooseSpan(this.net);
+    var tp = 0; this.net.parts.forEach(function (p) { if (p.props.tpd > tp && (E.PARTS[p.type].ff || E.PARTS[p.type].ctr)) tp = p.props.tpd; }); this.tpd = tp || 20e-9;
     this.evaluate();
     return true;
   };
@@ -131,8 +133,18 @@
     var res;
     try { res = E.step(net, this.state, o); } catch (e) { this.err = e.message; this.running = false; return false; }
     this.res = res; this.faults = res.faults; this.steps++;
-    var tr = this.traces, t = this.state.t;
-    for (var i = 0; i < tr.length; i++) { var v = tr[i].read(res, net); if (!isNaN(v)) tr[i].push(t, v); }
+    var tr = this.traces, t = this.state.t, it = o.iters, K = it ? it.length - 1 : 0, i, v;
+    if (K > 0) { // Flipflops haben geschaltet: jeder Durchgang traegt seinen Zeitpunkt (Taktflanke + Laufzeiten)
+      for (var k = 0; k <= K; k++) {
+        var pseudo = { nodeV: it[k].nodeV, parts: res.parts };
+        for (i = 0; i < tr.length; i++) { var kd = tr[i].desc.kind; if (kd === 'node' || kd === 'dig' || kd === 'diff') { v = tr[i].read(pseudo, net); if (!isNaN(v)) tr[i].push(it[k].t, v); } }
+      }
+    }
+    else if (it && it.length) { // keine Flipflop-Ereignisse: Pegelsignale trotzdem zum Schrittanfang eintragen (die Flanke einer Quelle gehoert zu t − dt, nicht zum Schrittende)
+      var ps0 = { nodeV: it[0].nodeV, parts: res.parts };
+      for (i = 0; i < tr.length; i++) if (tr[i].desc.kind === 'dig') { v = tr[i].read(ps0, net); if (!isNaN(v)) tr[i].push(it[0].t, v); }
+    }
+    for (i = 0; i < tr.length; i++) { v = tr[i].read(res, net); if (!isNaN(v)) tr[i].push(t, v); }
     for (var h = 0; h < this.hooks.length; h++) this.hooks[h](res, t, o.iters || null, this.dt);
     return true;
   };

@@ -269,7 +269,7 @@
    * (Palette + Startaufbau), mit ?alle der ganze Bauteilkatalog. Entwurf unter drafts.sandbox. */
   function sandboxTask() {
     var types = {};
-    if (allOpen()) Object.keys(E.PARTS).forEach(function (k) { types[k] = true; });
+    if (allOpen()) Object.keys(E.PARTS).forEach(function (k) { if (!E.PARTS[k].studio) types[k] = true; }); // studio: nur im Studio (Spule, RS/JK-MS, Zähler)
     DQ.tasks.forEach(function (t) {
       if (!unlocked(t.id)) return;
       t.palette.forEach(function (k) { types[k] = true; }); t.start.parts.forEach(function (p) { types[p.type] = true; });
@@ -1507,7 +1507,7 @@
   /* Handbuch-Seite: alle Datenblaetter zum Nachschlagen (auch ohne Maus) */
   function manualSheets() {
     return '<p>Jedes Bauteil mit Funktion, Anschlüssen und Grenzwerten. In einer Aufgabe siehst du das Datenblatt auch, wenn du mit der Maus über ein Bauteil der Palette fährst, länger auf einem eingebauten Bauteil verweilst oder im Eigenschaften-Panel auf „ⓘ Datenblatt“ tippst.</p>' +
-      Object.keys(E.PARTS).map(function (t) { return '<section class="ds-card" id="ds-' + t + '">' + sheetHtml(t, null) + '</section>'; }).join('');
+      Object.keys(E.PARTS).filter(function (t) { return !E.PARTS[t].studio; }).map(function (t) { return '<section class="ds-card" id="ds-' + t + '">' + sheetHtml(t, null) + '</section>'; }).join('');
   }
 
   /* ================= Einstellungen ================= */

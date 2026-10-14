@@ -29,6 +29,7 @@
   <div class="tgroup" aria-label="Werkzeuge"><span class="tl">Werkzeuge</span>
     <button class="tb on" id="toolBuild" title="Bauen: Bauteile ziehen, Anschlüsse nacheinander anklicken = Leitung">✎ Bauen</button>
     <button class="tb" id="toolMeasure" title="Messen: Anschluss oder Bauteil anklicken = Signal ins Oszilloskop">⌖ Messen</button>
+    <select class="tsel" id="measureTarget" hidden title="Wohin das Signal kommt: Auto = digitale Anschlüsse in den Zeitverlauf, analoge ins Oszilloskop"><option value="auto">Ziel: Auto</option><option value="scope">Oszilloskop</option><option value="timing">Zeitverlauf</option></select>
     <select class="tsel" id="measureKind" hidden title="Was beim Klick auf ein Bauteil gemessen wird"><option value="pv">Spannung</option><option value="pi">Strom</option></select>
     <button class="tb" id="btnRot" title="Bauteil drehen (R)">⟳ Drehen</button>
     <button class="tb" id="btnDel" title="Auswahl löschen (Entf)">🗑 Löschen</button>
@@ -47,10 +48,7 @@
   </section>
   <aside class="inspector" id="inspector" aria-label="Eigenschaften"></aside>
 </div>
-<section class="timing" id="timing" aria-label="Zeitverlauf">
-  <div class="th"><b>Zeitverlauf</b><span class="hint" id="tlHint"></span></div>
-  <canvas id="tlCanvas"></canvas>
-</section>
+<section class="timing" id="timing" aria-label="Zeitverlauf"></section>
 <footer class="statusbar" id="statusbar" role="status" aria-live="polite"></footer>
 <div id="floats"></div>
 <div class="modal-bg" id="modalBg"><div class="modal" role="dialog" aria-modal="true" id="modal"></div></div>

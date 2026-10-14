@@ -203,7 +203,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   await page.keyboard.press('Escape'); if (await page.isVisible('#dsPop')) errors.push('Datenblatt schliesst nicht mit Esc');
   await page.click('[data-go="manual"]'); await page.click('[data-man="datenblaetter"]');
   const cards = await page.$$eval('.ds-card', els => els.map(e => !!e.querySelector('svg.symicon') && !!e.querySelector('svg.benchicon')));
-  const nTypes = await page.evaluate(() => Object.keys(DigitalQuest.engine.PARTS).length);
+  const nTypes = await page.evaluate(() => Object.keys(DigitalQuest.engine.PARTS).filter(k => !DigitalQuest.engine.PARTS[k].studio).length);
   if (cards.length !== nTypes || cards.includes(false)) errors.push('Handbuch Datenblätter: ' + cards.length + ' von ' + nTypes + ' mit beiden Bildern');
   await page.screenshot({ path: shots + '/14_datenblaetter.png' });
 

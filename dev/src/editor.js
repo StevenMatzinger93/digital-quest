@@ -20,12 +20,37 @@
     dff: { D: [-40, -20], C: [-40, 20], Q: [40, -20], Qn: [40, 20] },
     tff: { T: [-40, -20], C: [-40, 20], Q: [40, -20], Qn: [40, 20] },
     jkff: { J: [-40, -20], C: [-40, 0], K: [-40, 20], Q: [40, -20], Qn: [40, 20] },
+    jkms: { J: [-40, -20], C: [-40, 0], K: [-40, 20], Q: [40, -20], Qn: [40, 20] },
+    rsff: { S: [-40, -20], C: [-40, 0], R: [-40, 20], Q: [40, -20], Qn: [40, 20] },
     seg7: {}, dec7: { A: [-40, -60], B: [-40, -40], C: [-40, -20], D: [-40, 0] }
   };
   'abcdefg'.split('').forEach(function (k, i) { GEO.seg7[k] = [-40, -60 + 20 * i]; GEO.dec7[k] = [40, -60 + 20 * i]; });
   ['and', 'or', 'nand', 'nor', 'xor', 'xnor'].forEach(function (g) { GEO[g] = { in1: [-40, -20], in2: [-40, 20], out: [40, 0] }; });
+  /* Dynamische Geometrie: Gatter mit einstellbarer Eingangszahl, Flipflops mit preSet/preClear (nur wenn Editor.extra.async, Studio) und Bausteine des Studios
+   * (Editor.DYNGEO[type] = function (part) → {pin: [x, y]}, z. B. Zaehler) */
+  var DYNGEO = {}, EXTRA = { async: false };
+  function gateInputs(p) { var q = p.props || {}; return Math.max(2, Math.min(8, Math.round(q.inputs || 2))); }
+  function slots(n) { var k = Math.floor(n / 2), a = []; for (var i = -k; i <= k; i++) { if (i === 0 && n % 2 === 0) continue; a.push(i * 20); } return a; }
+  function geoOf(p) {
+    var f = DYNGEO[p.type]; if (f) return f(p);
+    if (E.PARTS[p.type] && E.PARTS[p.type].multi) {
+      var n = gateInputs(p), ys = slots(n), g = { out: [40, 0] }; ys.forEach(function (y, i) { g['in' + (i + 1)] = [-40, y]; }); return g;
+    }
+    var base = GEO[p.type];
+    if (EXTRA.async && E.PARTS[p.type] && E.PARTS[p.type].ffAsync) { var o = {}; Object.keys(base).forEach(function (k) { o[k] = base[k]; }); o.PS = [0, -60]; o.PC = [0, 60]; return o; }
+    return base;
+  }
+  Object.keys(E.PARTS).forEach(function (t) {
+    if (!E.PARTS[t].ctr) return;
+    DYNGEO[t] = function (p) {
+      var nb = E.ctrBitCount(E.PARTS[t], Object.assign({}, E.PARTS[t].props, p.props || {})), ys = slots(nb), g = { C: [-40, -20], R: [-40, 20] };
+      ys.forEach(function (y, i) { g['Q' + i] = [40, y]; }); return g;
+    };
+  });
+  function ctrHalf(p) { var nb = E.ctrBitCount(E.PARTS[p.type], Object.assign({}, E.PARTS[p.type].props, p.props || {})); return Math.max(30, 20 * Math.floor(nb / 2) + 10); }
+  var CTR_TXT = { async: 'ASYNC', sync: 'SYNC', bcd: 'BCD', johnson: 'JOHNSON', mod: 'MOD' };
   var GATE_SIGN = { and: '&amp;', nand: '&amp;', or: '≥1', nor: '≥1', xor: '=1', xnor: '=1', not: '1' };
-  var FF_SIGN = { dff: ['1D', 'C1'], tff: ['1T', 'C1'], jkff: ['1J', 'C1', '1K'] };
+  var FF_SIGN = { dff: ['1D', 'C1'], tff: ['1T', 'C1'], jkff: ['1J', 'C1', '1K'], rsff: ['1S', 'C1', '1R'], jkms: ['1J', 'C1', '1K'] };
   /* 7-Segment: Segment-Pfade a…g in einem Feld von 24 × 40 um den Ursprung */
   var SEGP = ['M-8-20h16', 'M10-18v16', 'M10 2v16', 'M-8 20h16', 'M-10 2v16', 'M-10-18v16', 'M-8 0h16'];
 
@@ -33,7 +58,7 @@
     var x = p[0], y = p[1];
     switch (((rot || 0) % 360 + 360) % 360) { case 90: return [-y, x]; case 180: return [-x, -y]; case 270: return [y, -x]; default: return [x, y]; }
   }
-  function pinPos(part, pin) { var o = rotPt(GEO[part.type][pin], part.rot); return [part.x + o[0], part.y + o[1]]; }
+  function pinPos(part, pin) { var o = rotPt(geoOf(part)[pin], part.rot); return [part.x + o[0], part.y + o[1]]; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   function fmtVal(v) { // 4700 -> '4.7k', 1e-4 -> '100µ'
@@ -57,6 +82,13 @@
       case 'motor': return fmtVal(v) + ' Ω';
       case 'npn': return 'β ' + (q.beta || d.props.beta);
       case 'logicin': return q.closed ? '1' : '0';
+      case 'dff': case 'tff': case 'jkff': case 'rsff': return ({ pos: '↑ Flanke', neg: '↓ Flanke', level: 'Pegel' })[q.trig || d.props.trig] || '';
+      case 'jkms': return '↓ (MS)';
+      case 'ctr_async': case 'ctr_sync': return (q.bits || 4) + ' Bit ' + ((q.dir || 'up') === 'down' ? '↓' : '↑');
+      case 'ctr_johnson': return (q.bits || 4) + ' Bit';
+      case 'ctr_bcd': return '0 … 9';
+      case 'ctr_mod': return '0 … ' + ((q.modn || 6) - 1);
+      case 'and': case 'or': case 'nand': case 'nor': case 'xor': case 'xnor': return (q.inputs || 2) > 2 ? q.inputs + ' Eingänge' : '';
       case 'led': return q.color || d.props.color;
       default: return '';
     }
@@ -127,20 +159,34 @@
         s = '<rect ' + c + ' x="-22" y="-18" width="44" height="36" rx="3"/><path class="sym thin" d="M-14 8H-7V-8H0V8H7V-8H14"/><path ' + c + ' d="M22 0H40"/>' +
           '<circle cx="15" cy="-12" r="3" class="' + (hi ? 'lamp-on' : 'lamp-off') + '"/>'; break;
       default:
-        if (FF_SIGN[p.type]) { // Flipflop: Kasten mit Abhaengigkeitsnotation, Takteingang mit Dreieck
-          var fs = FF_SIGN[p.type], fy = p.type === 'jkff' ? [-20, 0, 20] : [-20, 20], qv = r.q;
+        if (E.PARTS[p.type].ctr) { // Zaehlerbaustein: Kasten mit Zaehlerstand, Takt (Dreieck, bei fallender Flanke mit Kreis), Rueckstellen R, Ausgaenge Q0 …
+          var cdef = E.PARTS[p.type], cq = Object.assign({}, cdef.props, q), cnb = E.ctrBitCount(cdef, cq), cgh = ctrHalf(p), cys = slots(cnb);
+          s = '<rect ' + c + ' x="-26" y="' + (-cgh) + '" width="52" height="' + (2 * cgh) + '" rx="2"/>' +
+            '<text class="symtxt small" y="' + (-cgh + 12) + '">' + CTR_TXT[cdef.ctr] + (cdef.ctr === 'mod' ? ' ' + cq.modn : '') + '</text>' +
+            '<path ' + c + ' d="M-40-20H-26M-40 20H-26"/><text class="symtxt small" x="-15" y="-16">C</text><text class="symtxt small" x="-16" y="24">R</text>';
+          if (cq.trig === 'neg') s += '<circle class="sym thin" cx="-30" cy="-20" r="3.5" style="fill:var(--karte, #fff)"/>';
+          s += '<path class="sym thin" d="M-26-25L-20-20L-26-15"/>';
+          cys.forEach(function (y, i) { s += '<path ' + c + ' d="M26 ' + y + 'H40"/><text class="symtxt small" x="14" y="' + (y + 4) + '">Q' + i + '</text>'; });
+          if (r.count !== undefined) s += '<text class="symtxt" y="6" style="font-size:20px">' + r.count + '</text>';
+          break;
+        }
+        if (FF_SIGN[p.type]) { // Flipflop: Kasten mit Abhaengigkeitsnotation, Takteingang: Dreieck = Flanke, Kreis davor = fallend, ohne Dreieck = Taktzustand
+          var fs = FF_SIGN[p.type], three = p.type === 'jkff' || p.type === 'rsff' || p.type === 'jkms', fy = three ? [-20, 0, 20] : [-20, 20], qv = r.q;
+          var trig = p.type === 'jkms' ? 'ms' : q.trig || E.PARTS[p.type].props.trig || 'pos', cy = three ? 0 : 20;
           s = '<rect ' + c + ' x="-26" y="-36" width="52" height="72" rx="2"/>';
           fy.forEach(function (y, k) { s += '<path ' + c + ' d="M-40 ' + y + 'H-26"/><text class="symtxt small" x="-14" y="' + (y + 4) + '">' + fs[k] + '</text>'; });
-          var cy = p.type === 'jkff' ? 0 : 20;
-          s += '<path class="sym thin" d="M-26 ' + (cy - 5) + 'L-20 ' + cy + 'L-26 ' + (cy + 5) + '"/>' +
-            '<path ' + c + ' d="M26-20H40M31 20H40"/><circle ' + c + ' cx="28.5" cy="20" r="2.5"/>' +
+          if (trig === 'pos' || trig === 'neg') s += '<path class="sym thin" d="M-26 ' + (cy - 5) + 'L-20 ' + cy + 'L-26 ' + (cy + 5) + '"/>';
+          if (trig === 'neg') s += '<circle class="sym thin" cx="-30" cy="' + cy + '" r="3.5" style="fill:var(--karte, #fff)"/>';
+          if (trig === 'ms') s += '<text class="symtxt small" x="6" y="-26">MS</text><path class="sym thin" d="M16-24h6v4"/>';
+          if (EXTRA.async && E.PARTS[p.type].ffAsync) s += '<path ' + c + ' d="M0-36V-60M0 36V60"/><text class="symtxt small" x="10" y="-42">PS</text><text class="symtxt small" x="10" y="52">PC</text>';
+          s += '<path ' + c + ' d="M26-20H40M31 20H40"/><circle ' + c + ' cx="28.5" cy="20" r="2.5"/>' +
             (qv !== undefined ? '<circle cx="34" cy="-30" r="3" class="' + (qv ? 'lamp-on' : 'lamp-off') + '"/>' : '');
           break;
         }
         if (GATE_SIGN[p.type]) {
-          var inv = /^n|not|xnor/.test(p.type), two = p.type !== 'not';
-          s = '<rect ' + c + ' x="-22" y="-30" width="44" height="60" rx="2"/><text class="symtxt" y="6">' + GATE_SIGN[p.type] + '</text>' +
-            (two ? '<path ' + c + ' d="M-40-20H-22M-40 20H-22"/>' : '<path ' + c + ' d="M-40 0H-22"/>') +
+          var inv = /^n|not|xnor/.test(p.type), gn = p.type === 'not' ? 1 : gateInputs(p), gys = gn === 1 ? [0] : slots(gn), gh = gn === 1 ? 30 : 20 * Math.floor(gn / 2) + 10;
+          s = '<rect ' + c + ' x="-22" y="' + (-gh) + '" width="44" height="' + (2 * gh) + '" rx="2"/><text class="symtxt" y="6">' + GATE_SIGN[p.type] + '</text>' +
+            gys.map(function (y) { return '<path ' + c + ' d="M-40 ' + y + 'H-22"/>'; }).join('') +
             (inv ? '<circle ' + c + ' cx="27" r="5"/><path ' + c + ' d="M32 0H40"/>' : '<path ' + c + ' d="M22 0H40"/>') +
             (r.out !== undefined ? '<circle cx="34" cy="-10" r="3" class="' + (r.out ? 'lamp-on' : 'lamp-off') + '"/>' : '');
         }
@@ -151,10 +197,13 @@
 
   function labels(p) { // Beschriftung neben senkrechten, ueber/unter waagrechten Bauteilen
     if (p.type === 'seg7' || p.type === 'dec7') return '<text class="lbl" y="-78">' + esc(p.id) + '</text>';
+    if (E.PARTS[p.type].ctr) return '<text class="lbl" y="' + (-ctrHalf(p) - 8) + '">' + esc(p.id) + '</text><text class="val" y="' + (ctrHalf(p) + 16) + '">' + esc(valueText(p)) + '</text>';
     var vert = (p.type === 'battery' || p.type === 'ground' || p.type === 'acsource') ? (p.rot || 0) % 180 === 0 : (p.rot || 0) % 180 === 90;
     var v = esc(valueText(p));
     if (vert) return '<text class="lbl" x="24" y="-4" text-anchor="start">' + esc(p.id) + '</text><text class="val" x="24" y="12" text-anchor="start">' + v + '</text>';
     var big = GATE_SIGN[p.type] || FF_SIGN[p.type] || p.type === 'npn', up = big ? -44 : -24, dn = big ? 52 : 30;
+    if (GATE_SIGN[p.type] && p.type !== 'not' && gateInputs(p) > 2) { var gk = 20 * Math.floor(gateInputs(p) / 2) + 10; up = -gk - 14; dn = gk + 22; }
+    if (FF_SIGN[p.type] && EXTRA.async) { up = -68; dn = 76; }
     return '<text class="lbl" y="' + up + '">' + esc(p.id) + '</text><text class="val" y="' + dn + '">' + v + '</text>';
   }
   /* Tooltip eines Bauteils mit Simulationswerten (auch fuer die Werkbank) */
@@ -210,7 +259,7 @@
     var v = this.view, w = Math.max(160, Math.min(v[2], 360)), h = w * v[3] / v[2];
     this.setView([part.x - w / 2, part.y - h / 2, w, h]);
   };
-  Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText; Editor.partTip = partTip; Editor.voltColor = voltColor; Editor.icon = icon;
+  Editor.DYNGEO = DYNGEO; Editor.extra = EXTRA; Editor.geoOf = geoOf; Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText; Editor.partTip = partTip; Editor.voltColor = voltColor; Editor.icon = icon;
   // Zustand liegt im Kern; die bisherigen Eigenschaften bleiben fuer app.js erhalten
   ['layout', 'locked', 'sel', 'wireStart', 'tool', 'probes', 'drag'].forEach(function (k) {
     Object.defineProperty(Editor.prototype, k, { get: function () { return this.core[k]; }, set: function (v) { this.core[k] = v; } });
@@ -253,6 +302,7 @@
     var self = this, svg = this.svg, core = this.core, pan = null, pinch = null, touches = {}, lastTap = { t: 0, x: 0, y: 0 };
     function dblAt(ev) { // Doppeltipp/Doppelklick: Bauteil → heranzoomen, leere Fläche → einpassen
       var t = ev.target.closest('[data-part]'), p = t && core.part(t.dataset.part);
+      if (p && self.opts.onDouble && self.opts.onDouble(p)) return; // Studio: Zaehler aufklappen
       if (p) self.zoomTo(p); else self.fit();
     }
     svg.addEventListener('pointerdown', function (ev) {
@@ -301,7 +351,7 @@
     var byId = {}; L.parts.forEach(function (p) { byId[p.id] = p; });
     var pinWireCount = {}; L.wires.forEach(function (w) { pinWireCount[w.from] = (pinWireCount[w.from] || 0) + 1; pinWireCount[w.to] = (pinWireCount[w.to] || 0) + 1; });
     function pp(pid) { var s = pid.split('.'); return byId[s[0]] ? pinPos(byId[s[0]], s[1]) : [0, 0]; }
-    function dir(pid) { var s = pid.split('.'), p = byId[s[0]]; if (!p) return [0, 0]; var o = rotPt(GEO[p.type][s[1]], p.rot); return [Math.sign(o[0]), Math.abs(o[0]) >= Math.abs(o[1]) ? 0 : Math.sign(o[1])]; }
+    function dir(pid) { var s = pid.split('.'), p = byId[s[0]]; if (!p) return [0, 0]; var o = rotPt(geoOf(p)[s[1]], p.rot); return [Math.sign(o[0]), Math.abs(o[0]) >= Math.abs(o[1]) ? 0 : Math.sign(o[1])]; }
     function route(fa, fb) { // kurzer Stummel aus jedem Anschluss heraus, dazwischen rechtwinklig
       var a = pp(fa), b = pp(fb), da = dir(fa), db = dir(fb);
       if (da[1] !== 0) da[0] = 0; if (db[1] !== 0) db[0] = 0;
@@ -346,7 +396,7 @@
     if (self.showFlow) h.push('<g class="bflow" pointer-events="none"></g>');
     // Anschluesse
     L.parts.forEach(function (p) {
-      Object.keys(GEO[p.type]).forEach(function (pin) {
+      Object.keys(geoOf(p)).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = pinPos(p, pin), col = wcol(pid);
         var cls = 'pin' + (self.wireStart === pid ? ' active' : '') + (pinWireCount[pid] ? ' used' : '') + (pinWireCount[pid] > 1 ? ' junction' : '');
         h.push('<g data-pin="' + pid + '"><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (11 * hit).toFixed(1) + '"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');

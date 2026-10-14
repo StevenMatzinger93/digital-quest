@@ -70,7 +70,7 @@
   /* Freien Rasterplatz nahe (cx, cy) im Raum suchen, spiralfoermig */
   /* Halbe Abmessungen je Bauteiltyp [x, y] fuer die Platzsuche (unrotiert), je Ansicht */
   var HALF = {
-    schema: { _: [45, 35], battery: [30, 45], acsource: [30, 45], dec7: [45, 80], seg7: [45, 80], dff: [45, 45], jkff: [45, 45], tff: [45, 45], npn: [40, 45], pot: [45, 45] },
+    schema: { _: [45, 35], battery: [30, 45], acsource: [30, 45], dec7: [45, 80], seg7: [45, 80], dff: [45, 45], jkff: [45, 45], tff: [45, 45], rsff: [45, 45], jkms: [45, 45], npn: [40, 45], pot: [45, 45] },
     bench: { _: [65, 32], battery: [75, 56], acsource: [75, 56], dec7: [88, 90], seg7: [75, 88], dff: [75, 55], jkff: [75, 55], tff: [75, 55], npn: [65, 55], motor: [75, 55],
       lamp: [65, 35], pot: [65, 47], clock: [62, 40], logicin: [56, 39], logicled: [46, 35], ground: [30, 35], and: [65, 46], or: [65, 46], nand: [65, 46], nor: [65, 46], xor: [65, 46], xnor: [65, 46], not: [65, 46] }
   };

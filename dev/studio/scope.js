@@ -270,7 +270,7 @@
     var sc = active || S.openScope(); sc.addChannel({ kind: kind, id: p.id }); setActive(sc);
   };
   S.closeScopes = function () { S.scopes.slice().forEach(function (s) { s.close(); }); };
-  S.onLoad = (function (prev) { return function (o) { S.closeScopes(); if (prev) prev(o); (o.scopes || []).forEach(function (sc) { S.openScope(sc.channels || sc); }); }; })(S.onLoad);
+  S.onLoad = (function (prev) { return function (o) { S.closeScopes(); if (prev) prev(o); (o.scopes || []).forEach(function (sc) { var w = S.openScope(sc.channels || sc); if (sc.span) { w.spanMan = sc.span; var sel = w.el.querySelector('[data-a="span"]'); sel.value = String(sc.span); } }); }; })(S.onLoad);
   S.onReset = function () { S.scopes.forEach(function (sc) { sc.autoSpan = null; sc.cls = {}; if (sc.frozen) sc.setFrozen(false); sc.dirty(); }); };
   S.Scope = Scope;
 })(window);
