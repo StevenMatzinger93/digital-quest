@@ -24,7 +24,10 @@
     if (ver > VERSION) return { ok: false, error: 'Die Datei stammt aus einer neueren Version des Studios (Dateiformat ' + ver + ', dieses Studio kennt bis ' + VERSION + ').' };
     var layout = ver >= 2 ? o.layout : { parts: o.parts, wires: o.wires };   // Version 0 und 1: flach
     if (!layout || !Array.isArray(layout.parts) || !Array.isArray(layout.wires || [])) return { ok: false, error: 'Die Schaltung in der Datei ist unvollständig.' };
-    layout = { parts: layout.parts, wires: layout.wires || [] };
+    var keepKeys = { parts: layout.parts, wires: layout.wires || [] };
+    ['draw', 'drawHidden', 'sheet'].forEach(function (k) { if (layout[k] !== undefined) keepKeys[k] = layout[k]; }); // Zeichenelemente, Zeichenebene, Zeichnungsrahmen gehören zur Schaltung
+    if (keepKeys.draw !== undefined && !Array.isArray(keepKeys.draw)) return { ok: false, error: 'Die Zeichenelemente in der Datei sind unvollständig.' };
+    layout = keepKeys;
     var ids = {};
     for (var i = 0; i < layout.parts.length; i++) {
       var p = layout.parts[i]; if (!p || !E.PARTS[p.type]) return { ok: false, error: 'Unbekanntes Bauteil «' + (p && p.type) + '» in der Datei.' };
@@ -97,23 +100,37 @@
     '.wire{fill:none;stroke:#0b6e94;stroke-width:2.6;stroke-linejoin:round}.pin{fill:#fff;stroke:#5b6b73;stroke-width:1.5}.pin.used{fill:#0b6e94;stroke:#0b6e94}.pin.junction{fill:#0b6e94}.vlabel{fill:#0b6e94;font:11px monospace;paint-order:stroke;stroke:#fff;stroke-width:3px}' +
     '.burnt{stroke:#e2574c;stroke-width:3.5;fill:none}.lamp-on{fill:#22b573}.lamp-off{fill:#cdd9dc}.seg{fill:none;stroke:#d9e4e7;stroke-width:4;stroke-linecap:round}.seg.on{stroke:#e2574c}.forbid{fill:rgba(226,87,76,.12);stroke:#e2574c;stroke-width:3;stroke-dasharray:6 3}.forbidtxt{fill:#b23a30;font:700 11px monospace;text-anchor:middle}';
   var CSS_BW = '.sym{fill:none;stroke:#000;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}.sym.fillsym{fill:#000}.sym.thin{stroke-width:1.5}.sym.thick{stroke-width:4}.sym.thick2{stroke-width:7}.sym.lever{stroke:#000;stroke-width:3}.ledbody{fill:#fff!important;fill-opacity:1!important}' +
-    '.symtxt{fill:#000;font:700 16px monospace;text-anchor:middle}.symtxt.small{font-size:10px}.plus{fill:#000;font:700 16px monospace}.lbl{fill:#000;font:600 12px monospace;text-anchor:middle}.val{fill:#000;font:12px monospace;text-anchor:middle}' +
+    '.symtxt{fill:#000;font:700 16px monospace;text-anchor:middle}.symtxt.small{font-size:10px}.plus{fill:#000;font:700 16px monospace}.lbl{fill:#555;font:600 11px monospace;text-anchor:middle}.val{fill:#000;font:12px monospace;text-anchor:middle}' +
     '.wire{fill:none;stroke:#000!important;stroke-width:2.2;stroke-linejoin:round}.pin{fill:#fff!important;stroke:#000;stroke-width:1.5}.pin.used{fill:#000!important;stroke:#000}.pin.junction{fill:#000!important}.vlabel{fill:#000;font:11px monospace;paint-order:stroke;stroke:#fff;stroke-width:3px}' +
     '.burnt{stroke:#000;stroke-width:3.5;fill:none}.lamp-on{fill:#bbb}.lamp-off{fill:#fff;stroke:#000}.seg{fill:none;stroke:#ddd;stroke-width:4;stroke-linecap:round}.seg.on{stroke:#000}.forbid{fill:none;stroke:#000;stroke-width:3;stroke-dasharray:6 3}.forbidtxt{fill:#000;font:700 11px monospace;text-anchor:middle}circle[fill="url(#glowAmber)"],circle[filter]{display:none}';
   /* opts: {color: true|false, values: true|false (Messwerte = Spannungen an den Anschlüssen)}; gibt {svg, w, h} */
   S.exportSVG = function (opts) {
-    opts = opts || {}; var color = opts.color !== false, core = S.core, ed = S.ed;
+    opts = opts || {}; if (opts.frame && S.exportSheetSVG) return S.exportSheetSVG(opts); var color = opts.color !== false, core = S.core, ed = S.ed;
     var keep = { sel: core.sel, multi: S.multi, volt: ed.showVolt, logic: S.logicColors, ws: core.wireStart };
     core.sel = null; S.multi = []; core.wireStart = null; ed.showVolt = !!opts.values; S.logicColors = color;
+    var gridKeep = root.DQEditor.extra.grid; if (opts.grid) root.DQEditor.extra.grid = { mode: S.grid.mode === 'off' ? 'lines' : S.grid.mode, size: S.grid.size }; else root.DQEditor.extra.grid = { mode: 'off', size: S.grid.size }; // Gitter nur auf Wunsch
+    var drawKeep = core.layout.drawHidden; if (opts.draw === false) core.layout.drawHidden = true; // Zeichenelemente auf Wunsch weglassen
     S.redraw(); ed.render();
     var live = ed.svg, ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('xmlns', ns); svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
     var g = document.createElementNS(ns, 'g'); Array.prototype.slice.call(live.childNodes).forEach(function (n) { g.appendChild(n.cloneNode(true)); }); svg.appendChild(g);
-    core.sel = keep.sel; S.multi = keep.multi; core.wireStart = keep.ws; ed.showVolt = keep.volt; S.logicColors = keep.logic; S.redraw();
+    core.sel = keep.sel; S.multi = keep.multi; core.wireStart = keep.ws; ed.showVolt = keep.volt; S.logicColors = keep.logic; root.DQEditor.extra.grid = gridKeep; if (drawKeep) core.layout.drawHidden = drawKeep; else delete core.layout.drawHidden; S.redraw();
     // Gitter, Trefferflächen, Tooltips und Messspitzen entfernen
-    var drop = g.querySelectorAll('rect.hit, circle.pinhit, path.wirehit, title, g.probe, pattern');
+    var drop = g.querySelectorAll('rect.hit, circle.pinhit, path.wirehit, title, g.probe, .drhit, .drhandle, .drsel, g.sheetlayer, g.sheetmarks' + (opts.grid ? '' : ', pattern'));
     Array.prototype.forEach.call(drop, function (n) { n.parentNode && n.parentNode.removeChild(n); });
-    Array.prototype.forEach.call(g.querySelectorAll('rect[fill^="url(#grid)"]'), function (n) { n.remove(); });
+    if (!opts.grid) Array.prototype.forEach.call(g.querySelectorAll('rect[fill^="url(#grid)"]'), function (n) { n.remove(); });
+    if (opts.region) { // nur was im Inhaltsbereich des Rahmens liegt (Mittelpunkt innerhalb)
+      var rg = opts.region, inside = function (x, y) { return x >= rg.x && x <= rg.x + rg.w && y >= rg.y && y <= rg.y + rg.h; }, gone = {};
+      core.layout.parts.forEach(function (p) { if (!inside(p.x, p.y)) gone[p.id] = 1; });
+      Array.prototype.forEach.call(g.querySelectorAll('g[data-part]'), function (n) { if (gone[n.dataset.part]) n.remove(); });
+      Array.prototype.forEach.call(g.querySelectorAll('g[data-pin]'), function (n) { if (gone[n.dataset.pin.split('.')[0]]) n.remove(); });
+      Array.prototype.forEach.call(g.querySelectorAll('g[data-wire]'), function (n) { var w = core.layout.wires[+n.dataset.wire]; if (!w || gone[w.from.split('.')[0]] || gone[w.to.split('.')[0]]) n.remove(); });
+      Array.prototype.forEach.call(g.querySelectorAll('g[data-draw]'), function (n) { var e = S.drawGet && S.drawGet(n.dataset.draw); if (!e) return; var cx = e.kind === 'line' ? (e.x1 + e.x2) / 2 : e.kind === 'text' ? e.x + 20 : e.x + e.w / 2, cy = e.kind === 'line' ? (e.y1 + e.y2) / 2 : e.kind === 'text' ? e.y + 10 : e.y + e.h / 2; if (!inside(cx, cy)) n.remove(); });
+      Array.prototype.forEach.call(g.querySelectorAll('.refmark, .vlabel'), function (n) { n.remove(); });
+    }
+    if (!color) Array.prototype.forEach.call(g.querySelectorAll('[data-draw] [stroke], [data-draw] [fill], [data-draw] text'), function (n) { // Schwarzweiss: Farben der Zeichenelemente in Grautöne umrechnen
+      ['stroke', 'fill'].forEach(function (a) { var v = n.getAttribute(a); if (v && /^#[0-9a-f]{6}$/i.test(v)) { var r = parseInt(v.slice(1, 3), 16), g2 = parseInt(v.slice(3, 5), 16), b2 = parseInt(v.slice(5, 7), 16), l = 0.299 * r + 0.587 * g2 + 0.114 * b2; n.setAttribute(a, a === 'stroke' || n.tagName === 'text' || n.tagName === 'polygon' ? (l < 150 ? '#000' : l < 215 ? '#666' : '#bbb') : 'rgb(' + Math.round(l) + ',' + Math.round(l) + ',' + Math.round(l) + ')'); } });
+    });
     if (!opts.values) Array.prototype.forEach.call(g.querySelectorAll('.vlabel'), function (n) { n.remove(); });
     // Ausdehnung messen
     var host = document.createElement('div'); host.style.cssText = 'position:fixed;left:-99999px;top:0;visibility:hidden'; var probe = svg.cloneNode(true); host.appendChild(probe); document.body.appendChild(host);
@@ -135,25 +152,17 @@
   S.exportDialog = function () {
     S.openModal('<h2>Exportieren</h2><div class="field"><label>Format</label><select id="exF"><option value="svg">SVG (für Word, verlustfrei)</option><option value="png">PNG (2-fache Auflösung)</option></select></div>' +
       '<div class="field"><label>Farbe</label><select id="exC"><option value="1">in Farbe</option><option value="0">Schwarzweiss</option></select></div>' +
+      '<div class="field"><label for="exG">Gitternetz</label><select id="exG"><option value="0">ohne Gitternetz</option><option value="1">mit Gitternetz (wie angezeigt)</option></select></div>' +
+      '<div class="field"><label for="exR">Zeichnungsrahmen</label><select id="exR"><option value="0">ohne Rahmen</option><option value="1">mit Rahmen und Schriftfeld (Blatt 1)</option></select></div>' +
       '<div class="field"><label>Messwerte</label><select id="exV"><option value="0">ohne Messwerte</option><option value="1">mit Spannungen an den Anschlüssen</option></select></div>' +
       '<p class="hint">Die Bauteilwerte (1k, 100n …) stehen immer im Bild. Der Export zeigt den Stand der Simulation im Moment des Klicks.</p><p><button class="tb run" id="exGo">Exportieren</button> <button class="tb" id="mClose">Abbrechen</button></p>');
     $('#exGo').onclick = function () {
-      var o = { color: $('#exC').value === '1', values: $('#exV').value === '1' }, f = $('#exF').value, tag = (o.color ? '' : '_sw') + (o.values ? '_mw' : '');
+      var o = { color: $('#exC').value === '1', values: $('#exV').value === '1', grid: $('#exG').value === '1', frame: $('#exR').value === '1' }, f = $('#exF').value, tag = (o.color ? '' : '_sw') + (o.values ? '_mw' : '') + (o.grid ? '_gitter' : '') + (o.frame ? '_rahmen' : '');
       if (f === 'svg') download(fileBase() + tag + '.svg', new Blob([S.exportSVG(o).svg], { type: 'image/svg+xml' }));
       else S.exportPNG(o, function (b) { if (b) download(fileBase() + tag + '.png', b); });
       S.closeModal();
     };
   };
-
-  /* ---------- Drucken (A4, Schwarzweiss, Titelfeld) ---------- */
-  S.printPrepare = function () {
-    var r = S.exportSVG({ color: false, values: false }), area = $('#printArea') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'printArea' }));
-    var d = new Date(), date = d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    area.innerHTML = '<div class="pr-frame"><div class="pr-fig">' + r.svg.replace(/^<\?xml[^>]*>\s*/, '').replace(/ width="\d+" height="\d+"/, ' class="pr-svg"') + '</div>' +
-      '<table class="pr-title"><tr><td class="pr-l">Schaltung</td><td class="pr-v">' + esc(S.name) + '</td><td class="pr-l">Datum</td><td class="pr-v">' + date + '</td><td class="pr-l">Name</td><td class="pr-v">&nbsp;</td></tr></table></div>';
-    return area;
-  };
-  S.print = function () { S.printPrepare(); root.print(); };
 
   /* ---------- Einbau: Menü, Ziehen und Ablegen ---------- */
   S.initFns.push(function () {

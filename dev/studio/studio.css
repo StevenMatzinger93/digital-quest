@@ -72,8 +72,8 @@ button { cursor: pointer; }
 .pempty { color: var(--grau); font-size: 13px; padding: 0 12px 10px; }
 .symicon { --sym: var(--dunkel); }
 
-.canvas { position: relative; min-width: 0; min-height: 0; background: var(--karte); }
-#board { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; background: var(--karte); }
+.canvas { position: relative; min-width: 0; min-height: 0; background: var(--karte); display: flex; flex-direction: column; }
+#board { width: 100%; flex: 1 1 0; min-height: 0; display: block; touch-action: none; user-select: none; background: var(--karte); }
 
 /* ---- Schaltplan-Symbole (editor.js) auf weissem Grund ---- */
 .griddot { fill: #c9dde1; }
@@ -200,17 +200,6 @@ button { cursor: pointer; }
 .slrow { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; margin: 0 0 8px; font-size: 13px; } .slrow .tin { width: 100%; min-height: 36px; } .slcfg input[type=checkbox] { width: 20px; height: 20px; vertical-align: middle; }
 
 #printArea { display: none; }
-@media print {
-  @page { size: A4 landscape; margin: 12mm; }
-  html, body { background: #fff !important; height: auto !important; overflow: visible !important; display: block !important; }
-  body > *:not(#printArea) { display: none !important; }
-  #printArea { display: block; }
-  .pr-frame { border: 1.5px solid #000; padding: 6mm; height: 181mm; display: flex; flex-direction: column; box-sizing: border-box; }
-  .pr-fig { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
-  .pr-svg { width: 100%; height: 150mm; }
-  .pr-title { width: 100%; border-collapse: collapse; margin-top: 4mm; }
-  .pr-title td { border: 1px solid #000; padding: 2mm 3mm; font: 12pt sans-serif; color: #000; }
-  .pr-l { background: #eee; width: 1%; white-space: nowrap; } .pr-v { min-width: 40mm; }
 }
 
 .ov { text-decoration: overline; padding: 0 1px; text-decoration-thickness: 1.5px; }
@@ -244,3 +233,56 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
 .sc-hint b { display: block; margin-bottom: 4px; } .sc-hint .tl-btn { margin-top: 8px; }
 .fwin .fb { position: relative; }
 .tl-empty b { display: block; margin-bottom: 2px; }
+
+/* Beispiele: Menü mit Gruppen, Hinweis über der Zeichenfläche */
+.menu .drop { max-height: calc(100vh - 60px); overflow-y: auto; }
+.drop .ex-head { display: block; padding: 8px 14px 2px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--blau-text, #0b6e94); border-top: 1px solid var(--rand); margin-top: 4px; } .drop .ex-head:first-child { border-top: 0; margin-top: 0; }
+.exbanner { position: relative; flex: none; background: #f4fafc; border-bottom: 1px solid var(--rand); border-left: 4px solid var(--hellblau); padding: 6px 38px 6px 12px; font-size: 14px; line-height: 1.35; }
+.exbanner b { display: block; } .exbanner .exbody { display: block; } .exbanner .exdemo { display: block; margin-top: 4px; color: var(--grau); font-size: 13px; }
+.exbanner button { position: absolute; right: 2px; top: 2px; background: none; border: 0; min-width: 32px; min-height: 32px; font-size: 18px; color: var(--grau); }
+body.beamer .exbanner { font-size: 20px; }
+#menu-bsp .drop { min-width: 420px; } #menu-bsp .drop button { min-height: 36px; white-space: nowrap; }
+.gridline { stroke: #d3e3e7; stroke-width: .7; vector-effect: non-scaling-stroke; }
+
+/* Zeichenelemente (Paket 6) */
+.dr { cursor: move; } .drsel { fill: none; stroke: var(--hellblau); stroke-width: 1.5; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; }
+.drhandle { fill: #fff; stroke: var(--hellblau); stroke-width: 2.5; cursor: nwse-resize; vector-effect: non-scaling-stroke; } .drhandle:hover { fill: var(--hellblau); }
+.swatches { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin: 2px 0 8px; }
+.sw { width: 30px; height: 30px; border-radius: 6px; border: 2px solid var(--rand); cursor: pointer; padding: 0; } .sw.on { border-color: var(--dunkel); box-shadow: 0 0 0 2px #fff inset; } .sw.none { background: repeating-linear-gradient(45deg, #fff, #fff 5px, #e2eef0 5px, #e2eef0 10px); color: var(--grau); font-size: 15px; }
+.swfree input { width: 34px; height: 30px; padding: 0; border: 2px solid var(--rand); border-radius: 6px; background: none; cursor: pointer; }
+.draworder { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } .draworder .tb { min-height: 38px; font-size: 13px; padding: 0 6px; }
+.field textarea { width: 100%; font: inherit; border: 1px solid var(--rand); border-radius: 6px; padding: 6px 8px; resize: vertical; min-height: 70px; }
+body.beamer .dr text { font-size: inherit; }
+
+/* Zeichnungsrahmen auf der Zeichenfläche (Paket 5) */
+.sheetout { fill: rgba(15,45,58,.07); } .sheetedge { stroke: #b8cfd6; stroke-width: 1.2; stroke-dasharray: 8 6; vector-effect: non-scaling-stroke; }
+.sheethit { cursor: move; } .sheetlbl { fill: #7d8d94; font: 11px var(--font-ui); }
+.outmark { fill: rgba(217,72,15,.08); stroke: #d9480f; stroke-width: 1.8; stroke-dasharray: 6 4; } .outtxt { fill: #d9480f; font: 700 11px var(--font-mono); text-anchor: middle; }
+
+/* Druckdialog (Anhang A.1) */
+.modal.wide { width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; }
+.pdlg { font-size: 14px; } .pdh { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--rand); margin-bottom: 8px; } .pdh h2 { margin: 0 0 6px; } .pdfile { color: var(--grau); font-family: var(--font-mono); font-size: 13px; }
+.pds { border-bottom: 1px solid var(--rand); padding: 8px 0 10px; } .pds h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--grau); }
+.segbtns { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; } .seg { flex: 1; min-width: 90px; min-height: 42px; background: var(--bg); border: 2px solid var(--rand); border-radius: 8px; padding: 0 10px; } .seg.on { border-color: var(--dunkel); background: var(--dunkel); color: #fff; font-weight: 600; }
+.chk { display: block; padding: 3px 0; } .chk input { width: 20px; height: 20px; vertical-align: -4px; margin-right: 6px; } .chk.off { color: #8a9aa1; } .chk small { display: block; margin-left: 28px; font-size: 12px; color: #8a9aa1; }
+.pdrow { display: flex; gap: 12px; padding: 8px 10px; border: 1px solid var(--rand); border-radius: 8px; margin-bottom: 6px; } .pdrow.on { background: #f1f8fa; border-color: var(--hellblau); } .pdn { width: 28px; height: 28px; border-radius: 50%; background: var(--dunkel); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex: none; } .pdrow small { display: block; color: var(--grau); }
+.pdinfo { color: var(--grau); font-size: 13px; margin: 4px 0 0; }
+.pdfoot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-top: 10px; position: sticky; bottom: 0; background: var(--karte); } .pdbtns { display: flex; gap: 6px; flex-wrap: wrap; }
+.pdprev { background: #e6edf0; padding: 10px; margin-top: 8px; display: flex; flex-direction: column; align-items: center; gap: 10px; max-height: 50vh; overflow: auto; } .pvwrap { box-shadow: 0 2px 8px rgba(0,0,0,.25); background: #fff; flex: none; overflow: hidden; } .pvpg { transform-origin: 0 0; }
+
+/* Seiten (Vorschau und Druck): feste Grösse in Bildpunkten, 96 dpi */
+.pg { position: relative; background: #fff; color: #000; overflow: hidden; font-family: 'Noto Sans', 'Segoe UI', Arial, sans-serif; box-sizing: border-box; page-break-after: always; break-after: page; }
+.pg:last-child { page-break-after: auto; break-after: auto; }
+.pgframe { position: absolute; left: 0; top: 0; } .pgc { position: absolute; display: flex; flex-direction: column; overflow: hidden; }
+.pgh { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 10px; min-height: 28px; } .pgh b { font-size: 19px; } .pgh span { font: 14px 'DejaVu Sans Mono', Consolas, monospace; text-align: right; }
+.pgno { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; font-size: 11px; color: #555; }
+.fig { display: flex; align-items: center; justify-content: center; } .figimg { display: block; } .para { margin: 10px 0 0; font-size: 13px; line-height: 19px; text-align: left; }
+.hl { font-size: 20px; margin: 0 0 12px; } .hl3 { font-size: 14px; margin: 6px 0 6px; } .shot { display: block; border: 1px solid #999; margin-bottom: 6px; }
+.side { display: flex; gap: 32px; align-items: flex-start; margin-bottom: 10px; } .sideL { width: 300px; flex: none; } .sideR { flex: 1; min-width: 0; } .kvn { font-weight: 700; margin: 4px 0 0 4px; }
+.tt { border-collapse: collapse; width: 100%; font: 14px 'DejaVu Sans Mono', Consolas, monospace; } .tt th, .tt td { border: 1px solid #000; padding: 0 6px; height: 24px; text-align: center; } .tt th { background: #ddd; font-weight: 700; } .tt tr.one td { background: #efefef; } .tt td.res.b { font-weight: 700; } .tt.bom td.l { text-align: left; font-family: inherit; } .tt.bom th { font-family: inherit; }
+.exs { margin: 4px 0 8px; } .ex { display: flex; align-items: baseline; min-height: 32px; padding: 4px 0; } .exl { width: 180px; flex: none; font-size: 13px; color: #444; } .exr { font: 15px 'DejaVu Sans Mono', Consolas, monospace; flex: 1; border-bottom: 1px dotted #aaa; min-height: 22px; } .ex.last { border-top: 1px solid #000; margin-top: 4px; } .ex.last .exr { font-weight: 700; }
+.law { font-size: 13px; line-height: 19px; margin: 6px 0 0; } .ov { text-decoration: overline; }
+@media print {
+  body > *:not(#printArea) { display: none !important; } body { display: block !important; overflow: visible !important; height: auto !important; }
+  #printArea { display: block !important; } .pg { margin: 0; box-shadow: none; }
+}

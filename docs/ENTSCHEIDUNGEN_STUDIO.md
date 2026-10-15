@@ -163,3 +163,35 @@ Benannt wie im Portal («Beamer»); der **Vorführ-Modus** des Spiels ist etwas 
 | Störungen: Leitung unterbrechen, falscher Wert, vertauschte Anschlüsse (zwei Anschlüsse eines Bauteils tauschen ihre Leitungen); Symptom wird aus dem Vergleich beider Schaltungen berechnet | in der Aufgabendatei steht die Störung nirgends |
 | Eingabe der verborgenen Werte im Aufgabenfenster, Toleranz 5 %; während der Aufgabe sind Wertfeld, Beschriftung und Stückliste maskiert; Speichern schreibt wieder eine Aufgabendatei (mit Antworten) | sonst verriete jedes Speichern die Werte |
 | «Zur Prüfung durch Steven angemeldet» | der Arbeitsablauf hängt davon ab, wie er unterrichtet |
+
+
+## Auftrag «Freier bauen und zeichnen», 15.10.2026
+
+| Entscheidung | Warum |
+|---|---|
+| Knotenpunkt ist ein eigenes Bauteil `node` (Präfix K, ein Anschluss `p`, nur im Studio) und kein Zusatzfeld an Leitungen | Die Netzliste, Rückgängig, die Dateien, das Verschieben und die Stückliste-Ausnahme gehen dadurch ohne Sonderfall; eine Leitung ist weiter nur «Anschluss – Anschluss» |
+| Leitung auf Leitung: Klick bei einer Leitung im Entstehen, Wegziehen von einer Leitung, Alt + Klick, Rechtsklick und Bauteil aus der Leiste | Der Auftrag nennt «beginnen oder enden» und «von Hand setzen»; Wegziehen geht auf Touch ohne Tastatur. Das einfache Anklicken einer Leitung bleibt «auswählen» (zum Löschen) |
+| Der Punkt ist 3,6 Einheiten gross (Durchmesser 7,2 gegen Leitungsbreite 2,6, im Beamer-Modus 13) | Der Auftrag sagt «etwa das Doppelte der Leitungsbreite»; bei genau 5,2 war er beim Auszoomen kaum zu sehen |
+| Das Umsetzen einer Leitung auf einen Knoten ist ein Rückgängig-Schritt (Leitung beenden), «Knoten setzen und weiterziehen» zwei (Knoten, dann Leitung) | Jede Handlung des Auftrags soll sich einzeln zurücknehmen lassen |
+| Rechtsklick öffnet ein Kontextmenü mit allen drei Anzeigen; Touch: langes Drücken | Das ist der Weg ohne Werkzeugwechsel, den Steven suchte |
+| «Alle digitalen Signale aufnehmen» nimmt Takt, Logikanzeigen, Flipflop-Ausgänge Q und Zählerausgänge auf, **jeden Knoten einmal**; hängt eine Lampe an einem Zählerausgang, steht die Lampe da | Bei Stevens Zähler mit vier Lampen soll es vier Zeilen geben, nicht acht; Versorgungsleitungen gibt es als eigene Signale nicht |
+| Überlappend / Untereinander: je Oszilloskop-Fenster und im Zeitverlauf; Vorauswahl nach dem ersten Signal, Handwahl bleibt | wie im Auftrag; die Wahl wird nicht in der Datei gespeichert |
+| Die Bauteilleiste hat jetzt dieselben Gruppen wie das Beispiele-Menü: Logik, Flip-Flops, Zähler, Anzeigen, Analog, Verbindung (Anwendungen gibt es nur als Beispiele). Taktgeber steht bei den Anzeigen, Masse bei Analog | «benannt und geordnet wie die Bauteilleiste, damit beides zusammenpasst» |
+| Vorführung in Beispielen: Pegelschalter, Schalter und Regler schalten reihum von selbst, bis jemand etwas anfasst | Der Auftrag verlangt «läuft sofort» und «nach zwei Sekunden ein anderer Zustand» auch für Gatter, deren Eingänge sonst stillstehen |
+| Lauflicht = Johnson-Zähler mit vier Lampen (nicht Zähler mit Dekoder) | Ein Dekoder mit vier UND-Gattern und vier Sammelleitungen wäre ein eigenes Beispiel über Knotenpunkte; der Johnson-Zähler zeigt das Wandern der Leuchtreihe sauber. Auf Wunsch nachzubauen |
+| Gitter: Standard «Punkte» (wie bisher), nicht «aus»; Rasterweiten 10, 20, 40, 100 | Der Auftrag will «aus, Punkte, Linien» und den Fangraster als Standard; Punkte zeigte das Studio schon vorher |
+| Leitungsführung: Leitungen verschiedener Netze werden im Studio seitlich versetzt, wenn sie übereinanderlägen | siehe `FORTSCHRITT_STUDIO.md` |
+| Reihenfolge der Pakete: 6 vor 5 | Der Auftrag sagt selbst, dass Paket 5 auf Paket 6 aufbaut (Schriftfeld nutzt die Textdarstellung) und dass Paket 3 den Satz als Textelement aus Paket 6 verlangt |
+| Zeichenelemente liegen in `layout.draw` (Reihenfolge = vorne/hinten) und `layout.drawHidden`, nicht als Bauteile | Sie dürfen nie in Netzliste, Rechnung, Stückliste oder «Alles auswählen» auftauchen; Rückgängig, Datei und Export laufen trotzdem über das Layout |
+| Rechteck und Ellipse reagieren nur am Rand (Füllung lässt Klicks durch) | Durchscheinende Rahmen um Bauteile sollen die Bauteile nicht sperren |
+| Der erklärende Satz eines Beispiels steht als Textelement im Schaltplan; die Hinweisleiste oben zeigt nur Namen und den Hinweis zur Vorführung | So kommt er auch in Export und Druck mit; ein doppelter Satz auf dem Bildschirm wäre nur Lärm |
+| Zeichenelemente: Schwarzweiss-Export rechnet Farben nach Helligkeit in Schwarz, Dunkelgrau oder Hellgrau um | Der Druck ist schwarzweiss, farbige Hervorhebungen sollen trotzdem unterscheidbar bleiben |
+| Der Zeichnungsrahmen steht im Massstab `sheet.scale` (1; 1,25 … 2) auf der Zeichenfläche; «Um die Schaltung legen» wählt den kleinsten, der passt | Auf A4 hoch bleiben nur 678 × 895 Einheiten Inhalt, schon kleine Schaltungen sind breiter; gedruckt wird entsprechend verkleinert, nie vergrössert |
+| Was ausserhalb des Inhaltsbereichs liegt (Mittelpunkt des Bauteils bzw. Elements), kommt nicht in den Druck und ist auf dem Bildschirm markiert | wörtlich nach Auftrag |
+| «PDF erzeugen» ruft den Druckdialog des Browsers auf (Ziel «Als PDF speichern»), kein eigener PDF-Schreiber | Offline, ohne Bibliothek, vektoriell, richtige Schriften; ein eigener PDF-Schreiber wäre mehrere hundert Zeilen ohne Gewinn. Falls Steven eine Schaltfläche will, die ohne Druckdialog eine Datei speichert, ist das ein eigener Auftrag |
+| Seiten sind HTML mit festen Massen in Bildpunkten (96 dpi); die Schaltung auf Seite 1 ist ein SVG-Bild; Oszilloskop und Zeitverlauf kommen als Bild des gerade gezeichneten Bildschirmfensters | «so wie sie gerade stehen» |
+| Die Tabelle läuft e1 (höchstes Bit) bis en (niedrigstes Bit) und zählt hoch; die Zeilen mit Ergebnis 1 sind grau, der Ergebniswert fett | wie im Entwurf und im Beispiel `A = e1 ē2 e3 v e1 e2 ē3 v e1 e2 e3` |
+| KV-Diagramm: Zeilen = erste Eingänge, Spalten = übrige, Gray-Code; Gruppen nur durch Strichart unterschieden; Bezeichnungen unter dem Raster | Schwarzweiss-Druck; die Fläche neben der Tabelle reicht nicht für Bezeichnungen rechts |
+| «Ausgeklammert» nimmt das häufigste Literal der Minimalform vor die Klammer, rekursiv; der Absatz nennt es «konjunktives Distributivgesetz» und zählt die gesparten Gatter | wie im Entwurf; die Gatterzählung zählt UND und ODER (NICHT-Glieder bleiben gleich) |
+| Tabelle bis 5 Eingänge (32 Zeilen), KV bis 4; bei mehr ist der Punkt ausgegraut | passt sonst nicht auf ein Blatt; Stückliste läuft über Seiten, Tabelle nicht |
+| Im Druckdialog ändert das Wählen eines Blattes auch den Rahmen auf der Zeichenfläche | Rahmen und Druckbereich sind dasselbe |

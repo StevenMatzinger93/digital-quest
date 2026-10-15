@@ -135,6 +135,7 @@
   Circuit.prototype.removeSelected = function () {
     var s = this.sel; if (!s || this.opts.readonly) return false;
     if (s.indexOf('w:') === 0) { this.layout.wires.splice(+s.slice(2), 1); }
+    else if (s.indexOf('d:') === 0) { this.layout.draw = (this.layout.draw || []).filter(function (e) { return e.id !== s.slice(2); }); } // Zeichenelement (Studio)
     else if ((this.part(s) || {}).type === 'node' && this._mergeNode(s)) { /* zusammengefuehrt */ }
     else {
       if (this.locked[s]) { if (this.opts.onMessage) this.opts.onMessage('Dieses Bauteil gehört zur Aufgabe und bleibt.'); return false; }

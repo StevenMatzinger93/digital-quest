@@ -22,20 +22,6 @@
     return { layout: { parts: parts, wires: wires },
       timing: { rows: [{ kind: 'dig', a: 'CLK1.out' }], buses: [{ label: 'Einer', bits: [0, 1, 2, 3].map(function (k) { return { kind: 'dig', a: 'Z1.Q' + k }; }) }, { label: 'Zehner', bits: [0, 1, 2].map(function (k) { return { kind: 'dig', a: 'Z2.Q' + k }; }) }] } };
   }
-  function rcGlied() {
-    return { layout: { parts: [part('G1', 'acsource', 240, 300, { freq: 50, shape: 'square', ri: 0.05 }, 5), part('R1', 'resistor', 520, 200, null, 1000), part('C1', 'capacitor', 800, 300, null, 1e-6), part('GND1', 'ground', 520, 440)],
-      wires: [W('G1.p', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'G1.n'), W('G1.n', 'GND1.g')].map(function (w) { return w; }) },
-      scopes: [{ channels: [{ kind: 'node', a: 'R1.b' }, { kind: 'node', a: 'G1.p' }] }] };
-  }
-  function schwingkreis() {
-    return { layout: { parts: [part('B1', 'battery', 240, 300, { ri: 0.05 }, 5), part('L1', 'inductor', 520, 200, null, 10e-3), part('C1', 'capacitor', 800, 300, null, 10e-6), part('GND1', 'ground', 520, 440)],
-      wires: [W('B1.p', 'L1.a'), W('L1.b', 'C1.a'), W('C1.b', 'B1.n'), W('B1.n', 'GND1.g')] },
-      scopes: [{ channels: [{ kind: 'node', a: 'C1.a' }], span: 0.01 }] };
-  }
-  function teiler() {
-    return { layout: { parts: [part('B1', 'battery', 240, 300, null, 9), part('R1', 'resistor', 520, 200, null, 1000), part('R2', 'resistor', 800, 300, null, 2000), part('GND1', 'ground', 520, 440)],
-      wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'B1.n'), W('B1.n', 'GND1.g')] }, run: false };
-  }
   /* Asynchroner 4-Bit-Zähler aus Flipflops (aufgeklappt) bei 1 MHz: im Zeitverlauf kommen die Flanken der höheren Stufen später */
   function asyncZaehler() {
     var C = root.DQStudioCounters, ex = C.expansion('ctr_async', { bits: 4 }), parts = [part('CLK1', 'clock', 200, 300, { freq: 1e6 }), part('GND1', 'ground', 200, 460)], wires = [];
@@ -45,38 +31,89 @@
     wires.push(W('CLK1.out', ren(ex.map.C)));
     return { layout: { parts: parts, wires: wires }, timing: { auto: true } };
   }
-  function logik() {
-    return { layout: { parts: [part('E1', 'logicin', 240, 260), part('E2', 'logicin', 240, 360), part('U1', 'xor', 520, 310), part('U2', 'and', 520, 460), part('L1', 'logicled', 800, 310), part('L2', 'logicled', 800, 460), part('GND1', 'ground', 240, 520)],
-      wires: [W('E1.out', 'U1.in1'), W('E2.out', 'U1.in2'), W('E1.out', 'U2.in1'), W('E2.out', 'U2.in2'), W('U1.out', 'L1.in'), W('U2.out', 'L2.in')] }, run: false };
-  }
-
   function tiefpass() {
     return { layout: { parts: [part('G1', 'acsource', 240, 300, { freq: 1000, shape: 'sine', ri: 0.05 }, 1), part('R1', 'resistor', 520, 200, null, 1000), part('C1', 'capacitor', 800, 300, null, 1e-7), part('GND1', 'ground', 520, 440)],
       wires: [W('G1.p', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'G1.n'), W('G1.n', 'GND1.g')] },
-      bode: [{ channels: [{ a: 'C1.a' }] }], run: false };
+      bode: [{ channels: [{ a: 'C1.a' }] }] };
   }
   function rlc() {
     return { layout: { parts: [part('G1', 'acsource', 240, 300, { freq: 500, shape: 'sine', ri: 0.05 }, 1), part('L1', 'inductor', 480, 200, null, 10e-3), part('C1', 'capacitor', 720, 200, null, 10e-6), part('R1', 'resistor', 900, 300, null, 10), part('GND1', 'ground', 520, 440)],
       wires: [W('G1.p', 'L1.a'), W('L1.b', 'C1.a'), W('C1.b', 'R1.a'), W('R1.b', 'G1.n'), W('G1.n', 'GND1.g')] },
-      bode: [{ channels: [{ a: 'R1.a' }] }], run: false };
+      bode: [{ channels: [{ a: 'R1.a' }] }] };
   }
-  var LIST = [
-    { id: 'uhr', name: 'Digitaluhr (Sekunden 00 – 59)', text: 'Taktgeber 1 Hz, Einer (0–9) und Zehner (0–5), BCD-Dekoder, zwei Siebensegmentanzeigen.', build: digitaluhr },
-    { id: 'zaehler', name: 'Asynchroner Zähler mit Zeitverlauf', text: '4 Bit aus Flipflops bei 1 MHz: Die höheren Stufen schalten mit Laufzeit später.', build: asyncZaehler },
-    { id: 'rc', name: 'RC-Glied an Rechteckquelle', text: 'Lade- und Entladekurve im Oszilloskop; «τ bestimmen» liefert R·C = 1 ms.', build: rcGlied },
-    { id: 'tiefpass', name: 'RC-Tiefpass: Bode-Diagramm', text: '−3 dB bei fg = 1/(2π·R·C) = 1,59 kHz, −20 dB je Dekade, Phase −45° bei fg.', build: tiefpass },
-    { id: 'rlc', name: 'Reihenschwingkreis: Resonanzkurve', text: 'Resonanz bei 503 Hz, Güte Q ≈ 3,1 (Bandpass über R).', build: rlc },
-    { id: 'lc', name: 'Schwingkreis aus L und C', text: 'Sprungantwort einer Reihenschaltung: f = 1 / (2π·√(L·C)) = 503 Hz.', build: schwingkreis },
-    { id: 'teiler', name: 'Spannungsteiler', text: '9 V an 1 kΩ und 2 kΩ: Bauteil anklicken zeigt Spannung und Strom.', build: teiler },
-    { id: 'logik', name: 'Halbaddierer (XOR und UND)', text: 'Pegelschalter links anklicken: Summe (XOR) und Übertrag (UND).', build: logik }
+  /* Gruppen wie die Bauteilleiste (studio.js PALETTE): Logik · Flip-Flops · Zähler · Anzeigen · Analog · Anwendungen */
+  var CATS = ['Logik', 'Flip-Flops', 'Zähler', 'Anzeigen', 'Analog', 'Anwendungen'];
+  var OLD = [
+    { cat: 'Zähler', id: 'zaehler', name: 'Asynchroner Zähler aus Flipflops (1 MHz)', text: '4 Bit aus Flipflops bei 1 MHz: Die höheren Stufen schalten mit Laufzeit später.', build: asyncZaehler },
+    { cat: 'Analog', id: 'tiefpass', name: 'RC-Tiefpass: Bode-Diagramm', text: '−3 dB bei fg = 1/(2π·R·C) = 1,59 kHz, −20 dB je Dekade, Phase −45° bei fg.', build: tiefpass },
+    { cat: 'Analog', id: 'rlc', name: 'Reihenschwingkreis: Resonanzkurve', text: 'Resonanz bei 503 Hz, Güte Q ≈ 3,1 (Bandpass über R).', build: rlc },
+    { cat: 'Anwendungen', id: 'uhr', name: 'Digitaluhr (Sekunden 00 – 59)', text: 'Taktgeber 1 Hz, Einer (0–9) und Zehner (0–5), BCD-Dekoder, zwei Siebensegmentanzeigen.', build: digitaluhr }
   ];
-  S.examples = LIST;
+  var LIST = [];
+  CATS.forEach(function (c) { LIST = LIST.concat((S.exampleDefs || []).concat(OLD).filter(function (e) { return e.cat === c; })); });
+  S.examples = LIST; S.exampleCats = CATS;
+
+  /* ---------- Vorführung: Eingänge laufen reihum durch, bis jemand selbst etwas anfasst ---------- */
+  var demo = null;
+  function applyState(st) {
+    var core = S.core;
+    Object.keys(st).forEach(function (k) {
+      var v = st[k], a = k.split('.'), p = core.part(a[0]); if (!p) return; p.props = p.props || {};
+      if (typeof v === 'boolean') p.props.closed = v; else p.props[a[1] || 'value'] = v;
+    });
+    core.changed('demo');
+  }
+  S.stopDemo = function () { if (demo) { clearInterval(demo.timer); demo = null; } var b = document.getElementById('exDemo'); if (b) b.hidden = true; };
+  S.startDemo = function (d) {
+    S.stopDemo(); if (!d || !d.seq || !d.seq.length) return;
+    demo = { i: 0, timer: setInterval(function () { demo.i = (demo.i + 1) % d.seq.length; applyState(d.seq[demo.i]); }, d.every * 1000), cfg: d };
+    applyState(d.seq[0]);
+    var b = document.getElementById('exDemo'); if (b) b.hidden = false;
+  };
+  S.demoRunning = function () { return !!demo; };
+
+  /* ---------- Beispiel laden ---------- */
+  /* Der erklärende Satz steht als Textelement im Schaltplan (Zeichenebene), über der Schaltung */
+  function wrap(t, n) { var out = [], line = ''; t.split(' ').forEach(function (w) { if (line && (line + ' ' + w).length > n) { out.push(line); line = w; } else line = line ? line + ' ' + w : w; }); if (line) out.push(line); return out.join('\n'); }
+  function addNote(layout, text) {
+    if (!text || (layout.draw && layout.draw.length)) return;
+    var xs = layout.parts.map(function (p) { return p.x; }), ys = layout.parts.map(function (p) { return p.y; }), lines = wrap(text, 66).split('\n').length;
+    layout.draw = [{ id: 'z1', kind: 'text', x: Math.max(20, Math.min.apply(null, xs) - 60), y: Math.max(20, Math.min.apply(null, ys) - 80 - lines * 20), text: wrap(text, 66), size: 16, color: '#5b6b73', bold: false }];
+  }
   S.loadExample = function (id) {
     var ex = LIST.filter(function (e) { return e.id === id; })[0]; if (!ex) return false;
-    var b = ex.build(); S.loadLayout(b.layout, { scopes: b.scopes, timing: b.timing, bode: b.bode, run: b.run }); return true;
+    var b = ex.build(); addNote(b.layout, ex.text);
+    S.loadLayout(b.layout, { scopes: b.scopes, timing: b.timing, bode: b.bode, run: b.run, example: ex.id });
+    S.name = ex.name; if (S.updateTitle) S.updateTitle();
+    showBanner(ex); if (ex.demo) S.startDemo(ex.demo);
+    return true;
   };
+  function showBanner(ex) {
+    var el = document.getElementById('exBanner'); if (!el) return;
+    el.querySelector('b').textContent = ex.name; el.querySelector('.exbody').textContent = 'Die Erklärung steht über der Schaltung.'; el.hidden = false;
+    if (S.ed) requestAnimationFrame(function () { S.ed.fit(); });
+  }
   S.initExamples = function () {
-    S.setMenu('bsp', LIST.map(function (e) { return { label: e.name, act: function () { S.loadExample(e.id); } }; }));
+    var items = [];
+    CATS.forEach(function (c) {
+      var list = LIST.filter(function (e) { return e.cat === c; }); if (!list.length) return;
+      items.push({ head: c });
+      list.forEach(function (e) { items.push({ label: e.name, act: function () { S.loadExample(e.id); } }); });
+    });
+    S.setMenu('bsp', items);
+    var cv = document.getElementById('canvasWrap');
+    if (cv && !document.getElementById('exBanner')) {
+      var el = document.createElement('div'); el.id = 'exBanner'; el.className = 'exbanner'; el.hidden = true;
+      el.innerHTML = '<b></b><span class="exbody"></span><span class="exdemo" id="exDemo" hidden>Die Eingänge schalten von selbst durch – ein Klick auf einen Schalter übernimmt.</span><button aria-label="Hinweis schliessen" title="Hinweis schliessen">×</button>';
+      cv.insertBefore(el, cv.firstChild); el.querySelector('button').addEventListener('click', function () { el.hidden = true; if (S.ed) S.ed.fit(); });
+    }
   };
+  /* Fenster eines Beispiels (Oszilloskop, Bode) an den rechten Rand legen und die Schaltung links davon einpassen, damit nichts verdeckt wird */
+  function placeWindows() {
+    var wins = (S.scopes || []).concat(S.bodes || []), inset = 0;
+    wins.forEach(function (w, k) { var W = w.el.offsetWidth; w.el.style.left = Math.max(8, root.innerWidth - W - 8 - 26 * k) + 'px'; w.el.style.top = (120 + 28 * k) + 'px'; inset = Math.max(inset, W - 300 + 16 + 26 * k); });
+    if (S.ed) S.ed.insetRight = root.innerWidth > 900 ? inset : 0;
+  }
+  S.onLoad = (function (prev) { return function (o) { if (prev) prev(o); S.stopDemo(); if (o && o.example) placeWindows(); else if (S.ed) S.ed.insetRight = 0; if (!o || !o.example) { var el = document.getElementById('exBanner'); if (el && !el.hidden) { el.hidden = true; if (S.ed) requestAnimationFrame(function () { S.ed.fit(); }); } } }; })(S.onLoad);
   S.digitaluhr = digitaluhr;
 })(window);

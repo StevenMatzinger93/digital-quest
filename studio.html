@@ -81,8 +81,8 @@ button { cursor: pointer; }
 .pempty { color: var(--grau); font-size: 13px; padding: 0 12px 10px; }
 .symicon { --sym: var(--dunkel); }
 
-.canvas { position: relative; min-width: 0; min-height: 0; background: var(--karte); }
-#board { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; background: var(--karte); }
+.canvas { position: relative; min-width: 0; min-height: 0; background: var(--karte); display: flex; flex-direction: column; }
+#board { width: 100%; flex: 1 1 0; min-height: 0; display: block; touch-action: none; user-select: none; background: var(--karte); }
 
 /* ---- Schaltplan-Symbole (editor.js) auf weissem Grund ---- */
 .griddot { fill: #c9dde1; }
@@ -209,17 +209,6 @@ button { cursor: pointer; }
 .slrow { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; margin: 0 0 8px; font-size: 13px; } .slrow .tin { width: 100%; min-height: 36px; } .slcfg input[type=checkbox] { width: 20px; height: 20px; vertical-align: middle; }
 
 #printArea { display: none; }
-@media print {
-  @page { size: A4 landscape; margin: 12mm; }
-  html, body { background: #fff !important; height: auto !important; overflow: visible !important; display: block !important; }
-  body > *:not(#printArea) { display: none !important; }
-  #printArea { display: block; }
-  .pr-frame { border: 1.5px solid #000; padding: 6mm; height: 181mm; display: flex; flex-direction: column; box-sizing: border-box; }
-  .pr-fig { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
-  .pr-svg { width: 100%; height: 150mm; }
-  .pr-title { width: 100%; border-collapse: collapse; margin-top: 4mm; }
-  .pr-title td { border: 1px solid #000; padding: 2mm 3mm; font: 12pt sans-serif; color: #000; }
-  .pr-l { background: #eee; width: 1%; white-space: nowrap; } .pr-v { min-width: 40mm; }
 }
 
 .ov { text-decoration: overline; padding: 0 1px; text-decoration-thickness: 1.5px; }
@@ -253,6 +242,59 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
 .sc-hint b { display: block; margin-bottom: 4px; } .sc-hint .tl-btn { margin-top: 8px; }
 .fwin .fb { position: relative; }
 .tl-empty b { display: block; margin-bottom: 2px; }
+
+/* Beispiele: Menü mit Gruppen, Hinweis über der Zeichenfläche */
+.menu .drop { max-height: calc(100vh - 60px); overflow-y: auto; }
+.drop .ex-head { display: block; padding: 8px 14px 2px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--blau-text, #0b6e94); border-top: 1px solid var(--rand); margin-top: 4px; } .drop .ex-head:first-child { border-top: 0; margin-top: 0; }
+.exbanner { position: relative; flex: none; background: #f4fafc; border-bottom: 1px solid var(--rand); border-left: 4px solid var(--hellblau); padding: 6px 38px 6px 12px; font-size: 14px; line-height: 1.35; }
+.exbanner b { display: block; } .exbanner .exbody { display: block; } .exbanner .exdemo { display: block; margin-top: 4px; color: var(--grau); font-size: 13px; }
+.exbanner button { position: absolute; right: 2px; top: 2px; background: none; border: 0; min-width: 32px; min-height: 32px; font-size: 18px; color: var(--grau); }
+body.beamer .exbanner { font-size: 20px; }
+#menu-bsp .drop { min-width: 420px; } #menu-bsp .drop button { min-height: 36px; white-space: nowrap; }
+.gridline { stroke: #d3e3e7; stroke-width: .7; vector-effect: non-scaling-stroke; }
+
+/* Zeichenelemente (Paket 6) */
+.dr { cursor: move; } .drsel { fill: none; stroke: var(--hellblau); stroke-width: 1.5; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; }
+.drhandle { fill: #fff; stroke: var(--hellblau); stroke-width: 2.5; cursor: nwse-resize; vector-effect: non-scaling-stroke; } .drhandle:hover { fill: var(--hellblau); }
+.swatches { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin: 2px 0 8px; }
+.sw { width: 30px; height: 30px; border-radius: 6px; border: 2px solid var(--rand); cursor: pointer; padding: 0; } .sw.on { border-color: var(--dunkel); box-shadow: 0 0 0 2px #fff inset; } .sw.none { background: repeating-linear-gradient(45deg, #fff, #fff 5px, #e2eef0 5px, #e2eef0 10px); color: var(--grau); font-size: 15px; }
+.swfree input { width: 34px; height: 30px; padding: 0; border: 2px solid var(--rand); border-radius: 6px; background: none; cursor: pointer; }
+.draworder { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } .draworder .tb { min-height: 38px; font-size: 13px; padding: 0 6px; }
+.field textarea { width: 100%; font: inherit; border: 1px solid var(--rand); border-radius: 6px; padding: 6px 8px; resize: vertical; min-height: 70px; }
+body.beamer .dr text { font-size: inherit; }
+
+/* Zeichnungsrahmen auf der Zeichenfläche (Paket 5) */
+.sheetout { fill: rgba(15,45,58,.07); } .sheetedge { stroke: #b8cfd6; stroke-width: 1.2; stroke-dasharray: 8 6; vector-effect: non-scaling-stroke; }
+.sheethit { cursor: move; } .sheetlbl { fill: #7d8d94; font: 11px var(--font-ui); }
+.outmark { fill: rgba(217,72,15,.08); stroke: #d9480f; stroke-width: 1.8; stroke-dasharray: 6 4; } .outtxt { fill: #d9480f; font: 700 11px var(--font-mono); text-anchor: middle; }
+
+/* Druckdialog (Anhang A.1) */
+.modal.wide { width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; }
+.pdlg { font-size: 14px; } .pdh { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--rand); margin-bottom: 8px; } .pdh h2 { margin: 0 0 6px; } .pdfile { color: var(--grau); font-family: var(--font-mono); font-size: 13px; }
+.pds { border-bottom: 1px solid var(--rand); padding: 8px 0 10px; } .pds h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--grau); }
+.segbtns { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; } .seg { flex: 1; min-width: 90px; min-height: 42px; background: var(--bg); border: 2px solid var(--rand); border-radius: 8px; padding: 0 10px; } .seg.on { border-color: var(--dunkel); background: var(--dunkel); color: #fff; font-weight: 600; }
+.chk { display: block; padding: 3px 0; } .chk input { width: 20px; height: 20px; vertical-align: -4px; margin-right: 6px; } .chk.off { color: #8a9aa1; } .chk small { display: block; margin-left: 28px; font-size: 12px; color: #8a9aa1; }
+.pdrow { display: flex; gap: 12px; padding: 8px 10px; border: 1px solid var(--rand); border-radius: 8px; margin-bottom: 6px; } .pdrow.on { background: #f1f8fa; border-color: var(--hellblau); } .pdn { width: 28px; height: 28px; border-radius: 50%; background: var(--dunkel); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex: none; } .pdrow small { display: block; color: var(--grau); }
+.pdinfo { color: var(--grau); font-size: 13px; margin: 4px 0 0; }
+.pdfoot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-top: 10px; position: sticky; bottom: 0; background: var(--karte); } .pdbtns { display: flex; gap: 6px; flex-wrap: wrap; }
+.pdprev { background: #e6edf0; padding: 10px; margin-top: 8px; display: flex; flex-direction: column; align-items: center; gap: 10px; max-height: 50vh; overflow: auto; } .pvwrap { box-shadow: 0 2px 8px rgba(0,0,0,.25); background: #fff; flex: none; overflow: hidden; } .pvpg { transform-origin: 0 0; }
+
+/* Seiten (Vorschau und Druck): feste Grösse in Bildpunkten, 96 dpi */
+.pg { position: relative; background: #fff; color: #000; overflow: hidden; font-family: 'Noto Sans', 'Segoe UI', Arial, sans-serif; box-sizing: border-box; page-break-after: always; break-after: page; }
+.pg:last-child { page-break-after: auto; break-after: auto; }
+.pgframe { position: absolute; left: 0; top: 0; } .pgc { position: absolute; display: flex; flex-direction: column; overflow: hidden; }
+.pgh { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 10px; min-height: 28px; } .pgh b { font-size: 19px; } .pgh span { font: 14px 'DejaVu Sans Mono', Consolas, monospace; text-align: right; }
+.pgno { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; font-size: 11px; color: #555; }
+.fig { display: flex; align-items: center; justify-content: center; } .figimg { display: block; } .para { margin: 10px 0 0; font-size: 13px; line-height: 19px; text-align: left; }
+.hl { font-size: 20px; margin: 0 0 12px; } .hl3 { font-size: 14px; margin: 6px 0 6px; } .shot { display: block; border: 1px solid #999; margin-bottom: 6px; }
+.side { display: flex; gap: 32px; align-items: flex-start; margin-bottom: 10px; } .sideL { width: 300px; flex: none; } .sideR { flex: 1; min-width: 0; } .kvn { font-weight: 700; margin: 4px 0 0 4px; }
+.tt { border-collapse: collapse; width: 100%; font: 14px 'DejaVu Sans Mono', Consolas, monospace; } .tt th, .tt td { border: 1px solid #000; padding: 0 6px; height: 24px; text-align: center; } .tt th { background: #ddd; font-weight: 700; } .tt tr.one td { background: #efefef; } .tt td.res.b { font-weight: 700; } .tt.bom td.l { text-align: left; font-family: inherit; } .tt.bom th { font-family: inherit; }
+.exs { margin: 4px 0 8px; } .ex { display: flex; align-items: baseline; min-height: 32px; padding: 4px 0; } .exl { width: 180px; flex: none; font-size: 13px; color: #444; } .exr { font: 15px 'DejaVu Sans Mono', Consolas, monospace; flex: 1; border-bottom: 1px dotted #aaa; min-height: 22px; } .ex.last { border-top: 1px solid #000; margin-top: 4px; } .ex.last .exr { font-weight: 700; }
+.law { font-size: 13px; line-height: 19px; margin: 6px 0 0; } .ov { text-decoration: overline; }
+@media print {
+  body > *:not(#printArea) { display: none !important; } body { display: block !important; overflow: visible !important; height: auto !important; }
+  #printArea { display: block !important; } .pg { margin: 0; box-shadow: none; }
+}
 </style>
 </head>
 <body>
@@ -1364,6 +1406,7 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
   Circuit.prototype.removeSelected = function () {
     var s = this.sel; if (!s || this.opts.readonly) return false;
     if (s.indexOf('w:') === 0) { this.layout.wires.splice(+s.slice(2), 1); }
+    else if (s.indexOf('d:') === 0) { this.layout.draw = (this.layout.draw || []).filter(function (e) { return e.id !== s.slice(2); }); } // Zeichenelement (Studio)
     else if ((this.part(s) || {}).type === 'node' && this._mergeNode(s)) { /* zusammengefuehrt */ }
     else {
       if (this.locked[s]) { if (this.opts.onMessage) this.opts.onMessage('Dieses Bauteil gehört zur Aufgabe und bleibt.'); return false; }
@@ -1487,7 +1530,7 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
   ['and', 'or', 'nand', 'nor', 'xor', 'xnor'].forEach(function (g) { GEO[g] = { in1: [-40, -20], in2: [-40, 20], out: [40, 0] }; });
   /* Dynamische Geometrie: Gatter mit einstellbarer Eingangszahl, Flipflops mit preSet/preClear (nur wenn Editor.extra.async, Studio) und Bausteine des Studios
    * (Editor.DYNGEO[type] = function (part) → {pin: [x, y]}, z. B. Zaehler) */
-  var DYNGEO = {}, EXTRA = { async: false, nodes: false }; // nodes: Knotenpunkte auf Leitungen (nur Studio)
+  var DYNGEO = {}, EXTRA = { async: false, nodes: false, grid: { mode: 'dots', size: 20 } }; // nodes: Knotenpunkte auf Leitungen (nur Studio)
   function gateInputs(p) { var q = p.props || {}; return Math.max(2, Math.min(8, Math.round(q.inputs || 2))); }
   function slots(n) { var k = Math.floor(n / 2), a = []; for (var i = -k; i <= k; i++) { if (i === 0 && n % 2 === 0) continue; a.push(i * 20); } return a; }
   function geoOf(p) {
@@ -1518,12 +1561,13 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
     switch (((rot || 0) % 360 + 360) % 360) { case 90: return [-y, x]; case 180: return [-x, -y]; case 270: return [y, -x]; default: return [x, y]; }
   }
   function pinPos(part, pin) { var o = rotPt(geoOf(part)[pin], part.rot); return [part.x + o[0], part.y + o[1]]; }
-  /* Leitungsweg als Punktfolge: kurzer Stummel aus jedem Anschluss heraus, dazwischen rechtwinklig (Knotenpunkte haben keine Richtung) */
-  function routePts(a, b, da, db) {
+  /* Leitungsweg als Punktfolge: kurzer Stummel aus jedem Anschluss heraus, dazwischen rechtwinklig (Knotenpunkte haben keine Richtung).
+   * jog verschiebt das mittlere Stueck seitlich (Kanaltrennung, s. routeAll); null, wenn dort kein Platz ist. */
+  function routePts(a, b, da, db, jog) {
     da = da.slice(); db = db.slice();
     if (da[1] !== 0) da[0] = 0; if (db[1] !== 0) db[0] = 0;
     var sa = [a[0] + da[0] * 20, a[1] + da[1] * 20], sb = [b[0] + db[0] * 20, b[1] + db[1] * 20];
-    if (a[0] === b[0] || a[1] === b[1]) return [a, b];
+    if (a[0] === b[0] || a[1] === b[1]) return jog ? null : [a, b];
     function sg(v) { return v > 0 ? 1 : v < 0 ? -1 : 0; }
     function pen(c) { // Umwege bestrafen: erstes Segment gegen die Austrittsrichtung, letztes gegen die Eintrittsrichtung
       var s1 = [sg(c[0] - sa[0]), sg(c[1] - sa[1])], s2 = [sg(sb[0] - c[0]), sg(sb[1] - c[1])];
@@ -1531,15 +1575,67 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
         (s2[0] === db[0] && s2[0] !== 0 ? 1 : 0) + (s2[1] === db[1] && s2[1] !== 0 ? 1 : 0);
     }
     var hFirst = pen([sb[0], sa[1]]) <= pen([sa[0], sb[1]]);
-    return [a, sa, hFirst ? [sb[0], sa[1]] : [sa[0], sb[1]], sb, b];
+    if (!jog) return [a, sa, hFirst ? [sb[0], sa[1]] : [sa[0], sb[1]], sb, b];
+    var k = hFirst ? 0 : 1, X = sb[k] + jog, lo = Math.min(sa[k], sb[k]), hi = Math.max(sa[k], sb[k]);
+    if (hi - lo < 12 || X < lo + 4 || X > hi - 4) return null;
+    var pts = hFirst ? [a, sa, [X, sa[1]], [X, sb[1]], sb, b] : [a, sa, [sa[0], X], [sb[0], X], sb, b];
+    return pts.filter(function (q, n) { return n === 0 || q[0] !== pts[n - 1][0] || q[1] !== pts[n - 1][1]; });
+  }
+  /* Zwei Leitungen verschiedener Netze duerfen nicht auf einem Stueck uebereinander oder aneinanderstossend verlaufen (sonst sieht man nicht, was verbunden ist) */
+  function clash(p, q) {
+    for (var i = 0; i + 1 < p.length; i++) for (var j = 0; j + 1 < q.length; j++) {
+      var s0 = p[i], s1 = p[i + 1], t0 = q[j], t1 = q[j + 1], sv = s0[0] === s1[0], tv = t0[0] === t1[0];
+      if ((s0[0] === s1[0] && s0[1] === s1[1]) || (t0[0] === t1[0] && t0[1] === t1[1])) continue;
+      if (sv !== tv) continue;
+      var c = sv ? 0 : 1, d = sv ? 1 : 0; if (Math.abs(s0[c] - t0[c]) > 3) continue;
+      if (Math.min(Math.max(s0[d], s1[d]), Math.max(t0[d], t1[d])) - Math.max(Math.min(s0[d], s1[d]), Math.min(t0[d], t1[d])) >= 0) return true;
+    }
+    return false;
+  }
+  var JOGS = [0, 8, -8, 16, -16, 24, -24, 32, -32, 40, -40];
+  var ROUTES = { sig: null, polys: [] };
+  /* Alle Leitungswege des Layouts. Studio (Editor.extra.nodes): Leitungen verschiedener Netze, die dieselbe senkrechte oder waagrechte Bahn
+   * bekaemen, werden seitlich versetzt – die zuerst gezeichnete Leitung bleibt, wo sie ist. Spiel: wie bisher ein Weg je Leitung. */
+  function routeAll(layout) {
+    var sig = JSON.stringify([layout.parts.map(function (p) { return [p.id, p.type, p.x, p.y, p.rot || 0, p.props && (p.props.inputs || p.props.bits || p.props.modn)]; }), layout.wires.map(function (w) { return [w.from, w.to]; }), EXTRA.nodes ? 1 : 0]);
+    if (ROUTES.sig === sig) return ROUTES.polys;
+    var byId = {}; layout.parts.forEach(function (p) { byId[p.id] = p; });
+    var parent = {}, find = function (x) { if (parent[x] === undefined) parent[x] = x; while (parent[x] !== x) x = parent[x]; return x; };
+    layout.wires.forEach(function (w) { var a = find(w.from), b = find(w.to); if (a !== b) parent[a] = b; });
+    function end(pid) { var t = pid.split('.'), p = byId[t[0]]; if (!p || !geoOf(p)[t[1]]) return null; var o = rotPt(geoOf(p)[t[1]], p.rot); return { xy: [p.x + o[0], p.y + o[1]], d: [Math.sign(o[0]), Math.abs(o[0]) >= Math.abs(o[1]) ? 0 : Math.sign(o[1])] }; }
+    var ends = layout.wires.map(function (w) { return { a: end(w.from), b: end(w.to), net: find(w.from) }; });
+    function build(order) { // Leitungen in dieser Reihenfolge verlegen; Rueckgabe {polys, bad = Zahl der verbliebenen Ueberschneidungen}
+      var polys = [], placed = [], bad = 0;
+      order.forEach(function (i) {
+        var e = ends[i], pts = null; if (!e.a || !e.b) { polys[i] = []; return; }
+        for (var k = 0; k < (EXTRA.nodes ? JOGS.length : 1); k++) {
+          var c = routePts(e.a.xy, e.b.xy, e.a.d, e.b.d, JOGS[k]); if (!c) continue;
+          if (k === 0) pts = c; // Grundweg, falls nichts anderes frei ist
+          if (!placed.some(function (o) { return o.net !== e.net && clash(o.pts, c); })) { pts = c; break; }
+        }
+        if (placed.some(function (o) { return o.net !== e.net && clash(o.pts, pts); })) bad++;
+        polys[i] = pts; placed.push({ net: e.net, pts: pts });
+      });
+      return { polys: polys, bad: bad };
+    }
+    var idx = layout.wires.map(function (w, i) { return i; }), best = build(idx);
+    if (EXTRA.nodes && best.bad) { // andere Reihenfolgen probieren (rueckwaerts, nach Zielhoehe sortiert), die beste behalten
+      [idx.slice().reverse(), idx.slice().sort(function (p, q) { return (ends[q].b ? ends[q].b.xy[1] : 0) - (ends[p].b ? ends[p].b.xy[1] : 0); }), idx.slice().sort(function (p, q) { return (ends[p].b ? ends[p].b.xy[1] : 0) - (ends[q].b ? ends[q].b.xy[1] : 0); })].forEach(function (o) {
+        if (best.bad) { var t = build(o); if (t.bad < best.bad) best = t; }
+      });
+    }
+    var polys = best.polys;
+    ROUTES = { sig: sig, polys: polys }; return polys;
+  }
+  /* Paare von Leitungen verschiedener Netze, die auf einem Stueck uebereinander laufen (Test «aufgeraeumt») */
+  function routeClashes(layout) {
+    var polys = routeAll(layout), parent = {}, find = function (x) { if (parent[x] === undefined) parent[x] = x; while (parent[x] !== x) x = parent[x]; return x; }, out = [];
+    layout.wires.forEach(function (w) { var a = find(w.from), b = find(w.to); if (a !== b) parent[a] = b; });
+    for (var i = 0; i < polys.length; i++) for (var j = i + 1; j < polys.length; j++) if (find(layout.wires[i].from) !== find(layout.wires[j].from) && clash(polys[i], polys[j])) out.push([i, j]);
+    return out;
   }
   /* Punktfolge der Leitung w im Layout (fuer Treffer auf der Leitung und Knotenpunkte) */
-  function wirePoly(layout, w) {
-    var byId = {}; layout.parts.forEach(function (p) { byId[p.id] = p; });
-    function end(pid) { var t = pid.split('.'), p = byId[t[0]]; if (!p || !geoOf(p)[t[1]]) return null; var o = rotPt(geoOf(p)[t[1]], p.rot); return { xy: [p.x + o[0], p.y + o[1]], d: [Math.sign(o[0]), Math.abs(o[0]) >= Math.abs(o[1]) ? 0 : Math.sign(o[1])] }; }
-    var a = end(w.from), b = end(w.to); if (!a || !b) return [];
-    return routePts(a.xy, b.xy, a.d, b.d);
-  }
+  function wirePoly(layout, w) { var i = layout.wires.indexOf(w); return i < 0 ? [] : routeAll(layout)[i] || []; }
   /* Naechster Punkt auf den Leitungen zu xy: {i, xy (auf dem Raster der Leitung), dist} oder null ausserhalb des Fangradius.
    * Nahe an einem Anschluss (Stummel) gilt kein Fang – dort wirkt der Anschluss. */
   function snapWire(layout, xy, radius, skip) {
@@ -1703,7 +1799,7 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
     if (p.type === 'seg7' || p.type === 'dec7') return '<text class="lbl" y="-78">' + esc(p.id) + '</text>';
     if (E.PARTS[p.type].ctr) return '<text class="lbl" y="' + (-ctrHalf(p) - 8) + '">' + esc(p.id) + '</text><text class="val" y="' + (ctrHalf(p) + 16) + '">' + esc(valueText(p)) + '</text>';
     var vert = (p.type === 'battery' || p.type === 'ground' || p.type === 'acsource') ? (p.rot || 0) % 180 === 0 : (p.rot || 0) % 180 === 90;
-    var mk = Editor.mask && Editor.mask(p), v = esc(mk !== undefined ? mk : valueText(p)); // Studio: verborgene Werte als «?»
+    var mk = Editor.mask && Editor.mask(p), v = esc(mk != null ? mk : valueText(p)); // Studio: verborgene Werte als «?»
     if (vert) return '<text class="lbl" x="24" y="-4" text-anchor="start">' + esc(p.id) + '</text><text class="val" x="24" y="12" text-anchor="start">' + v + '</text>';
     var big = GATE_SIGN[p.type] || FF_SIGN[p.type] || p.type === 'npn', up = big ? -44 : -24, dn = big ? 52 : 30;
     if (GATE_SIGN[p.type] && p.type !== 'not' && gateInputs(p) > 2) { var gk = 20 * Math.floor(gateInputs(p) / 2) + 10; up = -gk - 14; dn = gk + 22; }
@@ -1763,7 +1859,7 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
     var v = this.view, w = Math.max(160, Math.min(v[2], 360)), h = w * v[3] / v[2];
     this.setView([part.x - w / 2, part.y - h / 2, w, h]);
   };
-  Editor.DYNGEO = DYNGEO; Editor.extra = EXTRA; Editor.geoOf = geoOf; Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText; Editor.partTip = partTip; Editor.voltColor = voltColor; Editor.icon = icon; Editor.wirePoly = wirePoly; Editor.snapWire = snapWire;
+  Editor.DYNGEO = DYNGEO; Editor.extra = EXTRA; Editor.geoOf = geoOf; Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText; Editor.partTip = partTip; Editor.voltColor = voltColor; Editor.icon = icon; Editor.wirePoly = wirePoly; Editor.routeClashes = routeClashes; Editor.snapWire = snapWire;
   // Zustand liegt im Kern; die bisherigen Eigenschaften bleiben fuer app.js erhalten
   ['layout', 'locked', 'sel', 'wireStart', 'tool', 'probes', 'drag'].forEach(function (k) {
     Object.defineProperty(Editor.prototype, k, { get: function () { return this.core[k]; }, set: function (v) { this.core[k] = v; } });
@@ -1777,8 +1873,11 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
       y0 = Math.min.apply(null, ps.map(function (p) { return p.y; })); y1 = Math.max.apply(null, ps.map(function (p) { return p.y; })); }
     var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, box = this.svg.getBoundingClientRect(), small = box.width && box.width < 600, tight = this.opts.tight; // tight: Mini-Schaltung, knapp um die Bauteile
     var w = Math.max(tight ? 240 : small ? 380 : 640, x1 - x0 + (tight ? 150 : small ? 160 : 280)), h = Math.max(tight ? 160 : small ? 240 : 400, y1 - y0 + (tight ? 150 : small ? 160 : 280)),  ar = box.width && box.height ? box.width / box.height : SW() / SH();
+    var inset = box.width && this.insetRight ? Math.min(this.insetRight, box.width * 0.6) : 0; // rechts frei halten (Oszilloskop-Fenster eines Beispiels)
+    if (inset) ar = (box.width - inset) / box.height;
     if (w / h < ar) w = h * ar; else h = w / ar;
-    this.view = [Math.max(0, Math.min(SW() - w, cx - w / 2)), Math.max(0, Math.min(SH() - h, cy - h / 2)), Math.min(w, SW()), Math.min(h, SH())];
+    var wFull = inset ? w * box.width / (box.width - inset) : w;
+    this.view = [Math.max(0, Math.min(SW() - wFull, cx - w / 2)), Math.max(0, Math.min(SH() - h, cy - h / 2)), Math.min(wFull, SW()), Math.min(h, SH())];
     this.svg.setAttribute('viewBox', this.view.join(' '));
     this.render();
   };
@@ -1805,6 +1904,7 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
   Editor.prototype._bind = function () {
     var self = this, svg = this.svg, core = this.core, pan = null, pinch = null, wirePress = null, touches = {}, lastTap = { t: 0, x: 0, y: 0 };
     function dblAt(ev) { // Doppeltipp/Doppelklick: Bauteil → heranzoomen, leere Fläche → einpassen
+      var dr = ev.target.closest('[data-draw]'); if (dr && Editor.drawDouble) { Editor.drawDouble(dr.dataset.draw); return; }
       var t = ev.target.closest('[data-part]'), p = t && core.part(t.dataset.part);
       if (p && self.opts.onDouble && self.opts.onDouble(p)) return; // Studio: Zaehler aufklappen
       if (p) self.zoomTo(p); else self.fit();
@@ -1820,8 +1920,13 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
           var now = performance.now(); if (now - lastTap.t < 350 && Math.abs(ev.clientX - lastTap.x) < 24 && Math.abs(ev.clientY - lastTap.y) < 24) { lastTap.t = 0; dblAt(ev); return; } lastTap = { t: now, x: ev.clientX, y: ev.clientY };
         }
       }
-      var t = ev.target.closest('[data-pin],[data-part],[data-wire]'), xy = self._pt(ev);
+      var t = ev.target.closest('[data-pin],[data-handle],[data-draw],[data-sheet],[data-part],[data-wire]'), xy = self._pt(ev);
       if (t && t.dataset.pin) { ev.preventDefault(); core.clickPin(t.dataset.pin); return; }
+      if (t && t.dataset.handle !== undefined && Editor.drawHandlePress && Editor.drawHandlePress(self, t.dataset.handle, xy)) { ev.preventDefault(); try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ } return; }
+      if (t && t.dataset.draw !== undefined && core.tool === 'wire' && Editor.drawPress && Editor.drawPress(self, t.dataset.draw, xy)) { ev.preventDefault(); try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ } return; }
+      if (t && t.dataset.sheet !== undefined && core.tool === 'wire' && Editor.sheetPress && Editor.sheetPress(self, xy)) { ev.preventDefault(); try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ } return; }
+      if (t && (t.dataset.sheet !== undefined)) t = null;
+      if (t && t.dataset.draw !== undefined) t = null; // Messen-Werkzeug: Zeichenelemente sind nicht anklickbar
       if (t && t.dataset.wire !== undefined) {
         var wi = +t.dataset.wire, sn = !core.opts.readonly && core.tool === 'wire' && EXTRA.nodes ? Editor.snapWire(core.layout, xy, 12, -1) : null;
         if (sn && sn.i !== wi) sn = null;
@@ -1849,6 +1954,8 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
       if (pinch && Object.keys(touches).length === 2) { var tp = Object.keys(touches).map(function (k) { return touches[k]; }), d = Math.hypot(tp[0][0] - tp[1][0], tp[0][1] - tp[1][1]); if (d > 10) { self.view = pinch.view.slice(); self.zoomAt(pinch.d / d, pinch.c[0], pinch.c[1]); } return; }
       if (pan) { var dx = ev.clientX - pan.x, dy = ev.clientY - pan.y; if (Math.abs(dx) + Math.abs(dy) > 5) pan.moved = true; if (pan.moved) { var f = pan.view[2] / (svg.getBoundingClientRect().width || 1); self.setView([pan.view[0] - dx * f, pan.view[1] - dy * f, pan.view[2], pan.view[3]]); } return; }
       var xy = self._pt(ev); self.mouse = xy;
+      if (self.ddrag) { Editor.drawMove(self, xy); return; }
+      if (self.sdrag) { Editor.sheetMove(self, xy); return; }
       if (wirePress) { // Ziehen von einer Leitung weg: dort einen Knotenpunkt setzen und die neue Leitung beginnen
         if (Math.abs(ev.clientX - wirePress.x) + Math.abs(ev.clientY - wirePress.y) > 6) { var wp = wirePress; wirePress = null; var np = core.splitWire(wp.i, wp.xy); core.wireStart = np; core.sel = null; self.render(); }
         return;
@@ -1862,6 +1969,8 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
     function up(ev) {
       delete touches[ev.pointerId];
       if (pinch) { if (Object.keys(touches).length < 2) pinch = null; return; }
+      if (self.ddrag) { Editor.drawRelease(self); return; }
+      if (self.sdrag) { Editor.sheetRelease(self); return; }
       if (wirePress) { wirePress = null; return; }
       if (pan) { var wasPan = pan.moved; pan = null; if (!wasPan) core.clickEmpty(); return; }
       var d0 = core.drag, np0 = d0 && !d0.moved && core.part(d0.id);
@@ -1883,7 +1992,8 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
     var pinWireCount = {}; L.wires.forEach(function (w) { pinWireCount[w.from] = (pinWireCount[w.from] || 0) + 1; pinWireCount[w.to] = (pinWireCount[w.to] || 0) + 1; });
     function pp(pid) { var s = pid.split('.'); return byId[s[0]] ? pinPos(byId[s[0]], s[1]) : [0, 0]; }
     function dir(pid) { var s = pid.split('.'), p = byId[s[0]]; if (!p) return [0, 0]; var o = rotPt(geoOf(p)[s[1]], p.rot); return [Math.sign(o[0]), Math.abs(o[0]) >= Math.abs(o[1]) ? 0 : Math.sign(o[1])]; }
-    function route(fa, fb) { return 'M' + routePts(pp(fa), pp(fb), dir(fa), dir(fb)).map(function (q) { return q[0] + ' ' + q[1]; }).join('L'); }
+    var polys = routeAll(L);
+    function route(i) { return polys[i] && polys[i].length ? 'M' + polys[i].map(function (q) { return q[0] + ' ' + q[1]; }).join('L') : ''; }
     function wcol(pid) {
       if (!res || !pinNode) return null;
       var own = self.opts.wireColor && self.opts.wireColor(pid, res, pinNode); if (own) return own; // Studio: Logikleitungen nach Pegel faerben
@@ -1892,14 +2002,16 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
     }
     function faultMark(p) { var ft = self.opts.faultOf && self.opts.faultOf(p.id); return ft ? '<rect class="faultmark" x="-46" y="-36" width="92" height="72" rx="6"/><text class="faulttxt" y="-42">' + esc(ft) + '</text>' : ''; } // Studio: Bauteil mit Meldung markieren
     var h = [];
-    h.push('<defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="0" cy="0" r="1" class="griddot"/></pattern>' +
+    var gm = EXTRA.grid.mode, gs = EXTRA.grid.size || 20; // Gitternetz (Studio: aus, Punkte, Linien; Spiel: Punkte)
+    h.push('<defs>' + (gm === 'lines' ? '<pattern id="grid" width="' + gs + '" height="' + gs + '" patternUnits="userSpaceOnUse"><path d="M' + gs + ' 0H0V' + gs + '" class="gridline" fill="none"/></pattern>' : '<pattern id="grid" width="' + gs + '" height="' + gs + '" patternUnits="userSpaceOnUse"><circle cx="0" cy="0" r="1" class="griddot"/></pattern>') +
       '<radialGradient id="glowAmber"><stop offset="0" stop-color="#ffcf4a" stop-opacity="0.9"/><stop offset="1" stop-color="#ffb000" stop-opacity="0"/></radialGradient>' +
       '<filter id="blur" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="6"/></filter></defs>');
-    h.push('<rect width="' + SW() + '" height="' + SH() + '" fill="url(#grid)"/>');
+    if (gm !== 'off') h.push('<rect class="gridrect" width="' + SW() + '" height="' + SH() + '" fill="url(#grid)"/>');
+    if (Editor.sheetLayer && L.sheet) h.push(Editor.sheetLayer(L)); // Zeichnungsrahmen (Studio): Druckbereich unter allem
     // Leitungen
     var wi = self.showFlow && root.DQBench ? root.DQBench.wireCurrents(L, res) : [];
     L.wires.forEach(function (w, i) {
-      var col = wcol(w.from), d = route(w.from, w.to), iw = wi[i] || 0;
+      var col = wcol(w.from), d = route(i), iw = wi[i] || 0;
       h.push('<g data-wire="' + i + '"><path class="wirehit" d="' + d + '"/><path class="wire bcore' + (self.sel === 'w:' + i ? ' selected' : '') + '" data-i="' + iw.toExponential(3) + '" d="' + d + '"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
     });
     // Bauteile
@@ -1911,6 +2023,8 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
         '<g transform="rotate(' + (p.rot || 0) + ')">' + symbol(p, r) + '</g>' +
         labels(p, sel) + faultMark(p) + '</g>');
     });
+    if (Editor.sheetMarks && L.sheet) h.push(Editor.sheetMarks(L)); // Bauteile ausserhalb des Druckbereichs markieren
+    if (Editor.drawLayer && L.draw && L.draw.length) h.push(Editor.drawLayer(L, self.sel, !self.opts.tight)); // Zeichenelemente (Studio): eigene Ebene ueber den Bauteilen
     if (self.showFlow) h.push('<g class="bflow" pointer-events="none"></g>');
     // Anschluesse
     L.parts.forEach(function (p) {
@@ -2890,15 +3004,14 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
 
   /* ---------- Bauteilleiste ---------- */
   var PALETTE = [
-    { name: 'Quellen', items: ['battery', 'acsource', 'clock', 'ground'] },
-    { name: 'Verbindung', items: ['node'] },
-    { name: 'Bauteile', items: ['resistor', 'pot', 'capacitor', 'inductor', 'switch', 'button', 'lamp', 'motor', 'ammeter'] },
-    { name: 'Halbleiter', items: ['diode', 'led', 'zener', 'npn'] },
-    { name: 'Gatter', items: ['not', 'and', 'or', 'nand', 'nor', 'xor', 'xnor'] },
-    { name: 'Flipflops', items: ['dff', 'tff', 'jkff', 'rsff', 'jkms'] },
+    { name: 'Logik', items: ['not', 'and', 'or', 'nand', 'nor', 'xor', 'xnor'] },
+    { name: 'Flip-Flops', items: ['dff', 'tff', 'jkff', 'rsff', 'jkms'] },
     { name: 'Zähler', items: ['ctr_async', 'ctr_sync', 'ctr_bcd', 'ctr_johnson', 'ctr_mod'] },
-    { name: 'Anzeigen', items: ['logicin', 'logicled', 'seg7', 'dec7'] }
-  ];
+    { name: 'Anzeigen', items: ['logicin', 'clock', 'logicled', 'seg7', 'dec7'] },
+    { name: 'Analog', items: ['battery', 'acsource', 'ground', 'resistor', 'pot', 'capacitor', 'inductor', 'switch', 'button', 'lamp', 'motor', 'ammeter', 'diode', 'led', 'zener', 'npn'] },
+    { name: 'Verbindung', items: ['node'] },
+    { name: 'Zeichnen', items: ['draw:text', 'draw:line', 'draw:arrow', 'draw:rect', 'draw:ellipse'] }
+  ]; // Gruppen wie das Menü «Beispiele» (examples.js): Logik · Flip-Flops · Zähler · Anzeigen · Analog (· Anwendungen nur als Beispiele)
   S.PALETTE = PALETTE;
 
   /* ---------- Eigenschaften je Bauteiltyp (Anzeige im Inspektor) ----------
@@ -3003,7 +3116,7 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
 
   function onChange(kind) {
     if (S.onEdit) S.onEdit(kind);
-    if (kind === 'move' || kind === 'rotate') { return; }
+    if (kind === 'move' || kind === 'rotate' || kind === 'draw') { return; }
     sim.refresh(kind === 'add' || kind === 'delete' || kind === 'wire' || kind === 'undo');
     findDigitalNodes();
     if (kind === 'add' || kind === 'delete' || kind === 'wire') { if (S.onStructure) S.onStructure(); }
@@ -3028,7 +3141,7 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
     PALETTE.forEach(function (g, gi) {
       h += '<details' + (gi < 4 || g.items.length ? ' open' : '') + '><summary>' + esc(g.name) + '</summary>';
       if (!g.items.length) h += '<div class="pempty">Kommt in einer späteren Stufe.</div>';
-      else h += '<div class="plist">' + g.items.map(function (t) { var d = E.PARTS[t]; return '<button class="pitem" draggable="true" data-add="' + t + '" title="' + esc(d.label) + ' – anklicken oder auf die Zeichenfläche ziehen">' + Editor.icon(t) + '<span class="nm">' + esc(d.label) + '</span></button>'; }).join('') + '</div>';
+      else h += '<div class="plist">' + g.items.map(function (t) { var d = E.PARTS[t] || { label: (S.DRAW_ITEMS.filter(function (x) { return x[0] === t; })[0] || [0, t])[1] }; return '<button class="pitem" draggable="true" data-add="' + t + '" title="' + esc(d.label) + ' – anklicken oder auf die Zeichenfläche ziehen">' + (E.PARTS[t] ? Editor.icon(t) : S.drawIcon(t)) + '<span class="nm">' + esc(d.label) + '</span></button>'; }).join('') + '</div>';
       h += '</details>';
     });
     $('#palette').innerHTML = h;
@@ -3039,6 +3152,7 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
   S.rebuildPalette = buildPalette;
   S.addPart = function (type, x, y) {
     var p;
+    if (/^draw:/.test(type)) return S.drawAdd(type.slice(5), x, y); // Zeichenelement
     if (x === undefined) p = ed.addPart(type); else p = core.addPart(type, x, y, 'schema');
     return p;
   };
@@ -3046,7 +3160,7 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
   function bindCanvas() {
     svg.addEventListener('dragover', function (ev) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; });
     svg.addEventListener('drop', function (ev) {
-      ev.preventDefault(); var t = ev.dataTransfer.getData('text/plain'); if (!t || !E.PARTS[t]) return;
+      ev.preventDefault(); var t = ev.dataTransfer.getData('text/plain'); if (!t || !(E.PARTS[t] || /^draw:/.test(t))) return;
       var xy = ed._pt(ev); S.addPart(t, xy[0], xy[1]);
     });
   }
@@ -3083,7 +3197,7 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
     document.addEventListener('click', function (ev) { if (!ev.target.closest('.menu')) closeMenus(); });
   }
   function fillMenu(m) {
-    m.el.querySelector('.drop').innerHTML = m.items.map(function (it, i) { return it.sep ? '<hr>' : it.info ? '<span class="ex-text">' + esc(it.info) + '</span>' : '<button role="menuitem" data-i="' + i + '">' + esc(it.label) + (it.key ? '<small>' + esc(it.key) + '</small>' : '') + '</button>'; }).join('');
+    m.el.querySelector('.drop').innerHTML = m.items.map(function (it, i) { return it.sep ? '<hr>' : it.head ? '<span class="ex-head">' + esc(it.head) + '</span>' : it.info ? '<span class="ex-text">' + esc(it.info) + '</span>' : '<button role="menuitem" data-i="' + i + '">' + esc(it.label) + (it.key ? '<small>' + esc(it.key) + '</small>' : '') + '</button>'; }).join('');
   }
   function closeMenus() { $$('.menu.open').forEach(function (m) { m.classList.remove('open'); $('button', m).setAttribute('aria-expanded', 'false'); }); }
   S.setMenu = function (id, items) { var m = MENUS.filter(function (x) { return x.id === id; })[0]; if (m) { m.items = items; fillMenu(m); } };
@@ -3153,7 +3267,8 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
 
   /* ---------- Eigenschaften ---------- */
   function renderInspector(force) {
-    var el = $('#inspector'), p = selId && core.part(selId);
+    var el = $('#inspector'), p = selId && core.part(selId), dsel = core.sel && String(core.sel).indexOf('d:') === 0 && S.drawInspector;
+    if (dsel) { var dh = S.drawInspector(core.sel.slice(2)); if (dh) { var keep = document.activeElement && el.contains(document.activeElement) && !force; if (!keep) { el.innerHTML = dh; S.bindDrawInspector(el, core.sel.slice(2)); } return; } }
     if (!p) {
       var wsel = core.sel && String(core.sel).indexOf('w:') === 0;
       el.innerHTML = '<h2>' + (wsel ? 'Leitung' : 'Simulation') + '</h2>' + (wsel ? '<p class="sub">Entf löscht die Leitung.</p>' :
@@ -3266,7 +3381,7 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
   S.setBeamer = function (on) {
     S.beamer = !!on; document.body.classList.toggle('beamer', S.beamer);
     var b = $('#btnBeamer'); if (b) { b.classList.toggle('on', S.beamer); b.setAttribute('aria-pressed', S.beamer); }
-    ed.fit(); S.redraw(); if (S.timingDraw) S.timingDraw(); S.scopes.forEach(function (sc) { sc.dirty(); });
+    if (S.gridApply) S.gridApply(); ed.fit(); S.redraw(); if (S.timingDraw) S.timingDraw(); S.scopes.forEach(function (sc) { sc.dirty(); });
   };
   S.refreshInspector = function () { renderInspector(true); };
   S.selected = function () { return selId && core.part(selId); };
@@ -3431,7 +3546,7 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
   S.undo = function () { if (at <= 0) return false; at--; restore(hist[at]); return true; };
   S.redo = function () { if (at >= hist.length - 1) return false; at++; restore(hist[at]); return true; };
   S.history = { size: function () { return hist.length; }, index: function () { return at; }, reset: function () { hist = []; at = -1; record(); } };
-  S.onEdit = function (kind) { if (restoring) return; record(); };
+  S.onEdit = function (kind) { if (restoring || kind === 'demo') return; if (S.stopDemo) S.stopDemo(); record(); }; // 'demo' = Vorführung eines Beispiels: kein Rückgängig-Schritt
 
   /* ---------- Auswahl, Kopieren, Einfügen ---------- */
   function selIds() { return S.multi.length ? S.multi.slice() : (S.core.sel && S.core.part(S.core.sel) ? [S.core.sel] : []); }
@@ -3514,7 +3629,7 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
     offerRestore();
   });
   S.onSelectHook = function (p) { if (p && S.multi.length && S.multi.indexOf(p.id) < 0) S.multi = []; if (!p && S.multi.length && !S.keepMulti) S.multi = []; };
-  S.shortcuts = [['Alt + Klick auf eine Leitung', 'Knotenpunkt setzen und von dort weiterziehen'], ['Strg + Z', 'Rückgängig (bis 200 Schritte)'], ['Strg + Y  oder  Strg + Umschalt + Z', 'Wiederholen'], ['Entf', 'Auswahl löschen'], ['R', 'Bauteil drehen'], ['Esc', 'Abbrechen, Auswahl aufheben'],
+  S.shortcuts = [['G', 'Gitternetz umschalten: aus, Punkte, Linien'], ['Alt + Klick auf eine Leitung', 'Knotenpunkt setzen und von dort weiterziehen'], ['Strg + Z', 'Rückgängig (bis 200 Schritte)'], ['Strg + Y  oder  Strg + Umschalt + Z', 'Wiederholen'], ['Entf', 'Auswahl löschen'], ['R', 'Bauteil drehen'], ['Esc', 'Abbrechen, Auswahl aufheben'],
     ['Strg + A', 'Alles auswählen'], ['Umschalt + Klick', 'Bauteil zur Auswahl hinzufügen'], ['Strg + C  /  Strg + V', 'Kopieren und Einfügen (versetzt)'], ['Pfeiltasten', 'Auswahl um ein Raster verschieben'],
     ['Leertaste', 'Simulation starten und anhalten'], ['F9', 'Beamer-Modus ein und aus'], ['Strg + S  /  Strg + O  /  Strg + P', 'Speichern, Öffnen, Drucken'], ['Strg + Mausrad / zwei Finger', 'Zoom'], ['Doppelklick auf leere Fläche', 'Schaltung einpassen'], ['Doppelklick auf einen Zähler', 'Zähler aufklappen']];
 })(window);
@@ -3626,7 +3741,10 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
     if (ver > VERSION) return { ok: false, error: 'Die Datei stammt aus einer neueren Version des Studios (Dateiformat ' + ver + ', dieses Studio kennt bis ' + VERSION + ').' };
     var layout = ver >= 2 ? o.layout : { parts: o.parts, wires: o.wires };   // Version 0 und 1: flach
     if (!layout || !Array.isArray(layout.parts) || !Array.isArray(layout.wires || [])) return { ok: false, error: 'Die Schaltung in der Datei ist unvollständig.' };
-    layout = { parts: layout.parts, wires: layout.wires || [] };
+    var keepKeys = { parts: layout.parts, wires: layout.wires || [] };
+    ['draw', 'drawHidden', 'sheet'].forEach(function (k) { if (layout[k] !== undefined) keepKeys[k] = layout[k]; }); // Zeichenelemente, Zeichenebene, Zeichnungsrahmen gehören zur Schaltung
+    if (keepKeys.draw !== undefined && !Array.isArray(keepKeys.draw)) return { ok: false, error: 'Die Zeichenelemente in der Datei sind unvollständig.' };
+    layout = keepKeys;
     var ids = {};
     for (var i = 0; i < layout.parts.length; i++) {
       var p = layout.parts[i]; if (!p || !E.PARTS[p.type]) return { ok: false, error: 'Unbekanntes Bauteil «' + (p && p.type) + '» in der Datei.' };
@@ -3699,23 +3817,37 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
     '.wire{fill:none;stroke:#0b6e94;stroke-width:2.6;stroke-linejoin:round}.pin{fill:#fff;stroke:#5b6b73;stroke-width:1.5}.pin.used{fill:#0b6e94;stroke:#0b6e94}.pin.junction{fill:#0b6e94}.vlabel{fill:#0b6e94;font:11px monospace;paint-order:stroke;stroke:#fff;stroke-width:3px}' +
     '.burnt{stroke:#e2574c;stroke-width:3.5;fill:none}.lamp-on{fill:#22b573}.lamp-off{fill:#cdd9dc}.seg{fill:none;stroke:#d9e4e7;stroke-width:4;stroke-linecap:round}.seg.on{stroke:#e2574c}.forbid{fill:rgba(226,87,76,.12);stroke:#e2574c;stroke-width:3;stroke-dasharray:6 3}.forbidtxt{fill:#b23a30;font:700 11px monospace;text-anchor:middle}';
   var CSS_BW = '.sym{fill:none;stroke:#000;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}.sym.fillsym{fill:#000}.sym.thin{stroke-width:1.5}.sym.thick{stroke-width:4}.sym.thick2{stroke-width:7}.sym.lever{stroke:#000;stroke-width:3}.ledbody{fill:#fff!important;fill-opacity:1!important}' +
-    '.symtxt{fill:#000;font:700 16px monospace;text-anchor:middle}.symtxt.small{font-size:10px}.plus{fill:#000;font:700 16px monospace}.lbl{fill:#000;font:600 12px monospace;text-anchor:middle}.val{fill:#000;font:12px monospace;text-anchor:middle}' +
+    '.symtxt{fill:#000;font:700 16px monospace;text-anchor:middle}.symtxt.small{font-size:10px}.plus{fill:#000;font:700 16px monospace}.lbl{fill:#555;font:600 11px monospace;text-anchor:middle}.val{fill:#000;font:12px monospace;text-anchor:middle}' +
     '.wire{fill:none;stroke:#000!important;stroke-width:2.2;stroke-linejoin:round}.pin{fill:#fff!important;stroke:#000;stroke-width:1.5}.pin.used{fill:#000!important;stroke:#000}.pin.junction{fill:#000!important}.vlabel{fill:#000;font:11px monospace;paint-order:stroke;stroke:#fff;stroke-width:3px}' +
     '.burnt{stroke:#000;stroke-width:3.5;fill:none}.lamp-on{fill:#bbb}.lamp-off{fill:#fff;stroke:#000}.seg{fill:none;stroke:#ddd;stroke-width:4;stroke-linecap:round}.seg.on{stroke:#000}.forbid{fill:none;stroke:#000;stroke-width:3;stroke-dasharray:6 3}.forbidtxt{fill:#000;font:700 11px monospace;text-anchor:middle}circle[fill="url(#glowAmber)"],circle[filter]{display:none}';
   /* opts: {color: true|false, values: true|false (Messwerte = Spannungen an den Anschlüssen)}; gibt {svg, w, h} */
   S.exportSVG = function (opts) {
-    opts = opts || {}; var color = opts.color !== false, core = S.core, ed = S.ed;
+    opts = opts || {}; if (opts.frame && S.exportSheetSVG) return S.exportSheetSVG(opts); var color = opts.color !== false, core = S.core, ed = S.ed;
     var keep = { sel: core.sel, multi: S.multi, volt: ed.showVolt, logic: S.logicColors, ws: core.wireStart };
     core.sel = null; S.multi = []; core.wireStart = null; ed.showVolt = !!opts.values; S.logicColors = color;
+    var gridKeep = root.DQEditor.extra.grid; if (opts.grid) root.DQEditor.extra.grid = { mode: S.grid.mode === 'off' ? 'lines' : S.grid.mode, size: S.grid.size }; else root.DQEditor.extra.grid = { mode: 'off', size: S.grid.size }; // Gitter nur auf Wunsch
+    var drawKeep = core.layout.drawHidden; if (opts.draw === false) core.layout.drawHidden = true; // Zeichenelemente auf Wunsch weglassen
     S.redraw(); ed.render();
     var live = ed.svg, ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('xmlns', ns); svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
     var g = document.createElementNS(ns, 'g'); Array.prototype.slice.call(live.childNodes).forEach(function (n) { g.appendChild(n.cloneNode(true)); }); svg.appendChild(g);
-    core.sel = keep.sel; S.multi = keep.multi; core.wireStart = keep.ws; ed.showVolt = keep.volt; S.logicColors = keep.logic; S.redraw();
+    core.sel = keep.sel; S.multi = keep.multi; core.wireStart = keep.ws; ed.showVolt = keep.volt; S.logicColors = keep.logic; root.DQEditor.extra.grid = gridKeep; if (drawKeep) core.layout.drawHidden = drawKeep; else delete core.layout.drawHidden; S.redraw();
     // Gitter, Trefferflächen, Tooltips und Messspitzen entfernen
-    var drop = g.querySelectorAll('rect.hit, circle.pinhit, path.wirehit, title, g.probe, pattern');
+    var drop = g.querySelectorAll('rect.hit, circle.pinhit, path.wirehit, title, g.probe, .drhit, .drhandle, .drsel, g.sheetlayer, g.sheetmarks' + (opts.grid ? '' : ', pattern'));
     Array.prototype.forEach.call(drop, function (n) { n.parentNode && n.parentNode.removeChild(n); });
-    Array.prototype.forEach.call(g.querySelectorAll('rect[fill^="url(#grid)"]'), function (n) { n.remove(); });
+    if (!opts.grid) Array.prototype.forEach.call(g.querySelectorAll('rect[fill^="url(#grid)"]'), function (n) { n.remove(); });
+    if (opts.region) { // nur was im Inhaltsbereich des Rahmens liegt (Mittelpunkt innerhalb)
+      var rg = opts.region, inside = function (x, y) { return x >= rg.x && x <= rg.x + rg.w && y >= rg.y && y <= rg.y + rg.h; }, gone = {};
+      core.layout.parts.forEach(function (p) { if (!inside(p.x, p.y)) gone[p.id] = 1; });
+      Array.prototype.forEach.call(g.querySelectorAll('g[data-part]'), function (n) { if (gone[n.dataset.part]) n.remove(); });
+      Array.prototype.forEach.call(g.querySelectorAll('g[data-pin]'), function (n) { if (gone[n.dataset.pin.split('.')[0]]) n.remove(); });
+      Array.prototype.forEach.call(g.querySelectorAll('g[data-wire]'), function (n) { var w = core.layout.wires[+n.dataset.wire]; if (!w || gone[w.from.split('.')[0]] || gone[w.to.split('.')[0]]) n.remove(); });
+      Array.prototype.forEach.call(g.querySelectorAll('g[data-draw]'), function (n) { var e = S.drawGet && S.drawGet(n.dataset.draw); if (!e) return; var cx = e.kind === 'line' ? (e.x1 + e.x2) / 2 : e.kind === 'text' ? e.x + 20 : e.x + e.w / 2, cy = e.kind === 'line' ? (e.y1 + e.y2) / 2 : e.kind === 'text' ? e.y + 10 : e.y + e.h / 2; if (!inside(cx, cy)) n.remove(); });
+      Array.prototype.forEach.call(g.querySelectorAll('.refmark, .vlabel'), function (n) { n.remove(); });
+    }
+    if (!color) Array.prototype.forEach.call(g.querySelectorAll('[data-draw] [stroke], [data-draw] [fill], [data-draw] text'), function (n) { // Schwarzweiss: Farben der Zeichenelemente in Grautöne umrechnen
+      ['stroke', 'fill'].forEach(function (a) { var v = n.getAttribute(a); if (v && /^#[0-9a-f]{6}$/i.test(v)) { var r = parseInt(v.slice(1, 3), 16), g2 = parseInt(v.slice(3, 5), 16), b2 = parseInt(v.slice(5, 7), 16), l = 0.299 * r + 0.587 * g2 + 0.114 * b2; n.setAttribute(a, a === 'stroke' || n.tagName === 'text' || n.tagName === 'polygon' ? (l < 150 ? '#000' : l < 215 ? '#666' : '#bbb') : 'rgb(' + Math.round(l) + ',' + Math.round(l) + ',' + Math.round(l) + ')'); } });
+    });
     if (!opts.values) Array.prototype.forEach.call(g.querySelectorAll('.vlabel'), function (n) { n.remove(); });
     // Ausdehnung messen
     var host = document.createElement('div'); host.style.cssText = 'position:fixed;left:-99999px;top:0;visibility:hidden'; var probe = svg.cloneNode(true); host.appendChild(probe); document.body.appendChild(host);
@@ -3737,25 +3869,17 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
   S.exportDialog = function () {
     S.openModal('<h2>Exportieren</h2><div class="field"><label>Format</label><select id="exF"><option value="svg">SVG (für Word, verlustfrei)</option><option value="png">PNG (2-fache Auflösung)</option></select></div>' +
       '<div class="field"><label>Farbe</label><select id="exC"><option value="1">in Farbe</option><option value="0">Schwarzweiss</option></select></div>' +
+      '<div class="field"><label for="exG">Gitternetz</label><select id="exG"><option value="0">ohne Gitternetz</option><option value="1">mit Gitternetz (wie angezeigt)</option></select></div>' +
+      '<div class="field"><label for="exR">Zeichnungsrahmen</label><select id="exR"><option value="0">ohne Rahmen</option><option value="1">mit Rahmen und Schriftfeld (Blatt 1)</option></select></div>' +
       '<div class="field"><label>Messwerte</label><select id="exV"><option value="0">ohne Messwerte</option><option value="1">mit Spannungen an den Anschlüssen</option></select></div>' +
       '<p class="hint">Die Bauteilwerte (1k, 100n …) stehen immer im Bild. Der Export zeigt den Stand der Simulation im Moment des Klicks.</p><p><button class="tb run" id="exGo">Exportieren</button> <button class="tb" id="mClose">Abbrechen</button></p>');
     $('#exGo').onclick = function () {
-      var o = { color: $('#exC').value === '1', values: $('#exV').value === '1' }, f = $('#exF').value, tag = (o.color ? '' : '_sw') + (o.values ? '_mw' : '');
+      var o = { color: $('#exC').value === '1', values: $('#exV').value === '1', grid: $('#exG').value === '1', frame: $('#exR').value === '1' }, f = $('#exF').value, tag = (o.color ? '' : '_sw') + (o.values ? '_mw' : '') + (o.grid ? '_gitter' : '') + (o.frame ? '_rahmen' : '');
       if (f === 'svg') download(fileBase() + tag + '.svg', new Blob([S.exportSVG(o).svg], { type: 'image/svg+xml' }));
       else S.exportPNG(o, function (b) { if (b) download(fileBase() + tag + '.png', b); });
       S.closeModal();
     };
   };
-
-  /* ---------- Drucken (A4, Schwarzweiss, Titelfeld) ---------- */
-  S.printPrepare = function () {
-    var r = S.exportSVG({ color: false, values: false }), area = $('#printArea') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'printArea' }));
-    var d = new Date(), date = d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    area.innerHTML = '<div class="pr-frame"><div class="pr-fig">' + r.svg.replace(/^<\?xml[^>]*>\s*/, '').replace(/ width="\d+" height="\d+"/, ' class="pr-svg"') + '</div>' +
-      '<table class="pr-title"><tr><td class="pr-l">Schaltung</td><td class="pr-v">' + esc(S.name) + '</td><td class="pr-l">Datum</td><td class="pr-v">' + date + '</td><td class="pr-l">Name</td><td class="pr-v">&nbsp;</td></tr></table></div>';
-    return area;
-  };
-  S.print = function () { S.printPrepare(); root.print(); };
 
   /* ---------- Einbau: Menü, Ziehen und Ablegen ---------- */
   S.initFns.push(function () {
@@ -5198,6 +5322,840 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
   });
 })(window);
 
+/* ==== studio/ansicht.js ==== */
+/* Digital Quest Studio – Ansicht-Menü, Gitternetz (Auftrag «Bauen», Paket 4)
+ * Gitternetz in drei Stufen (aus, Punkte, Linien), Rasterweite einstellbar (Standard 20 = Fangraster), Taste G schaltet um.
+ * Die Wahl bleibt über Sitzungen erhalten (Browserspeicher, in try/catch – ohne Speicher läuft alles trotzdem). Im Beamer-Modus und beim Drucken
+ * ist das Gitter aus, im Export nur auf Wunsch. */
+(function (root) {
+  'use strict';
+  var S = root.Studio, Editor = root.DQEditor, KEY = 'dqstudio_grid_v1';
+  var MODES = ['off', 'dots', 'lines'], LABEL = { off: 'aus', dots: 'Punkte', lines: 'Linien' }, SIZES = [10, 20, 40, 100];
+  S.grid = { mode: 'dots', size: 20 };
+  function store(fn) { try { return fn(root.localStorage); } catch (e) { return undefined; } }
+  function load() {
+    var raw = store(function (l) { return l.getItem(KEY); }); if (!raw) return;
+    try { var o = JSON.parse(raw); if (MODES.indexOf(o.mode) >= 0) S.grid.mode = o.mode; if (SIZES.indexOf(o.size) >= 0) S.grid.size = o.size; } catch (e) { /* kaputter Eintrag: Standard */ }
+  }
+  /* Was gerade gezeichnet wird: im Beamer-Modus nie */
+  function apply() {
+    Editor.extra.grid = { mode: S.beamer ? 'off' : S.grid.mode, size: S.grid.size };
+    var b = document.getElementById('btnGrid'); if (b) { b.classList.toggle('on', S.grid.mode !== 'off'); b.setAttribute('aria-pressed', S.grid.mode !== 'off'); b.title = 'Gitternetz: ' + LABEL[S.grid.mode] + ' (Taste G schaltet um)'; b.textContent = '▦ Gitter: ' + LABEL[S.grid.mode]; }
+    S.ed.render(); menu();
+  }
+  S.setGrid = function (mode, size) {
+    if (mode && MODES.indexOf(mode) >= 0) S.grid.mode = mode; if (size && SIZES.indexOf(size) >= 0) S.grid.size = size;
+    store(function (l) { l.setItem(KEY, JSON.stringify(S.grid)); }); apply();
+  };
+  S.cycleGrid = function () { S.setGrid(MODES[(MODES.indexOf(S.grid.mode) + 1) % MODES.length]); };
+  S.gridApply = apply;
+
+  function menu() {
+    var mark = function (on, t) { return (on ? '✓ ' : ' ') + t; }, items = [
+      { label: 'Beamer-Modus', key: 'F9', act: function () { S.setBeamer(!S.beamer); } }, { label: 'Schaltung einpassen', act: function () { S.ed.fit(); } }, { label: 'U-Werte ein/aus', act: function () { document.getElementById('btnVolt').click(); } },
+      { head: 'Gitternetz' }].concat(MODES.map(function (m) { return { label: mark(S.grid.mode === m, LABEL[m]), key: m === 'off' ? 'G' : '', act: function () { S.setGrid(m); } }; }),
+      [{ head: 'Rasterweite' }], SIZES.map(function (z) { return { label: mark(S.grid.size === z, z + (z === 20 ? ' (wie Fangraster)' : '')), act: function () { S.setGrid(null, z); } }; }));
+    if (S.extraViewItems) items = items.concat(S.extraViewItems());
+    S.setMenu('ansicht', items);
+  }
+  S.initFns.push(function () {
+    load();
+    var bar = document.querySelector('#btnFit'); if (bar && !document.getElementById('btnGrid')) { var b = document.createElement('button'); b.className = 'tb'; b.id = 'btnGrid'; b.addEventListener('click', function () { S.cycleGrid(); }); bar.parentNode.insertBefore(b, bar.nextSibling); }
+    document.addEventListener('keydown', function (ev) {
+      if (ev.ctrlKey || ev.metaKey || ev.altKey || /^(INPUT|SELECT|TEXTAREA)$/.test((ev.target || {}).tagName || '')) return;
+      if (ev.key === 'g' || ev.key === 'G') { ev.preventDefault(); S.cycleGrid(); }
+    });
+    apply();
+  });
+})(window);
+
+/* ==== studio/zeichnen.js ==== */
+/* Digital Quest Studio – Zeichenelemente: Text, Linie, Pfeil, Rechteck, Ellipse (Auftrag «Bauen», Paket 6)
+ * Beschriftungen, Hervorhebungen und Gruppierungen für Unterrichtsunterlagen. Die Elemente liegen in einer eigenen Ebene (layout.draw, Reihenfolge = vorne/hinten),
+ * haben keine elektrische Bedeutung und kommen nie in Netzliste, Rechnung oder Stückliste vor. Die Ebene lässt sich gemeinsam aus- und einblenden
+ * (layout.drawHidden). Rückgängig, Speichern und Laden laufen über das Layout wie bei allen Bauteilen.
+ * Elemente: {id, kind:'text', x, y, text, size, color, bold}
+ *           {id, kind:'line', x1, y1, x2, y2, color, width, dash, arrow}
+ *           {id, kind:'rect'|'ellipse', x, y, w, h, stroke, strokeWidth, fill, fillOpacity, dash}
+ * Gezeichnet wird nur mit Darstellungsattributen (kein CSS), damit Export und Druck dasselbe Bild liefern. */
+(function (root) {
+  'use strict';
+  var S = root.Studio, Editor = root.DQEditor, E = S.E;
+  var $ = function (s, el) { return (el || document).querySelector(s); };
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var COLORS = [['#0f2d3a', 'Dunkel'], ['#5b6b73', 'Grau'], ['#0b6e94', 'Blau'], ['#4fc3f7', 'Hellblau'], ['#11864f', 'Grün'], ['#f5b700', 'Gelb'], ['#d9480f', 'Orange'], ['#d64541', 'Rot'], ['#7b3fb5', 'Violett'], ['#ffffff', 'Weiss']];
+  var LABEL = { text: 'Text', line: 'Linie', arrow: 'Pfeil', rect: 'Rechteck', ellipse: 'Ellipse' };
+  S.DRAW_COLORS = COLORS;
+  var SNAP = 10;
+  var snap = function (v) { return Math.round(v / SNAP) * SNAP; };
+
+  /* ---------- Daten ---------- */
+  function list(create) { var L = S.core.layout; if (!L.draw && create) L.draw = []; return L.draw || []; }
+  function get(id) { return list().filter(function (e) { return e.id === id; })[0]; }
+  function nextId() { var used = {}; list().forEach(function (e) { used[e.id] = 1; }); var n = 1; while (used['z' + n]) n++; return 'z' + n; }
+  var DEFAULTS = {
+    text: function (x, y) { return { kind: 'text', x: x, y: y, text: 'Text', size: 18, color: '#0f2d3a', bold: false }; },
+    line: function (x, y) { return { kind: 'line', x1: x, y1: y, x2: x + 160, y2: y, color: '#0f2d3a', width: 2.5, dash: false, arrow: false }; },
+    arrow: function (x, y) { return { kind: 'line', x1: x, y1: y, x2: x + 160, y2: y, color: '#0f2d3a', width: 2.5, dash: false, arrow: true }; },
+    rect: function (x, y) { return { kind: 'rect', x: x, y: y, w: 200, h: 120, stroke: '#0b6e94', strokeWidth: 2, fill: '#4fc3f7', fillOpacity: 0.15, dash: false }; },
+    ellipse: function (x, y) { return { kind: 'ellipse', x: x, y: y, w: 200, h: 120, stroke: '#0b6e94', strokeWidth: 2, fill: '#4fc3f7', fillOpacity: 0.15, dash: false }; }
+  };
+  /* kind: text | line | arrow | rect | ellipse; Rückgabe das neue Element (ausgewählt) */
+  S.drawAdd = function (kind, x, y) {
+    var core = S.core, v = S.ed.view || [0, 0, 1000, 620];
+    if (x === undefined) { x = v[0] + v[2] / 2 - 100; y = v[1] + v[3] / 2 - 40; }
+    var el = DEFAULTS[kind](snap(x), snap(y)); el.id = nextId(); list(true).push(el);
+    core.sel = 'd:' + el.id; core.wireStart = null; S.multi = []; core.changed('draw'); S.refreshInspector(); return el;
+  };
+  S.drawGet = get; S.drawList = list;
+  S.drawUpdate = function (id, patch, quiet) { var e = get(id); if (!e) return null; Object.keys(patch).forEach(function (k) { e[k] = patch[k]; }); if (!quiet) S.core.changed('draw'); else S.ed.render(); return e; };
+  /* Reihenfolge: 'front' | 'back' | 'fwd' | 'bwd' */
+  S.drawOrder = function (id, where) {
+    var a = list(), i = a.findIndex(function (e) { return e.id === id; }); if (i < 0) return false; var e = a.splice(i, 1)[0];
+    var j = where === 'front' ? a.length : where === 'back' ? 0 : where === 'fwd' ? Math.min(a.length, i + 1) : Math.max(0, i - 1);
+    a.splice(j, 0, e); S.core.changed('draw'); return true;
+  };
+  S.drawVisible = function () { return !S.core.layout.drawHidden; };
+  S.setDrawVisible = function (on) { if (on) delete S.core.layout.drawHidden; else S.core.layout.drawHidden = true; S.core.changed('draw'); syncToggle(); };
+  function syncToggle() { var b = $('#btnDraw'); if (b) { var on = S.drawVisible(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.title = 'Zeichenelemente (Text, Linien, Rahmen) ' + (on ? 'ausblenden' : 'einblenden'); b.textContent = '✎ Zeichnung: ' + (on ? 'ein' : 'aus'); } }
+  S.drawSync = syncToggle;
+
+  /* ---------- Darstellung ---------- */
+  function textLines(e) { return String(e.text == null ? '' : e.text).split('\n'); }
+  /* Rahmen des Textes (Näherung für Trefferfläche und Auswahlrahmen); Textdarstellung nutzt auch das Schriftfeld (Paket 5) */
+  function textBox(e) { var ls = textLines(e), size = +e.size || 18, w = Math.max.apply(null, ls.map(function (l) { return l.length; })) * size * (e.bold ? 0.62 : 0.58); return { x: e.x, y: e.y, w: Math.max(12, w), h: ls.length * size * 1.25 }; }
+  S.textSVG = function (e, extra) {
+    var size = +e.size || 18, ls = textLines(e);
+    return '<text x="' + e.x + '" y="' + (e.y + size) + '" font-size="' + size + '" font-family="\'Noto Sans\', \'Segoe UI\', Arial, sans-serif" fill="' + esc(e.color || '#0f2d3a') + '"' + (e.bold ? ' font-weight="700"' : '') + (extra || '') + ' xml:space="preserve">' +
+      ls.map(function (l, i) { return '<tspan x="' + e.x + '"' + (i ? ' dy="' + (size * 1.25).toFixed(1) + '"' : '') + '>' + esc(l || ' ') + '</tspan>'; }).join('') + '</text>';
+  };
+  function bboxOf(e) {
+    if (e.kind === 'text') return textBox(e);
+    if (e.kind === 'line') return { x: Math.min(e.x1, e.x2), y: Math.min(e.y1, e.y2), w: Math.abs(e.x2 - e.x1), h: Math.abs(e.y2 - e.y1) };
+    return { x: e.x, y: e.y, w: e.w, h: e.h };
+  }
+  function arrowHead(e) { // Pfeilspitze am Ende (x2, y2)
+    var w = +e.width || 2.5, len = 9 + w * 2.6, ang = Math.atan2(e.y2 - e.y1, e.x2 - e.x1), a1 = ang + 2.75, a2 = ang - 2.75;
+    var p = [[e.x2, e.y2], [e.x2 + Math.cos(a1) * len, e.y2 + Math.sin(a1) * len], [e.x2 + Math.cos(a2) * len, e.y2 + Math.sin(a2) * len]];
+    return p.map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' ');
+  }
+  function dashAttr(e) { return e.dash ? ' stroke-dasharray="' + (Math.max(4, (e.width || e.strokeWidth || 2) * 3)).toFixed(1) + ' ' + (Math.max(3, (e.width || e.strokeWidth || 2) * 2.2)).toFixed(1) + '"' : ''; }
+  function shapeSVG(e, sel) {
+    var c = '';
+    switch (e.kind) {
+      case 'text': var b = textBox(e); c = '<rect class="drhit" x="' + (b.x - 3) + '" y="' + (b.y - 3) + '" width="' + (b.w + 6) + '" height="' + (b.h + 6) + '" fill="transparent"/>' + S.textSVG(e); break;
+      case 'line':
+        c = '<line class="drhit" x1="' + e.x1 + '" y1="' + e.y1 + '" x2="' + e.x2 + '" y2="' + e.y2 + '" stroke="transparent" stroke-width="16"/>' +
+          '<line x1="' + e.x1 + '" y1="' + e.y1 + '" x2="' + e.x2 + '" y2="' + e.y2 + '" stroke="' + esc(e.color) + '" stroke-width="' + e.width + '" stroke-linecap="round"' + dashAttr(e) + '/>' +
+          (e.arrow ? '<polygon points="' + arrowHead(e) + '" fill="' + esc(e.color) + '" stroke="' + esc(e.color) + '" stroke-width="1" stroke-linejoin="round"/>' : ''); break;
+      case 'rect':
+        c = '<rect class="drhit" x="' + e.x + '" y="' + e.y + '" width="' + e.w + '" height="' + e.h + '" fill="none" stroke="transparent" stroke-width="14"/>' +
+          '<rect x="' + e.x + '" y="' + e.y + '" width="' + e.w + '" height="' + e.h + '" rx="3" fill="' + esc(e.fill || 'none') + '" fill-opacity="' + (e.fill ? e.fillOpacity : 0) + '" stroke="' + esc(e.stroke) + '" stroke-width="' + e.strokeWidth + '"' + dashAttr(e) + ' pointer-events="none"/>'; break;
+      case 'ellipse':
+        c = '<ellipse class="drhit" cx="' + (e.x + e.w / 2) + '" cy="' + (e.y + e.h / 2) + '" rx="' + e.w / 2 + '" ry="' + e.h / 2 + '" fill="none" stroke="transparent" stroke-width="14"/>' +
+          '<ellipse cx="' + (e.x + e.w / 2) + '" cy="' + (e.y + e.h / 2) + '" rx="' + e.w / 2 + '" ry="' + e.h / 2 + '" fill="' + esc(e.fill || 'none') + '" fill-opacity="' + (e.fill ? e.fillOpacity : 0) + '" stroke="' + esc(e.stroke) + '" stroke-width="' + e.strokeWidth + '"' + dashAttr(e) + ' pointer-events="none"/>'; break;
+    }
+    return '<g class="dr dr-' + e.kind + (sel ? ' selected' : '') + '" data-draw="' + esc(e.id) + '">' + c + '</g>';
+  }
+  function handlesOf(e) { // Griffe: Eckpunkte (Rechteck, Ellipse) oder Endpunkte (Linie)
+    if (e.kind === 'line') return [[e.x1, e.y1], [e.x2, e.y2]];
+    if (e.kind === 'rect' || e.kind === 'ellipse') return [[e.x, e.y], [e.x + e.w, e.y], [e.x + e.w, e.y + e.h], [e.x, e.y + e.h]];
+    return [];
+  }
+  /* Die ganze Ebene als SVG-Text (vom Editor in render() eingefügt) */
+  Editor.drawLayer = function (layout, sel, interactive) {
+    if (layout.drawHidden || !layout.draw || !layout.draw.length) return '';
+    var h = '<g class="drawlayer">';
+    layout.draw.forEach(function (e) { h += shapeSVG(e, sel === 'd:' + e.id); });
+    if (interactive && sel && String(sel).indexOf('d:') === 0) {
+      var e = layout.draw.filter(function (x) { return 'd:' + x.id === sel; })[0];
+      if (e) {
+        var b = bboxOf(e); h += '<rect class="drsel" x="' + (b.x - 4) + '" y="' + (b.y - 4) + '" width="' + (b.w + 8) + '" height="' + (b.h + 8) + '" pointer-events="none"/>';
+        handlesOf(e).forEach(function (p, i) { h += '<circle class="drhandle" data-handle="' + e.id + ':' + i + '" cx="' + p[0] + '" cy="' + p[1] + '" r="6.5"/>'; });
+      }
+    }
+    return h + '</g>';
+  };
+
+  /* ---------- Bedienung (Ziehen und Verändern); der Editor ruft diese Funktionen aus seiner Zeigerbehandlung ---------- */
+  Editor.drawPress = function (ed, id, xy) {
+    var e = get(id); if (!e) return false; var core = ed.core;
+    core.sel = 'd:' + id; core.wireStart = null; S.multi = []; core.redraw(); core.opts.onSelect && core.opts.onSelect(null); S.refreshInspector();
+    ed.ddrag = { id: id, mode: 'move', sx: xy[0], sy: xy[1], base: JSON.parse(JSON.stringify(e)), moved: false }; return true;
+  };
+  Editor.drawHandlePress = function (ed, spec, xy) {
+    var a = spec.split(':'), e = get(a[0]); if (!e) return false;
+    ed.ddrag = { id: a[0], mode: 'handle', idx: +a[1], sx: xy[0], sy: xy[1], base: JSON.parse(JSON.stringify(e)), moved: false }; return true;
+  };
+  Editor.drawMove = function (ed, xy) {
+    var d = ed.ddrag; if (!d) return false; var e = get(d.id); if (!e) return false;
+    var dx = xy[0] - d.sx, dy = xy[1] - d.sy; if (!d.moved && Math.abs(dx) + Math.abs(dy) < 4) return true; d.moved = true;
+    var b = d.base;
+    if (d.mode === 'move') {
+      var mx = snap(dx), my = snap(dy);
+      if (e.kind === 'line') { e.x1 = b.x1 + mx; e.y1 = b.y1 + my; e.x2 = b.x2 + mx; e.y2 = b.y2 + my; } else { e.x = b.x + mx; e.y = b.y + my; }
+    } else if (e.kind === 'line') {
+      var px = snap(xy[0]), py = snap(xy[1]), ox = d.idx === 0 ? b.x2 : b.x1, oy = d.idx === 0 ? b.y2 : b.y1;
+      if (Math.abs(px - ox) <= 10) px = ox; else if (Math.abs(py - oy) <= 10) py = oy; // fast waagrecht oder senkrecht: einrasten
+      if (d.idx === 0) { e.x1 = px; e.y1 = py; } else { e.x2 = px; e.y2 = py; }
+    } else { // Rechteck, Ellipse: gegenüberliegende Ecke bleibt stehen
+      var cx = [b.x, b.x + b.w, b.x + b.w, b.x], cy = [b.y, b.y, b.y + b.h, b.y + b.h], opp = (d.idx + 2) % 4, fx = cx[opp], fy = cy[opp], qx = snap(xy[0]), qy = snap(xy[1]);
+      if (Math.abs(qx - fx) < 10) qx = fx + (qx >= fx ? 10 : -10); if (Math.abs(qy - fy) < 10) qy = fy + (qy >= fy ? 10 : -10);
+      e.x = Math.min(fx, qx); e.y = Math.min(fy, qy); e.w = Math.abs(qx - fx); e.h = Math.abs(qy - fy);
+    }
+    ed.render(); return true;
+  };
+  Editor.drawDouble = function (id) { var e = get(id); if (!e) return; S.core.sel = 'd:' + id; S.core.redraw(); S.refreshInspector(); var f = document.querySelector('#inspector textarea, #inspector input[type="text"]'); if (f) { f.focus(); if (f.select) f.select(); } };
+  Editor.drawRelease = function (ed) {
+    var d = ed.ddrag; ed.ddrag = null; if (!d) return false;
+    if (d.moved) ed.core.changed('draw'); return true;
+  };
+
+  /* ---------- Eigenschaften (rechtes Feld) ---------- */
+  function swatches(name, cur, none) {
+    return '<div class="swatches" data-sw="' + name + '">' + (none ? '<button class="sw none' + (!cur ? ' on' : '') + '" data-c="" title="keine Füllung" aria-label="keine Füllung">∅</button>' : '') +
+      COLORS.map(function (c) { return '<button class="sw' + (cur && cur.toLowerCase() === c[0] ? ' on' : '') + '" data-c="' + c[0] + '" style="background:' + c[0] + '" title="' + c[1] + '" aria-label="' + c[1] + '"></button>'; }).join('') +
+      '<label class="swfree" title="freie Farbe"><input type="color" data-cc="' + name + '" value="' + (cur && /^#[0-9a-f]{6}$/i.test(cur) ? cur : '#808080') + '"></label></div>';
+  }
+  S.drawInspector = function (id) {
+    var e = get(id); if (!e) return null; var name = e.kind === 'line' ? (e.arrow ? 'Pfeil' : 'Linie') : LABEL[e.kind], h = '<h2>' + name + '</h2><p class="sub">Zeichenelement – wird nie simuliert und steht nicht in der Stückliste.</p>';
+    function num(k, l, u, v) { return '<div class="field"><label for="dr_' + k + '">' + l + '</label><span><input id="dr_' + k + '" data-dk="' + k + '" type="text" inputmode="decimal" value="' + esc(v) + '"><span class="unit">' + (u || '') + '</span></span></div>'; }
+    if (e.kind === 'text') {
+      h += '<div class="field wide"><label for="dr_text">Text (mehrzeilig)</label><textarea id="dr_text" data-dk="text" rows="4">' + esc(e.text) + '</textarea></div>' + num('size', 'Grösse', 'px', e.size) +
+        '<div class="field"><label for="dr_bold">Fett</label><input id="dr_bold" data-dk="bold" type="checkbox"' + (e.bold ? ' checked' : '') + ' style="width:28px;height:28px"></div><h3>Farbe</h3>' + swatches('color', e.color);
+    } else if (e.kind === 'line') {
+      h += num('width', 'Stärke', 'px', e.width) + '<div class="field"><label for="dr_dash">Strichart</label><select id="dr_dash" data-dk="dash"><option value="0"' + (e.dash ? '' : ' selected') + '>durchgezogen</option><option value="1"' + (e.dash ? ' selected' : '') + '>gestrichelt</option></select></div>' +
+        '<div class="field"><label for="dr_arrow">Pfeilspitze</label><input id="dr_arrow" data-dk="arrow" type="checkbox"' + (e.arrow ? ' checked' : '') + ' style="width:28px;height:28px"></div><h3>Farbe</h3>' + swatches('color', e.color);
+    } else {
+      h += num('strokeWidth', 'Randstärke', 'px', e.strokeWidth) + '<div class="field"><label for="dr_dash">Strichart</label><select id="dr_dash" data-dk="dash"><option value="0"' + (e.dash ? '' : ' selected') + '>durchgezogen</option><option value="1"' + (e.dash ? ' selected' : '') + '>gestrichelt</option></select></div>' +
+        '<h3>Rand</h3>' + swatches('stroke', e.stroke) + '<h3>Füllung</h3>' + swatches('fill', e.fill, true) +
+        '<div class="field wide"><label for="dr_fo">Deckkraft der Füllung: <span class="mono" id="dr_fov">' + Math.round((e.fillOpacity == null ? 1 : e.fillOpacity) * 100) + ' %</span></label><input id="dr_fo" data-dk="fillOpacity" type="range" min="0.05" max="1" step="0.05" value="' + (e.fillOpacity == null ? 1 : e.fillOpacity) + '"></div>';
+    }
+    h += '<h3>Ebene</h3><div class="draworder"><button class="tb" data-ord="front">Ganz nach vorn</button><button class="tb" data-ord="fwd">Eins nach vorn</button><button class="tb" data-ord="bwd">Eins zurück</button><button class="tb" data-ord="back">Ganz nach hinten</button></div>' +
+      '<p class="hint">Verschieben: Element ziehen. Grösse: Griffe an den Ecken bzw. Enden ziehen. Entf löscht.</p>';
+    return h;
+  };
+  S.bindDrawInspector = function (el, id) {
+    function apply(k, v) { var p = {}; p[k] = v; S.drawUpdate(id, p); }
+    Array.prototype.forEach.call(el.querySelectorAll('[data-dk]'), function (i) {
+      var k = i.dataset.dk, ev = i.tagName === 'TEXTAREA' || i.type === 'range' || i.type === 'checkbox' || i.tagName === 'SELECT' ? 'input' : 'change';
+      i.addEventListener(ev, function () {
+        if (k === 'bold' || k === 'arrow') apply(k, i.checked);
+        else if (k === 'dash') apply(k, i.value === '1');
+        else if (k === 'text') { S.drawUpdate(id, { text: i.value }, true); S.core.changed('draw'); }
+        else if (k === 'fillOpacity') { var o = $('#dr_fov', el); if (o) o.textContent = Math.round(+i.value * 100) + ' %'; apply(k, +i.value); }
+        else { var v = S.parseSI(i.value); if (!(v > 0)) { i.classList.add('bad'); return; } i.classList.remove('bad'); apply(k, k === 'size' ? Math.min(200, v) : Math.min(40, v)); }
+      });
+    });
+    el.addEventListener('click', function (ev) {
+      var sw = ev.target.closest('.sw'), ord = ev.target.closest('[data-ord]');
+      if (sw) { var box = sw.closest('[data-sw]'), k = box.dataset.sw, c = sw.dataset.c; apply(k, c || null); Array.prototype.forEach.call(box.querySelectorAll('.sw'), function (b) { b.classList.toggle('on', b === sw); }); return; }
+      if (ord) S.drawOrder(id, ord.dataset.ord);
+    });
+    el.addEventListener('input', function (ev) { var cc = ev.target.closest('[data-cc]'); if (cc) apply(cc.dataset.cc, cc.value); });
+  };
+
+  /* ---------- Einbau: Bauteilleiste, Menü, Schalter ---------- */
+  S.DRAW_ITEMS = [['draw:text', 'Text'], ['draw:line', 'Linie'], ['draw:arrow', 'Pfeil'], ['draw:rect', 'Rechteck'], ['draw:ellipse', 'Ellipse']];
+  S.drawIcon = function (t) {
+    var i = '<svg class="symicon" viewBox="-46 -30 92 60" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">';
+    switch (t) {
+      case 'draw:text': i += '</g><text x="0" y="12" text-anchor="middle" font-size="34" font-weight="700" fill="currentColor" font-family="sans-serif">Aa</text><g>'; break;
+      case 'draw:line': i += '<path d="M-34 14L34 -14"/>'; break;
+      case 'draw:arrow': i += '<path d="M-34 14L30 -12"/><path d="M30 -12l-12 1M30 -12l-5 11"/>'; break;
+      case 'draw:rect': i += '<rect x="-32" y="-18" width="64" height="36" rx="3" fill="rgba(79,195,247,.25)"/>'; break;
+      case 'draw:ellipse': i += '<ellipse cx="0" cy="0" rx="32" ry="19" fill="rgba(79,195,247,.25)"/>'; break;
+    }
+    return i + '</g></svg>';
+  };
+  S.initFns.push(function () {
+    var b = document.createElement('button'); b.className = 'tb'; b.id = 'btnDraw'; b.addEventListener('click', function () { S.setDrawVisible(!S.drawVisible()); });
+    var ref = $('#btnGrid') || $('#btnFit'); if (ref) ref.parentNode.insertBefore(b, ref.nextSibling); syncToggle();
+    var prev = S.extraViewItems; S.extraViewItems = function () { return (prev ? prev() : []).concat([{ head: 'Zeichnung' }, { label: (S.drawVisible() ? '✓ ' : ' ') + 'Zeichenelemente anzeigen', act: function () { S.setDrawVisible(!S.drawVisible()); } }]); };
+    if (S.gridApply) S.gridApply();
+  });
+  S.onLoad = (function (prev) { return function (o) { if (prev) prev(o); syncToggle(); }; })(S.onLoad);
+  var prevRedo = S.redo, prevUndo = S.undo; // Umschalter nach Rückgängig nachziehen
+  S.undo = function () { var r = prevUndo(); syncToggle(); return r; }; S.redo = function () { var r = prevRedo(); syncToggle(); return r; };
+})(window);
+
+/* ==== studio/blatt.js ==== */
+/* Digital Quest Studio – Zeichnungsrahmen und Schriftfeld (Auftrag «Bauen», Paket 5)
+ * Der Rahmen ist ein Blatt in wirklicher Grösse (96 dpi: A4 hoch 794 × 1123, A4 quer 1123 × 794, A3 quer 1587 × 1123) auf der Zeichenfläche:
+ *   Blattrand → 38 → Rahmenlinie (2) → 20 → Inhalt; unten im Rahmen das Schriftfeld (Höhe 112); der Inhalt endet 170 über dem Blattrand.
+ * Was ausserhalb des Inhaltsbereichs liegt, kommt nicht in den Druck: Der Bereich ausserhalb ist getönt, Bauteile dort sind markiert.
+ * Zur Schaltung gehörig (wird mitgespeichert): layout.sheet = {on, format, x, y, fields:{titel, thema, name, datum, klasse, aenderung, text}}.
+ * Das Schriftfeld nutzt dieselbe Textdarstellung wie die Zeichenelemente (S.textSVG). */
+(function (root) {
+  'use strict';
+  var S = root.Studio, Editor = root.DQEditor, E = S.E;
+  var $ = function (s, el) { return (el || document).querySelector(s); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var FORMATS = { a4p: { label: 'A4 hoch', w: 794, h: 1123, css: 'A4 portrait' }, a4l: { label: 'A4 quer', w: 1123, h: 794, css: 'A4 landscape' }, a3l: { label: 'A3 quer', w: 1587, h: 1123, css: 'A3 landscape' } };
+  var M = { edge: 38, frameLine: 2, gap: 20, title: 112, contentBottom: 170, contentLeft: 58 };
+  S.SHEET = { FORMATS: FORMATS, M: M };
+  var snap = function (v) { return Math.round(v / 20) * 20; };
+
+  /* ---------- Daten ---------- */
+  S.sheet = function () { return S.core.layout.sheet || null; };
+  S.sheetOn = function () { var s = S.sheet(); return !!(s && s.on); };
+  S.sheetFields = function () { var s = S.sheet() || {}, f = s.fields || {}; return { titel: f.titel || S.name || '', thema: f.thema || '', name: f.name || '', datum: f.datum || '', klasse: f.klasse || '', aenderung: f.aenderung || '', text: f.text || '' }; };
+  /* Schaltungsrahmen (Ausdehnung aller Bauteile und Zeichenelemente), für die Mitte des Blattes */
+  function contentBox() {
+    var L = S.core.layout, xs = [], ys = [];
+    L.parts.forEach(function (p) { xs.push(p.x - 50, p.x + 50); ys.push(p.y - 45, p.y + 45); });
+    (L.draw || []).forEach(function (e) { if (e.kind === 'line') { xs.push(e.x1, e.x2); ys.push(e.y1, e.y2); } else { xs.push(e.x, e.x + (e.w || 100)); ys.push(e.y, e.y + (e.h || 30)); } });
+    if (!xs.length) return null; return { x0: Math.min.apply(null, xs), x1: Math.max.apply(null, xs), y0: Math.min.apply(null, ys), y1: Math.max.apply(null, ys) };
+  }
+  S.sheetSet = function (patch, quiet) {
+    var L = S.core.layout, s = L.sheet || (L.sheet = { on: false, format: 'a4p', x: 0, y: 0, fields: {} }), fresh = !L.sheet.placed;
+    Object.keys(patch).forEach(function (k) { if (k === 'center') return; if (k === 'fields') s.fields = Object.assign({}, s.fields || {}, patch.fields); else s[k] = patch[k]; });
+    if (s.on && (fresh || patch.center)) S.sheetCenter(true);
+    if (!quiet) S.core.changed('draw');
+    S.sheetSync(); return s;
+  };
+  /* Der Rahmen steht auf der Zeichenfläche im Massstab sheet.scale (1 = wirkliche Grösse, 1,25 = ein Blatt deckt 25 % mehr Zeichenfläche ab, gedruckt wird entsprechend kleiner).
+   * «Um die Schaltung legen» wählt den kleinsten Massstab, bei dem die Schaltung hineinpasst (soweit das Blatt auf die Zeichenfläche passt) und legt das Blatt in die Mitte. */
+  var SCALES = [1, 1.25, 1.5, 1.75, 2];
+  S.sheetScale = function () { var s = S.sheet(); return s && s.scale > 0 ? s.scale : 1; };
+  S.sheetCenter = function (quiet) {
+    var s = S.sheet(); if (!s) return; var f = FORMATS[s.format], cb = contentBox(), sp = root.DQCircuit.SPACES.schema;
+    var inW = f.w - 2 * M.contentLeft, inH = f.h - M.contentLeft - M.contentBottom, bw = cb ? cb.x1 - cb.x0 : 0, bh = cb ? cb.y1 - cb.y0 : 0, pick = 1, fitsCanvas = function (c) { return f.w * c <= sp.w && f.h * c <= sp.h; };
+    for (var i = 0; i < SCALES.length; i++) { if (!fitsCanvas(SCALES[i])) break; pick = SCALES[i]; if (bw <= inW * SCALES[i] && bh <= inH * SCALES[i]) break; }
+    s.scale = pick;
+    var cx = cb ? (cb.x0 + cb.x1) / 2 : sp.w / 2, cy = cb ? (cb.y0 + cb.y1) / 2 : sp.h / 2;
+    s.x = snap(Math.max(0, Math.min(sp.w - f.w * pick, cx - (M.contentLeft + inW / 2) * pick))); s.y = snap(Math.max(0, Math.min(sp.h - f.h * pick, cy - (M.contentLeft + inH / 2) * pick))); s.placed = true;
+    if (!quiet) { S.core.changed('draw'); }
+  };
+  function clampSheet() { var s = S.sheet(), f = FORMATS[s.format], k = S.sheetScale(), sp = root.DQCircuit.SPACES.schema; s.x = Math.max(0, Math.min(sp.w - f.w * k, s.x)); s.y = Math.max(0, Math.min(sp.h - f.h * k, s.y)); }
+  /* Inhaltsbereich des Blattes in Zeichenflächen-Koordinaten */
+  S.sheetContent = function () { var s = S.sheet(); if (!s || !s.on) return null; var f = FORMATS[s.format], k = S.sheetScale(); return { x: s.x + M.contentLeft * k, y: s.y + M.contentLeft * k, w: (f.w - 2 * M.contentLeft) * k, h: (f.h - M.contentLeft - M.contentBottom) * k }; };
+  /* liegt der Mittelpunkt (px, py) im Inhaltsbereich? Ohne Rahmen: alles drin */
+  S.sheetInside = function (px, py) { var c = S.sheetContent(); return !c || (px >= c.x && px <= c.x + c.w && py >= c.y && py <= c.y + c.h); };
+
+  /* ---------- Rahmen und Schriftfeld als SVG (Ursprung = linke obere Ecke des Blattes); Blatt n von N ---------- */
+  S.frameSVG = function (fmt, fields, page, pages, opts) {
+    opts = opts || {}; var f = FORMATS[fmt], x0 = M.edge, y0 = M.edge, w = f.w - 2 * M.edge, h = f.h - 2 * M.edge, ty = f.h - M.edge - M.title, tw = w;
+    var colR = 170, colL = Math.round((tw - colR) / 2), c1 = x0 + colL, c2 = x0 + tw - colR, col = opts.color || '#000', gray = opts.gray || '#666';
+    var T = function (x, y, txt, o) { return S.textSVG({ x: x, y: y, text: txt, size: o.size, color: o.color || col, bold: o.bold }); }; // gleiche Textdarstellung wie die Zeichenelemente
+    function label(x, y, t) { return '<text x="' + x + '" y="' + y + '" font-size="9.5" letter-spacing="0.8" fill="' + gray + '" font-family="\'Noto Sans\', \'Segoe UI\', Arial, sans-serif">' + esc(t.toUpperCase()) + '</text>'; }
+    function value(x, y, t, o) { return t ? T(x, y - (o && o.size ? o.size : 12), t, o || { size: 12 }) : ''; }
+    var s = '<g class="blatt-frame" fill="none" stroke="' + col + '"><rect x="' + x0 + '" y="' + y0 + '" width="' + w + '" height="' + h + '" stroke-width="' + M.frameLine + '"/>' +
+      '<path d="M' + x0 + ' ' + ty + 'H' + (x0 + tw) + 'M' + c1 + ' ' + ty + 'V' + (ty + M.title) + 'M' + c2 + ' ' + ty + 'V' + (ty + M.title) + '" stroke-width="1.2"/>' +
+      '<path d="M' + (c1 + (c2 - c1) / 2) + ' ' + ty + 'V' + (ty + M.title) + 'M' + c1 + ' ' + (ty + M.title / 2) + 'H' + c2 + '" stroke-width="0.8" stroke="' + gray + '"/></g>';
+    // links: Titel (fett, 13,5) und Thema
+    s += label(x0 + 12, ty + 18, 'Titel') + value(x0 + 12, ty + 40, fields.titel, { size: 13.5, bold: true }) + label(x0 + 12, ty + 66, 'Thema') + value(x0 + 12, ty + 88, fields.thema, { size: 12 });
+    // Mitte: Name, Datum, Klasse, Änderung als 2 × 2
+    var mx = c1 + 12, mx2 = c1 + (c2 - c1) / 2 + 12;
+    s += label(mx, ty + 18, 'Name') + value(mx, ty + 40, fields.name) + label(mx2, ty + 18, 'Datum') + value(mx2, ty + 40, fields.datum) +
+      label(mx, ty + 18 + M.title / 2, 'Klasse') + value(mx, ty + 40 + M.title / 2, fields.klasse) + label(mx2, ty + 18 + M.title / 2, 'Änderung') + value(mx2, ty + 40 + M.title / 2, fields.aenderung);
+    // rechts: Blatt n / N gross in Monospace, darunter klein das Zeichen und «Digital Quest Studio»
+    s += label(c2 + 12, ty + 18, 'Blatt') + '<text x="' + (c2 + 12) + '" y="' + (ty + 58) + '" font-size="28" font-family="\'DejaVu Sans Mono\', Consolas, monospace" fill="' + col + '" font-weight="700">' + esc(page + ' / ' + pages) + '</text>' +
+      '<path d="M' + (c2 + 12) + ' ' + (ty + 90) + 'h6l2-6 4 12 2-6h8" fill="none" stroke="' + col + '" stroke-width="1.6"/><text x="' + (c2 + 44) + '" y="' + (ty + 94) + '" font-size="9.5" fill="' + gray + '" font-family="\'Noto Sans\', Arial, sans-serif">Digital Quest Studio</text>';
+    return s;
+  };
+
+  /* ---------- Darstellung auf der Zeichenfläche ---------- */
+  Editor.sheetLayer = function (layout) {
+    var sh = layout.sheet; if (!sh || !sh.on) return '';
+    var f = FORMATS[sh.format] || FORMATS.a4p, sp = root.DQCircuit.SPACES.schema, k = sh.scale > 0 ? sh.scale : 1, cx = sh.x + M.contentLeft * k, cy = sh.y + M.contentLeft * k, cw = (f.w - 2 * M.contentLeft) * k, ch = (f.h - M.contentLeft - M.contentBottom) * k;
+    var fields = S.sheetFields();
+    var h = '<g class="sheetlayer"><path class="sheetout" fill-rule="evenodd" d="M0 0H' + sp.w + 'V' + sp.h + 'H0ZM' + cx + ' ' + cy + 'h' + cw + 'v' + ch + 'h-' + cw + 'Z" pointer-events="none"/>' +
+      '<rect class="sheetedge" x="' + sh.x + '" y="' + sh.y + '" width="' + f.w * k + '" height="' + f.h * k + '" fill="none" pointer-events="none"/>' +
+      '<g transform="translate(' + sh.x + ' ' + sh.y + ') scale(' + k + ')" class="sheetframe" pointer-events="none">' + S.frameSVG(sh.format, fields, 1, '·', { color: '#35505c', gray: '#7d8d94' }) + '</g>' +
+      '<rect class="sheethit" data-sheet="1" x="' + (sh.x + (M.edge - 7) * k) + '" y="' + (sh.y + (M.edge - 7) * k) + '" width="' + ((f.w - 2 * M.edge + 14) * k) + '" height="' + ((f.h - 2 * M.edge + 14) * k) + '" fill="none" stroke="transparent" stroke-width="14"/>' +
+      '<text class="sheetlbl" x="' + (sh.x + M.edge * k) + '" y="' + (sh.y + M.edge * k - 8) + '">' + esc(f.label) + (k !== 1 ? ' (Massstab 1 : ' + k + ')' : '') + ' – Druckbereich, am Rand ziehen zum Verschieben</text></g>';
+    return h;
+  };
+  /* Markierung für Bauteile und Zeichenelemente ausserhalb des Inhaltsbereichs */
+  Editor.sheetMarks = function (layout) {
+    var sh = layout.sheet; if (!sh || !sh.on) return ''; var h = '';
+    layout.parts.forEach(function (p) { if (!S.sheetInside(p.x, p.y)) h += '<g transform="translate(' + p.x + ' ' + p.y + ')" pointer-events="none"><rect class="outmark" x="-50" y="-40" width="100" height="80" rx="6"/><text class="outtxt" y="-46">ausserhalb</text></g>'; });
+    (layout.draw || []).forEach(function (e) { var b = e.kind === 'line' ? { x: (e.x1 + e.x2) / 2, y: (e.y1 + e.y2) / 2 } : e.kind === 'text' ? { x: e.x + 20, y: e.y + 10 } : { x: e.x + e.w / 2, y: e.y + e.h / 2 }; if (!S.sheetInside(b.x, b.y)) h += '<text class="outtxt" x="' + b.x + '" y="' + (b.y - 14) + '" pointer-events="none">ausserhalb</text>'; });
+    return h ? '<g class="sheetmarks">' + h + '</g>' : '';
+  };
+  Editor.sheetPress = function (ed, xy) { var s = ed.core.layout.sheet; if (!s) return false; ed.sdrag = { sx: xy[0], sy: xy[1], x: s.x, y: s.y, moved: false }; ed.core.sel = null; ed.core.wireStart = null; ed.core.redraw(); return true; };
+  Editor.sheetMove = function (ed, xy) {
+    var d = ed.sdrag, s = ed.core.layout.sheet; if (!d || !s) return false; var dx = xy[0] - d.sx, dy = xy[1] - d.sy; if (!d.moved && Math.abs(dx) + Math.abs(dy) < 6) return true; d.moved = true;
+    var f = FORMATS[s.format], k = s.scale > 0 ? s.scale : 1, sp = root.DQCircuit.SPACES.schema; s.x = Math.max(0, Math.min(sp.w - f.w * k, snap(d.x + dx))); s.y = Math.max(0, Math.min(sp.h - f.h * k, snap(d.y + dy))); ed.render(); return true;
+  };
+  Editor.sheetRelease = function (ed) { var d = ed.sdrag; ed.sdrag = null; if (d && d.moved) ed.core.changed('draw'); return !!d; };
+
+  /* ---------- Schriftfeld bearbeiten ---------- */
+  S.sheetDialog = function () {
+    var f = S.sheetFields(), s = S.sheet(), fmt = s ? s.format : 'a4p', fld = function (id, l, v, ph) { return '<div class="field wide"><label for="' + id + '">' + l + '</label><input id="' + id + '" class="tin" style="width:100%" type="text" value="' + esc(v) + '"' + (ph ? ' placeholder="' + esc(ph) + '"' : '') + '></div>'; };
+    S.openModal('<h2>Zeichnungsrahmen und Schriftfeld</h2><div class="field"><label for="shF">Blatt</label><select id="shF"><option value="off"' + (S.sheetOn() ? '' : ' selected') + '>kein Rahmen</option>' + Object.keys(FORMATS).map(function (k) { return '<option value="' + k + '"' + (S.sheetOn() && fmt === k ? ' selected' : '') + '>' + FORMATS[k].label + '</option>'; }).join('') + '</select></div><div class="field"><label for="shS">Massstab des Rahmens</label><select id="shS"><option value="auto">passend zur Schaltung</option>' + [1, 1.25, 1.5, 1.75, 2].map(function (k) { return '<option value="' + k + '"' + (s && s.scale === k ? ' selected' : '') + '>1 : ' + String(k).replace('.', ',') + (k === 1 ? ' (wirkliche Grösse)' : '') + '</option>'; }).join('') + '</select></div>' +
+      fld('shT', 'Titel der Schaltung', f.titel) + fld('shTh', 'Thema', f.thema) + '<div class="field wide"><div class="two">' + '<div><label for="shN">Name</label><input id="shN" class="tin" style="width:100%" value="' + esc(f.name) + '"></div>' +
+      '<div><label for="shD">Datum <button class="tl-btn" id="shDnow" type="button">heute</button></label><input id="shD" class="tin" style="width:100%" value="' + esc(f.datum) + '"></div>' + '<div><label for="shK">Klasse</label><input id="shK" class="tin" style="width:100%" value="' + esc(f.klasse) + '"></div>' +
+      '<div><label for="shA">Änderungsstand</label><input id="shA" class="tin" style="width:100%" value="' + esc(f.aenderung) + '"></div></div></div>' +
+      '<div class="field wide"><label for="shB">Beschreibung unter der Schaltung (Blatt 1, ein bis zwei Sätze)</label><textarea id="shB" rows="3">' + esc(f.text) + '</textarea></div>' +
+      '<p class="hint">Felder dürfen leer bleiben. Der Rahmen zeigt den Druckbereich in wirklicher Grösse; was ausserhalb liegt, kommt nicht in den Druck.</p><p><button class="tb run" id="shOk">Übernehmen</button> <button class="tb" id="mClose">Abbrechen</button></p>');
+    $('#shDnow').onclick = function () { var d = new Date(); $('#shD').value = d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' }); };
+    $('#shOk').onclick = function () {
+      var v = $('#shF').value, fields = { titel: $('#shT').value, thema: $('#shTh').value, name: $('#shN').value, datum: $('#shD').value, klasse: $('#shK').value, aenderung: $('#shA').value, text: $('#shB').value };
+      if (fields.titel === (S.name || '')) fields.titel = ''; // Standard: Name der Schaltung
+      var sc = $('#shS').value;
+      if (v === 'off') S.sheetSet({ on: false, fields: fields });
+      else if (sc === 'auto') S.sheetSet({ on: true, format: v, fields: fields, center: true });
+      else { S.sheetSet({ on: true, format: v, fields: fields, scale: +sc, center: false }); clampSheet(); S.core.changed('draw'); }
+      S.closeModal(); S.redraw();
+    };
+  };
+
+  /* ---------- Einbau: Menü Ansicht, Zeigerbehandlung, Datei ---------- */
+  S.sheetSync = function () { if (S.gridApply) S.gridApply(); };
+  S.initFns.push(function () {
+    var prev = S.extraViewItems; S.extraViewItems = function () {
+      var on = S.sheetOn(), fmt = on ? S.sheet().format : null, mark = function (b, t) { return (b ? '✓ ' : ' ') + t; };
+      return (prev ? prev() : []).concat([{ head: 'Zeichnungsrahmen' }, { label: mark(!on, 'kein Rahmen'), act: function () { S.sheetSet({ on: false }); } }].concat(Object.keys(FORMATS).map(function (k) { return { label: mark(on && fmt === k, FORMATS[k].label), act: function () { S.sheetSet({ on: true, format: k, center: !on || fmt !== k }); } }; }),
+        [{ label: 'Rahmen um die Schaltung legen', act: function () { if (!S.sheetOn()) S.sheetSet({ on: true }); else S.sheetCenter(); } }, { label: 'Schriftfeld bearbeiten …', act: function () { S.sheetDialog(); } }]));
+    };
+    if (S.gridApply) S.gridApply();
+  });
+})(window);
+
+/* ==== studio/druck.js ==== */
+/* Digital Quest Studio – Drucken: Rahmen, Schriftfeld, mehrseitig mit Herleitung (Auftrag «Bauen», Paket 5, Entwurf Anhang A)
+ * Seite 1 ist immer die Schaltung im Zeichnungsrahmen. Für die Folgeseiten wird ausgewählt, was mitgedruckt wird: Wahrheitstabelle, Boolescher Ausdruck mit
+ * Minimalform, KV-Diagramm mit Gruppen, Oszilloskop-Kurven, Zeitverlauf, Stückliste. Zwei Fassungen: «Lösung» (alles ausgefüllt) und «Aufgabe»
+ * (Tabelle, Ausdruck und KV-Diagramm als leere Vordrucke). Passt nicht alles auf eine Seite, wird umbrochen; das Schriftfeld zählt die Seiten («2 / 3»).
+ * «PDF erzeugen» öffnet den Druckdialog des Browsers; dort Ziel «Als PDF speichern» wählen (die Blattgrösse steht im Druckauftrag). */
+(function (root) {
+  'use strict';
+  var S = root.Studio, E = S.E, B = root.DQStudioBool, V = root.DQVisuals;
+  var $ = function (s, el) { return (el || document).querySelector(s); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var SH = S.SHEET, F = SH.FORMATS, M = SH.M;
+  S.printOptions = { format: 'a4p', frame: true, version: 'loesung', grid: false, items: { table: true, expr: true, kv: true, scope: false, timing: false, bom: false } };
+
+  /* ---------- Ist die Schaltung eine reine Logikschaltung? ---------- */
+  var LOGIC_TYPES = { logicin: 1, logicled: 1, not: 1, and: 1, or: 1, nand: 1, nor: 1, xor: 1, xnor: 1, node: 1, ground: 1 };
+  var OUT_NAMES = ['A', 'B', 'C', 'D', 'F', 'G', 'H'];
+  /* {ok, why} oder {ok:true, ins, outs, n, rows (je Eingangskombination k, e1 = niederwertigstes Bit), exprs, tableWhy?, kvWhy?} */
+  S.logicInfo = function (layout) {
+    layout = layout || S.core.layout; if (!layout.parts.length) return { ok: false, why: 'Die Schaltung ist leer.' };
+    var bad = layout.parts.filter(function (p) { return !LOGIC_TYPES[p.type]; });
+    if (bad.length) {
+      var seq = bad.some(function (p) { var d = E.PARTS[p.type]; return d.ff || d.ctr || p.type === 'clock'; });
+      return { ok: false, why: seq ? 'Die Schaltung enthält Takt, Flipflops oder Zähler: Tabelle, Ausdruck und KV-Diagramm gibt es nur für reine Logikschaltungen ohne Speicher.' : 'Die Schaltung enthält Bauteile, die keine Logik sind (' + bad.slice(0, 3).map(function (p) { return p.id; }).join(', ') + (bad.length > 3 ? ' …' : '') + '): Tabelle, Ausdruck und KV-Diagramm gibt es nur für reine Logikschaltungen aus Pegelschaltern, Gattern und Logikanzeigen.' };
+    }
+    var ins = B.inputsOf(layout), outs = B.outputsOf(layout);
+    if (!ins.length) return { ok: false, why: 'Es fehlen Pegelschalter als Eingänge.' };
+    if (!outs.length) return { ok: false, why: 'Es fehlt eine Logikanzeige (oder ein freier Gatterausgang) als Ausgang.' };
+    var exprs; try { exprs = outs.map(function (o) { return B.readCircuit(layout, o.pin); }); } catch (e) { return { ok: false, why: e.message }; }
+    var t = B.circuitTable(layout); if (t.error) return { ok: false, why: t.error };
+    var n = ins.length, r = { ok: true, ins: ins, outs: outs, n: n, rows: t.rows, exprs: exprs, names: outs.map(function (o, i) { return OUT_NAMES[i] || 'A' + (i + 1); }) };
+    if (n > 5) r.tableWhy = 'Mehr als 5 Eingänge: die Tabelle hätte über 32 Zeilen und passt nicht auf ein Blatt.';
+    if (n > 4) r.kvWhy = 'Das KV-Diagramm gibt es bis 4 Eingänge.'; else if (n < 2) r.kvWhy = 'Das KV-Diagramm braucht mindestens 2 Eingänge.';
+    return r;
+  };
+
+  /* ---------- Herleitung: Tabelle, Minimalform, Ausklammern ---------- */
+  var lit = function (n, neg) { var v = { op: 'var', n: n }; return neg ? { op: 'not', a: v } : v; };
+  function rowBits(n, r) { var e = []; for (var i = 0; i < n; i++) e.push(r >> (n - 1 - i) & 1); return e; } // Tabellenzeile r: e1 ganz links = höchstes Bit
+  function kOf(e) { var k = 0; e.forEach(function (b, i) { k |= b << i; }); return k; }
+  function sopFromOnes(info, ones) { // kanonische Summe von Produkten aus den Einsen, Zeilen in Tabellenreihenfolge
+    if (!ones.length) return { op: 'const', v: 0 }; if (ones.length === 1 << info.n) return { op: 'const', v: 1 };
+    var terms = ones.map(function (e) { var lits = e.map(function (b, i) { return lit(info.ins[i].n, !b); }); return lits.length === 1 ? lits[0] : { op: 'and', args: lits }; });
+    return terms.length === 1 ? terms[0] : { op: 'or', args: terms };
+  }
+  function termsOf(ast) { // Summe von Produkten → Liste von Literallisten
+    var ts = ast.op === 'or' ? ast.args : [ast];
+    return ts.map(function (t) { var ls = t.op === 'and' ? t.args : [t]; return ls.map(function (l) { return l.op === 'not' ? { n: l.a.n, neg: true } : { n: l.n, neg: false }; }); });
+  }
+  function litAst(l) { return lit(l.n, l.neg); }
+  function andOf(a) { return a.length === 1 ? a[0] : { op: 'and', args: a }; }
+  function orOf(a) { return a.length === 1 ? a[0] : { op: 'or', args: a }; }
+  /* Ausklammern: häufigstes Literal vor die Klammer, rekursiv. {ast, steps:[{lit, before, after}]} */
+  function factorOut(terms, steps) {
+    if (terms.length === 1) return andOf(terms[0].map(litAst));
+    var cnt = {}; terms.forEach(function (t) { t.forEach(function (l) { var k = l.n + (l.neg ? 'n' : 'p'); cnt[k] = (cnt[k] || 0) + 1; }); });
+    var best = null; Object.keys(cnt).forEach(function (k) { if (cnt[k] >= 2 && (!best || cnt[k] > cnt[best] || (cnt[k] === cnt[best] && (+k.slice(0, -1) < +best.slice(0, -1))))) best = k; });
+    if (!best) return orOf(terms.map(function (t) { return andOf(t.map(litAst)); }));
+    var bn = +best.slice(0, -1), bneg = best.slice(-1) === 'n', has = function (t) { return t.some(function (l) { return l.n === bn && l.neg === bneg; }); };
+    var withL = terms.filter(has), rest = terms.filter(function (t) { return !has(t); });
+    var inner = withL.map(function (t) { return t.filter(function (l) { return !(l.n === bn && l.neg === bneg); }); }), L = lit(bn, bneg), grp;
+    if (inner.some(function (t) { return !t.length; })) grp = L; // L v L·x = L (Absorption)
+    else { var sub = factorOut(inner, steps); grp = { op: 'and', args: [L].concat(sub.op === 'and' && false ? sub.args : [sub]) }; }
+    steps.push({ lit: L, before: orOf(withL.map(function (t) { return andOf(t.map(litAst)); })), after: grp });
+    var rr = rest.length ? factorOut(rest, steps) : null; return rr ? { op: 'or', args: [grp, rr] } : grp;
+  }
+  function gateCount(a) { switch (a.op) { case 'var': case 'const': return 0; case 'not': return gateCount(a.a); default: return (a.args.length >= 2 ? 1 : 0) + a.args.reduce(function (s, x) { return s + gateCount(x); }, 0); } }
+  S.factorOut = function (ast) { if (ast.op === 'const') return { ast: ast, steps: [] }; var steps = []; return { ast: factorOut(termsOf(ast), steps), steps: steps }; };
+  var H = function (ast) { return B.fmtHtml(ast); };
+
+  /* Alles zur Herleitung eines Ausgangs o: {ones (Zeilenbits), canon, minimal, factored, steps, groups, kvOnes} */
+  function derive(info, o) {
+    var n = info.n, rows = [], onesBits = [], onesK = [];
+    for (var r = 0; r < 1 << n; r++) { var e = rowBits(n, r), k = kOf(e), v = info.rows[k][o]; rows.push({ e: e, v: v }); if (v) { onesBits.push(e); onesK.push(k); } }
+    var names = info.ins.map(function (x) { return x.n; }), canon = sopFromOnes(info, onesBits), minimal = B.minimalExpr(onesK, names, []);
+    var fac = S.factorOut(minimal), groups = n >= 2 && n <= 4 && onesK.length && onesK.length < 1 << n ? V.minimize(n, onesK, []) : [];
+    return { rows: rows, canon: canon, minimal: minimal, factored: fac.ast, steps: fac.steps, groups: groups, onesK: onesK };
+  }
+  function lawText(info, d) {
+    if (d.minimal.op === 'const') return 'Der Ausgang ist konstant ' + d.minimal.v + ': Alle Eingangskombinationen ergeben dasselbe Ergebnis, die Schaltung lässt sich durch eine feste ' + d.minimal.v + ' ersetzen.';
+    if (!d.steps.length) return 'Die Minimalform lässt sich nicht weiter ausklammern: Sie ist schon die kürzeste Schreibweise (' + gateCount(d.minimal) + ' Gatter).';
+    var s = d.steps[d.steps.length - 1], g0 = gateCount(d.minimal), g1 = gateCount(d.factored), lits = d.steps.map(function (x) { return H(x.lit); });
+    return 'Benutzter Rechenschritt: Ausklammern von ' + lits.join(' und ') + ' – das <b>konjunktive Distributivgesetz</b> (' + H(s.before) + ' = ' + H(s.after) + '). ' +
+      (g0 > g1 ? 'Es spart ' + (g0 - g1) + (g0 - g1 === 1 ? ' Gatter' : ' Gatter') + ': Statt ' + g0 + ' Gattern (UND und ODER) braucht die Schaltung nur noch ' + g1 + '.' : 'Die Anzahl der Gatter bleibt gleich, die Form ist aber übersichtlicher.');
+  }
+
+  /* ---------- Bausteine der Folgeseiten (HTML und SVG) ---------- */
+  function truthTable(info, ds, blank) {
+    var h = '<table class="tt"><thead><tr>' + info.ins.map(function (x) { return '<th>e' + x.n + '</th>'; }).join('') + info.names.map(function (nm) { return '<th class="out">' + esc(nm) + '</th>'; }).join('') + '</tr></thead><tbody>';
+    for (var r = 0; r < 1 << info.n; r++) {
+      var e = ds[0].rows[r].e, one = !blank && ds.some(function (d) { return d.rows[r].v; });
+      h += '<tr' + (one ? ' class="one"' : '') + '>' + e.map(function (b) { return '<td>' + b + '</td>'; }).join('') + ds.map(function (d) { return '<td class="res' + (!blank && d.rows[r].v ? ' b' : '') + '">' + (blank ? '&nbsp;' : d.rows[r].v) + '</td>'; }).join('') + '</tr>';
+    }
+    return h + '</tbody></table>';
+  }
+  var GRAYS = { 1: [0, 1], 2: [0, 1, 3, 2] };
+  /* KV-Diagramm: Zeilen = die ersten Eingänge, Spalten = die übrigen (Gray-Code); {svg, w, h} */
+  function kvSVG(info, d, name, blank) {
+    var n = info.n, rv = n === 2 ? 1 : n === 3 ? 1 : 2, cv = n - rv, R = 1 << rv, C = 1 << cv, cs = 60, ox = 74, oy = 56, gr = GRAYS[rv] || [0, 1], gc = GRAYS[cv] || [0, 1];
+    var cellK = function (r, c) { var e = new Array(n), rc = gr[r], cc = gc[c], i; for (i = 0; i < rv; i++) e[i] = rc >> (rv - 1 - i) & 1; for (i = 0; i < cv; i++) e[rv + i] = cc >> (cv - 1 - i) & 1; return kOf(e); };
+    var code = function (v, bits) { var s = ''; for (var i = bits - 1; i >= 0; i--) s += v >> i & 1; return s; };
+    var ones = {}; d.onesK.forEach(function (k) { ones[k] = 1; });
+    var nm = function (i) { return 'e' + info.ins[i].n; }, rvn = [], cvn = []; for (var i = 0; i < rv; i++) rvn.push(nm(i)); for (i = 0; i < cv; i++) cvn.push(nm(rv + i));
+    var mono = 'font-family="\'DejaVu Sans Mono\', Consolas, monospace"', s = '';
+    s += '<text x="' + (ox + C * cs / 2) + '" y="14" font-size="12" fill="#444" text-anchor="middle" font-family="sans-serif">' + esc(cvn.join(' ')) + '</text>';
+    for (var c = 0; c < C; c++) s += '<text x="' + (ox + c * cs + cs / 2) + '" y="' + (oy - 10) + '" font-size="15" text-anchor="middle" ' + mono + '>' + code(gc[c], cv) + '</text>';
+    for (var r = 0; r < R; r++) s += '<text x="' + (ox - 10) + '" y="' + (oy + r * cs + cs / 2 + 5) + '" font-size="15" text-anchor="end" ' + mono + '>' + code(gr[r], rv) + '</text>';
+    s += '<text transform="translate(14 ' + (oy + R * cs / 2) + ') rotate(-90)" font-size="12" fill="#444" text-anchor="middle" font-family="sans-serif">' + esc(rvn.join(' ')) + '</text>';
+    for (r = 0; r < R; r++) for (c = 0; c < C; c++) {
+      var k = cellK(r, c), v = ones[k] ? 1 : 0;
+      s += '<rect x="' + (ox + c * cs) + '" y="' + (oy + r * cs) + '" width="' + cs + '" height="' + cs + '" fill="none" stroke="#000" stroke-width="1.5"/>' + (blank ? '' : '<text x="' + (ox + c * cs + cs / 2) + '" y="' + (oy + r * cs + cs / 2 + 8) + '" font-size="22" text-anchor="middle" ' + mono + (v ? ' font-weight="700"' : ' fill="#666"') + '>' + v + '</text>');
+    }
+    var labels = [];
+    if (!blank) d.groups.forEach(function (p, gi) { // Gruppe: abgerundete Rechtecke, verschiedene Strichart (nicht nur Farbe)
+      var rows = {}, cols = {}; for (var rr = 0; rr < R; rr++) for (var cc = 0; cc < C; cc++) if (p.cells.indexOf(cellK(rr, cc)) >= 0) { rows[rr] = 1; cols[cc] = 1; }
+      var runs = function (set) { var ks = Object.keys(set).map(Number).sort(function (a, b) { return a - b; }), out = [], cur = null; ks.forEach(function (x) { if (cur && x === cur[1] + 1) cur[1] = x; else { cur = [x, x]; out.push(cur); } }); return out; };
+      var dash = gi % 2 ? ' stroke-dasharray="7 5"' : '', ins = 6 + 3 * (gi % 3), cx0 = 1e9, cx1 = -1;
+      runs(rows).forEach(function (rs) { runs(cols).forEach(function (cs2) { s += '<rect x="' + (ox + cs2[0] * cs + ins) + '" y="' + (oy + rs[0] * cs + ins) + '" width="' + ((cs2[1] - cs2[0] + 1) * cs - 2 * ins) + '" height="' + ((rs[1] - rs[0] + 1) * cs - 2 * ins) + '" rx="14" fill="none" stroke="#000" stroke-width="2"' + dash + '/>'; cx0 = Math.min(cx0, cs2[0]); cx1 = Math.max(cx1, cs2[1]); }); });
+      var t = []; for (var i2 = 0; i2 < n; i2++) { if (p.mask >> i2 & 1) continue; t.push(p.val >> i2 & 1 ? nm(i2) : 'ē' + info.ins[i2].n); }
+      labels.push({ x: ox + (cx0 + cx1 + 1) * cs / 2, txt: t.join('') || '1', dash: !!dash });
+    });
+    // Bezeichnungen der Gruppen unter dem Raster, nahe bei der Gruppe, ohne sich zu überdecken (Zeile für Zeile)
+    labels.sort(function (a, b) { return a.x - b.x; }); var rowEnd = [], base = oy + R * cs + 22;
+    labels.forEach(function (l) { var w = 28 + l.txt.length * 9.5, x0 = l.x - w / 2, lv = 0; while (rowEnd[lv] !== undefined && x0 < rowEnd[lv] + 8) lv++; x0 = Math.max(ox, x0); rowEnd[lv] = x0 + w; var y = base + lv * 20;
+      s += '<path d="M' + x0 + ' ' + (y - 5) + 'h22" stroke="#000" stroke-width="2"' + (l.dash ? ' stroke-dasharray="6 4"' : '') + '/><text x="' + (x0 + 28) + '" y="' + y + '" font-size="15" ' + mono + '>' + esc(l.txt) + '</text>'; });
+    var w = ox + C * cs + 20, hgt = oy + R * cs + 14 + (labels.length ? 24 + 20 * rowEnd.length : 0);
+    return { svg: '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + hgt + '" viewBox="0 0 ' + w + ' ' + hgt + '" class="kvsvg">' + s + '</svg>', w: w, h: hgt };
+  }
+  function exprLines(info, d, name, blank) {
+    var row = function (l, r, b) { return '<div class="ex' + (b ? ' last' : '') + '"><div class="exl">' + l + '</div><div class="exr">' + (blank ? '' : r) + '</div></div>'; };
+    return '<div class="exs">' + row('Aus der Tabelle', esc(name) + ' = ' + H(d.canon)) + row('Aus dem KV-Diagramm', esc(name) + ' = ' + H(d.minimal)) + row('Ausgeklammert', '<b>' + esc(name) + ' = ' + H(d.factored) + '</b>', true) + '</div>';
+  }
+
+  /* ---------- Bilder von Oszilloskop und Zeitverlauf (so wie sie gerade stehen) ---------- */
+  function scopeImages() {
+    return S.scopes.filter(function (sc) { return sc.ch.length; }).map(function (sc) { sc.draw(true); return { url: sc.cv.toDataURL('image/png'), w: sc.cv.clientWidth || 560, h: sc.cv.clientHeight || 300, title: 'Oszilloskop ' + sc.id + ': ' + sc.ch.map(function (c) { return c.tr.label; }).join(', ') }; });
+  }
+  function timingImage() {
+    var rows = S.timing.rows; if (!rows.length) return null; if (S.timingDraw) S.timingDraw();
+    var cvs = Array.prototype.slice.call(document.querySelectorAll('#tlRows .tl-cv')), labs = Array.prototype.slice.call(document.querySelectorAll('#tlRows .tl-row')); if (!cvs.length) return null;
+    var lw = 150, W = Math.max.apply(null, cvs.map(function (c) { return c.width; })) + Math.round(lw * (root.devicePixelRatio || 1)), dpr = root.devicePixelRatio || 1, y = 0, H = cvs.reduce(function (s, c) { return s + c.height; }, 0);
+    var cv = document.createElement('canvas'); cv.width = W; cv.height = H; var ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); ctx.font = (12 * dpr) + 'px monospace'; ctx.fillStyle = '#000'; ctx.textBaseline = 'middle';
+    cvs.forEach(function (c, i) { var nm = labs[i] ? (labs[i].querySelector('.tl-nm') || {}).textContent || '' : ''; ctx.fillText(nm.slice(0, 20), 6 * dpr, y + c.height / 2); ctx.drawImage(c, Math.round(lw * dpr), y); ctx.strokeStyle = '#999'; ctx.beginPath(); ctx.moveTo(0, y + c.height - .5); ctx.lineTo(W, y + c.height - .5); ctx.stroke(); y += c.height; });
+    return { url: cv.toDataURL('image/png'), w: W / dpr, h: H / dpr };
+  }
+
+  /* ---------- Seiten aufbauen ---------- */
+  function wrapText(t, n) { var out = [], line = ''; String(t || '').split(/\s+/).forEach(function (w) { if (line && (line + ' ' + w).length > n) { out.push(line); line = w; } else line = line ? line + ' ' + w : w; }); if (line) out.push(line); return out; }
+  function figureImage(opts, region) { // Schaltung innerhalb des Rahmens als Bild
+    var r = S.exportSVG({ color: false, values: false, grid: opts.grid, draw: opts.draw !== false, region: region });
+    return { url: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(r.svg), w: r.w, h: r.h, svg: r.svg };
+  }
+  /* Folgeseiten: Blöcke {h, html} nacheinander auf Seiten verteilen; ein Block wird nie zerschnitten, nur Stücklistenzeilen laufen über */
+  function paginate(blocks, H0) {
+    var pages = [[]], used = 0;
+    blocks.forEach(function (b) {
+      if (b.rows) { // Tabelle mit Zeilen: so viele wie passen, Rest auf der nächsten Seite mit Kopf
+        var rows = b.rows.slice(), first = true;
+        while (rows.length) {
+          var avail = H0 - used - (first ? b.head : b.head) - 8, fit = Math.floor(avail / b.rh);
+          if (fit < Math.min(4, rows.length)) { pages.push([]); used = 0; continue; }
+          var take = rows.splice(0, Math.min(fit, rows.length)); pages[pages.length - 1].push({ h: b.head + take.length * b.rh + 8, html: b.build(take, first) }); used += b.head + take.length * b.rh + 8; first = false;
+          if (rows.length) { pages.push([]); used = 0; }
+        }
+        return;
+      }
+      if (used + b.h > H0 && used > 0) { pages.push([]); used = 0; }
+      pages[pages.length - 1].push(b); used += b.h;
+    });
+    return pages;
+  }
+
+  /* Alle Seiten: [{html}] plus {format, count}; opts siehe S.printOptions */
+  S.buildPages = function (o) {
+    var opts = Object.assign({}, S.printOptions, o || {}); opts.items = Object.assign({}, S.printOptions.items, (o || {}).items || {});
+    var fmt = opts.format, f = F[fmt], fields = S.sheetFields(), info = S.logicInfo(), aufgabe = opts.version === 'aufgabe', frame = opts.frame;
+    var cl = frame ? M.contentLeft : 48, ct = frame ? M.contentLeft : 48, cw = f.w - 2 * cl, ch = f.h - ct - (frame ? M.contentBottom : 56), headH = 44;
+    var region = S.sheetContent(); // nur was im Inhaltsbereich des Rahmens liegt
+    // --- Seite 1: Schaltung
+    var fig = figureImage(opts, region), para = wrapText(fields.text, 60), paraH = para.length ? para.length * 19 + 14 : 0, availH = ch - headH - paraH - 10;
+    var sc = Math.min(1, (cw - 2) / fig.w, availH / fig.h), iw = Math.round(fig.w * sc), ih = Math.round(fig.h * sc);
+    var head1 = info.ok && !aufgabe && info.outs.length ? H(S.factorOut(derive(info, 0).minimal).ast) : '';
+    if (info.ok && !aufgabe) head1 = info.names[0] + ' = ' + head1;
+    var p1 = '<div class="fig" style="height:' + availH + 'px"><img class="figimg" alt="Schaltung" style="width:' + iw + 'px;height:' + ih + 'px" src="' + fig.url + '"></div>' + (para.length ? '<p class="para">' + para.map(esc).join('<br>') + '</p>' : '');
+    var pages = [{ headRight: head1, html: p1, info: 'schaltung' }];
+    // --- Folgeseiten
+    var blocks = [], it = opts.items, ds = null;
+    var wantLogic = it.table || it.expr || it.kv;
+    if (wantLogic && info.ok) {
+      ds = info.outs.map(function (o, i) { return derive(info, i); });
+      var tableOn = it.table && !info.tableWhy, kvOn = it.kv && !info.kvWhy, tHtml = tableOn ? truthTable(info, ds, aufgabe) : '', tH = tableOn ? 24 * ((1 << info.n) + 1) + 6 : 0;
+      var kvs = kvOn ? ds.map(function (d, i) { return kvSVG(info, d, info.names[i], aufgabe); }) : [], kH = kvs.reduce(function (s, k) { return s + k.h + 14; }, 0);
+      blocks.push({ h: 38, html: '<h2 class="hl">Herleitung</h2>' });
+      if (tableOn || kvOn) blocks.push({ h: Math.max(tH, kH) + 10, html: '<div class="side">' + (tableOn ? '<div class="sideL">' + tHtml + '</div>' : '') + (kvOn ? '<div class="sideR">' + kvs.map(function (k, i) { return (info.outs.length > 1 ? '<div class="kvn">' + esc(info.names[i]) + '</div>' : '') + k.svg; }).join('') + '</div>' : '') + '</div>' });
+      if (it.expr) ds.forEach(function (d, i) { blocks.push({ h: 118 + (aufgabe ? 0 : Math.ceil(lawText(info, d).replace(/<[^>]+>/g, '').length / 80) * 20 + 20), html: exprLines(info, d, info.names[i], aufgabe) + (aufgabe ? '' : '<p class="law">' + lawText(info, d) + '</p>') }); });
+    }
+    if (it.scope) scopeImages().forEach(function (im) { var s2 = Math.min(1, cw / im.w, 360 / im.h), w2 = Math.round(im.w * s2), h2 = Math.round(im.h * s2); blocks.push({ h: h2 + 40, html: '<h3 class="hl3">' + esc(im.title) + '</h3><img class="shot" style="width:' + w2 + 'px;height:' + h2 + 'px" src="' + im.url + '" alt="Oszilloskop">' }); });
+    if (it.timing) { var tm = timingImage(); if (tm) { var s3 = Math.min(1, cw / tm.w, 520 / tm.h), w3 = Math.round(tm.w * s3), h3 = Math.round(tm.h * s3); blocks.push({ h: h3 + 40, html: '<h3 class="hl3">Zeitverlauf</h3><img class="shot" style="width:' + w3 + 'px;height:' + h3 + 'px" src="' + tm.url + '" alt="Zeitverlauf">' }); } }
+    if (it.bom) { var rows = S.bom(); if (rows.length) blocks.push({ rows: rows, head: 70, rh: 26, build: function (take, first) { return (first ? '<h3 class="hl3">Stückliste</h3>' : '<h3 class="hl3">Stückliste (Fortsetzung)</h3>') + '<table class="tt bom"><thead><tr><th>Bauteil</th><th>Wert</th><th>Anzahl</th><th>Bezeichnungen</th></tr></thead><tbody>' + take.map(function (r) { return '<tr><td class="l">' + esc(r.label) + '</td><td class="l">' + esc(r.value) + '</td><td>' + r.count + '</td><td class="l">' + esc(r.ids.join(', ')) + '</td></tr>'; }).join('') + '</tbody></table>'; } }); }
+    if (blocks.length) paginate(blocks, ch - headH - 6).forEach(function (pg) { if (pg.length) pages.push({ headRight: 'zur Schaltung auf Blatt 1', html: pg.map(function (b) { return b.html; }).join(''), info: 'folge' }); });
+    var N = pages.length, title = esc(fields.titel);
+    var out = pages.map(function (p, i) {
+      var fr = frame ? '<svg class="pgframe" xmlns="http://www.w3.org/2000/svg" width="' + f.w + '" height="' + f.h + '" viewBox="0 0 ' + f.w + ' ' + f.h + '">' + S.frameSVG(fmt, fields, i + 1, N) + '</svg>' : '';
+      return '<section class="pg" style="width:' + f.w + 'px;height:' + f.h + 'px">' + fr + '<div class="pgc" style="left:' + cl + 'px;top:' + ct + 'px;width:' + cw + 'px;height:' + ch + 'px"><header class="pgh"><b>' + title + '</b><span>' + (p.headRight || '') + '</span></header>' + p.html + '</div>' + (frame ? '' : '<div class="pgno">Seite ' + (i + 1) + ' / ' + N + '</div>') + '</section>';
+    });
+    return { pages: out, count: N, format: fmt, css: f.css, info: info, opts: opts, w: f.w, h: f.h };
+  };
+
+  /* ---------- Export von Blatt 1 (Rahmen, Schriftfeld, Schaltung) als SVG ---------- */
+  S.exportSheetSVG = function (opts) {
+    var fmt = S.sheetOn() ? S.sheet().format : S.printOptions.format, f = F[fmt], fields = S.sheetFields(), ns = 'http://www.w3.org/2000/svg';
+    var r = S.exportSVG(Object.assign({}, opts, { frame: false, region: S.sheetContent() })), cw = f.w - 2 * M.contentLeft, ch = f.h - M.contentLeft - M.contentBottom, headH = 44, para = wrapText(fields.text, 60), paraH = para.length ? para.length * 19 + 14 : 0, availH = ch - headH - paraH - 10;
+    var sc = Math.min(1, (cw - 2) / r.w, availH / r.h), iw = r.w * sc, ih = r.h * sc, xs = M.contentLeft + (cw - iw) / 2, ys = M.contentLeft + headH + (availH - ih) / 2;
+    var doc = new DOMParser().parseFromString(r.svg, 'image/svg+xml').documentElement, vb = doc.getAttribute('viewBox'), inner = Array.prototype.map.call(doc.childNodes, function (n) { return new XMLSerializer().serializeToString(n); }).join('');
+    var title = S.textSVG({ x: M.contentLeft, y: M.contentLeft, text: fields.titel, size: 19, color: '#000', bold: true });
+    var svg = '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="' + ns + '" width="' + f.w + '" height="' + f.h + '" viewBox="0 0 ' + f.w + ' ' + f.h + '"><title>' + esc(S.name) + '</title><rect width="' + f.w + '" height="' + f.h + '" fill="#fff"/>' + S.frameSVG(fmt, fields, 1, 1) + title +
+      '<path d="M' + M.contentLeft + ' ' + (M.contentLeft + 32) + 'H' + (f.w - M.contentLeft) + '" stroke="#000" stroke-width="1"/><svg x="' + xs.toFixed(1) + '" y="' + ys.toFixed(1) + '" width="' + iw.toFixed(1) + '" height="' + ih.toFixed(1) + '" viewBox="' + vb + '">' + inner + '</svg>' +
+      (para.length ? S.textSVG({ x: M.contentLeft, y: M.contentLeft + headH + availH + 6, text: para.join('\n'), size: 13, color: '#000' }) : '') + '</svg>\n';
+    return { svg: svg, w: f.w, h: f.h };
+  };
+
+  /* ---------- Druckdialog (Anhang A.1) ---------- */
+  var printStyle = function (f) { return '@page { size: ' + f.css + '; margin: 0; }'; };
+  S.printPages = function (opts, done) {
+    var b = S.buildPages(opts), area = $('#printArea') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'printArea' })), st = $('#printPageStyle') || document.head.appendChild(Object.assign(document.createElement('style'), { id: 'printPageStyle' }));
+    area.innerHTML = b.pages.join(''); st.textContent = printStyle(F[b.format]);
+    var imgs = Array.prototype.slice.call(area.querySelectorAll('img')), wait = Promise.all(imgs.map(function (i) { return i.decode ? i.decode().catch(function () { }) : Promise.resolve(); }));
+    wait.then(function () { if (done) done(b); else root.print(); });
+    return b;
+  };
+  S._derive = derive;
+  S.printPrepare = function () { var o = S.buildPages({ items: { table: false, expr: false, kv: false } }), area = $('#printArea') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'printArea' })); area.innerHTML = o.pages.join(''); return area; };
+  S.print = function () { S.printDialog(); };
+  S.printDialog = function () {
+    var po = S.printOptions, info = S.logicInfo(), sc = S.scopes.filter(function (s) { return s.ch.length; }).length, tm = S.timing.rows.length, parts = S.core.layout.parts.length;
+    if (S.sheetOn()) po.format = S.sheet().format;
+    var fname = esc(S.name || 'Schaltung');
+    var disabled = { table: info.ok ? (info.tableWhy || '') : info.why, expr: info.ok ? '' : info.why, kv: info.ok ? (info.kvWhy || '') : info.why, scope: sc ? '' : 'Kein Oszilloskop mit Signal geöffnet.', timing: tm ? '' : 'Der Zeitverlauf ist leer.', bom: parts ? '' : 'Die Schaltung ist leer.' };
+    var LAB = { table: 'Wahrheitstabelle', expr: 'Boolescher Ausdruck und Minimalform', kv: 'KV-Diagramm mit Gruppen', scope: 'Oszilloskop-Kurven', timing: 'Zeitverlauf', bom: 'Stückliste' };
+    var seg = function (name, list, cur) { return '<div class="segbtns" data-seg="' + name + '">' + list.map(function (x) { return '<button type="button" class="seg' + (cur === x[0] ? ' on' : '') + '" data-v="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>'; };
+    var h = '<div class="pdlg"><div class="pdh"><h2>Drucken</h2><span class="pdfile">' + fname + '</span></div>' +
+      '<div class="pds"><h3>Blatt</h3>' + seg('format', [['a4p', 'A4 hoch'], ['a4l', 'A4 quer'], ['a3l', 'A3 quer']], po.format) + '<label class="chk"><input type="checkbox" id="pdFrame"' + (po.frame ? ' checked' : '') + '> Zeichnungsrahmen und Schriftfeld drucken</label><label class="chk"><input type="checkbox" id="pdGrid"' + (po.grid ? ' checked' : '') + '> Gitternetz mitdrucken</label></div>' +
+      '<div class="pds"><h3>Seiten</h3><div class="pdrow on"><span class="pdn">1</span><div><b>Schaltung</b><small>Immer dabei</small></div></div>' +
+      '<div class="pdrow"><span class="pdn">2</span><div><b>Herleitung – auswählen, was dazu kommt</b><div class="pdchk">' + ['table', 'expr', 'kv', 'scope', 'timing', 'bom'].map(function (k) { return '<label class="chk' + (disabled[k] ? ' off' : '') + '"><input type="checkbox" data-it="' + k + '"' + (po.items[k] ? ' checked' : '') + (disabled[k] ? ' disabled' : '') + '> ' + LAB[k] + (disabled[k] ? '<small>' + esc(disabled[k]) + '</small>' : '') + '</label>'; }).join('') + '</div></div></div>' +
+      '<p class="pdinfo">ⓘ Passt nicht alles auf eine Seite, wird umbrochen. Die Reihenfolge ist die der Liste.</p></div>' +
+      '<div class="pds"><h3>Fassung</h3>' + seg('version', [['loesung', 'Lösung'], ['aufgabe', 'Aufgabe']], po.version) + '<p class="hint">Bei «Aufgabe» bleiben Tabelle, Ausdruck und KV-Diagramm leer zum Ausfüllen von Hand.</p></div>' +
+      '<div class="pdprev" id="pdPrev" hidden></div><div class="pdfoot"><span id="pdCount"></span><span class="pdbtns"><button class="tb" id="mClose">Abbrechen</button><button class="tb" id="pdPreview">Vorschau</button><button class="tb run" id="pdGo">PDF erzeugen</button></span></div></div>';
+    S.openModal(h); $('#modal').classList.add('wide');
+    function count() { if (!$('#pdCount')) return null; try { var b = S.buildPages(); $('#pdCount').textContent = b.count + (b.count === 1 ? ' Seite' : ' Seiten'); return b; } catch (e) { $('#pdCount').textContent = 'Fehler: ' + e.message; return null; } }
+    function preview() {
+      var b = count(), box = $('#pdPrev'); if (!b || !box) return; var k = 500 / b.w;
+      box.innerHTML = b.pages.map(function (p, i) { return '<div class="pvwrap" style="width:' + Math.round(b.w * k) + 'px;height:' + Math.round(b.h * k) + 'px"><div class="pvpg" style="transform:scale(' + k + ')">' + p + '</div></div>'; }).join(''); box.hidden = false;
+    }
+    count();
+    $('#modal').onclick = function (ev) {
+      if (!$('.pdlg')) return;
+      var sb = ev.target.closest('.seg'); if (sb) { var g = sb.closest('[data-seg]').dataset.seg; po[g] = sb.dataset.v; Array.prototype.forEach.call(sb.parentNode.children, function (x) { x.classList.toggle('on', x === sb); }); if (g === 'format' && S.sheetOn()) S.sheetSet({ format: po.format, center: false }); count(); if (!$('#pdPrev').hidden) preview(); return; }
+      if (ev.target.id === 'pdPreview') { preview(); return; }
+      if (ev.target.id === 'pdGo') { S.closeModal(); S.printPages(null); }
+    };
+    $('#modal').onchange = function (ev) {
+      if (!$('.pdlg')) return; var t = ev.target; if (t.id === 'pdFrame') po.frame = t.checked; else if (t.id === 'pdGrid') po.grid = t.checked; else if (t.dataset.it) po.items[t.dataset.it] = t.checked; count(); if (!$('#pdPrev').hidden) preview();
+    };
+  };
+  S.initFns.push(function () {
+    document.addEventListener('keydown', function (ev) { if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && ev.key.toLowerCase() === 'p') { ev.preventDefault(); ev.stopImmediatePropagation(); S.printDialog(); } }, true);
+  });
+})(window);
+
+/* ==== studio/beispiele.js ==== */
+/* Digital Quest Studio – Beispiele je Bauteil (Auftrag «Bauen», Paket 3)
+ * Je Bauteil der Leiste eine kleine, lauffähige Schaltung. Gliederung wie die Bauteilleiste: Logik · Flip-Flops · Zähler · Anzeigen · Analog · Anwendungen.
+ * Jedes Beispiel: {cat, id, name, text (ein erklärender Satz), build() → {layout, timing?, scopes?, bode?, run?}, demo?: {every, seq}}.
+ * demo = Vorführung: Pegelschalter, Schalter und Regler laufen reihum durch ihre Zustände, bis jemand selbst etwas anfasst
+ * (damit «läuft sofort» auch bei Schaltungen gilt, deren Eingänge sonst stillstehen). Zahlen sind Schleiferstellungen: {'P1.pos': 0.2}.
+ * Aufgeräumt: Leitungen laufen gerade oder mit genau einem Knick, nichts verläuft übereinander. */
+(function (root) {
+  'use strict';
+  var S = root.Studio, E = S.E;
+  var W = function (a, b) { return { from: a, to: b }; };
+  function P(id, type, x, y, props, value, rot) { var p = { id: id, type: type, x: x, y: y, rot: rot || 0 }; if (props) p.props = props; if (value !== undefined && value !== null) p.value = value; return p; }
+  var GND = function (x, y) { return P('GND1', 'ground', x, y); };
+  var defs = [];
+  function def(cat, id, name, text, build, extra) { var d = { cat: cat, id: id, name: name, text: text, build: build }; if (extra) Object.keys(extra).forEach(function (k) { d[k] = extra[k]; }); defs.push(d); return d; }
+  var SEQ2 = [{ E1: false, E2: false }, { E1: true, E2: false }, { E1: false, E2: true }, { E1: true, E2: true }]; // Eingänge e1, e2 als Zahl durchzählen (e1 niederwertig)
+  var SEQ3 = []; for (var k3 = 0; k3 < 8; k3++) SEQ3.push({ E1: !!(k3 & 1), E2: !!(k3 & 2), E3: !!(k3 & 4) });
+
+  /* ======================= Logik ======================= */
+  var GATES = [
+    ['and', 'UND', 'Der Ausgang ist nur 1, wenn beide Eingänge 1 sind.'], ['or', 'ODER', 'Der Ausgang ist 1, wenn mindestens ein Eingang 1 ist.'],
+    ['nand', 'NAND', 'NICHT-UND: Der Ausgang ist nur 0, wenn beide Eingänge 1 sind.'], ['nor', 'NOR', 'NICHT-ODER: Der Ausgang ist nur 1, wenn beide Eingänge 0 sind.'],
+    ['xor', 'XOR', 'Exklusiv-ODER: Der Ausgang ist 1, wenn die Eingänge verschieden sind.'], ['xnor', 'XNOR', 'Äquivalenz: Der Ausgang ist 1, wenn die Eingänge gleich sind.']
+  ];
+  /* ODER und UND zusätzlich mit 3 Eingängen zeigt die Eingangszahl; hier die Grundform mit zwei */
+  GATES.forEach(function (g) {
+    def('Logik', 'g_' + g[0], g[1] + '-Gatter', g[2] + ' Die Eingänge schalten von selbst durch; ein Klick auf einen Pegelschalter übernimmt.', function () {
+      return { layout: { parts: [P('E1', 'logicin', 260, 240), P('E2', 'logicin', 260, 360), P('U1', g[0], 520, 300), P('L1', 'logicled', 780, 300), GND(260, 480)],
+        wires: [W('E1.out', 'U1.in1'), W('E2.out', 'U1.in2'), W('U1.out', 'L1.in')] }, timing: { rows: [{ kind: 'dig', a: 'E1.out' }, { kind: 'dig', a: 'E2.out' }, { kind: 'dig', a: 'U1.out' }] } };
+    }, { demo: { every: 1, seq: SEQ2 }, gate: g[0] });
+  });
+  def('Logik', 'g_not', 'NICHT-Glied (Inverter)', 'Der Ausgang ist immer das Gegenteil des Eingangs. Der Eingang schaltet von selbst um; ein Klick übernimmt.', function () {
+    return { layout: { parts: [P('E1', 'logicin', 260, 300), P('U1', 'not', 520, 300), P('L1', 'logicled', 780, 300), GND(260, 440)], wires: [W('E1.out', 'U1.in'), W('U1.out', 'L1.in')] },
+      timing: { rows: [{ kind: 'dig', a: 'E1.out' }, { kind: 'dig', a: 'U1.out' }] } };
+  }, { demo: { every: 1.4, seq: [{ E1: false }, { E1: true }] }, gate: 'not' });
+  def('Logik', 'g_zus', 'Zusammengesetzt: A = e1 ( e2 v e3 )', 'ODER, dann UND: Der Ausgang ist 1, wenn e1 = 1 ist und e2 oder e3 gleichzeitig 1 ist (Ausklammern: e1e2 v e1e3).', function () {
+    return { layout: { parts: [P('E1', 'logicin', 240, 200), P('E2', 'logicin', 240, 320), P('E3', 'logicin', 240, 440), P('U1', 'or', 560, 380), P('U2', 'and', 820, 300), P('L1', 'logicled', 1040, 300), GND(240, 560)],
+      wires: [W('E2.out', 'U1.in1'), W('E3.out', 'U1.in2'), W('U1.out', 'U2.in2'), W('E1.out', 'U2.in1'), W('U2.out', 'L1.in')] },
+      timing: { rows: [{ kind: 'dig', a: 'E1.out' }, { kind: 'dig', a: 'E2.out' }, { kind: 'dig', a: 'E3.out' }, { kind: 'dig', a: 'L1.in' }] } };
+  }, { demo: { every: 0.8, seq: SEQ3 } });
+  def('Logik', 'g_demorgan', 'De Morgan: NICHT(e1 e2) = NICHT e1 v NICHT e2', 'Oben ein NAND, unten zwei Inverter und ein ODER – beide Lampen leuchten immer gleich. Die Punkte auf den senkrechten Leitungen sind Abzweige.', function () {
+    var N = function (id, x, y) { return P(id, 'node', x, y); };
+    return { layout: { parts: [P('E1', 'logicin', 240, 320), P('E2', 'logicin', 240, 440), N('K1', 340, 320), N('K2', 340, 220), N('K3', 340, 540), N('K4', 400, 440), N('K5', 400, 260), N('K6', 400, 640),
+      P('U1', 'nand', 560, 240), P('U2', 'not', 560, 540), P('U3', 'not', 560, 640), P('U4', 'or', 800, 590), P('L1', 'logicled', 800, 240), P('L2', 'logicled', 1000, 590), GND(240, 560)],
+      wires: [W('E1.out', 'K1.p'), W('K1.p', 'K2.p'), W('K1.p', 'K3.p'), W('K2.p', 'U1.in1'), W('K3.p', 'U2.in'), W('E2.out', 'K4.p'), W('K4.p', 'K5.p'), W('K4.p', 'K6.p'), W('K5.p', 'U1.in2'), W('K6.p', 'U3.in'),
+        W('U2.out', 'U4.in1'), W('U3.out', 'U4.in2'), W('U1.out', 'L1.in'), W('U4.out', 'L2.in')] },
+      timing: { rows: [{ kind: 'dig', a: 'E1.out' }, { kind: 'dig', a: 'E2.out' }, { kind: 'dig', a: 'L1.in' }, { kind: 'dig', a: 'L2.in' }] } };
+  }, { demo: { every: 1, seq: SEQ2 } });
+  def('Logik', 'g_halb', 'Halbaddierer (XOR und UND)', 'Summe (XOR) und Übertrag (UND) zweier Bits – die Eingänge schalten von selbst durch. Die Punkte sind Abzweige der beiden senkrechten Eingangsleitungen.', function () {
+    var N = function (id, x, y) { return P(id, 'node', x, y); };
+    return { layout: { parts: [P('E1', 'logicin', 240, 260), P('E2', 'logicin', 240, 380), N('K1', 340, 260), N('K2', 340, 280), N('K3', 340, 460), N('K4', 400, 380), N('K5', 400, 320), N('K6', 400, 500),
+      P('U1', 'xor', 560, 300), P('U2', 'and', 560, 480), P('L1', 'logicled', 800, 300), P('L2', 'logicled', 800, 480), GND(240, 580)],
+      wires: [W('E1.out', 'K1.p'), W('K1.p', 'K2.p'), W('K2.p', 'K3.p'), W('K2.p', 'U1.in1'), W('K3.p', 'U2.in1'), W('E2.out', 'K4.p'), W('K4.p', 'K5.p'), W('K4.p', 'K6.p'), W('K5.p', 'U1.in2'), W('K6.p', 'U2.in2'), W('U1.out', 'L1.in'), W('U2.out', 'L2.in')] },
+      timing: { rows: [{ kind: 'dig', a: 'E1.out' }, { kind: 'dig', a: 'E2.out' }, { kind: 'dig', a: 'L1.in' }, { kind: 'dig', a: 'L2.in' }] } };
+  }, { demo: { every: 1, seq: SEQ2 } });
+
+  /* ======================= Flip-Flops ======================= */
+  /* Takt unten links, Dateneingänge oben links, preSet (E3) von oben, preClear (E4) von unten, Q und Q̄ auf Lampen */
+  function ffExample(type, ins, sym, tfreq) {
+    var three = ins.length === 2 && ins[0] !== 'D' && ins[0] !== 'T', fy = three ? { a: 280, c: 300, b: 320 } : { a: 280, c: 320 };
+    var parts = [P('FF1', type, 560, 300, null), P('CLK1', 'clock', 240, three ? 300 : 380, { freq: tfreq }), P('L1', 'logicled', 800, 280), P('L2', 'logicled', 800, 360),
+      P('E3', 'logicin', 400, 160), P('E4', 'logicin', 400, 440), GND(240, 520)];
+    var wires = [W('CLK1.out', 'FF1.C'), W('FF1.Q', 'L1.in'), W('FF1.Qn', 'L2.in'), W('E3.out', 'FF1.PS'), W('E4.out', 'FF1.PC')];
+    if (three) { parts.push(P('E1', 'logicin', 240, 180), P('E2', 'logicin', 240, 420)); wires.push(W('E1.out', 'FF1.' + ins[0]), W('E2.out', 'FF1.' + ins[1])); }
+    else { parts.push(P('E1', 'logicin', 240, 220, ins[0] === 'T' ? { closed: true } : null)); wires.push(W('E1.out', 'FF1.' + ins[0])); }
+    return { layout: { parts: parts, wires: wires }, timing: { rows: [{ kind: 'dig', a: 'CLK1.out' }, { kind: 'dig', a: 'E1.out' }].concat(three ? [{ kind: 'dig', a: 'E2.out' }] : []).concat([{ kind: 'dig', a: 'FF1.Q' }]) } };
+  }
+  var T_SLOW = [{ E1: false }, { E1: true }, { E1: true }, { E1: false }];
+  def('Flip-Flops', 'ff_rs', 'RS-Flipflop', 'S = 1 setzt Q auf 1, R = 1 setzt auf 0, S = R = 0 speichert. Solange C = 1 ist, folgt Q den Eingängen. preSet und preClear (oben und unten) wirken sofort.', function () { return ffExample('rsff', ['S', 'R'], 'rs', 2); },
+    { demo: { every: 1.2, seq: [{ E1: true, E2: false }, { E1: false, E2: false }, { E1: false, E2: true }, { E1: false, E2: false }] } });
+  def('Flip-Flops', 'ff_d', 'D-Flipflop', 'Bei der steigenden Flanke an C übernimmt Q den Wert von D und behält ihn bis zur nächsten Flanke.', function () { return ffExample('dff', ['D']); },
+    { demo: { every: 1.3, seq: [{ E1: true }, { E1: false }] } });
+  def('Flip-Flops', 'ff_t', 'T-Flipflop', 'Mit T = 1 kippt Q bei jeder steigenden Flanke: Der Ausgang hat die halbe Taktfrequenz.', function () { return ffExample('tff', ['T']); },
+    { demo: { every: 2.4, seq: [{ E1: true }, { E1: true }] } });
+  def('Flip-Flops', 'ff_jk', 'JK-Flipflop', 'J = 1 setzt, K = 1 setzt zurück, J = K = 1 kippt, J = K = 0 speichert – jeweils bei der steigenden Flanke an C.', function () { return ffExample('jkff', ['J', 'K']); },
+    { demo: { every: 1.2, seq: [{ E1: true, E2: false }, { E1: true, E2: true }, { E1: false, E2: true }, { E1: false, E2: false }] } });
+  def('Flip-Flops', 'ff_jkms', 'JK-Master-Slave-Flipflop', 'Der Master nimmt J und K bei C = 1 auf, der Ausgang ändert sich erst bei der fallenden Flanke an C.', function () { return ffExample('jkms', ['J', 'K']); },
+    { demo: { every: 1.2, seq: [{ E1: true, E2: false }, { E1: true, E2: true }, { E1: false, E2: true }, { E1: false, E2: false }] } });
+  def('Flip-Flops', 'ff_knoten', 'Knotenpunkt: Takt auf vier Flipflops', 'Eine durchgehende Taktleitung mit Abzweigen (Punkt = verbunden): Alle vier T-Flipflops hängen am selben Takt und teilen nacheinander durch 2; oben die gemeinsame 1 für T.', function () {
+    var parts = [P('CLK1', 'clock', 240, 460, { freq: 8 }), P('E1', 'logicin', 240, 240, { closed: true }), GND(240, 580)], wires = [];
+    for (var i = 0; i < 4; i++) {
+      var x = 480 + i * 240, n = i + 1;
+      parts.push(P('FF' + n, 'tff', x, 360), P('KT' + n, 'node', x - 60, 240), P('KC' + n, 'node', x - 60, 460), P('L' + n, 'logicled', x + 120, 340));
+      wires.push(W(i === 0 ? 'E1.out' : 'KT' + i + '.p', 'KT' + n + '.p'), W('KT' + n + '.p', 'FF' + n + '.T'), W(i === 0 ? 'CLK1.out' : 'KC' + i + '.p', 'KC' + n + '.p'), W('KC' + n + '.p', 'FF' + n + '.C'), W('FF' + n + '.Q', 'L' + n + '.in'));
+    }
+    return { layout: { parts: parts, wires: wires }, timing: { rows: [{ kind: 'dig', a: 'CLK1.out' }, { kind: 'dig', a: 'FF1.Q' }, { kind: 'dig', a: 'FF2.Q' }, { kind: 'dig', a: 'FF3.Q' }, { kind: 'dig', a: 'FF4.Q' }] } };
+  });
+
+  /* ======================= Zähler ======================= */
+  /* Takt und Rückstellen links, Zähler Mitte, Lampen in einer Reihe darunter: Q0 ganz rechts, höchstes Bit links (so liest man die Zahl); Leitungen knicken einmal und kreuzen sich nicht */
+  function ctrExample(type, props, freq) {
+    var def0 = E.PARTS[type], nb = E.ctrBitCount(def0, Object.assign({}, def0.props, props || {}));
+    var parts = [P('CLK1', 'clock', 240, 300, { freq: freq }), P('E1', 'logicin', 240, 420), P('Z1', type, 560, 300, props || null), GND(240, 540)], wires = [W('CLK1.out', 'Z1.C'), W('E1.out', 'Z1.R')];
+    for (var i = 0; i < nb; i++) { var bx = 660 + 60 * (nb - 1 - i); parts.push(P('L' + (i + 1), 'logicled', bx, 520, null, null, 90)); wires.push(W('Z1.Q' + i, 'L' + (i + 1) + '.in')); }
+    return { layout: { parts: parts, wires: wires }, timing: { auto: true } };
+  }
+  def('Zähler', 'z_async', 'Asynchroner Dualzähler', 'Jede Stufe taktet die nächste (Ripple-Zähler): Die Lampen zeigen die Zahl in Dualform, die Spur Q3 hat 1/16 der Taktfrequenz.', function () { return ctrExample('ctr_async', { bits: 4 }, 4); });
+  def('Zähler', 'z_sync', 'Synchroner Dualzähler', 'Alle Stufen bekommen denselben Takt und schalten gemeinsam – hier abwärts zählend.', function () { return ctrExample('ctr_sync', { bits: 4, dir: 'down' }, 4); });
+  def('Zähler', 'z_bcd', 'Dezimalzähler (BCD)', 'Zählt 0 bis 9 und springt dann auf 0 zurück – der Zählerstand 10 kommt nicht vor.', function () { return ctrExample('ctr_bcd', null, 4); });
+  def('Zähler', 'z_johnson', 'Johnson-Zähler', 'Die Einsen wandern von unten nach oben ein und wieder hinaus: 8 Zustände mit 4 Flipflops, es ändert sich immer nur ein Bit.', function () { return ctrExample('ctr_johnson', { bits: 4 }, 4); });
+  def('Zähler', 'z_mod', 'Modulo-6-Zähler', 'Zählt 0 bis 5 und beginnt dann von vorn (Modulus n = 6, einstellbar).', function () { return ctrExample('ctr_mod', { modn: 6 }, 4); });
+
+  /* ======================= Anzeigen ======================= */
+  def('Anzeigen', 'a_seg7', 'Siebensegmentanzeige mit BCD-Dekoder', 'Der Dezimalzähler liefert BCD, der Dekoder macht daraus die sieben Segmente a bis g – die Ziffern 0 bis 9 erscheinen.', function () {
+    var parts = [P('CLK1', 'clock', 200, 300, { freq: 2 }), P('Z1', 'ctr_bcd', 460, 300), P('IC1', 'dec7', 760, 300), P('AZ1', 'seg7', 1060, 300), GND(200, 440)], wires = [W('CLK1.out', 'Z1.C')];
+    ['A', 'B', 'C', 'D'].forEach(function (p, k) { wires.push(W('Z1.Q' + k, 'IC1.' + p)); });
+    'abcdefg'.split('').forEach(function (s) { wires.push(W('IC1.' + s, 'AZ1.' + s)); });
+    return { layout: { parts: parts, wires: wires }, timing: { rows: [{ kind: 'dig', a: 'CLK1.out' }], buses: [{ label: 'Ziffer', bits: [0, 1, 2, 3].map(function (k) { return { kind: 'dig', a: 'Z1.Q' + k }; }) }] } };
+  });
+  def('Anzeigen', 'a_led', 'Logikanzeige und Pegelschalter', 'Der Pegelschalter gibt 0 oder 1 vor, die Logikanzeige leuchtet bei 1. Der Taktgeber darunter schaltet selbst im Sekundentakt.', function () {
+    return { layout: { parts: [P('E1', 'logicin', 280, 240), P('L1', 'logicled', 640, 240), P('CLK1', 'clock', 280, 400, { freq: 1 }), P('L2', 'logicled', 640, 400), GND(280, 520)], wires: [W('E1.out', 'L1.in'), W('CLK1.out', 'L2.in')] },
+      timing: { rows: [{ kind: 'dig', a: 'E1.out' }, { kind: 'dig', a: 'CLK1.out' }] } };
+  }, { demo: { every: 1.4, seq: [{ E1: false }, { E1: true }] } });
+
+  /* ======================= Analog ======================= */
+  def('Analog', 'n_teiler', 'Spannungsteiler', 'Zwei Widerstände teilen die Spannung im Verhältnis ihrer Werte: 9 V an 1 kΩ und 2 kΩ ergibt 6 V an R2. Der Schalter schaltet von selbst; ein Klick auf ein Bauteil zeigt Spannung und Strom.', function () {
+    return { layout: { parts: [P('B1', 'battery', 240, 320, null, 9), P('S1', 'switch', 520, 200, { closed: true }), P('R1', 'resistor', 800, 320, null, 1000, 90), P('R2', 'resistor', 800, 480, null, 2000, 90), GND(240, 480)],
+      wires: [W('B1.p', 'S1.a'), W('S1.b', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'B1.n'), W('B1.n', 'GND1.g')] } };
+  }, { demo: { every: 1.4, seq: [{ S1: false }, { S1: true }] } });
+  def('Analog', 'n_pot', 'Potentiometer als Spannungsteiler', 'Der Schleifer teilt die Spannung stufenlos: Je weiter er nach oben geht, desto grösser wird die Spannung an der Last. Der Regler läuft von selbst.', function () {
+    return { layout: { parts: [P('B1', 'battery', 240, 320, null, 9), P('P1', 'pot', 520, 320, { pos: 0.5 }, 10000, 270), P('R1', 'resistor', 780, 420, null, 10000, 90), GND(240, 520)],
+      wires: [W('B1.p', 'P1.b'), W('P1.a', 'B1.n'), W('P1.w', 'R1.a'), W('R1.b', 'B1.n'), W('B1.n', 'GND1.g')] }, scopes: [{ channels: [{ kind: 'node', a: 'R1.a' }], span: 10 }] };
+  }, { demo: { every: 0.7, seq: [{ 'P1.pos': 0.1 }, { 'P1.pos': 0.3 }, { 'P1.pos': 0.5 }, { 'P1.pos': 0.7 }, { 'P1.pos': 0.9 }, { 'P1.pos': 0.7 }, { 'P1.pos': 0.5 }, { 'P1.pos': 0.3 }] } });
+  def('Analog', 'n_lampe', 'Schalter und Lampe', 'Der Schalter schliesst den Stromkreis: Nur bei geschlossenem Schalter fliesst Strom und die Lampe leuchtet.', function () {
+    return { layout: { parts: [P('B1', 'battery', 240, 320, null, 9), P('S1', 'switch', 520, 200), P('H1', 'lamp', 800, 320, null, 60, 90), GND(240, 480)], wires: [W('B1.p', 'S1.a'), W('S1.b', 'H1.a'), W('H1.b', 'B1.n'), W('B1.n', 'GND1.g')] } };
+  }, { demo: { every: 1.4, seq: [{ S1: true }, { S1: false }] } });
+  def('Analog', 'n_taster', 'Taster und Motor', 'Der Taster schliesst nur, solange er gedrückt wird; der Motor läuft dann und dreht sich mit dem Strom.', function () {
+    return { layout: { parts: [P('B1', 'battery', 240, 320, null, 9), P('S1', 'button', 520, 200), P('M1', 'motor', 800, 320, null, 20, 90), GND(240, 480)], wires: [W('B1.p', 'S1.a'), W('S1.b', 'M1.a'), W('M1.b', 'B1.n'), W('B1.n', 'GND1.g')] } };
+  }, { demo: { every: 1.4, seq: [{ S1: true }, { S1: false }] } });
+  def('Analog', 'n_amp', 'Strommessung mit dem Amperemeter', 'Ein Strommesser gehört in Reihe in den Stromkreis: Er zeigt den Strom, den auch der Widerstand führt (I = U / R).', function () {
+    return { layout: { parts: [P('B1', 'battery', 240, 320, null, 9), P('S1', 'switch', 520, 200, { closed: true }), P('A1', 'ammeter', 800, 200), P('R1', 'resistor', 1040, 320, null, 470, 90), GND(240, 480)],
+      wires: [W('B1.p', 'S1.a'), W('S1.b', 'A1.a'), W('A1.b', 'R1.a'), W('R1.b', 'B1.n'), W('B1.n', 'GND1.g')] } };
+  }, { demo: { every: 1.4, seq: [{ S1: false }, { S1: true }] } });
+  def('Analog', 'n_led', 'LED mit Vorwiderstand', 'Der Vorwiderstand begrenzt den Strom: (9 V − 2 V) / 330 Ω ≈ 21 mA. Ohne ihn brennt die LED durch.', function () {
+    return { layout: { parts: [P('B1', 'battery', 240, 320, null, 9), P('S1', 'switch', 520, 200, { closed: true }), P('R1', 'resistor', 800, 200, null, 330), P('D1', 'led', 1040, 320, { color: 'rot' }, null, 90), GND(240, 480)],
+      wires: [W('B1.p', 'S1.a'), W('S1.b', 'R1.a'), W('R1.b', 'D1.a'), W('D1.k', 'B1.n'), W('B1.n', 'GND1.g')] } };
+  }, { demo: { every: 1.4, seq: [{ S1: false }, { S1: true }] } });
+  def('Analog', 'n_rc', 'RC-Glied an Rechteckquelle', 'Lade- und Entladekurve des Kondensators im Oszilloskop; «τ bestimmen» liefert R · C = 1 ms.', function () {
+    return { layout: { parts: [P('G1', 'acsource', 240, 320, { freq: 50, shape: 'square', ri: 0.05 }, 5), P('R1', 'resistor', 520, 200, null, 1000), P('C1', 'capacitor', 800, 320, null, 1e-6, 90), GND(240, 480)],
+      wires: [W('G1.p', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'G1.n'), W('G1.n', 'GND1.g')] }, scopes: [{ channels: [{ kind: 'node', a: 'R1.b' }, { kind: 'node', a: 'G1.p' }] }] };
+  });
+  def('Analog', 'n_rl', 'RL-Glied an Rechteckquelle', 'Die Spule lässt den Strom nur langsam ansteigen: Die Spannung an L springt auf 5 V und fällt dann mit τ = L / R = 100 µs ab.', function () {
+    return { layout: { parts: [P('G1', 'acsource', 240, 320, { freq: 500, shape: 'square', ri: 0.05 }, 5), P('R1', 'resistor', 520, 200, null, 100), P('L1', 'inductor', 800, 320, null, 10e-3, 90), GND(240, 480)],
+      wires: [W('G1.p', 'R1.a'), W('R1.b', 'L1.a'), W('L1.b', 'G1.n'), W('G1.n', 'GND1.g')] }, scopes: [{ channels: [{ kind: 'node', a: 'R1.b' }, { kind: 'node', a: 'G1.p' }], span: 0.005 }] };
+  });
+  def('Analog', 'n_lc', 'Schwingkreis aus L und C', 'Sprungantwort einer Reihenschaltung: Die Spannung am Kondensator schwingt mit f = 1 / (2π · √(L · C)) = 503 Hz.', function () {
+    return { layout: { parts: [P('B1', 'battery', 240, 320, { ri: 0.05 }, 5), P('L1', 'inductor', 520, 200, null, 10e-3), P('C1', 'capacitor', 800, 320, null, 10e-6, 90), GND(240, 480)],
+      wires: [W('B1.p', 'L1.a'), W('L1.b', 'C1.a'), W('C1.b', 'B1.n'), W('B1.n', 'GND1.g')] }, scopes: [{ channels: [{ kind: 'node', a: 'C1.a' }], span: 0.01 }] };
+  });
+  def('Analog', 'n_diode', 'Diode als Halbwellen-Gleichrichter', 'Die Diode lässt nur die positive Halbwelle durch: Am Widerstand steht ein pulsierender Gleichstrom (abzüglich 0,7 V Durchlassspannung).', function () {
+    return { layout: { parts: [P('G1', 'acsource', 240, 320, { freq: 50, shape: 'sine', ri: 0.05 }, 5), P('D1', 'diode', 520, 200), P('R1', 'resistor', 800, 320, null, 1000, 90), GND(240, 480)],
+      wires: [W('G1.p', 'D1.a'), W('D1.k', 'R1.a'), W('R1.b', 'G1.n'), W('G1.n', 'GND1.g')] }, scopes: [{ channels: [{ kind: 'node', a: 'G1.p' }, { kind: 'node', a: 'R1.a' }], span: 0.05 }] };
+  });
+  def('Analog', 'n_zener', 'Z-Diode als Begrenzer', 'Die Z-Diode begrenzt die Spannung nach oben auf ihre Z-Spannung (5,1 V) und nach unten auf −0,7 V; der Rest fällt am Vorwiderstand ab.', function () {
+    return { layout: { parts: [P('G1', 'acsource', 240, 320, { freq: 50, shape: 'sine', ri: 0.05 }, 10), P('R1', 'resistor', 520, 200, null, 1000), P('Z1', 'zener', 800, 320, { vz: 5.1 }, null, 270), GND(240, 480)],
+      wires: [W('G1.p', 'R1.a'), W('R1.b', 'Z1.k'), W('Z1.a', 'G1.n'), W('G1.n', 'GND1.g')] }, scopes: [{ channels: [{ kind: 'node', a: 'G1.p' }, { kind: 'node', a: 'R1.b' }], span: 0.05 }] };
+  });
+  def('Analog', 'n_npn', 'Transistor als Schalter', 'Ein kleiner Basisstrom (über R1) schaltet den grossen Kollektorstrom durch die Lampe: Der Transistor ist hier ein elektronischer Schalter.', function () {
+    return { layout: { parts: [P('B1', 'battery', 200, 360, null, 9), P('S1', 'switch', 440, 240), P('R1', 'resistor', 640, 240, null, 4700), P('Q1', 'npn', 820, 360), P('H1', 'lamp', 960, 200, null, 60, 90), GND(200, 520)],
+      wires: [W('B1.p', 'S1.a'), W('S1.b', 'R1.a'), W('R1.b', 'Q1.b'), W('B1.p', 'H1.a'), W('H1.b', 'Q1.c'), W('Q1.e', 'B1.n'), W('B1.n', 'GND1.g')] } };
+  }, { demo: { every: 1.4, seq: [{ S1: true }, { S1: false }] } });
+
+  /* ======================= Anwendungen ======================= */
+  def('Anwendungen', 'x_lauflicht', 'Lauflicht mit Johnson-Zähler', 'Ein Johnson-Zähler steuert vier Lampen: Die Leuchtreihe wandert in 8 Schritten hinein und wieder hinaus (0001, 0011, 0111, 1111, 1110 …) – es ändert sich immer nur eine Lampe.', function () { return ctrExample('ctr_johnson', { bits: 4 }, 3); });
+  def('Anwendungen', 'x_schloss', 'Codeschloss', 'Das Schloss öffnet (Lampe leuchtet) nur bei der Kombination e1 = 1, e2 = 0, e3 = 1 – alle anderen Eingaben bleiben zu: A = e1 NICHT e2 e3.', function () {
+    return { layout: { parts: [P('E1', 'logicin', 240, 200), P('E2', 'logicin', 240, 320), P('E3', 'logicin', 240, 440), P('N1', 'not', 480, 320), P('U1', 'and', 760, 320, { inputs: 3 }), P('L1', 'logicled', 980, 320), GND(240, 560)],
+      wires: [W('E1.out', 'U1.in1'), W('E2.out', 'N1.in'), W('N1.out', 'U1.in2'), W('E3.out', 'U1.in3'), W('U1.out', 'L1.in')] },
+      timing: { rows: [{ kind: 'dig', a: 'E1.out' }, { kind: 'dig', a: 'E2.out' }, { kind: 'dig', a: 'E3.out' }, { kind: 'dig', a: 'L1.in' }] } };
+  }, { demo: { every: 0.8, seq: SEQ3 } });
+
+  S.exampleDefs = defs;
+})(window);
+
 /* ==== studio/examples.js ==== */
 /* Digital Quest Studio – Beispiele (Stufe 6, Menü «Beispiele»)
  * Mitgelieferte Schaltungen. Jedes Beispiel: {id, name, text, build() → {layout, scopes?, timing?, run?}}.
@@ -5223,20 +6181,6 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
     return { layout: { parts: parts, wires: wires },
       timing: { rows: [{ kind: 'dig', a: 'CLK1.out' }], buses: [{ label: 'Einer', bits: [0, 1, 2, 3].map(function (k) { return { kind: 'dig', a: 'Z1.Q' + k }; }) }, { label: 'Zehner', bits: [0, 1, 2].map(function (k) { return { kind: 'dig', a: 'Z2.Q' + k }; }) }] } };
   }
-  function rcGlied() {
-    return { layout: { parts: [part('G1', 'acsource', 240, 300, { freq: 50, shape: 'square', ri: 0.05 }, 5), part('R1', 'resistor', 520, 200, null, 1000), part('C1', 'capacitor', 800, 300, null, 1e-6), part('GND1', 'ground', 520, 440)],
-      wires: [W('G1.p', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'G1.n'), W('G1.n', 'GND1.g')].map(function (w) { return w; }) },
-      scopes: [{ channels: [{ kind: 'node', a: 'R1.b' }, { kind: 'node', a: 'G1.p' }] }] };
-  }
-  function schwingkreis() {
-    return { layout: { parts: [part('B1', 'battery', 240, 300, { ri: 0.05 }, 5), part('L1', 'inductor', 520, 200, null, 10e-3), part('C1', 'capacitor', 800, 300, null, 10e-6), part('GND1', 'ground', 520, 440)],
-      wires: [W('B1.p', 'L1.a'), W('L1.b', 'C1.a'), W('C1.b', 'B1.n'), W('B1.n', 'GND1.g')] },
-      scopes: [{ channels: [{ kind: 'node', a: 'C1.a' }], span: 0.01 }] };
-  }
-  function teiler() {
-    return { layout: { parts: [part('B1', 'battery', 240, 300, null, 9), part('R1', 'resistor', 520, 200, null, 1000), part('R2', 'resistor', 800, 300, null, 2000), part('GND1', 'ground', 520, 440)],
-      wires: [W('B1.p', 'R1.a'), W('R1.b', 'R2.a'), W('R2.b', 'B1.n'), W('B1.n', 'GND1.g')] }, run: false };
-  }
   /* Asynchroner 4-Bit-Zähler aus Flipflops (aufgeklappt) bei 1 MHz: im Zeitverlauf kommen die Flanken der höheren Stufen später */
   function asyncZaehler() {
     var C = root.DQStudioCounters, ex = C.expansion('ctr_async', { bits: 4 }), parts = [part('CLK1', 'clock', 200, 300, { freq: 1e6 }), part('GND1', 'ground', 200, 460)], wires = [];
@@ -5246,39 +6190,90 @@ body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkre
     wires.push(W('CLK1.out', ren(ex.map.C)));
     return { layout: { parts: parts, wires: wires }, timing: { auto: true } };
   }
-  function logik() {
-    return { layout: { parts: [part('E1', 'logicin', 240, 260), part('E2', 'logicin', 240, 360), part('U1', 'xor', 520, 310), part('U2', 'and', 520, 460), part('L1', 'logicled', 800, 310), part('L2', 'logicled', 800, 460), part('GND1', 'ground', 240, 520)],
-      wires: [W('E1.out', 'U1.in1'), W('E2.out', 'U1.in2'), W('E1.out', 'U2.in1'), W('E2.out', 'U2.in2'), W('U1.out', 'L1.in'), W('U2.out', 'L2.in')] }, run: false };
-  }
-
   function tiefpass() {
     return { layout: { parts: [part('G1', 'acsource', 240, 300, { freq: 1000, shape: 'sine', ri: 0.05 }, 1), part('R1', 'resistor', 520, 200, null, 1000), part('C1', 'capacitor', 800, 300, null, 1e-7), part('GND1', 'ground', 520, 440)],
       wires: [W('G1.p', 'R1.a'), W('R1.b', 'C1.a'), W('C1.b', 'G1.n'), W('G1.n', 'GND1.g')] },
-      bode: [{ channels: [{ a: 'C1.a' }] }], run: false };
+      bode: [{ channels: [{ a: 'C1.a' }] }] };
   }
   function rlc() {
     return { layout: { parts: [part('G1', 'acsource', 240, 300, { freq: 500, shape: 'sine', ri: 0.05 }, 1), part('L1', 'inductor', 480, 200, null, 10e-3), part('C1', 'capacitor', 720, 200, null, 10e-6), part('R1', 'resistor', 900, 300, null, 10), part('GND1', 'ground', 520, 440)],
       wires: [W('G1.p', 'L1.a'), W('L1.b', 'C1.a'), W('C1.b', 'R1.a'), W('R1.b', 'G1.n'), W('G1.n', 'GND1.g')] },
-      bode: [{ channels: [{ a: 'R1.a' }] }], run: false };
+      bode: [{ channels: [{ a: 'R1.a' }] }] };
   }
-  var LIST = [
-    { id: 'uhr', name: 'Digitaluhr (Sekunden 00 – 59)', text: 'Taktgeber 1 Hz, Einer (0–9) und Zehner (0–5), BCD-Dekoder, zwei Siebensegmentanzeigen.', build: digitaluhr },
-    { id: 'zaehler', name: 'Asynchroner Zähler mit Zeitverlauf', text: '4 Bit aus Flipflops bei 1 MHz: Die höheren Stufen schalten mit Laufzeit später.', build: asyncZaehler },
-    { id: 'rc', name: 'RC-Glied an Rechteckquelle', text: 'Lade- und Entladekurve im Oszilloskop; «τ bestimmen» liefert R·C = 1 ms.', build: rcGlied },
-    { id: 'tiefpass', name: 'RC-Tiefpass: Bode-Diagramm', text: '−3 dB bei fg = 1/(2π·R·C) = 1,59 kHz, −20 dB je Dekade, Phase −45° bei fg.', build: tiefpass },
-    { id: 'rlc', name: 'Reihenschwingkreis: Resonanzkurve', text: 'Resonanz bei 503 Hz, Güte Q ≈ 3,1 (Bandpass über R).', build: rlc },
-    { id: 'lc', name: 'Schwingkreis aus L und C', text: 'Sprungantwort einer Reihenschaltung: f = 1 / (2π·√(L·C)) = 503 Hz.', build: schwingkreis },
-    { id: 'teiler', name: 'Spannungsteiler', text: '9 V an 1 kΩ und 2 kΩ: Bauteil anklicken zeigt Spannung und Strom.', build: teiler },
-    { id: 'logik', name: 'Halbaddierer (XOR und UND)', text: 'Pegelschalter links anklicken: Summe (XOR) und Übertrag (UND).', build: logik }
+  /* Gruppen wie die Bauteilleiste (studio.js PALETTE): Logik · Flip-Flops · Zähler · Anzeigen · Analog · Anwendungen */
+  var CATS = ['Logik', 'Flip-Flops', 'Zähler', 'Anzeigen', 'Analog', 'Anwendungen'];
+  var OLD = [
+    { cat: 'Zähler', id: 'zaehler', name: 'Asynchroner Zähler aus Flipflops (1 MHz)', text: '4 Bit aus Flipflops bei 1 MHz: Die höheren Stufen schalten mit Laufzeit später.', build: asyncZaehler },
+    { cat: 'Analog', id: 'tiefpass', name: 'RC-Tiefpass: Bode-Diagramm', text: '−3 dB bei fg = 1/(2π·R·C) = 1,59 kHz, −20 dB je Dekade, Phase −45° bei fg.', build: tiefpass },
+    { cat: 'Analog', id: 'rlc', name: 'Reihenschwingkreis: Resonanzkurve', text: 'Resonanz bei 503 Hz, Güte Q ≈ 3,1 (Bandpass über R).', build: rlc },
+    { cat: 'Anwendungen', id: 'uhr', name: 'Digitaluhr (Sekunden 00 – 59)', text: 'Taktgeber 1 Hz, Einer (0–9) und Zehner (0–5), BCD-Dekoder, zwei Siebensegmentanzeigen.', build: digitaluhr }
   ];
-  S.examples = LIST;
+  var LIST = [];
+  CATS.forEach(function (c) { LIST = LIST.concat((S.exampleDefs || []).concat(OLD).filter(function (e) { return e.cat === c; })); });
+  S.examples = LIST; S.exampleCats = CATS;
+
+  /* ---------- Vorführung: Eingänge laufen reihum durch, bis jemand selbst etwas anfasst ---------- */
+  var demo = null;
+  function applyState(st) {
+    var core = S.core;
+    Object.keys(st).forEach(function (k) {
+      var v = st[k], a = k.split('.'), p = core.part(a[0]); if (!p) return; p.props = p.props || {};
+      if (typeof v === 'boolean') p.props.closed = v; else p.props[a[1] || 'value'] = v;
+    });
+    core.changed('demo');
+  }
+  S.stopDemo = function () { if (demo) { clearInterval(demo.timer); demo = null; } var b = document.getElementById('exDemo'); if (b) b.hidden = true; };
+  S.startDemo = function (d) {
+    S.stopDemo(); if (!d || !d.seq || !d.seq.length) return;
+    demo = { i: 0, timer: setInterval(function () { demo.i = (demo.i + 1) % d.seq.length; applyState(d.seq[demo.i]); }, d.every * 1000), cfg: d };
+    applyState(d.seq[0]);
+    var b = document.getElementById('exDemo'); if (b) b.hidden = false;
+  };
+  S.demoRunning = function () { return !!demo; };
+
+  /* ---------- Beispiel laden ---------- */
+  /* Der erklärende Satz steht als Textelement im Schaltplan (Zeichenebene), über der Schaltung */
+  function wrap(t, n) { var out = [], line = ''; t.split(' ').forEach(function (w) { if (line && (line + ' ' + w).length > n) { out.push(line); line = w; } else line = line ? line + ' ' + w : w; }); if (line) out.push(line); return out.join('\n'); }
+  function addNote(layout, text) {
+    if (!text || (layout.draw && layout.draw.length)) return;
+    var xs = layout.parts.map(function (p) { return p.x; }), ys = layout.parts.map(function (p) { return p.y; }), lines = wrap(text, 66).split('\n').length;
+    layout.draw = [{ id: 'z1', kind: 'text', x: Math.max(20, Math.min.apply(null, xs) - 60), y: Math.max(20, Math.min.apply(null, ys) - 80 - lines * 20), text: wrap(text, 66), size: 16, color: '#5b6b73', bold: false }];
+  }
   S.loadExample = function (id) {
     var ex = LIST.filter(function (e) { return e.id === id; })[0]; if (!ex) return false;
-    var b = ex.build(); S.loadLayout(b.layout, { scopes: b.scopes, timing: b.timing, bode: b.bode, run: b.run }); return true;
+    var b = ex.build(); addNote(b.layout, ex.text);
+    S.loadLayout(b.layout, { scopes: b.scopes, timing: b.timing, bode: b.bode, run: b.run, example: ex.id });
+    S.name = ex.name; if (S.updateTitle) S.updateTitle();
+    showBanner(ex); if (ex.demo) S.startDemo(ex.demo);
+    return true;
   };
+  function showBanner(ex) {
+    var el = document.getElementById('exBanner'); if (!el) return;
+    el.querySelector('b').textContent = ex.name; el.querySelector('.exbody').textContent = 'Die Erklärung steht über der Schaltung.'; el.hidden = false;
+    if (S.ed) requestAnimationFrame(function () { S.ed.fit(); });
+  }
   S.initExamples = function () {
-    S.setMenu('bsp', LIST.map(function (e) { return { label: e.name, act: function () { S.loadExample(e.id); } }; }));
+    var items = [];
+    CATS.forEach(function (c) {
+      var list = LIST.filter(function (e) { return e.cat === c; }); if (!list.length) return;
+      items.push({ head: c });
+      list.forEach(function (e) { items.push({ label: e.name, act: function () { S.loadExample(e.id); } }); });
+    });
+    S.setMenu('bsp', items);
+    var cv = document.getElementById('canvasWrap');
+    if (cv && !document.getElementById('exBanner')) {
+      var el = document.createElement('div'); el.id = 'exBanner'; el.className = 'exbanner'; el.hidden = true;
+      el.innerHTML = '<b></b><span class="exbody"></span><span class="exdemo" id="exDemo" hidden>Die Eingänge schalten von selbst durch – ein Klick auf einen Schalter übernimmt.</span><button aria-label="Hinweis schliessen" title="Hinweis schliessen">×</button>';
+      cv.insertBefore(el, cv.firstChild); el.querySelector('button').addEventListener('click', function () { el.hidden = true; if (S.ed) S.ed.fit(); });
+    }
   };
+  /* Fenster eines Beispiels (Oszilloskop, Bode) an den rechten Rand legen und die Schaltung links davon einpassen, damit nichts verdeckt wird */
+  function placeWindows() {
+    var wins = (S.scopes || []).concat(S.bodes || []), inset = 0;
+    wins.forEach(function (w, k) { var W = w.el.offsetWidth; w.el.style.left = Math.max(8, root.innerWidth - W - 8 - 26 * k) + 'px'; w.el.style.top = (120 + 28 * k) + 'px'; inset = Math.max(inset, W - 300 + 16 + 26 * k); });
+    if (S.ed) S.ed.insetRight = root.innerWidth > 900 ? inset : 0;
+  }
+  S.onLoad = (function (prev) { return function (o) { if (prev) prev(o); S.stopDemo(); if (o && o.example) placeWindows(); else if (S.ed) S.ed.insetRight = 0; if (!o || !o.example) { var el = document.getElementById('exBanner'); if (el && !el.hidden) { el.hidden = true; if (S.ed) requestAnimationFrame(function () { S.ed.fit(); }); } } }; })(S.onLoad);
   S.digitaluhr = digitaluhr;
 })(window);
 </script>

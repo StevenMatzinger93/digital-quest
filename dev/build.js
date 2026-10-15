@@ -149,7 +149,7 @@ if (/defExamTask|"hidden"/.test(game)) throw new Error('Prüfungspool ist im Spi
  * Teilt engine.js, circuit-ui.js, editor.js mit dem Spiel; eigene Oberflaeche in dev/studio/. Plan: docs/AUFTRAG_STUDIO.md */
 const SD = f => fs.readFileSync(path.join(__dirname, 'studio', f), 'utf8').split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
 const studioFiles = fs.readdirSync(path.join(__dirname, 'studio')).filter(f => /\.js$/.test(f));
-const STUDIO_ORDER = ['sim.js', 'studio.js', 'counters.js', 'edit.js', 'slider.js', 'file.js', 'bool.js', 'logic.js', 'task.js', 'scope.js', 'bode.js', 'timing.js', 'inspector.js', 'signale.js', 'examples.js'];   // studio.js legt S an, danach die Module; examples.js zuletzt
+const STUDIO_ORDER = ['sim.js', 'studio.js', 'counters.js', 'edit.js', 'slider.js', 'file.js', 'bool.js', 'logic.js', 'task.js', 'scope.js', 'bode.js', 'timing.js', 'inspector.js', 'signale.js', 'ansicht.js', 'zeichnen.js', 'blatt.js', 'druck.js', 'beispiele.js', 'examples.js'];   // studio.js legt S an, danach die Module; examples.js zuletzt
 const studioJs = ['engine.js', 'circuit-ui.js', 'editor.js', 'visuals.js', 'content/_logic.js'].map(f => '/* ==== ' + f + ' ==== */\n' + src(f))
   .concat(STUDIO_ORDER.filter(f => studioFiles.includes(f)).map(f => '/* ==== studio/' + f + ' ==== */\n' + SD(f))).join('\n');
 studioFiles.forEach(f => { if (!STUDIO_ORDER.includes(f)) throw new Error('studio/' + f + ' fehlt in STUDIO_ORDER (build.js)'); });

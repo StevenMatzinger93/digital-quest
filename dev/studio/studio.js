@@ -30,15 +30,14 @@
 
   /* ---------- Bauteilleiste ---------- */
   var PALETTE = [
-    { name: 'Quellen', items: ['battery', 'acsource', 'clock', 'ground'] },
-    { name: 'Verbindung', items: ['node'] },
-    { name: 'Bauteile', items: ['resistor', 'pot', 'capacitor', 'inductor', 'switch', 'button', 'lamp', 'motor', 'ammeter'] },
-    { name: 'Halbleiter', items: ['diode', 'led', 'zener', 'npn'] },
-    { name: 'Gatter', items: ['not', 'and', 'or', 'nand', 'nor', 'xor', 'xnor'] },
-    { name: 'Flipflops', items: ['dff', 'tff', 'jkff', 'rsff', 'jkms'] },
+    { name: 'Logik', items: ['not', 'and', 'or', 'nand', 'nor', 'xor', 'xnor'] },
+    { name: 'Flip-Flops', items: ['dff', 'tff', 'jkff', 'rsff', 'jkms'] },
     { name: 'Zähler', items: ['ctr_async', 'ctr_sync', 'ctr_bcd', 'ctr_johnson', 'ctr_mod'] },
-    { name: 'Anzeigen', items: ['logicin', 'logicled', 'seg7', 'dec7'] }
-  ];
+    { name: 'Anzeigen', items: ['logicin', 'clock', 'logicled', 'seg7', 'dec7'] },
+    { name: 'Analog', items: ['battery', 'acsource', 'ground', 'resistor', 'pot', 'capacitor', 'inductor', 'switch', 'button', 'lamp', 'motor', 'ammeter', 'diode', 'led', 'zener', 'npn'] },
+    { name: 'Verbindung', items: ['node'] },
+    { name: 'Zeichnen', items: ['draw:text', 'draw:line', 'draw:arrow', 'draw:rect', 'draw:ellipse'] }
+  ]; // Gruppen wie das Menü «Beispiele» (examples.js): Logik · Flip-Flops · Zähler · Anzeigen · Analog (· Anwendungen nur als Beispiele)
   S.PALETTE = PALETTE;
 
   /* ---------- Eigenschaften je Bauteiltyp (Anzeige im Inspektor) ----------
@@ -143,7 +142,7 @@
 
   function onChange(kind) {
     if (S.onEdit) S.onEdit(kind);
-    if (kind === 'move' || kind === 'rotate') { return; }
+    if (kind === 'move' || kind === 'rotate' || kind === 'draw') { return; }
     sim.refresh(kind === 'add' || kind === 'delete' || kind === 'wire' || kind === 'undo');
     findDigitalNodes();
     if (kind === 'add' || kind === 'delete' || kind === 'wire') { if (S.onStructure) S.onStructure(); }
@@ -168,7 +167,7 @@
     PALETTE.forEach(function (g, gi) {
       h += '<details' + (gi < 4 || g.items.length ? ' open' : '') + '><summary>' + esc(g.name) + '</summary>';
       if (!g.items.length) h += '<div class="pempty">Kommt in einer späteren Stufe.</div>';
-      else h += '<div class="plist">' + g.items.map(function (t) { var d = E.PARTS[t]; return '<button class="pitem" draggable="true" data-add="' + t + '" title="' + esc(d.label) + ' – anklicken oder auf die Zeichenfläche ziehen">' + Editor.icon(t) + '<span class="nm">' + esc(d.label) + '</span></button>'; }).join('') + '</div>';
+      else h += '<div class="plist">' + g.items.map(function (t) { var d = E.PARTS[t] || { label: (S.DRAW_ITEMS.filter(function (x) { return x[0] === t; })[0] || [0, t])[1] }; return '<button class="pitem" draggable="true" data-add="' + t + '" title="' + esc(d.label) + ' – anklicken oder auf die Zeichenfläche ziehen">' + (E.PARTS[t] ? Editor.icon(t) : S.drawIcon(t)) + '<span class="nm">' + esc(d.label) + '</span></button>'; }).join('') + '</div>';
       h += '</details>';
     });
     $('#palette').innerHTML = h;
@@ -179,6 +178,7 @@
   S.rebuildPalette = buildPalette;
   S.addPart = function (type, x, y) {
     var p;
+    if (/^draw:/.test(type)) return S.drawAdd(type.slice(5), x, y); // Zeichenelement
     if (x === undefined) p = ed.addPart(type); else p = core.addPart(type, x, y, 'schema');
     return p;
   };
@@ -186,7 +186,7 @@
   function bindCanvas() {
     svg.addEventListener('dragover', function (ev) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; });
     svg.addEventListener('drop', function (ev) {
-      ev.preventDefault(); var t = ev.dataTransfer.getData('text/plain'); if (!t || !E.PARTS[t]) return;
+      ev.preventDefault(); var t = ev.dataTransfer.getData('text/plain'); if (!t || !(E.PARTS[t] || /^draw:/.test(t))) return;
       var xy = ed._pt(ev); S.addPart(t, xy[0], xy[1]);
     });
   }
@@ -223,7 +223,7 @@
     document.addEventListener('click', function (ev) { if (!ev.target.closest('.menu')) closeMenus(); });
   }
   function fillMenu(m) {
-    m.el.querySelector('.drop').innerHTML = m.items.map(function (it, i) { return it.sep ? '<hr>' : it.info ? '<span class="ex-text">' + esc(it.info) + '</span>' : '<button role="menuitem" data-i="' + i + '">' + esc(it.label) + (it.key ? '<small>' + esc(it.key) + '</small>' : '') + '</button>'; }).join('');
+    m.el.querySelector('.drop').innerHTML = m.items.map(function (it, i) { return it.sep ? '<hr>' : it.head ? '<span class="ex-head">' + esc(it.head) + '</span>' : it.info ? '<span class="ex-text">' + esc(it.info) + '</span>' : '<button role="menuitem" data-i="' + i + '">' + esc(it.label) + (it.key ? '<small>' + esc(it.key) + '</small>' : '') + '</button>'; }).join('');
   }
   function closeMenus() { $$('.menu.open').forEach(function (m) { m.classList.remove('open'); $('button', m).setAttribute('aria-expanded', 'false'); }); }
   S.setMenu = function (id, items) { var m = MENUS.filter(function (x) { return x.id === id; })[0]; if (m) { m.items = items; fillMenu(m); } };
@@ -293,7 +293,8 @@
 
   /* ---------- Eigenschaften ---------- */
   function renderInspector(force) {
-    var el = $('#inspector'), p = selId && core.part(selId);
+    var el = $('#inspector'), p = selId && core.part(selId), dsel = core.sel && String(core.sel).indexOf('d:') === 0 && S.drawInspector;
+    if (dsel) { var dh = S.drawInspector(core.sel.slice(2)); if (dh) { var keep = document.activeElement && el.contains(document.activeElement) && !force; if (!keep) { el.innerHTML = dh; S.bindDrawInspector(el, core.sel.slice(2)); } return; } }
     if (!p) {
       var wsel = core.sel && String(core.sel).indexOf('w:') === 0;
       el.innerHTML = '<h2>' + (wsel ? 'Leitung' : 'Simulation') + '</h2>' + (wsel ? '<p class="sub">Entf löscht die Leitung.</p>' :
@@ -406,7 +407,7 @@
   S.setBeamer = function (on) {
     S.beamer = !!on; document.body.classList.toggle('beamer', S.beamer);
     var b = $('#btnBeamer'); if (b) { b.classList.toggle('on', S.beamer); b.setAttribute('aria-pressed', S.beamer); }
-    ed.fit(); S.redraw(); if (S.timingDraw) S.timingDraw(); S.scopes.forEach(function (sc) { sc.dirty(); });
+    if (S.gridApply) S.gridApply(); ed.fit(); S.redraw(); if (S.timingDraw) S.timingDraw(); S.scopes.forEach(function (sc) { sc.dirty(); });
   };
   S.refreshInspector = function () { renderInspector(true); };
   S.selected = function () { return selId && core.part(selId); };

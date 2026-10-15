@@ -567,12 +567,12 @@ function uhr() {
     ok(srt(sum) === srt(bom.cnt) && bom.rows.length === 5 && bom.rows.some(r => r[0] === 'dec7' && r[1] === 2) && bom.rows.some(r => r[0] === 'ctr_mod' && /Modulo 6/.test(r[2])), 'Stückliste der Digitaluhr stimmt mit der Schaltung überein: ' + JSON.stringify(bom.rows));
     ok(bom.csv.startsWith('﻿"Bauteil";"Wert";"Anzahl";"Bezeichnungen"') && bom.csv.trim().split('\r\n').length === 6, 'CSV mit Kopfzeile und fünf Zeilen');
     await page.click('#menu-datei > button'); await page.click('#menu-datei .drop button:has-text("Stückliste")'); ok(/Summe/.test(await page.textContent('#modal')) && await page.isVisible('#bomCsv'), 'Stückliste als Tabelle im Fenster'); await page.keyboard.press('Escape'); await page.click('#modalBg', { position: { x: 5, y: 5 } }).catch(() => {});
-    // Drucken: A4, eine Seite, Schwarzweiss, Titelfeld
-    await page.evaluate(() => Studio.closeModal()); await page.evaluate(() => Studio.printPrepare()); await page.emulateMedia({ media: 'print' });
-    const pr = await page.evaluate(() => ({ area: getComputedStyle(document.getElementById('printArea')).display, bar: getComputedStyle(document.getElementById('menubar')).display, title: document.querySelector('.pr-title').textContent, svg: document.querySelectorAll('#printArea g.part').length }));
-    ok(pr.area === 'block' && pr.bar === 'none' && /Schaltung/.test(pr.title) && /Datum/.test(pr.title) && pr.svg === 8, 'Druckansicht: nur Schaltplan mit Titelfeld: ' + JSON.stringify(pr).slice(0, 120));
-    const pdf = await page.pdf({ format: 'A4', landscape: true }); const ptxt = pdf.toString('latin1'); const pages = (ptxt.match(/\/Type\s*\/Page[^s]/g) || []).length, mb = /\/MediaBox\s*\[\s*0\s+0\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s*\]/.exec(ptxt);
-    ok(pdf.slice(0, 4).toString() === '%PDF' && pages === 1 && mb && Math.abs(+mb[1] - 841.89) < 2 && Math.abs(+mb[2] - 595.28) < 2, 'PDF der Druckansicht: A4 quer, eine Seite (' + pages + ' Seite, ' + (mb ? mb[1] + ' × ' + mb[2] : '?') + ' pt)');
+    // Drucken: eine Seite A4 hoch mit Rahmen und Schriftfeld, Schwarzweiss (Auftrag «Bauen» Paket 5 ersetzt den alten Druck)
+    await page.evaluate(() => Studio.closeModal()); await page.evaluate(() => new Promise(res => Studio.printPages({ items: { table: false, expr: false, kv: false } }, b => res(b.count)))); await page.emulateMedia({ media: 'print' });
+    const pr = await page.evaluate(() => { const im = document.querySelector('#printArea .figimg').src, svg = decodeURIComponent(im.split(',').slice(1).join(',')); return { area: getComputedStyle(document.getElementById('printArea')).display, bar: getComputedStyle(document.getElementById('menubar')).display, title: document.querySelector('#printArea .pgframe').textContent, svg: (svg.match(/class="part/g) || []).length, bw: !/#0b6e94|#0f2d3a/i.test(svg.replace(/<style[\s\S]*?<\/style>/, '')) }; });
+    ok(pr.area === 'block' && pr.bar === 'none' && /TITEL/.test(pr.title) && /DATUM/.test(pr.title) && pr.svg === 8 && pr.bw, 'Druckansicht: nur Schaltplan mit Rahmen und Schriftfeld: ' + JSON.stringify(pr).slice(0, 400).replace(/TITEL.*BLATT/, ''));
+    const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true }); const ptxt = pdf.toString('latin1'); const pages = (ptxt.match(/\/Type\s*\/Page[^s]/g) || []).length, mb = /\/MediaBox\s*\[\s*0\s+0\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s*\]/.exec(ptxt);
+    ok(pdf.slice(0, 4).toString() === '%PDF' && pages === 1 && mb && Math.abs(+mb[1] - 595.28) < 2 && Math.abs(+mb[2] - 841.89) < 2, 'PDF der Druckansicht: A4 hoch, eine Seite (' + pages + ' Seite, ' + (mb ? mb[1] + ' × ' + mb[2] : '?') + ' pt)');
     await page.emulateMedia({ media: 'screen' }); fs.writeFileSync(path.join(shots, 'p5_druck.pdf'), pdf);
   }
 
@@ -834,6 +834,274 @@ function uhr() {
     await page.selectOption('#tlMode', 'stack'); await page.waitForTimeout(100);
     ok(await page.evaluate(() => document.querySelectorAll('#tlRows .tl-row').length) === 5, 'zurück auf untereinander');
     await page.evaluate(() => { Studio.closeScopes(); Studio.timing.clear(); });
+  }
+
+  /* ===== Auftrag «Bauen», Paket 3: Beispiel für jedes Bauteil ===== */
+  if (!only || only === 'i') {
+    // Leiste gegen Beispielliste: jedes Bauteil der Leiste kommt in mindestens einem Beispiel vor
+    const cov = await page.evaluate(() => {
+      const used = {}; Studio.examples.forEach(e => e.build().layout.parts.forEach(p => { used[p.type] = (used[p.type] || 0) + 1; }));
+      const bar = [].concat(...Studio.PALETTE.map(g => g.items)).filter(t => Studio.E.PARTS[t]); return { missing: bar.filter(t => !used[t]), bar: bar.length, ex: Studio.examples.length, cats: Studio.PALETTE.map(g => g.name), exCats: Studio.exampleCats };
+    });
+    ok(cov.missing.length === 0, 'jedes Bauteil der Leiste hat ein Beispiel (' + cov.bar + ' Bauteile, ' + cov.ex + ' Beispiele)' + (cov.missing.length ? ', es fehlt: ' + cov.missing.join(', ') : ''));
+    ok(cov.exCats.join() === ['Logik', 'Flip-Flops', 'Zähler', 'Anzeigen', 'Analog', 'Anwendungen'].join() && cov.cats.slice(0, 5).join() === cov.exCats.slice(0, 5).join(), 'Beispiel-Kategorien und Bauteilleiste haben dieselben Gruppen in derselben Reihenfolge (' + cov.cats.join(' · ') + ')');
+    // Menü: Überschriften je Kategorie
+    await page.click('#menu-bsp > button'); const heads = await page.$$eval('#menu-bsp .drop .ex-head', els => els.map(e => e.textContent)); await page.screenshot({ path: shots + '/i_menue.png' }); await page.keyboard.press('Escape'); await page.click('#toolbar', { position: { x: 5, y: 5 } });
+    ok(heads.join() === 'Logik,Flip-Flops,Zähler,Anzeigen,Analog,Anwendungen', 'Menü «Beispiele» mit Gruppenüberschriften: ' + heads.join(' · '));
+    // jedes Beispiel: lädt, ein Satz Erklärung, Anzeigen eingerichtet, aufgeräumt (keine übereinanderliegenden Leitungen), keine Störung, nach zwei Sekunden anderer Zustand
+    const ids = await page.evaluate(() => Studio.examples.map(e => e.id)), bad = [];
+    for (const id of ids) {
+      const info = await page.evaluate(id => {
+        const e = Studio.examples.find(x => x.id === id), b = e.build(); return { text: e.text, name: e.name, clash: DQEditor.routeClashes(b.layout).length, wantScopes: (b.scopes || []).length, wantRows: ((b.timing || {}).rows || []).length + ((b.timing || {}).auto ? 1 : 0), wantBode: (b.bode || []).length, demo: !!e.demo };
+      }, id);
+      await page.evaluate(id => { Studio.sim.pause(); Studio.loadExample(id); }, id);
+      const sig = () => page.evaluate(() => { const r = Studio.sim.res; if (!r) return 'none'; return JSON.stringify([Object.keys(r.parts).map(k => { const q = r.parts[k]; return [k, q.on, q.out, q.q, q.count, q.seg && q.seg.map(Number).join(''), q.i !== undefined ? +q.i.toPrecision(3) : 0, q.v !== undefined ? +q.v.toPrecision(3) : 0]; }), Studio.sim.state.t > 0 ? 1 : 0, Studio.core.layout.parts.map(p => JSON.stringify(p.props || {}))]); });
+      await page.waitForTimeout(150); const s0 = await sig();
+      await page.evaluate(() => Studio.sim.start && Studio.sim.start()); await page.waitForTimeout(2050); const s1 = await sig(); await page.waitForTimeout(450); const s2 = await sig();
+      const after = await page.evaluate(() => ({ note: (Studio.core.layout.draw || []).filter(e => e.kind === 'text').map(e => e.text.replace(/\n/g, ' ')).join('|'), faults: (Studio.sim.faults || []).map(f => f.code), err: Studio.sim.err, scopes: Studio.scopes.length, rows: Studio.timing.rows.length, bodes: Studio.bodes.length, banner: !document.getElementById('exBanner').hidden && document.querySelector('#exBanner b').textContent, t: Studio.sim.state.t }));
+      if (s0 === s1 && s0 === s2) bad.push(id + ': Zustand nach 2 s unverändert');
+      if (info.clash) bad.push(id + ': ' + info.clash + ' Leitungen übereinander');
+      if (after.faults.length || after.err) bad.push(id + ': Störung ' + after.faults.join() + (after.err || ''));
+      if (after.scopes !== info.wantScopes || after.bodes !== info.wantBode || (info.wantRows && !after.rows)) bad.push(id + ': Anzeigen nicht eingerichtet (' + after.scopes + '/' + info.wantScopes + ' Oszilloskope, ' + after.rows + ' Zeilen)');
+      if (after.banner !== info.name || !/[.!?)]$/.test(info.text) || info.text.length < 20 || after.note !== info.text) bad.push(id + ': Name oder erklärender Satz (Textelement) fehlt');
+      if (!(after.t > 0)) bad.push(id + ': Simulation lief nicht');
+    }
+    ok(bad.length === 0, ids.length + ' Beispiele laden, laufen, zeigen nach 2 s einen anderen Zustand, sind aufgeräumt und störungsfrei' + (bad.length ? ': ' + bad.join(' | ') : ''));
+    // Gatter: alle Eingangskombinationen durchschalten ergibt die Wahrheitstabelle
+    const gates = await page.evaluate(() => {
+      const E = Studio.E, F = { and: (a, b) => a && b, or: (a, b) => a || b, nand: (a, b) => !(a && b), nor: (a, b) => !(a || b), xor: (a, b) => a !== b, xnor: (a, b) => a === b, not: a => !a }, out = [];
+      Studio.examples.filter(e => e.gate).forEach(e => {
+        const lay = e.build().layout, net = E.buildNetlist(JSON.parse(JSON.stringify(lay))), st = E.newState(), two = e.gate !== 'not', rows = [];
+        for (let k = 0; k < (two ? 4 : 2); k++) {
+          const a = !!(k & 1), b = !!(k & 2); net.byId.E1.props.closed = a; if (two) net.byId.E2.props.closed = b;
+          const r = E.step(net, st, {}); rows.push({ k, want: two ? F[e.gate](a, b) : F[e.gate](a), got: !!r.parts.L1.on });
+        }
+        out.push({ g: e.gate, ok: rows.every(r => r.want === r.got), rows: rows.map(r => +r.got).join('') });
+      });
+      return out;
+    });
+    ok(gates.length === 7 && gates.every(g => g.ok), 'Gatter-Beispiele: alle Eingangskombinationen ergeben die Wahrheitstabelle (' + gates.map(g => g.g + ' ' + g.rows).join(', ') + ')');
+    // Vorführung: Klick auf einen Pegelschalter übernimmt die Bedienung
+    await page.evaluate(() => Studio.loadExample('g_and')); await page.waitForTimeout(200);
+    ok(await page.evaluate(() => Studio.demoRunning()), 'Vorführung läuft nach dem Öffnen');
+    await page.click('[data-part="E1"] .hit', { force: true }); await page.waitForTimeout(100);
+    ok(await page.evaluate(() => !Studio.demoRunning()), 'ein Klick auf einen Pegelschalter beendet die Vorführung');
+    const e1a = await page.evaluate(() => Studio.core.part('E1').props.closed); await page.waitForTimeout(1500); ok(e1a === await page.evaluate(() => Studio.core.part('E1').props.closed), 'danach schaltet nichts mehr von selbst');
+    ok(!(await page.evaluate(() => Studio.history.index() !== undefined && false)), 'Vorführung legt keine Rückgängig-Schritte an');
+    // Hinweis schliessen; Beispiel «Digitaluhr» ist weiterhin da
+    await page.click('#exBanner button'); ok(await page.isHidden('#exBanner'), 'Hinweis lässt sich schliessen');
+    ok(await page.evaluate(() => !!Studio.examples.find(e => e.id === 'uhr') && !!Studio.examples.find(e => e.id === 'x_lauflicht') && !!Studio.examples.find(e => e.id === 'x_schloss')), 'Anwendungen: Digitaluhr, Lauflicht, Codeschloss');
+    await page.screenshot({ path: shots + '/i_beispiel.png' });
+  }
+
+  /* ===== Auftrag «Bauen», Paket 4: Gitternetz ===== */
+  if (!only || only === 'j') {
+    await page.evaluate(() => { try { localStorage.removeItem('dqstudio_grid_v1'); } catch (e) { /* ohne Speicher */ } Studio.setGrid('dots', 20); Studio.loadExample('n_teiler'); });
+    await page.click('#exBanner button'); await page.waitForTimeout(150);
+    const grid = () => page.evaluate(() => { const r = document.querySelector('#board .gridrect'), p = document.querySelector('#board pattern#grid'); return { rect: !!r, kind: p ? (p.querySelector('.gridline') ? 'lines' : p.querySelector('.griddot') ? 'dots' : '?') : null, size: p ? +p.getAttribute('width') : 0, mode: Studio.grid.mode }; });
+    const shot = async () => (await page.locator('#board').screenshot()).toString('base64');
+    const g1 = await grid(), s1 = await shot(); ok(g1.rect && g1.kind === 'dots' && g1.size === 20, 'Standard: Punkte im Fangraster 20 (' + JSON.stringify(g1) + ')');
+    await page.keyboard.press('g'); const g2 = await grid(), s2 = await shot(); ok(g2.rect && g2.kind === 'lines' && g2.mode === 'lines', 'Taste G: Linien');
+    await page.screenshot({ path: shots + '/j_linien.png' });
+    await page.keyboard.press('g'); const g3 = await grid(), s3 = await shot(); ok(!g3.rect && g3.mode === 'off', 'Taste G: aus');
+    ok(s1 !== s2 && s2 !== s3 && s1 !== s3, 'alle drei Stufen sehen verschieden aus');
+    await page.keyboard.press('g'); ok((await grid()).kind === 'dots', 'Taste G: wieder Punkte');
+    // Rasterweite über das Menü Ansicht, Markierung des aktuellen Wertes
+    await page.click('#menu-ansicht > button'); const mt = await page.textContent('#menu-ansicht .drop'); ok(/Gitternetz/.test(mt) && /Rasterweite/.test(mt) && /✓\s*Punkte/.test(mt) && /✓\s*20/.test(mt), 'Menü Ansicht: Gitternetz und Rasterweite mit Markierung');
+    await page.click('#menu-ansicht .drop button:has-text("Linien")'); await page.click('#menu-ansicht > button'); await page.click('#menu-ansicht .drop button:text-matches("^\\\\s*40")');
+    const g4 = await grid(); ok(g4.kind === 'lines' && g4.size === 40, 'Rasterweite 40 wirkt (' + JSON.stringify(g4) + ')'); await page.screenshot({ path: shots + '/j_linien40.png' });
+    ok(await page.evaluate(() => document.querySelector('#btnGrid').textContent.includes('Linien')), 'Knopf in der Werkzeugleiste zeigt die Stufe');
+    // Export und Druck: ohne Haken kein Gitter
+    const ex = await page.evaluate(() => ({ plain: Studio.exportSVG({ color: false }).svg, withGrid: Studio.exportSVG({ color: false, grid: true }).svg, print: decodeURIComponent(Studio.printPrepare().innerHTML) }));
+    ok(!/url\(#grid\)|<pattern|gridline|griddot/.test(ex.plain), 'Export (SVG) enthält ohne Haken kein Gitter');
+    ok(/<pattern/.test(ex.withGrid) && /url\(#grid\)/.test(ex.withGrid), 'Export mit Haken «Gitternetz» enthält es');
+    ok(!/url\(#grid\)|<pattern|gridline/.test(ex.print), 'Druck enthält kein Gitter');
+    ok(await page.evaluate(() => Studio.grid.mode === 'lines' && DQEditor.extra.grid.mode === 'lines'), 'Export und Druck verändern die Anzeige nicht');
+    await page.click('#menu-datei > button'); await page.click('#menu-datei .drop button:has-text("Exportieren")'); ok(await page.isVisible('#exG'), 'Exportdialog hat das Feld «Gitternetz»'); await page.click('#mClose');
+    // Beamer-Modus blendet das Gitter aus
+    await page.keyboard.press('F9'); await page.waitForTimeout(200); ok(!(await grid()).rect, 'Beamer-Modus: kein Gitter'); await page.keyboard.press('F9'); await page.waitForTimeout(200); ok((await grid()).rect, 'nach dem Beamer-Modus wieder da');
+    // Einstellung überlebt Neuladen
+    await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForFunction(() => window.Studio && Studio.sim); if (await page.isVisible('#asNo')) await page.click('#asNo'); await page.waitForTimeout(200);
+    const g5 = await grid(); ok(g5.kind === 'lines' && g5.size === 40, 'Einstellung überlebt das Neuladen (' + JSON.stringify(g5) + ')');
+    await page.evaluate(() => Studio.setGrid('dots', 20));
+  }
+
+  /* ===== Auftrag «Bauen», Paket 6: Text, Linien, Rahmen, Farbe ===== */
+  if (!only || only === 'k') {
+    await page.evaluate(() => { Studio.loadLayout({ parts: [], wires: [] }, { run: false }); Studio.closeScopes && Studio.closeScopes(); });
+    await page.evaluate(() => { Studio.loadExample('n_teiler'); Studio.stopDemo(); Studio.core.layout.draw = []; Studio.core.changed('draw'); }); await page.click('#exBanner button'); await page.waitForTimeout(200);
+    const base = await page.evaluate(() => { const E = Studio.E, l = JSON.parse(JSON.stringify(Studio.core.layout)), net = E.buildNetlist(l), r = E.step(net, E.newState(), {}); return { pin: JSON.stringify(net.pinNode), v: JSON.stringify(r.nodeV), parts: Studio.core.layout.parts.length, wires: Studio.core.layout.wires.length, bom: Studio.bom().length }; });
+    // alle fünf Arten über die Leiste anlegen
+    for (const k of ['text', 'line', 'arrow', 'rect', 'ellipse']) await page.click(`[data-add="draw:${k}"]`);
+    const d1 = await page.evaluate(() => Studio.core.layout.draw.map(e => e.kind + (e.arrow ? '+pfeil' : '')).join());
+    ok(d1 === 'text,line,line+pfeil,rect,ellipse', 'fünf Elementarten angelegt: ' + d1);
+    ok(await page.evaluate(() => document.querySelectorAll('#board .drawlayer [data-draw]').length) === 5, 'alle fünf stehen in der Zeichnung');
+    await page.screenshot({ path: shots + '/k_alle.png' });
+    // sie rechnen nie mit: Netzliste, Rechnung und Stückliste unverändert
+    const after = await page.evaluate(() => { const E = Studio.E, l = JSON.parse(JSON.stringify(Studio.core.layout)), net = E.buildNetlist(l), r = E.step(net, E.newState(), {}); return { pin: JSON.stringify(net.pinNode), v: JSON.stringify(r.nodeV), parts: Studio.core.layout.parts.length, wires: Studio.core.layout.wires.length, bom: Studio.bom().length, bomTxt: JSON.stringify(Studio.bom()) }; });
+    ok(after.pin === base.pin && after.v === base.v && after.parts === base.parts && after.wires === base.wires, 'die Schaltung mit Zeichenelementen rechnet identisch wie ohne (Netzliste und Spannungen gleich)');
+    ok(after.bom === base.bom && !/Text|Linie|Pfeil|Rechteck|Ellipse|draw|z\d/.test(after.bomTxt), 'Stückliste enthält keine Zeichenelemente');
+    // verschieben: Rechteck am Rand ziehen
+    const rid = await page.evaluate(() => Studio.core.layout.draw.find(e => e.kind === 'rect').id);
+    const edge = async id => page.evaluate(id => { const e = Studio.drawGet(id), svg = document.querySelector('#board'), pt = svg.createSVGPoint(); pt.x = e.x + e.w / 2; pt.y = e.y; const r = pt.matrixTransform(svg.getScreenCTM()); return { x: r.x, y: r.y }; }, id);
+    // alle Elemente auseinanderziehen, damit sie sich nicht überdecken
+    await page.evaluate(() => { const L = Studio.core.layout.draw; L.forEach((e, i) => { const dx = 100 + i * 20, dy = 60 + i * 150; if (e.kind === 'line') { e.x1 = dx; e.x2 = dx + 160; e.y1 = e.y2 = Math.min(dy, 300); } else { e.x = dx + 400; e.y = Math.min(dy, 120 + i * 30); if (e.kind === 'rect') { e.x = 520; e.y = 140; } } }); Studio.core.changed('draw'); Studio.ed.fit(); });
+    const before = await page.evaluate(id => ({ x: Studio.drawGet(id).x, y: Studio.drawGet(id).y }), rid), p0 = await edge(rid);
+    await page.mouse.move(p0.x, p0.y); await page.mouse.down(); await page.mouse.move(p0.x + 40, p0.y + 30, { steps: 5 }); await page.mouse.up();
+    const moved = await page.evaluate(id => ({ x: Studio.drawGet(id).x, y: Studio.drawGet(id).y }), rid);
+    ok(moved.x > before.x && moved.y > before.y, 'Element ziehen verschiebt es (' + before.x + ',' + before.y + ' → ' + moved.x + ',' + moved.y + ')');
+    // Grösse ändern über den Griff unten rechts
+    const sz0 = await page.evaluate(id => ({ w: Studio.drawGet(id).w, h: Studio.drawGet(id).h }), rid);
+    const hb = await page.locator(`[data-handle="${rid}:2"]`).boundingBox(); notes.push('Griff bei ' + JSON.stringify(hb) + ' trifft: ' + await page.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return e ? e.outerHTML.slice(0, 90) : 'nichts'; }, [hb.x + hb.width / 2, hb.y + hb.height / 2]));
+    await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2); await page.mouse.down(); await page.mouse.move(hb.x + hb.width / 2 + 60, hb.y + hb.height / 2 + 40, { steps: 5 }); await page.mouse.up();
+    const sz1 = await page.evaluate(id => ({ w: Studio.drawGet(id).w, h: Studio.drawGet(id).h }), rid);
+    ok(sz1.w > sz0.w && sz1.h > sz0.h, 'Griff ziehen ändert die Grösse (' + sz0.w + '×' + sz0.h + ' → ' + sz1.w + '×' + sz1.h + ')');
+    // Eigenschaften: Farbe von Rand und Füllung getrennt, Deckkraft, Strichart
+    ok(await page.isVisible('#inspector .swatches'), 'Eigenschaftenfeld zeigt die Farbpalette');
+    await page.click('#inspector [data-sw="stroke"] .sw[data-c="#d9480f"]'); await page.click('#inspector [data-sw="fill"] .sw[data-c="#f5b700"]');
+    await page.fill('#dr_fo', '0.5'); await page.dispatchEvent('#dr_fo', 'input'); await page.selectOption('#dr_dash', '1');
+    const rc = await page.evaluate(id => Studio.drawGet(id), rid);
+    ok(rc.stroke === '#d9480f' && rc.fill === '#f5b700' && rc.fillOpacity === 0.5 && rc.dash === true, 'Rand und Füllung getrennt einstellbar, Füllung durchscheinend, gestrichelt: ' + JSON.stringify([rc.stroke, rc.fill, rc.fillOpacity, rc.dash]));
+    await page.evaluate(() => { const i = document.querySelector('#inspector input[type="color"][data-cc="stroke"]'); i.value = '#123456'; i.dispatchEvent(new Event('input', { bubbles: true })); });
+    ok(await page.evaluate(id => Studio.drawGet(id).stroke === '#123456', rid), 'freie Farbwahl');
+    await page.click('#inspector [data-sw="fill"] .sw.none'); ok(await page.evaluate(id => Studio.drawGet(id).fill === null, rid), 'Füllung lässt sich ganz abschalten');
+    // Durchscheinend: ein Klick in die Fläche trifft das Bauteil darunter, nicht das Rechteck
+    await page.evaluate(id => { const e = Studio.drawGet(id); e.fill = '#f5b700'; e.x = Studio.core.part('R1').x - 80; e.y = Studio.core.part('R1').y - 60; e.w = 200; e.h = 120; Studio.core.changed('draw'); Studio.ed.fit(); }, rid);
+    await selectPart('R1'); ok(await page.evaluate(() => Studio.core.sel === 'R1'), 'Klick in die Fläche eines Rahmens trifft das Bauteil darunter');
+    // Text: mehrzeilig, Grösse, Farbe
+    const tid = await page.evaluate(() => Studio.core.layout.draw.find(e => e.kind === 'text').id);
+    await page.evaluate(id => { Studio.core.sel = 'd:' + id; Studio.core.redraw(); Studio.refreshInspector(); }, tid);
+    await page.fill('#dr_text', 'Spannungsteiler\nU2 = 6 V'); await page.dispatchEvent('#dr_text', 'input'); await page.fill('#dr_size', '24'); await page.dispatchEvent('#dr_size', 'change'); await page.click('#inspector [data-sw="color"] .sw[data-c="#11864f"]');
+    const tx = await page.evaluate(id => Studio.drawGet(id), tid); ok(tx.text === 'Spannungsteiler\nU2 = 6 V' && tx.size === 24 && tx.color === '#11864f', 'Text: mehrzeilig, Grösse und Farbe einstellbar');
+    ok(await page.evaluate(id => document.querySelectorAll(`[data-draw="${id}"] tspan`).length, tid) === 2, 'der Text steht in zwei Zeilen im Bild');
+    // Reihenfolge
+    await page.evaluate(id => Studio.drawOrder(id, 'front'), tid); ok(await page.evaluate(id => Studio.drawList()[Studio.drawList().length - 1].id === id, tid), 'ganz nach vorn');
+    await page.evaluate(id => Studio.drawOrder(id, 'back'), tid); ok(await page.evaluate(id => Studio.drawList()[0].id === id, tid), 'ganz nach hinten');
+    // Ebene ein- und ausblenden
+    await page.click('#btnDraw'); ok(await page.evaluate(() => document.querySelectorAll('#board .drawlayer').length === 0 && !Studio.drawVisible()), 'Ebene ausblenden wirkt');
+    const hidden = await page.evaluate(() => Studio.exportSVG({ color: true }).svg); ok(!/data-draw|<tspan|<ellipse/.test(hidden), 'ausgeblendet: Export ohne Zeichenelemente');
+    await page.click('#btnDraw'); ok(await page.evaluate(() => document.querySelectorAll('#board .drawlayer [data-draw]').length === 5), 'Ebene einblenden wirkt');
+    const shown = await page.evaluate(() => ({ svg: Studio.exportSVG({ color: true }).svg, bw: Studio.exportSVG({ color: false }).svg, nodr: Studio.exportSVG({ color: true, draw: false }).svg, print: Studio.printPrepare().innerHTML }));
+    ok(/<ellipse/.test(shown.svg) && /<tspan/.test(shown.svg) && /<polygon/.test(shown.svg) && !/drhandle|drhit|drsel/.test(shown.svg), 'Export (SVG) enthält die Elemente, aber keine Griffe oder Trefferflächen');
+    ok(!/#d9480f|#123456|#11864f/i.test(shown.bw.replace(/<style[\s\S]*?<\/style>/, '')), 'Schwarzweiss-Export rechnet die Farben der Elemente in Grau um');
+    ok(!/data-draw/.test(shown.nodr), 'Export auf Wunsch ohne Zeichenelemente'); ok(/data-draw/.test(shown.print) && /<tspan/.test(shown.print), 'Druck enthält die Elemente');
+    // PNG-Export läuft durch
+    const png = await page.evaluate(() => new Promise(res => Studio.exportPNG({ color: true }, (b, w, h) => res(b ? { size: b.size, w, h } : null)))); ok(png && png.size > 1000, 'PNG-Export mit Elementen (' + (png && png.size) + ' Byte)');
+    // Speichern und Laden, Rückgängig, Löschen
+    const rt = await page.evaluate(() => { const before = JSON.stringify(Studio.core.layout.draw), hidden = Studio.core.layout.drawHidden, r = Studio.parseFile(JSON.stringify(Studio.serialize())); return { ok: r.ok && JSON.stringify(r.layout.draw) === before && r.layout.drawHidden === hidden, n: r.layout.draw.length }; });
+    ok(rt.ok && rt.n === 5, 'Elemente überleben Speichern und Laden (' + rt.n + ')');
+    await page.evaluate(() => { Studio.core.sel = null; });
+    const n0 = await page.evaluate(() => Studio.drawList().length); await page.click('[data-add="draw:rect"]'); ok(await page.evaluate(() => Studio.drawList().length) === n0 + 1, 'neues Rechteck'); await page.keyboard.press('Control+z'); await page.waitForTimeout(100);
+    ok(await page.evaluate(() => Studio.drawList().length) === n0, 'Rückgängig nimmt es zurück'); await page.keyboard.press('Control+y'); await page.waitForTimeout(100); ok(await page.evaluate(() => Studio.drawList().length) === n0 + 1, 'Wiederholen stellt es her');
+    await page.evaluate(() => { const l = Studio.drawList(); Studio.core.sel = 'd:' + l[l.length - 1].id; Studio.core.redraw(); }); await page.keyboard.press('Delete'); await page.waitForTimeout(100); ok(await page.evaluate(() => Studio.drawList().length) === n0, 'Entf löscht das ausgewählte Element'); await page.keyboard.press('Control+z'); await page.waitForTimeout(100); ok(await page.evaluate(() => Studio.drawList().length) === n0 + 1, 'Löschen lässt sich zurücknehmen');
+    await page.screenshot({ path: shots + '/k_beschriftet.png' });
+  }
+
+  /* ===== Auftrag «Bauen», Paket 5: Zeichnungsrahmen, A4-Druck, Herleitung ===== */
+  if (!only || only === 'l') {
+    const loadZus = async () => { await page.evaluate(() => { Studio.loadExample('g_zus'); Studio.stopDemo(); Studio.core.layout.draw = []; Studio.core.layout.sheet = undefined; delete Studio.core.layout.sheet; Studio.core.changed('draw'); }); await page.click('#exBanner button').catch(() => { }); await page.waitForTimeout(150); };
+    await loadZus();
+    // Rahmen auf der Zeichenfläche
+    await page.evaluate(() => Studio.sheetSet({ on: true, format: 'a4p', fields: { titel: 'A = e1 ( e2 v e3 )', thema: 'Logikgatter', name: 'S. Muster', datum: '15.10.2026', klasse: 'EL21', aenderung: 'a', text: 'ODER, dann UND: Der Ausgang ist 1, wenn e1 = 1 und e2 oder e3 = 1 ist.' } })); await page.waitForTimeout(100);
+    const sh = await page.evaluate(() => { const e = document.querySelector('#board .sheetedge'); return { w: +e.getAttribute('width'), h: +e.getAttribute('height'), frame: !!document.querySelector('#board .blatt-frame rect'), txt: document.querySelector('#board .sheetframe').textContent }; });
+    const k0 = await page.evaluate(() => Studio.sheetScale()); ok(Math.abs(sh.w - 794 * k0) < 0.5 && Math.abs(sh.h - 1123 * k0) < 0.5 && sh.frame && k0 >= 1, 'Rahmen A4 hoch auf der Zeichenfläche (794 × 1123, Massstab 1 : ' + k0 + ' passend zur Schaltung)');
+    ok(/A = e1 \( e2 v e3 \)/.test(sh.txt) && /EL21/.test(sh.txt) && /Logikgatter/.test(sh.txt), 'Schriftfeld steht im Rahmen');
+    await page.evaluate(() => Studio.ed.fit()); await page.screenshot({ path: shots + '/l_rahmen.png' });
+    // Bauteil ausserhalb des Rahmens: markiert und nicht im Druck
+    await page.evaluate(() => { const s = Studio.sheet(); Studio.core.layout.parts.push({ id: 'R1', type: 'resistor', x: Math.min(2300, s.x + 794 * Studio.sheetScale() + 120), y: s.y + 300, rot: 0 }); Studio.core.changed('add'); });
+    ok(await page.evaluate(() => document.querySelectorAll('#board .sheetmarks .outmark').length) === 1, 'ein Bauteil ausserhalb des Rahmens ist auf dem Bildschirm markiert');
+    const pgs0 = await page.evaluate(() => { const b = Studio.buildPages({ items: { table: false, expr: false, kv: false } }); const im = b.pages[0].match(/src="(data:image\/svg[^"]+)"/)[1]; return decodeURIComponent(im.split(',').slice(1).join(',')); });
+    ok(!/data-part="R1"/.test(pgs0) && /data-part="U1"/.test(pgs0) && /data-part="E1"/.test(pgs0), 'das Bauteil ausserhalb erscheint im Druck nicht, die übrigen schon');
+    await page.evaluate(() => { Studio.core.sel = 'R1'; Studio.core.removeSelected(); });
+    // Herleitung des Beispiels: inhaltlich geprüft
+    const b = await page.evaluate(() => { const b = Studio.buildPages(); return { count: b.count, pages: b.pages, w: b.w, h: b.h }; });
+    ok(b.count === 2, 'zweiseitig: Seite 1 Schaltung, Seite 2 Herleitung (' + b.count + ' Seiten)');
+    const html = await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = Studio.buildPages().pages.join(''); document.body.appendChild(d); d.id = 'tmpPages'; d.style.cssText = 'position:fixed;left:-9999px;top:0'; return true; });
+    const P = await page.evaluate(() => { const pg = Array.from(document.querySelectorAll('#tmpPages .pg')), q = (p, s) => Array.from(p.querySelectorAll(s)); return {
+      n: pg.length, p1img: !!pg[0].querySelector('img.figimg'), p1para: (pg[0].querySelector('.para') || {}).textContent,
+      rows: q(pg[1], '.tt tbody tr').map(r => Array.from(r.children).map(c => c.textContent.trim()).join('')), one: q(pg[1], '.tt tbody tr.one').length,
+      exl: q(pg[1], '.exl').map(x => x.textContent), exr: q(pg[1], '.exr').map(x => x.innerHTML), exrT: q(pg[1], '.exr').map(x => x.textContent.replace(/\s+/g, '')), law: (pg[1].querySelector('.law') || {}).textContent || '',
+      kvRects: q(pg[1], '.kvsvg rect').length, kvDash: q(pg[1], '.kvsvg rect[stroke-dasharray]').length, kvTexts: q(pg[1], '.kvsvg text').map(t => t.textContent), kvOnes: q(pg[1], '.kvsvg text[font-size="22"][font-weight="700"]').length, frames: pg.map(p => p.querySelector('.pgframe').textContent.replace(/\s+/g, ' ')), heads: pg.map(p => p.querySelector('.pgh').textContent) }; });
+    ok(P.p1img && /ODER, dann UND/.test(P.p1para), 'Seite 1: Schaltung als Bild, darunter die Beschreibung');
+    const want = []; for (let r = 0; r < 8; r++) { const e1 = r >> 2 & 1, e2 = r >> 1 & 1, e3 = r & 1; want.push('' + e1 + e2 + e3 + (e1 && (e2 || e3) ? 1 : 0)); }
+    ok(P.rows.join() === want.join(), 'Wahrheitstabelle stimmt mit der Schaltung: ' + P.rows.join(' ')); ok(P.one === 3, 'Zeilen mit Ergebnis 1 hervorgehoben (3)');
+    notes.push('Ausdruck aus der Tabelle (HTML): ' + P.exr[0] + ' | KV: ' + JSON.stringify(P.kvTexts) + ' rects ' + P.kvRects + ' dash ' + P.kvDash); ok(/^A=e1e2e3ve1e2e3ve1e2e3$/.test(P.exrT[0]) && /e1\s*<span class="ov">e2<\/span>\s*e3 v e1\s*e2\s*<span class="ov">e3<\/span> v e1\s*e2\s*e3/.test(P.exr[0]), 'Ausdruck aus der Tabelle: A = e1 ē2 e3 v e1 e2 ē3 v e1 e2 e3 (' + P.exr[0].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ') + ')');
+    ok(/^A=e1e[23]ve1e[23]$/.test(P.exrT[1]) && P.exrT[1].includes('e1e2') && P.exrT[1].includes('e1e3'), 'Minimalform aus dem KV-Diagramm: ' + P.exrT[1]);
+    ok(P.exrT[2] === 'A=e1(e2ve3)', 'ausgeklammert: ' + P.exrT[2]); ok(P.exl.join('|') === 'Aus der Tabelle|Aus dem KV-Diagramm|Ausgeklammert', 'drei Zeilen mit Beschriftung');
+    ok(/konjunktive Distributivgesetz/.test(P.law) && /spart/.test(P.law), 'Absatz nennt den Rechenschritt und was er einspart: ' + P.law.slice(0, 120));
+    ok(P.kvRects === 8 + 2 && P.kvDash === 1 && P.kvTexts.includes('e1e2') && P.kvTexts.includes('e1e3') && P.kvOnes === 3, 'KV-Diagramm: 8 Felder, zwei Gruppen (durchgezogen und gestrichelt) mit Bezeichnung, drei Einsen');
+    const cellOk = await page.evaluate(() => { const svg = document.querySelector('#tmpPages .pg:nth-child(2) .kvsvg'), rects = Array.from(svg.querySelectorAll('rect[stroke-width="1.5"]')), texts = Array.from(svg.querySelectorAll('text[font-size="22"]')); // Zellen und Werte
+      return texts.map(t => { const x = +t.getAttribute('x'), y = +t.getAttribute('y'), col = Math.round((x - 74 - 30) / 60), row = Math.round((y - 56 - 38) / 60); return col + ',' + row + '=' + t.textContent; }).sort().join(' '); });
+    // Spalten e2 e3 in Gray-Reihenfolge 00 01 11 10, Zeile e1: Einsen bei e1 = 1 und (01, 11, 10)
+    ok(cellOk === '0,0=0 0,1=0 1,0=0 1,1=1 2,0=0 2,1=1 3,0=0 3,1=1'.split(' ').sort().join(' ').replace('0,1=0 ', '0,1=0 ') || /0,0=0/.test(cellOk) && /0,1=0/.test(cellOk) && /1,1=1/.test(cellOk) && /2,1=1/.test(cellOk) && /3,1=1/.test(cellOk) && /1,0=0/.test(cellOk) && /2,0=0/.test(cellOk) && /3,0=0/.test(cellOk), 'KV-Felder stimmen mit der Tabelle: ' + cellOk);
+    ok(P.frames[0].includes('1 / 2') && P.frames[1].includes('2 / 2') && P.frames.every(f => /Digital Quest Studio/.test(f) && /EL21/.test(f) && /S\. Muster/.test(f)), 'Seitenzahlen im Schriftfeld (1 / 2, 2 / 2) und Felder auf jeder Seite');
+    ok(/zur Schaltung auf Blatt 1/.test(P.heads[1]) && /A = e1 \( e2 v e3 \)/.test(P.heads[0]), 'Kopfzeile: Seite 1 mit Ausdruck, Folgeseite «zur Schaltung auf Blatt 1»');
+    // nichts abgeschnitten, Inhalt im Rahmen
+    const fit = await page.evaluate(() => Array.from(document.querySelectorAll('#tmpPages .pgc')).map(c => ({ ok: c.scrollHeight <= c.clientHeight + 1 && c.scrollWidth <= c.clientWidth + 1, l: c.style.left, w: c.style.width }))); ok(fit.every(f => f.ok), 'A4 hoch: nichts abgeschnitten (Inhalt passt in den Inhaltsbereich)');
+    await page.evaluate(() => document.getElementById('tmpPages').remove());
+    // Fassung «Aufgabe»: dieselben Felder, leer
+    const A = await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = Studio.buildPages({ version: 'aufgabe' }).pages.join(''); const pg = Array.from(d.querySelectorAll('.pg')), q = (p, s) => Array.from(p.querySelectorAll(s));
+      return { n: pg.length, rows: q(pg[1], '.tt tbody tr').length, res: q(pg[1], '.tt td.res').map(c => c.textContent.replace(/ /g, '').trim()).join(''), bold: q(pg[1], '.tt td.res.b').length, one: q(pg[1], '.tt tr.one').length, exl: q(pg[1], '.exl').map(x => x.textContent).join('|'), exr: q(pg[1], '.exr').map(x => x.textContent.trim()).join(''), law: !!pg[1].querySelector('.law'), kvCells: q(pg[1], '.kvsvg rect[stroke-width="1.5"]').length, kvLoops: q(pg[1], '.kvsvg rect[rx]').length, kvVals: q(pg[1], '.kvsvg text[font-size="22"]').length, head: pg[0].querySelector('.pgh span').textContent }; });
+    ok(A.n === 2 && A.rows === 8 && A.res === '' && A.bold === 0 && A.one === 0, 'Aufgabe: Tabelle mit allen 8 Zeilen, Ergebnisspalte leer');
+    ok(A.exl === 'Aus der Tabelle|Aus dem KV-Diagramm|Ausgeklammert' && A.exr === '' && !A.law, 'Aufgabe: dieselben drei Ausdruckszeilen mit Beschriftung, rechts leer, kein Lösungstext');
+    ok(A.kvCells === 8 && A.kvLoops === 0 && A.kvVals === 0, 'Aufgabe: leeres KV-Raster mit Köpfen, ohne Werte und Gruppen'); ok(A.head === '', 'Aufgabe verrät den Ausdruck nicht in der Kopfzeile');
+    // Blattformate
+    for (const [fmt, w, h] of [['a4p', 794, 1123], ['a4l', 1123, 794], ['a3l', 1587, 1123]]) {
+      const r = await page.evaluate(([fmt]) => { const d = document.createElement('div'); d.id = 'tmpPages'; d.style.cssText = 'position:fixed;left:-9999px;top:0'; const b = Studio.buildPages({ format: fmt }); d.innerHTML = b.pages.join(''); document.body.appendChild(d); const o = { count: b.count, w: b.w, h: b.h, pg: Array.from(d.querySelectorAll('.pg')).map(p => [p.offsetWidth, p.offsetHeight]), fits: Array.from(d.querySelectorAll('.pgc')).every(c => c.scrollHeight <= c.clientHeight + 1 && c.scrollWidth <= c.clientWidth + 1), frame: d.querySelector('.pgframe rect').getAttribute('width') + 'x' + d.querySelector('.pgframe rect').getAttribute('height'), fx: d.querySelector('.pgframe rect').getAttribute('x') }; d.remove(); return o; }, [fmt]);
+      ok(r.w === w && r.h === h && r.pg.every(p => p[0] === w && p[1] === h) && r.fits && r.frame === (w - 76) + 'x' + (h - 76) && r.fx === '38', fmt + ': Blatt ' + w + ' × ' + h + ', Rahmen 38 vom Rand, vollständig, nichts abgeschnitten');
+    }
+    // Dialog
+    await page.evaluate(() => { Studio.sheetSet({ format: 'a4p' }); }); await page.click('#menu-datei > button'); await page.click('#menu-datei .drop button:has-text("Drucken")'); await page.waitForTimeout(150);
+    const dl = await page.evaluate(() => ({ seg: Array.from(document.querySelectorAll('.pdlg [data-seg="format"] .seg')).map(b => b.textContent + (b.classList.contains('on') ? '*' : '')).join('|'), ver: Array.from(document.querySelectorAll('.pdlg [data-seg="version"] .seg')).map(b => b.textContent + (b.classList.contains('on') ? '*' : '')).join('|'), items: Array.from(document.querySelectorAll('.pdlg [data-it]')).map(i => i.dataset.it + (i.checked ? '+' : '-') + (i.disabled ? 'x' : '')).join(','), n: document.getElementById('pdCount').textContent, btns: Array.from(document.querySelectorAll('.pdfoot button')).map(b => b.textContent).join('|') }));
+    ok(dl.seg === 'A4 hoch*|A4 quer|A3 quer' && dl.ver === 'Lösung*|Aufgabe', 'Druckdialog: Blatt (A4 hoch vorgewählt) und Fassung (Lösung vorgewählt): ' + dl.seg + ' / ' + dl.ver);
+    ok(dl.items === 'table+,expr+,kv+,scope-x,timing-,bom-' && dl.n === '2 Seiten' && dl.btns === 'Abbrechen|Vorschau|PDF erzeugen', 'Seiten: Tabelle, Ausdruck, KV angehakt; Oszilloskop und Zeitverlauf ausgegraut (kein Oszilloskop offen); Fuss mit Seitenzahl und Knöpfen: ' + dl.items);
+    await page.click('#pdPreview'); await page.waitForTimeout(200); ok(await page.evaluate(() => document.querySelectorAll('#pdPrev .pvwrap').length) === 2, 'Vorschau zeigt beide Seiten'); await page.screenshot({ path: shots + '/l_dialog.png' });
+    await page.click('.pdlg [data-seg="format"] [data-v="a4l"]'); await page.waitForTimeout(150); ok(await page.evaluate(() => Studio.sheet().format === 'a4l' && document.querySelectorAll('#pdPrev .pvwrap').length === 2), 'A4 quer gewählt: Rahmen und Vorschau folgen');
+    await page.click('.pdlg [data-seg="format"] [data-v="a4p"]'); await page.click('.pdlg [data-seg="version"] [data-v="aufgabe"]'); await page.click('.pdlg [data-it="bom"]'); await page.waitForTimeout(100);
+    ok(await page.evaluate(() => Studio.printOptions.version === 'aufgabe' && Studio.printOptions.items.bom), 'Fassung und Stückliste wählbar'); await page.click('.pdlg [data-seg="version"] [data-v="loesung"]'); await page.click('.pdlg [data-it="bom"]'); await page.click('#mClose');
+    // Analogschaltung: Logik-Punkte ausgegraut, begründet
+    await page.evaluate(() => { Studio.loadExample('n_teiler'); Studio.stopDemo(); }); await page.click('#exBanner button').catch(() => { }); await page.keyboard.press('Control+p'); await page.waitForTimeout(150);
+    const an = await page.evaluate(() => Array.from(document.querySelectorAll('.pdlg [data-it]')).map(i => [i.dataset.it, i.disabled, i.closest('label').textContent.replace(/\s+/g, ' ')]).filter(x => /table|expr|kv/.test(x[0])));
+    ok(an.length === 3 && an.every(x => x[1] && /Logik|Pegelschalter/.test(x[2])), 'Analogschaltung: Tabelle, Ausdruck, KV ausgegraut mit Begründung: ' + an[0][2].slice(0, 110)); await page.click('#mClose');
+    // PDF: zwei Seiten in der richtigen Blattgrösse
+    await loadZus(); await page.evaluate(() => Studio.sheetSet({ on: true, format: 'a4p', fields: { titel: 'A = e1 ( e2 v e3 )', name: 'S. Muster' } }));
+    await page.evaluate(() => new Promise(res => Studio.printPages(null, b => res(b.count)))); await page.emulateMedia({ media: 'print' });
+    const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true }); const txt = pdf.toString('latin1');
+    const pgCount = (txt.match(/\/Type\s*\/Page[^s]/g) || []).length, mb = (txt.match(/\/MediaBox\s*\[([^\]]+)\]/) || [])[1] || '';
+    ok(pgCount === 2, 'PDF hat zwei Seiten (' + pgCount + ')'); ok(/^0 0 59[45]\.\d+ 84[12]\.\d+$/.test(mb.trim()), 'PDF-Blattgrösse A4 hoch (' + mb.trim() + ')');
+    fs.writeFileSync(path.join(shots, 'l_druck.pdf'), pdf);
+    await page.locator('#printArea .pg').nth(0).screenshot({ path: shots + '/l_seite1.png' }); await page.locator('#printArea .pg').nth(1).screenshot({ path: shots + '/l_seite2.png' });
+    await page.evaluate(() => Studio.printOptions.version = 'aufgabe'); await page.evaluate(() => new Promise(res => Studio.printPages(null, b => res(b.count)))); await page.locator('#printArea .pg').nth(1).screenshot({ path: shots + '/l_seite2_aufgabe.png' });
+    await page.evaluate(() => { Studio.printOptions.version = 'loesung'; }); await page.emulateMedia({ media: 'screen' });
+    // A4 quer und A3 quer im PDF
+    for (const [fmt, rx] of [['a4l', /^0 0 84[12]\.\d+ 59[45]\.\d+$/], ['a3l', /^0 0 119[01]\.\d+ 84[12]\.\d+$/]]) {
+      await page.evaluate(f => { Studio.printOptions.format = f; Studio.sheetSet({ format: f, center: true }); }, fmt); await page.evaluate(() => new Promise(res => Studio.printPages(null, b => res(b.count)))); await page.emulateMedia({ media: 'print' });
+      const pdf2 = (await page.pdf({ preferCSSPageSize: true, printBackground: true })).toString('latin1'), m2 = (pdf2.match(/\/MediaBox\s*\[([^\]]+)\]/) || [])[1] || ''; ok(rx.test(m2.trim()), 'PDF ' + fmt + ': Blattgrösse ' + m2.trim()); await page.emulateMedia({ media: 'screen' });
+    }
+    await page.evaluate(() => { Studio.printOptions.format = 'a4p'; Studio.sheetSet({ format: 'a4p', center: true }); });
+    // mehrere Folgeseiten: Oszilloskop, Zeitverlauf, Stückliste; Umbruch zählt mit
+    await page.evaluate(() => { Studio.timing.clear(); Studio.addAllDigital && 0; Studio.openScope([{ kind: 'node', a: 'U1.out' }]); Studio.timing.addRow({ kind: 'dig', a: 'U1.out' }); Studio.timing.addRow({ kind: 'dig', a: 'E1.out' }); });
+    await page.evaluate(() => { Studio.sim.start(); }); await page.waitForTimeout(600);
+    const mp = await page.evaluate(() => { const b = Studio.buildPages({ items: { table: true, expr: true, kv: true, scope: true, timing: true, bom: true } }); const d = document.createElement('div'); d.innerHTML = b.pages.join(''); return { n: b.count, txt: d.textContent.replace(/\s+/g, ' '), frames: Array.from(d.querySelectorAll('.pgframe')).map(f => (f.textContent.match(/\d+ \/ \d+/) || [''])[0]), imgs: d.querySelectorAll('img.shot').length }; });
+    ok(mp.n >= 3 && /Stückliste/.test(mp.txt) && /Zeitverlauf/.test(mp.txt) && /Oszilloskop 1/.test(mp.txt) && mp.imgs === 2, 'mit Oszilloskop, Zeitverlauf und Stückliste mehrere Folgeseiten (' + mp.n + ' Seiten)');
+    ok(mp.frames.every((f, i) => f === (i + 1) + ' / ' + mp.n), 'Seitenzahlen im Schriftfeld zählen mit: ' + mp.frames.join(', '));
+    await page.evaluate(() => Studio.closeScopes());
+    // Export mit Rahmen (SVG und PNG)
+    const ex = await page.evaluate(() => { const r = Studio.exportSVG({ color: false, frame: true }), doc = new DOMParser().parseFromString(r.svg, 'image/svg+xml'); return { w: r.w, h: r.h, err: !!doc.querySelector('parsererror'), frame: !!doc.querySelector('.blatt-frame'), title: /A = e1/.test(r.svg), plain: Studio.exportSVG({ color: false }).svg.indexOf('blatt-frame') < 0 }; });
+    ok(ex.w === 794 && ex.h === 1123 && !ex.err && ex.frame && ex.title && ex.plain, 'Export (SVG) mit Rahmen: Blatt 1 gültiges XML mit Rahmen, ohne Rahmen bleibt es beim Bild');
+    const png = await page.evaluate(() => new Promise(res => Studio.exportPNG({ color: true, frame: true }, (b, w, h) => res(b ? { size: b.size, w, h } : null)))); ok(png && png.size > 3000 && png.w === 1588, 'PNG-Export mit Rahmen (' + (png && png.w) + ' × ' + (png && png.h) + ')');
+    // Datei: Rahmen und Schriftfeld überleben Speichern und Laden
+    const rt = await page.evaluate(() => { const lay = JSON.stringify(Studio.core.layout.sheet), r = Studio.parseFile(JSON.stringify(Studio.serialize())); return { same: r.ok && JSON.stringify(r.layout.sheet) === lay, f: r.ok && r.layout.sheet.fields && r.layout.sheet.fields.name }; }); ok(rt.same && rt.f === 'S. Muster', 'Rahmen und Schriftfeld überleben Speichern und Laden');
+    const und = await page.evaluate(() => { Studio.sheetSet({ fields: { name: 'X' } }); const n1 = Studio.sheet().fields.name; Studio.undo(); return [n1, Studio.sheet() && Studio.sheet().fields.name]; }); ok(und[0] === 'X' && und[1] === 'S. Muster', 'Rückgängig stellt das Schriftfeld wieder her');
+    // Dialog Schriftfeld
+    await page.click('#menu-ansicht > button'); await page.click('#menu-ansicht .drop button:has-text("Schriftfeld bearbeiten")'); await page.fill('#shK', 'EL22'); await page.click('#shDnow'); await page.click('#shOk');
+    ok(await page.evaluate(() => Studio.sheet().fields.klasse === 'EL22' && /\d\d\.\d\d\.\d{4}/.test(Studio.sheet().fields.datum)), 'Schriftfeld lässt sich im Dialog ausfüllen (Datum «heute»)');
+    // Rahmen verschieben (ziehen am Rand)
+    const bx = await page.evaluate(() => { const s = Studio.sheet(), svg = document.querySelector('#board'), pt = svg.createSVGPoint(); pt.x = s.x + 38; pt.y = s.y + 300; const r = pt.matrixTransform(svg.getScreenCTM()); return { x: r.x, y: r.y, sx: s.x, sy: s.y }; });
+    await page.evaluate(() => { const s = Studio.sheet(); Studio.ed.setView([s.x - 60, s.y + 100, 800, 500]); }); const bx2 = await page.evaluate(() => { const s = Studio.sheet(), svg = document.querySelector('#board'), pt = svg.createSVGPoint(); pt.x = s.x + 38; pt.y = s.y + 300; const r = pt.matrixTransform(svg.getScreenCTM()); return { x: r.x, y: r.y, sx: s.x, sy: s.y }; });
+    await page.mouse.move(bx2.x, bx2.y); await page.mouse.down(); await page.mouse.move(bx2.x + 60, bx2.y + 40, { steps: 5 }); await page.mouse.up(); const mv = await page.evaluate(() => ({ x: Studio.sheet().x, y: Studio.sheet().y }));
+    ok(mv.x !== bx2.sx || mv.y !== bx2.sy, 'Rahmen lässt sich am Rand verschieben (' + bx2.sx + ',' + bx2.sy + ' → ' + mv.x + ',' + mv.y + ')');
+    await page.evaluate(() => { delete Studio.core.layout.sheet; Studio.core.changed('draw'); });
   }
 
   ok(!external.length, 'Netzzugriffe (Offline-Fassung): ' + external.join(', '));

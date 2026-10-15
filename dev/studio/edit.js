@@ -19,7 +19,7 @@
   S.undo = function () { if (at <= 0) return false; at--; restore(hist[at]); return true; };
   S.redo = function () { if (at >= hist.length - 1) return false; at++; restore(hist[at]); return true; };
   S.history = { size: function () { return hist.length; }, index: function () { return at; }, reset: function () { hist = []; at = -1; record(); } };
-  S.onEdit = function (kind) { if (restoring) return; record(); };
+  S.onEdit = function (kind) { if (restoring || kind === 'demo') return; if (S.stopDemo) S.stopDemo(); record(); }; // 'demo' = Vorführung eines Beispiels: kein Rückgängig-Schritt
 
   /* ---------- Auswahl, Kopieren, Einfügen ---------- */
   function selIds() { return S.multi.length ? S.multi.slice() : (S.core.sel && S.core.part(S.core.sel) ? [S.core.sel] : []); }
@@ -102,7 +102,7 @@
     offerRestore();
   });
   S.onSelectHook = function (p) { if (p && S.multi.length && S.multi.indexOf(p.id) < 0) S.multi = []; if (!p && S.multi.length && !S.keepMulti) S.multi = []; };
-  S.shortcuts = [['Alt + Klick auf eine Leitung', 'Knotenpunkt setzen und von dort weiterziehen'], ['Strg + Z', 'Rückgängig (bis 200 Schritte)'], ['Strg + Y  oder  Strg + Umschalt + Z', 'Wiederholen'], ['Entf', 'Auswahl löschen'], ['R', 'Bauteil drehen'], ['Esc', 'Abbrechen, Auswahl aufheben'],
+  S.shortcuts = [['G', 'Gitternetz umschalten: aus, Punkte, Linien'], ['Alt + Klick auf eine Leitung', 'Knotenpunkt setzen und von dort weiterziehen'], ['Strg + Z', 'Rückgängig (bis 200 Schritte)'], ['Strg + Y  oder  Strg + Umschalt + Z', 'Wiederholen'], ['Entf', 'Auswahl löschen'], ['R', 'Bauteil drehen'], ['Esc', 'Abbrechen, Auswahl aufheben'],
     ['Strg + A', 'Alles auswählen'], ['Umschalt + Klick', 'Bauteil zur Auswahl hinzufügen'], ['Strg + C  /  Strg + V', 'Kopieren und Einfügen (versetzt)'], ['Pfeiltasten', 'Auswahl um ein Raster verschieben'],
     ['Leertaste', 'Simulation starten und anhalten'], ['F9', 'Beamer-Modus ein und aus'], ['Strg + S  /  Strg + O  /  Strg + P', 'Speichern, Öffnen, Drucken'], ['Strg + Mausrad / zwei Finger', 'Zoom'], ['Doppelklick auf leere Fläche', 'Schaltung einpassen'], ['Doppelklick auf einen Zähler', 'Zähler aufklappen']];
 })(window);

@@ -19,6 +19,15 @@ Die Simulation läuft sofort. **Beispiele** im Menü zeigen fertige Schaltungen 
 - **Rückgängig:** **Strg + Z**, **Strg + Y** (oder **Strg + Umschalt + Z**) wiederholt. Bis zu 200 Schritte, auch beim Aufklappen eines Zählers und beim Laden. Probiere ruhig aus.
 - **Zwischenspeichern:** Das Studio sichert deine Schaltung alle paar Sekunden im Browser. Beim nächsten Start fragt es, ob es sie wiederherstellen soll. (Ist der Browserspeicher gesperrt, läuft alles trotzdem, nur ohne Sicherung.)
 
+**Zeichenelemente (Text, Linie, Pfeil, Rechteck, Ellipse):** In der Bauteilleiste unter «Zeichnen». Anklicken legt das Element in die Bildmitte, oder auf die Zeichenfläche ziehen. Dann
+- **verschieben:** Element ziehen (Rechteck und Ellipse am Rand anfassen – in die Fläche klickst du hindurch auf das Bauteil darunter),
+- **Grösse ändern:** die Griffe an den Ecken bzw. Enden ziehen,
+- **einstellen:** rechts Farbe (Palette aus den Studio-Farben oder freie Farbwahl), Stärke, durchgezogen oder gestrichelt, Pfeilspitze; beim Rechteck und bei der Ellipse **Rand und Füllung getrennt**, die Füllung auch durchscheinend; beim Text Grösse, fett und mehrzeilig (Doppelklick springt ins Textfeld),
+- **Reihenfolge:** «Ganz nach vorn / Eins nach vorn / Eins zurück / Ganz nach hinten»,
+- **löschen:** Entf.
+
+Die Elemente werden nie simuliert, stehen nicht in Netzliste und Stückliste und stören das Rechnen nicht. Der Knopf **Zeichnung: ein/aus** (oder Ansicht → Zeichenelemente anzeigen) blendet die ganze Ebene aus – so wird aus einer beschrifteten Lösung eine unbeschriftete Aufgabe. Rückgängig, Speichern, Laden, Export (SVG, PNG; Schwarzweiss rechnet die Farben in Grau um) und Druck gelten auch für die Zeichenelemente.
+
 Die Zeichenfläche ist 2400 × 1500 gross. Ein **Masse-Symbol** brauchst du nur, wenn du einen Bezugspunkt festlegen willst; ohne Masse gilt der Minuspol der ersten Quelle.
 
 ## 3. Simulation und Zeit
@@ -52,6 +61,8 @@ Die **Laufzeit** der Flipflops (20 ns je Stufe) ist bei langsamen Takten unsicht
 
 Mit **U-Werte** stehen die Spannungen an allen Anschlüssen im Schaltplan.
 
+**Gitternetz:** Ansicht → Gitternetz oder die Taste **G** schaltet durch: aus, **Punkte**, **Linien** (feine, helle Linien). Die **Rasterweite** (10, 20, 40, 100) stellst du im Menü Ansicht ein; der Standard 20 ist das Fangraster, in das Bauteile einrasten. Die Wahl bleibt beim nächsten Start erhalten. Im Beamer-Modus und im Druck ist das Gitter immer aus, im Export (SVG, PNG) nur mit dem Häkchen «mit Gitternetz».
+
 ## 5. Digitaltechnik
 
 - **Pegelschalter** (Klick legt um) sind Eingänge, **Logikanzeigen** Ausgänge, Leitungen sind bei 1 grün.
@@ -74,9 +85,22 @@ Tippen kannst du auch `/e1` oder `!e1` für NICHT, `*` für UND und `+` für ODE
 ## 7. Dateien, Export, Drucken, Stückliste (Menü Datei)
 
 - **Speichern** (Strg + S) schreibt eine lesbare Datei `Name.dqstudio.json`; **Öffnen** (Strg + O) oder Datei aufs Fenster ziehen. Ältere Dateiformate werden umgewandelt, Dateien aus neueren Versionen mit einer Meldung abgelehnt. **Name …** benennt die Schaltung.
-- **Exportieren:** SVG (für Word, verlustfrei) oder PNG (doppelte Auflösung), in **Farbe** oder **Schwarzweiss**, mit oder ohne Messwerte (Spannungen an den Anschlüssen).
-- **Drucken** (Strg + P): Schaltplan auf A4 quer, schwarzweiss, mit Titelfeld (Name, Datum, Namensfeld).
+- **Exportieren:** SVG (für Word, verlustfrei) oder PNG (doppelte Auflösung), in **Farbe** oder **Schwarzweiss**, mit oder ohne Messwerte, Gitternetz und **Zeichnungsrahmen** (dann Blatt 1 mit Rahmen und Schriftfeld).
+- **Drucken** (Strg + P): siehe unten.
 - **Stückliste:** Bauteil, Wert, Anzahl und Bezeichnungen als Tabelle und als CSV (öffnet in Excel).
+
+### Zeichnungsrahmen und Schriftfeld
+
+**Ansicht → Zeichnungsrahmen** legt ein Blatt (**A4 hoch**, **A4 quer** oder **A3 quer**) in wirklicher Grösse auf die Zeichenfläche: Blattrand, 38 Einheiten weiter innen die Rahmenlinie, unten das **Schriftfeld** (Titel, Thema, Name, Datum, Klasse, Änderung, Blatt n / N). Bei einer breiten Schaltung wählt das Studio einen Massstab (1 : 1,25 …), damit sie ins Blatt passt; **Rahmen um die Schaltung legen** wiederholt das. Der Rahmen lässt sich am Rand verschieben. **Was ausserhalb des Inhaltsbereichs liegt, kommt nicht in den Druck:** Die Fläche ausserhalb ist getönt, Bauteile dort tragen die Marke «ausserhalb». **Schriftfeld bearbeiten …** füllt die Felder aus (alle dürfen leer bleiben; Titel ist sonst der Name der Schaltung; der Knopf «heute» setzt das Datum). Rahmen, Schriftfeld und Massstab gehören zur Schaltung und stehen in der Datei.
+
+### Drucken als Unterrichtsdokument
+
+**Datei → Drucken** (Strg + P) öffnet den Dialog:
+- **Blatt:** A4 hoch, A4 quer, A3 quer; Zeichnungsrahmen und Schriftfeld ein oder aus; Gitternetz mitdrucken (sonst nie).
+- **Seiten:** Seite 1 ist immer die **Schaltung** im Rahmen, skaliert, aber nie grösser als in Wirklichkeit, darunter die Beschreibung aus dem Schriftfeld-Dialog. Für die Folgeseiten wählst du aus: **Wahrheitstabelle**, **Boolescher Ausdruck mit Minimalform**, **KV-Diagramm mit Gruppen**, **Oszilloskop-Kurven** und **Zeitverlauf** (so wie sie gerade stehen), **Stückliste**. Passt nicht alles auf eine Seite, wird umbrochen; das Schriftfeld zählt mit («2 / 3»).
+- **Herleitung** (Tabelle, Ausdruck, KV) gibt es nur für **reine Logikschaltungen** aus Pegelschaltern, Gattern und Logikanzeigen (Tabelle bis 5, KV bis 4 Eingänge). Bei einer Analogschaltung oder einem Zähler sind die Punkte ausgegraut, mit Begründung in einem Satz.
+- **Fassung:** **Lösung** (alles ausgefüllt, mit Absatz zum benutzten Rechenschritt, z. B. Ausklammern = konjunktives Distributivgesetz, und was er an Gattern einspart) oder **Aufgabe** (Tabelle, Ausdruck und KV-Raster bleiben als leere Vordrucke; die Kopfzeile verrät den Ausdruck nicht). So druckst du aus einer Schaltung Arbeitsblatt und Lösungsblatt.
+- **Vorschau** zeigt die Seiten verkleinert. **PDF erzeugen** öffnet den Druckdialog des Browsers; dort als Ziel **«Als PDF speichern»** wählen (Blattgrösse und Ränder stehen schon im Auftrag). Schreibweise wie im Lehrmittel: ODER = v, UND = Nebeneinanderstellen, NICHT = Überstreichung, Eingänge e1, e2, e3, Ausgang A.
 
 ## 8. Aufgabe stellen (Datei → Aufgabe stellen …)
 
@@ -98,11 +122,22 @@ Bauteile, die zu viel abbekommen, werden **markiert** und die Statusleiste sowie
 
 ## 11. Tastenkürzel
 
-Hilfe → **Tastenkürzel** zeigt die Liste: Strg + Z / Y, Entf, R, Esc, Strg + A / C / V, Umschalt + Klick, Pfeiltasten, Leertaste, F9, Strg + S / O / P.
+Hilfe → **Tastenkürzel** zeigt die Liste: Strg + P (Drucken), **G** (Gitternetz), Alt + Klick auf eine Leitung (Knotenpunkt), Strg + Z / Y, Entf, R, Esc, Strg + A / C / V, Umschalt + Klick, Pfeiltasten, Leertaste, F9, Strg + S / O / P.
 
 ## 12. Beispiele
 
-Digitaluhr (Sekunden 00 bis 59), Asynchroner Zähler mit Zeitverlauf, RC-Glied an Rechteckquelle, RC-Tiefpass: Bode-Diagramm, Reihenschwingkreis: Resonanzkurve, Schwingkreis aus L und C, Spannungsteiler, Halbaddierer.
+Das Menü **Beispiele** ist in dieselben Gruppen gegliedert wie die Bauteilleiste: **Logik** · **Flip-Flops** · **Zähler** · **Anzeigen** · **Analog** · **Anwendungen**. Zu jedem Bauteil der Leiste gibt es eine kleine, lauffähige Schaltung (ein Test prüft das). Beim Öffnen steht oben der Name und ein erklärender Satz.
+
+- **Logik:** UND, ODER, NAND, NOR, XOR, XNOR, NICHT – je mit Pegelschaltern und Logikanzeige; dazu `A = e1 ( e2 v e3 )`, De Morgan und der Halbaddierer.
+- **Flip-Flops:** RS, D, T, JK, JK-Master-Slave mit Taktgeber, Anzeigen an Q und Q̄ und erreichbarem preSet und preClear; dazu «Takt auf vier Flipflops» mit Knotenpunkten.
+- **Zähler:** asynchron, synchron, BCD, Johnson, Modulo-n – mit Lampen je Bit und fertig eingerichtetem Zeitverlauf; dazu der asynchrone Zähler aus Flipflops mit sichtbarer Laufzeit.
+- **Anzeigen:** Siebensegmentanzeige mit BCD-Dekoder; Logikanzeige und Pegelschalter.
+- **Analog:** Spannungsteiler, Potentiometer, Schalter und Lampe, Taster und Motor, Strommessung, LED mit Vorwiderstand, RC-Glied, RL-Glied, Schwingkreis (L und C), RC-Tiefpass (Bode), Reihenschwingkreis (Bode), Diode als Gleichrichter, Z-Diode als Begrenzer, Transistor als Schalter.
+- **Anwendungen:** Digitaluhr (Sekunden 00 bis 59), Lauflicht mit Johnson-Zähler, Codeschloss.
+
+**Vorführung:** Damit die Beispiele sofort etwas zeigen, schalten Pegelschalter, Schalter und Regler anfangs von selbst durch. Sobald du selbst etwas anfasst (Klick auf einen Schalter, Wert ändern, Bauteil bewegen), hört das auf und die Schaltung gehört dir. Die Vorführung legt keine Rückgängig-Schritte an. Der Hinweis oben lässt sich mit × schliessen.
+
+Die Oszilloskop-Fenster eines Beispiels liegen am rechten Rand, die Schaltung steht links davon.
 
 ## 13. Grenzen
 
