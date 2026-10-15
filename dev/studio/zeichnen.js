@@ -45,7 +45,7 @@
   };
   S.drawVisible = function () { return !S.core.layout.drawHidden; };
   S.setDrawVisible = function (on) { if (on) delete S.core.layout.drawHidden; else S.core.layout.drawHidden = true; S.core.changed('draw'); syncToggle(); };
-  function syncToggle() { var b = $('#btnDraw'); if (b) { var on = S.drawVisible(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.title = 'Zeichenelemente (Text, Linien, Rahmen) ' + (on ? 'ausblenden' : 'einblenden'); b.textContent = '✎ Zeichnung: ' + (on ? 'ein' : 'aus'); } }
+  function syncToggle() { var b = $('#btnDraw'); if (b) { var on = S.drawVisible(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.title = 'Zeichenelemente (Text, Linien, Rahmen) ' + (on ? 'ausblenden' : 'einblenden'); b.innerHTML = '✎<span class="lb"> Zeichnung: ' + (on ? 'ein' : 'aus') + '</span>'; } }
   S.drawSync = syncToggle;
 
   /* ---------- Darstellung ---------- */

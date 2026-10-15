@@ -83,19 +83,20 @@
   S.getProp = getProp; S.setProp = setProp;
 
   /* ---------- Aufbau ---------- */
-  var ed, core, sim, svg, rafId = 0, selId = null, lastDraw = 0, lastVersion = -1, lastInsVersion = -1, measureTool = false;
+  var ed, core, sim, svg, rafId = 0, selId = null, lastDraw = 0, lastVersion = -1, lastInsVersion = -1;
   S.digitalNodes = {}; S.logicColors = true;
 
   function init() {
+    Editor.extra.mouse = true; // Maussteuerung: Rad zoomt, rechte Taste schiebt, linke zieht Auswahlrahmen (im Spiel nicht)
     Editor.extra.nodes = true; // Leitung auf Leitung: Knotenpunkte (im Spiel nicht)
     Editor.extra.async = true; // Flipflops mit preSet/preClear zeichnen (im Spiel nicht)
     Circuit.SPACES.schema.w = 2400; Circuit.SPACES.schema.h = 1500; // grosse Zeichenflaeche (Spiel: 1000 × 620)
     svg = $('#board');
     ed = S.ed = new Editor(svg, {
-      faultOf: function (id) { return S.faultTag(id); }, onChange: onChange, onSelect: onSelect, onProbe: onProbe, onDouble: function (p) { return !!(E.PARTS[p.type].ctr && S.expandCounter && S.expandCounter(p)); }, onMessage: function (m) { flash(m); },
+      faultOf: function (id) { return S.faultTag(id); }, onChange: onChange, onSelect: onSelect, onDouble: function (p) { return !!(E.PARTS[p.type].ctr && S.expandCounter && S.expandCounter(p)); }, onMessage: function (m) { flash(m); },
       wireColor: wireColor
     });
-    core = S.core = ed.core; core.tool = 'wire';
+    core = S.core = ed.core; core.tool = 'wire'; // immer Bauen
     ed.showVolt = false;
     sim = S.sim = new Sim({ getLayout: function () { return core.layout; } });
     buildPalette(); buildMenus(); buildToolbar(); bindCanvas(); bindKeys();
@@ -116,19 +117,20 @@
     if (!force && now - lastDraw < 30) { lastVersion = -1; return; }
     lastDraw = now;
     var sig = visSig();
-    if (force || sig !== lastSig) { lastSig = sig; if (sim.res && sim.net) ed.setSim({ res: sim.res, pinNode: sim.net.pinNode, ref: null }); else ed.setSim(null); }
+    if (force || sig !== lastSig) { lastSig = sig; ed.refMark = (ed.showVolt || ed.showAmp) && sim.net ? sim.net.refPin : null; if (sim.res && sim.net) ed.setSim({ res: sim.res, pinNode: sim.net.pinNode, ref: null }); else ed.setSim(null); }
     renderStatus(); renderLive();
   }
   var lastSig = '';
   /* Was der Schaltplan zeigt (Leuchten, Pegel, Segmente, Schaeden, Spannungsbeschriftung) – nur bei Aenderung neu zeichnen, das Bild bleibt ruhig und klickbar */
   function visSig() {
     var r = sim.res; if (!r) return 'none';
-    var a = [sim.err || '', r.faults.map(function (f) { return f.code + (f.part || ''); }).join(), ed.showVolt ? 1 : 0];
+    var a = [sim.err || '', r.faults.map(function (f) { return f.code + (f.part || ''); }).join(), (ed.showVolt ? 1 : 0) + (ed.showAmp ? 2 : 0)];
     Object.keys(r.parts).forEach(function (id) {
       var q = r.parts[id]; a.push(q.on ? 1 : 0, q.out === undefined ? '' : Array.isArray(q.out) ? q.out.join('') : q.out ? 1 : 0, q.q ? 1 : 0, q.high ? 1 : 0, q.burnt ? 1 : 0,
         q.brightness ? Math.round(q.brightness * 12) : 0, q.seg ? q.seg.map(Number).join('') : '', q.p !== undefined && /lamp|motor/.test(id) ? Math.round(Math.min(1, Math.abs(q.p)) * 8) : '');
     });
     if (ed.showVolt || S.logicColors) Object.keys(r.nodeV).forEach(function (n) { a.push(ed.showVolt ? Math.round(r.nodeV[n] * 100) : (r.nodeV[n] > E.LOGIC.vth ? 1 : 0)); });
+    if (ed.showAmp) Object.keys(r.parts).forEach(function (id) { var i = r.parts[id].i; a.push(typeof i === 'number' ? Math.round(i * 1e6) : ''); });
     return a.join('|');
   }
   S.redraw = function () { draw(performance.now(), true); };
@@ -158,22 +160,28 @@
       Object.keys(p.n).forEach(function (pin) { S.digitalNodes[p.n[pin]] = true; });
     });
   }
-  function onSelect(p) { if (S.onSelectHook) S.onSelectHook(p); selId = p ? p.id : null; renderInspector(true); if (p && measureTool && S.measurePart) S.measurePart(p); }
-  function onProbe(pin) { if (S.measurePin) S.measurePin(pin); }
+  function onSelect(p) { if (S.onSelectHook) S.onSelectHook(p); selId = p ? p.id : null; renderInspector(true); }
 
   /* ---------- Bauteilleiste ---------- */
+  var palTab = 'Logik', palBound = false;
   function buildPalette() {
-    var h = '';
-    PALETTE.forEach(function (g, gi) {
-      h += '<details' + (gi < 4 || g.items.length ? ' open' : '') + '><summary>' + esc(g.name) + '</summary>';
-      if (!g.items.length) h += '<div class="pempty">Kommt in einer späteren Stufe.</div>';
-      else h += '<div class="plist">' + g.items.map(function (t) { var d = E.PARTS[t] || { label: (S.DRAW_ITEMS.filter(function (x) { return x[0] === t; })[0] || [0, t])[1] }; return '<button class="pitem" draggable="true" data-add="' + t + '" title="' + esc(d.label) + ' – anklicken oder auf die Zeichenfläche ziehen">' + (E.PARTS[t] ? Editor.icon(t) : S.drawIcon(t)) + '<span class="nm">' + esc(d.label) + '</span></button>'; }).join('') + '</div>';
-      h += '</details>';
+    var el = $('#palette'), g = PALETTE.filter(function (x) { return x.name === palTab; })[0] || PALETTE[0]; palTab = g.name;
+    var h = '<div class="ptabs" role="tablist">' + PALETTE.map(function (x) { return '<button type="button" role="tab" class="ptab' + (x === g ? ' on' : '') + '" data-tab="' + esc(x.name) + '" aria-selected="' + (x === g) + '">' + esc(x.name) + '</button>'; }).join('') + '</div>';
+    h += '<div class="plist" role="tabpanel" aria-label="' + esc(g.name) + '">' + g.items.map(function (t) {
+      var d = E.PARTS[t] || { label: (S.DRAW_ITEMS.filter(function (x) { return x[0] === t; })[0] || [0, t])[1] };
+      return '<button type="button" class="pitem' + (S.armedType && S.armedType() === t ? ' armed' : '') + '" draggable="true" data-add="' + t + '" title="' + esc(d.label) + ' – anklicken, dann auf die Zeichenfläche klicken (R dreht, Esc beendet) – oder auf die Zeichenfläche ziehen">' + (E.PARTS[t] ? Editor.icon(t) : S.drawIcon(t)) + '<span class="nm">' + esc(d.label) + '</span></button>';
+    }).join('') + '</div>';
+    el.innerHTML = h;
+    if (palBound) return; palBound = true;
+    el.addEventListener('click', function (ev) {
+      var t = ev.target.closest('[data-tab]'); if (t) { palTab = t.dataset.tab; if (S.uiSet) S.uiSet('tab', palTab); buildPalette(); return; }
+      var b = ev.target.closest('[data-add]'); if (b) S.pickPart(b.dataset.add);
     });
-    $('#palette').innerHTML = h;
-    $('#palette').addEventListener('click', function (ev) { var b = ev.target.closest('[data-add]'); if (b) S.addPart(b.dataset.add); });
-    $('#palette').addEventListener('dragstart', function (ev) { var b = ev.target.closest('[data-add]'); if (!b) return; ev.dataTransfer.setData('text/plain', b.dataset.add); ev.dataTransfer.effectAllowed = 'copy'; });
+    el.addEventListener('dragstart', function (ev) { var b = ev.target.closest('[data-add]'); if (!b) return; ev.dataTransfer.setData('text/plain', b.dataset.add); ev.dataTransfer.effectAllowed = 'copy'; });
   }
+  S.setPaletteTab = function (name) { palTab = name; buildPalette(); };
+  /* Palettenknopf: Zeichenelemente entstehen sofort, Bauteile hängen danach am Zeiger (bedienung.js) */
+  S.pickPart = function (type) { var touch = root.matchMedia && root.matchMedia('(pointer: coarse)').matches; if (S.arm && !touch && !/^draw:/.test(type)) S.arm(type); else S.addPart(type); };
   /* Palette neu aufbauen (nach Erweiterungen durch spaetere Module) */
   S.rebuildPalette = buildPalette;
   S.addPart = function (type, x, y) {
@@ -187,7 +195,7 @@
     svg.addEventListener('dragover', function (ev) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; });
     svg.addEventListener('drop', function (ev) {
       ev.preventDefault(); var t = ev.dataTransfer.getData('text/plain'); if (!t || !(E.PARTS[t] || /^draw:/.test(t))) return;
-      var xy = ed._pt(ev); S.addPart(t, xy[0], xy[1]);
+      var xy = ed._pt(ev); if (/^draw:/.test(t)) S.addPart(t, xy[0], xy[1]); else { ed.insertMark = null; S.placePart(t, xy); }
     });
   }
   function inField(el) { return el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) && el.type !== 'range' && el.type !== 'checkbox'; }
@@ -209,8 +217,8 @@
       { id: 'bsp', label: 'Beispiele', items: [] },
       { id: 'bearb', label: 'Bearbeiten', items: [{ label: 'Rückgängig', key: 'Strg+Z', act: function () { S.undo(); } }, { label: 'Wiederholen', key: 'Strg+Y', act: function () { S.redo(); } }, { sep: 1 }, { label: 'Drehen', key: 'R', act: function () { core.rotateSelected('schema'); S.redraw(); } }, { label: 'Löschen', key: 'Entf', act: function () { core.removeSelected(); } }, { label: 'Auswahl aufheben', key: 'Esc', act: function () { core.cancel(); } }] },
       { id: 'sim', label: 'Simulation', items: [{ label: 'Start / Pause', key: 'Leertaste', act: function () { S.toggleRun(); } }, { label: 'Einzelschritt', act: function () { S.stepOnce(); } }, { label: 'Zurücksetzen', act: function () { S.resetSim(); } }] },
-      { id: 'ansicht', label: 'Ansicht', items: [{ label: 'Beamer-Modus', key: 'F9', act: function () { S.setBeamer(!S.beamer); } }, { label: 'Schaltung einpassen', act: function () { ed.fit(); } }, { label: 'U-Werte ein/aus', act: function () { $('#btnVolt').click(); } }] },
-      { id: 'fenster', label: 'Fenster', items: [{ label: 'Neues Oszilloskop', act: function () { if (S.openScope) S.openScope(); } }, { label: 'Neues Bode-Diagramm', act: function () { if (S.openBode) S.openBode(); } }, { label: 'Logik: Ausdruck, Tabelle, KV', act: function () { if (S.openLogic) S.openLogic(); } }, { label: 'Zeitverlauf ein/aus', act: function () { S.toggleTiming && S.toggleTiming(); } }] },
+      { id: 'ansicht', label: 'Ansicht', items: [{ label: 'Beamer-Modus', key: 'F9', act: function () { S.setBeamer(!S.beamer); } }, { label: 'Schaltung einpassen', act: function () { ed.fit(); } }] },
+      { id: 'fenster', label: 'Anzeigen', items: [{ label: 'Neues Oszilloskop', act: function () { if (S.openScope) S.openScope(); } }, { label: 'Neues Bode-Diagramm', act: function () { if (S.openBode) S.openBode(); } }, { label: 'Logik: Ausdruck, Tabelle, KV', act: function () { if (S.openLogic) S.openLogic(); } }, { label: 'Zeitverlauf ein/aus', act: function () { S.toggleTiming && S.toggleTiming(); } }] },
       { id: 'hilfe', label: 'Hilfe', items: [{ label: 'Kurzanleitung', act: function () { help(); } }, { label: 'Tastenkürzel', act: function () { openModal('<h2>Tastenkürzel</h2><table class="itab" style="font-family:var(--font-ui);font-size:14px">' + S.shortcuts.map(function (r) { return '<tr><td style="text-align:left"><kbd>' + esc(r[0]) + '</kbd></td><td style="text-align:left">' + esc(r[1]) + '</td></tr>'; }).join('') + '</table><p><button class="tb" id="mClose">Schliessen</button></p>'); } }] }
     ];
     var bar = $('#menubar'), sp = $('.spacer', bar), h = '';
@@ -228,11 +236,11 @@
   function closeMenus() { $$('.menu.open').forEach(function (m) { m.classList.remove('open'); $('button', m).setAttribute('aria-expanded', 'false'); }); }
   S.setMenu = function (id, items) { var m = MENUS.filter(function (x) { return x.id === id; })[0]; if (m) { m.items = items; fillMenu(m); } };
   function help() {
-    openModal('<h2>Kurzanleitung</h2><ul><li><b>Bauen:</b> Bauteil links anklicken oder auf die Zeichenfläche ziehen. Zwei Anschlüsse nacheinander anklicken = Leitung. <b>Leitung auf Leitung:</b> mit einer Leitung im Entstehen auf eine bestehende Leitung klicken, oder von einer Leitung wegziehen – dort entsteht ein Knotenpunkt (Punkt = verbunden, Kreuzung ohne Punkt = nicht verbunden).</li>' +
+    openModal('<h2>Kurzanleitung</h2><ul><li><b>Bauen:</b> Bauteil oben in der Leiste anklicken, dann auf die Zeichenfläche klicken (so oft man will; <kbd>R</kbd> dreht, <kbd>Esc</kbd> beendet) – oder auf die Zeichenfläche ziehen; auf eine Leitung gesetzt oder gezogen, hängt ein Zweipol (Widerstand, Kondensator …) darin. Zwei Anschlüsse nacheinander anklicken = Leitung. <b>Leitung auf Leitung:</b> mit einer Leitung im Entstehen auf eine bestehende Leitung klicken, oder von einer Leitung wegziehen – dort entsteht ein Knotenpunkt (Punkt = verbunden, Kreuzung ohne Punkt = nicht verbunden).</li>' +
       '<li><b>Bearbeiten:</b> Bauteil anklicken, rechts Werte ändern (<kbd>4k7</kbd>, <kbd>100n</kbd> und <kbd>2,2u</kbd> gehen). <kbd>R</kbd> dreht, <kbd>Entf</kbd> löscht.</li>' +
       '<li><b>Simulation:</b> <kbd>Leertaste</kbd> startet und hält an, <b>Schritt</b> rechnet einen Schritt. Der Zeitfaktor bestimmt, wie schnell die Simulationszeit läuft.</li>' +
-      '<li><b>Messen:</b> Werkzeug «Messen» wählen, dann Anschluss oder Bauteil anklicken – das Signal erscheint im Oszilloskop.</li>' +
-      '<li><b>Zoom:</b> <kbd>Strg</kbd> + Mausrad oder zwei Finger; Ziehen auf leerer Fläche verschiebt, Doppelklick passt ein.</li></ul><p><button class="tb" id="mClose">Schliessen</button></p>');
+      '<li><b>Messen:</b> Es gibt nur Bauen. Rechtsklick auf einen Anschluss, ein Bauteil oder eine Leitung schickt das Signal in den Zeitverlauf, ins Oszilloskop oder ins Bode-Diagramm; im Eigenschaftenfeld und im Menü «Anzeigen» geht es auch. <kbd>U</kbd> zeigt alle Spannungen, <kbd>I</kbd> alle Ströme im Schaltplan.</li>' +
+      '<li><b>Maus:</b> Mausrad zoomt zum Zeiger, rechte Taste gehalten (oder mittlere) schiebt die Fläche, linke Taste auf leerer Fläche zieht einen Auswahlrahmen, auf einem Bauteil verschiebt sie es (eine Auswahl gemeinsam). Auf dem Handy: zwei Finger zoomen, Ziehen schiebt. Doppelklick auf leere Fläche passt ein.</li></ul><p><button class="tb" id="mClose">Schliessen</button></p>');
   }
   function openModal(html) { $('#modal').innerHTML = html; $('#modalBg').classList.add('open'); var c = $('#mClose'); if (c) { c.onclick = closeModal; c.focus(); } }
   function closeModal() { $('#modalBg').classList.remove('open'); }
@@ -247,14 +255,13 @@
     $('#btnRun').addEventListener('click', function () { S.toggleRun(); });
     $('#btnStep').addEventListener('click', function () { S.stepOnce(); });
     $('#btnReset').addEventListener('click', function () { S.resetSim(); });
-    $('#toolBuild').addEventListener('click', function () { S.setTool('build'); });
-    $('#toolMeasure').addEventListener('click', function () { S.setTool('measure'); });
     $('#btnUndo').addEventListener('click', function () { S.undo(); }); $('#btnRedo').addEventListener('click', function () { S.redo(); });
     $('#btnRot').addEventListener('click', function () { core.rotateSelected('schema'); S.redraw(); });
     $('#btnDel').addEventListener('click', function () { core.removeSelected(); });
     $('#btnBeamer').addEventListener('click', function () { S.setBeamer(!S.beamer); });
     $('#btnFit').addEventListener('click', function () { ed.fit(); });
-    $('#btnVolt').addEventListener('click', function () { ed.showVolt = !ed.showVolt; this.classList.toggle('on', ed.showVolt); this.setAttribute('aria-pressed', ed.showVolt); S.redraw(); });
+    $('#btnVolt').addEventListener('click', function () { S.setValues('volt', !ed.showVolt); });
+    $('#btnAmp').addEventListener('click', function () { S.setValues('amp', !ed.showAmp); });
     $('#btnScope').addEventListener('click', function () { if (S.openScope) S.openScope(); });
     $('#btnTiming').addEventListener('click', function () { if (S.toggleTiming) S.toggleTiming(); });
     $('#clockHz').addEventListener('change', function () {
@@ -264,12 +271,13 @@
     });
     $('#clockHz').addEventListener('keydown', function (ev) { if (ev.key === 'Enter') this.dispatchEvent(new Event('change')); });
   }
-  S.setTool = function (t) {
-    measureTool = t === 'measure'; core.tool = measureTool ? 'probe' : 'wire'; core.wireStart = null;
-    $('#toolBuild').classList.toggle('on', !measureTool); $('#toolMeasure').classList.toggle('on', measureTool); $('#measureKind').hidden = !measureTool; $('#measureTarget').hidden = !measureTool;
-    svg.style.cursor = measureTool ? 'crosshair' : ''; ed.render();
+  /* Messwerte im Schaltplan: Spannung je Knoten (volt), Strom je Bauteil (amp) – ein Knopf je Grösse, Bezugspunkt gekennzeichnet */
+  S.setValues = function (what, on) {
+    if (what === 'volt') ed.showVolt = !!on; else ed.showAmp = !!on;
+    $('#btnVolt').classList.toggle('on', ed.showVolt); $('#btnVolt').setAttribute('aria-pressed', ed.showVolt); $('#btnAmp').classList.toggle('on', ed.showAmp); $('#btnAmp').setAttribute('aria-pressed', ed.showAmp);
+    if (S.viewMenuSync) S.viewMenuSync(); S.redraw();
   };
-  S.measureKind = function () { return $('#measureKind').value; };
+  // Kein Messmodus mehr: Signale gehen per Rechtsklick, Eigenschaftenfeld oder Menü in die Anzeigen (signale.js)
   S.toggleRun = function () { if (sim.running) sim.pause(); else sim.start(); syncRun(); };
   function syncRun() { var b = $('#btnRun'); b.textContent = sim.running ? '⏸ Pause' : '▶ Start'; b.classList.toggle('is-running', sim.running); renderStatus(); }
   S.syncRun = syncRun;

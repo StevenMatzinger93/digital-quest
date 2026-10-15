@@ -93,7 +93,7 @@
   /* Neues Bauteil moeglichst nahe (cx, cy) im Raum der aufrufenden Ansicht. Auf der Werkbank bekommt es
    * zusaetzlich einen freien Platz im Schema (Mitte der vorhandenen Bauteile). */
   var TOGGLE = { switch: 1, button: 1, logicin: 1 };
-  Circuit.prototype.addPart = function (type, cx, cy, space) {
+  Circuit.prototype.addPart = function (type, cx, cy, space, rot) {
     if (this.opts.readonly) return null;
     space = space || 'schema';
     var id = this.nextId(type), p = { id: id, type: type, x: 0, y: 0, rot: 0, props: {} }, xy;
@@ -107,6 +107,7 @@
       xy = this._place(cx, cy, 'schema', type); p.x = xy[0]; p.y = xy[1];
       if (this.benchHints[id]) p.bench = E.clone(this.benchHints[id]);
     }
+    if (rot && space !== 'bench') p.rot = rot;
     this.layout.parts.push(p); this.sel = id; this.changed('add');
     return p;
   };

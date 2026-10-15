@@ -195,3 +195,24 @@ Benannt wie im Portal («Beamer»); der **Vorführ-Modus** des Spiels ist etwas 
 | «Ausgeklammert» nimmt das häufigste Literal der Minimalform vor die Klammer, rekursiv; der Absatz nennt es «konjunktives Distributivgesetz» und zählt die gesparten Gatter | wie im Entwurf; die Gatterzählung zählt UND und ODER (NICHT-Glieder bleiben gleich) |
 | Tabelle bis 5 Eingänge (32 Zeilen), KV bis 4; bei mehr ist der Punkt ausgegraut | passt sonst nicht auf ein Blatt; Stückliste läuft über Seiten, Tabelle nicht |
 | Im Druckdialog ändert das Wählen eines Blattes auch den Rahmen auf der Zeichenfläche | Rahmen und Druckbereich sind dasselbe |
+
+## Auftrag «Bedienung» (15.10.2026, `docs/AUFTRAG_BEDIENUNG.md`)
+
+| Entscheidung | Begründung |
+|---|---|
+| Kein Bauen/Messen-Modus mehr; `S.setTool`, `#measureTarget`, `#measureKind`, `S.measurePin/-Part` sind entfernt | Ein Klick auf ein Bauteil darf nichts öffnen; Signale gehen nur noch per Rechtsklick, Eigenschaftenfeld oder Menü «Anzeigen» |
+| Menü «Fenster» heisst «Anzeigen» und enthält «Alle digitalen Signale aufnehmen» sowie «Auswahl ins Oszilloskop / in den Zeitverlauf / ins Bode-Diagramm» | wörtlich nach Auftrag («die entsprechenden Punkte für die anderen Anzeigen»); gleiche Regeln und Ausgrauungen wie das Rechtsklick-Menü |
+| Maussteuerung nur im Studio (`Editor.extra.mouse`) und nur für `pointerType === 'mouse'`; Touch und Stift verhalten sich wie bisher (Ziehen auf leerer Fläche schiebt) | Das Spiel nutzt denselben Editor und bleibt unverändert; ohne zweite Maustaste braucht Touch weiter den Schiebe-Weg |
+| Rechtsklick: Menü erst beim Loslassen und nur, wenn der Zeiger weniger als 4 Bildpunkte bewegt wurde; `contextmenu` wird immer unterdrückt, nur Tastatur-Menütaste zeigt das Menü sofort | Schieben und Menü kommen sich so auf Linux, Mac und Windows (Menü bei Drücken bzw. Loslassen) nicht in die Quere |
+| Auswahlrahmen wählt Bauteile, deren Mittelpunkt im Rahmen liegt; Leitungen und Zeichenelemente nicht | einfach und vorhersehbar; Leitungen hängen beim Verschieben ohnehin an den Bauteilen |
+| Zeitverlauf ist ohne Signale eingeklappt und eingeklappt keine Zeile mehr (vorher blieb die Titelleiste) | nur so erreicht die Zeichenfläche bei 1366 × 768 über 80 % der Höhe; das erste Signal klappt ihn auf |
+| Die Höhe der Zeichenfläche hängt nicht vom Eigenschaftenfeld ab; die Vorgaben «≥ 70 %» und «≥ 80 % mit eingeklapptem Feld» sind beide erfüllt (gemessen 80,7 %) | Das Einklappen des Feldes gewinnt Breite, nicht Höhe; die Höhe wurde so gewonnen, dass beide Zahlen gelten |
+| Palette hat sieben Karten: die fünf verlangten plus «Verbindung» (Knoten) und «Zeichnen» | Knoten und Zeichenelemente brauchen eine Heimat; die ersten fünf Karten sind wie die Beispiele gegliedert |
+| Werkzeug- und Bauteilleiste bleiben zwei Zeilen (je ~40 Punkte), kompakt; die Texte vieler Knöpfe entfallen unter 1700 Punkten Breite | In eine Zeile passen bei 1366 Punkten Karten, Bauteile und alle Werkzeuge nicht ohne Gedränge («wo es ohne Gedränge geht») |
+| Klick auf die Leiste hängt das Bauteil an den Zeiger (statt es in die Bildmitte zu setzen); Zeichenelemente entstehen weiter sofort; auf Geräten mit grobem Zeiger (Touch) gilt das alte Setzen in die Mitte | wörtlich nach Auftrag; Touch hat keinen Zeiger, an dem etwas hängen könnte |
+| Die Drehung des Bauteils am Zeiger bleibt nach dem Setzen erhalten | Reihen gleich gedrehter Bauteile; mit R lässt sich jederzeit zurückdrehen |
+| Einfügen in Leitungen: nur Zweipole (zwei Anschlüsse, ausser Masse und Knoten); Anschluss nächst dem Leitungsanfang wird mit dem Anfang verbunden, die Drehung folgt dem getroffenen Leitungsstück | Dioden behalten so ihre Richtung von Anfang zu Ende der Leitung |
+| Beim Ziehen aus der Leiste wird die Einfügemarke direkt im SVG gesetzt, nicht neu gezeichnet | Ein Neuzeichnen mitten im Ziehen ersetzt das Ziel der Ablage, die Ablage geht verloren (im Test gefunden) |
+| `U-Werte` ist im Knopf «U» aufgegangen: Spannung je **Knoten** (eine Beschriftung statt einer je Anschluss), daneben «I» für Ströme | nach Auftrag; ein Knopf je Grösse, Menü und Tasten U und I schalten dasselbe |
+| Beschriftungen suchen Plätze rund um den Anschluss, dann in Ringen weiter aussen, und meiden Bauteilkörper, «⏚ 0 V» und andere Beschriftungen; Werte kurz (7.5 V statt 7.500 V) | Digitaluhr: keine Überdeckung (Test) |
+| Das Aufgabenfenster erscheint rechts statt links über dem Schaltplan | Es verdeckte sonst Bauteile bei kleinerer Zeichenfläche |

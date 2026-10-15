@@ -18,26 +18,23 @@
 <div class="toolbar" id="toolbar" role="toolbar" aria-label="Werkzeuge">
   <div class="tgroup" aria-label="Simulation"><span class="tl">Simulation</span>
     <button class="tb run is-running" id="btnRun" title="Simulation starten / anhalten (Leertaste)">⏸ Pause</button>
-    <button class="tb" id="btnStep" title="Einen Rechenschritt ausführen">⏭ Schritt</button>
-    <button class="tb" id="btnReset" title="Zurück auf Zeit 0, Speicher und Kondensatoren leeren">⟲ Zurück</button>
+    <button class="tb" id="btnStep" title="Einen Rechenschritt ausführen">⏭<span class="lb"> Schritt</span></button>
+    <button class="tb" id="btnReset" title="Zurück auf Zeit 0, Speicher und Kondensatoren leeren">⟲<span class="lb"> Zurück</span></button>
     <label class="sr" for="selFactor" hidden>Zeitfaktor</label>
     <select class="tsel" id="selFactor" title="Zeitfaktor: wie schnell die Simulationszeit läuft"></select>
   </div>
   <div class="tgroup" aria-label="Takt"><span class="tl">Takt</span>
     <label for="clockHz" class="hint">Taktgeber</label><input class="tin" id="clockHz" type="text" inputmode="decimal" value="1" title="Frequenz aller Taktgeber, z. B. 1, 50, 1k"><span class="hint">Hz</span>
   </div>
-  <div class="tgroup" aria-label="Werkzeuge"><span class="tl">Werkzeuge</span>
-    <button class="tb on" id="toolBuild" title="Bauen: Bauteile ziehen, Anschlüsse nacheinander anklicken = Leitung">✎ Bauen</button>
-    <button class="tb" id="toolMeasure" title="Messen: Anschluss oder Bauteil anklicken = Signal ins Oszilloskop">⌖ Messen</button>
-    <select class="tsel" id="measureTarget" hidden title="Wohin das Signal kommt: Auto = digitale Anschlüsse in den Zeitverlauf, analoge ins Oszilloskop"><option value="auto">Ziel: Auto</option><option value="scope">Oszilloskop</option><option value="bode">Bode-Diagramm</option><option value="timing">Zeitverlauf</option></select>
-    <select class="tsel" id="measureKind" hidden title="Was beim Klick auf ein Bauteil gemessen wird"><option value="pv">Spannung</option><option value="pi">Strom</option></select>
-    <button class="tb" id="btnUndo" title="Rückgängig (Strg+Z)">↶ Zurück</button>
-    <button class="tb" id="btnRedo" title="Wiederholen (Strg+Y)">↷ Wieder</button>
-    <button class="tb" id="btnRot" title="Bauteil drehen (R)">⟳ Drehen</button>
-    <button class="tb" id="btnDel" title="Auswahl löschen (Entf)">🗑 Löschen</button>
-    <button class="tb" id="btnVolt" title="Spannungen an den Anschlüssen anzeigen" aria-pressed="false">U-Werte</button>
-    <button class="tb" id="btnBeamer" title="Beamer-Modus: dicke Linien, grosse Schrift, hoher Kontrast (F9)" aria-pressed="false">🎥 Beamer</button>
-    <button class="tb" id="btnFit" title="Schaltung einpassen">⛶ Einpassen</button>
+  <div class="tgroup" aria-label="Werkzeuge"><span class="tl">Bearbeiten</span>
+    <button class="tb" id="btnUndo" title="Rückgängig (Strg+Z)">↶<span class="lb"> Zurück</span></button>
+    <button class="tb" id="btnRedo" title="Wiederholen (Strg+Y)">↷<span class="lb"> Wieder</span></button>
+    <button class="tb" id="btnRot" title="Bauteil drehen (R)">⟳<span class="lb"> Drehen</span></button>
+    <button class="tb" id="btnDel" title="Auswahl löschen (Entf)">🗑<span class="lb"> Löschen</span></button>
+    <button class="tb" id="btnVolt" title="Spannung an jedem Knoten im Schaltplan anzeigen (gegen den Bezugspunkt)" aria-pressed="false">U<span class="lb"> Spannungen</span></button>
+    <button class="tb" id="btnAmp" title="Strom durch jedes Bauteil im Schaltplan anzeigen" aria-pressed="false">I<span class="lb"> Ströme</span></button>
+    <button class="tb" id="btnBeamer" title="Beamer-Modus: dicke Linien, grosse Schrift, hoher Kontrast (F9)" aria-pressed="false">🎥<span class="lb"> Beamer</span></button>
+    <button class="tb" id="btnFit" title="Schaltung einpassen">⛶<span class="lb"> Einpassen</span></button>
   </div>
   <div class="tgroup" aria-label="Messen"><span class="tl">Anzeigen</span>
     <button class="tb" id="btnScope" title="Neues Oszilloskop-Fenster">∿ Oszilloskop</button>
@@ -46,12 +43,13 @@
     <button class="tb on" id="btnTiming" title="Zeitverlaufsdiagramm unten ein- oder ausblenden">▤ Zeitverlauf</button>
   </div>
 </div>
+<nav class="palettebar" id="palette" aria-label="Bauteile"></nav>
 <div class="sliderbar" id="sliderBar" hidden aria-label="Schieberegler"></div>
 <div class="main">
-  <aside class="palette" id="palette" aria-label="Bauteile"></aside>
   <section class="canvas" id="canvasWrap" aria-label="Zeichenfläche">
     <svg id="board" role="img" aria-label="Schaltplan"></svg>
   </section>
+  <button class="inspfold" id="inspFold" type="button" aria-label="Eigenschaftenfeld ein- oder ausklappen" aria-expanded="true" title="Eigenschaftenfeld einklappen">›</button>
   <aside class="inspector" id="inspector" aria-label="Eigenschaften"></aside>
 </div>
 <section class="timing" id="timing" aria-label="Zeitverlauf"></section>

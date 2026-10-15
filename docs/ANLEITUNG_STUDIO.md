@@ -10,10 +10,17 @@ Die Simulation läuft sofort. **Beispiele** im Menü zeigen fertige Schaltungen 
 
 ## 2. Bauen
 
-- **Bauteil setzen:** links anklicken (kommt in die Mitte) oder auf die Zeichenfläche ziehen.
+- **Bauteil setzen:** Die Bauteilleiste liegt oben, mit Registerkarten **Logik · Flip-Flops · Zähler · Anzeigen · Analog** (dazu «Verbindung» und «Zeichnen»). Bauteil anklicken – es hängt am Zeiger –, dann auf die Zeichenfläche klicken. Jeder weitere Klick setzt dasselbe Bauteil noch einmal, **R** dreht es vor dem Setzen, **Esc** beendet. Oder ein Bauteil aus der Leiste auf die Fläche ziehen. **Auf eine Leitung** gesetzt oder gezogen, wird ein Zweipol (Widerstand, Kondensator, Spule, Diode, Schalter …) in die Leitung eingefügt: die Stelle leuchtet grün auf, das Bauteil richtet sich nach der Leitung aus; Bauteile mit mehr Anschlüssen liegen nur daneben. Auch ein schon gesetztes, noch unverdrahtetes Zweipol-Bauteil lässt sich auf eine Leitung ziehen. Rückgängig stellt die ungeteilte Leitung wieder her.
 - **Leitung ziehen:** zwei Anschlüsse nacheinander anklicken. Ein Klick auf eine Leitung wählt sie, **Entf** löscht sie.
 - **Leitung auf Leitung (Knotenpunkt):** Ist eine Leitung im Entstehen, klickst du auf eine bestehende Leitung: Dort entsteht ein **Knotenpunkt**, die getroffene Leitung wird geteilt. Ein Vorschaupunkt zeigt vorher, wo er entsteht. Umgekehrt: von einer Leitung **wegziehen** (oder **Alt + Klick**) setzt dort einen Knoten und beginnt eine neue Leitung. Rechtsklick auf eine Leitung: «Knotenpunkt hier setzen». Auch aus der Leiste («Verbindung → Knoten») lässt er sich setzen. Knoten lassen sich verschieben, die Leitungen folgen. Löschst du einen Knoten mit genau zwei Leitungen, werden sie wieder zu einer. **Wie im Schaltplan nach IEC/DIN: Punkt = verbunden, Kreuzung ohne Punkt = nicht verbunden.**
-- **Bewegen:** Bauteil ziehen. **R** dreht, **Entf** löscht. Ziehen auf leerer Fläche verschiebt den Ausschnitt, **Strg + Mausrad** oder zwei Finger zoomen, Doppelklick auf leere Fläche passt alles ein.
+- **Maus (wie in anderen CAD-Programmen):**
+  - **Mausrad** zoomt, zum Mauszeiger hin.
+  - **Rechte Taste gehalten und ziehen** (oder **mittlere Taste**) schiebt die Zeichenfläche. Ein Rechtsklick ohne Ziehen (weniger als 4 Bildpunkte) öffnet das Menü für Signale (siehe «Messen»); das Browsermenü gibt es dort nicht.
+  - **Linke Taste auf leerer Fläche ziehen** zeichnet einen Auswahlrahmen; alles darin wird ausgewählt. **Umschalt** zum Rahmen oder zum Klick fügt hinzu bzw. nimmt heraus.
+  - **Linke Taste auf einem Bauteil ziehen** verschiebt es; ist es Teil einer Auswahl, bewegt sich die ganze Auswahl, die Leitungen bleiben hängen.
+  - Mauszeiger: Pfeil über leerer Fläche, Kreuz über einem Anschluss, Verschiebekreuz über einem Bauteil, Hand beim Schieben.
+  - Auf Tablet und Handy: zwei Finger zoomen, ein Finger auf leerer Fläche schiebt, langes Drücken öffnet das Signal-Menü.
+- **Drehen, löschen, einpassen:** **R** dreht, **Entf** löscht, Doppelklick auf leere Fläche passt alles ein.
 - **Werte ändern:** Bauteil anklicken, rechts den Wert eintippen. Vorsätze gehen: `4k7`, `100n`, `2,2u`, `1M`, `10m`.
 - **Mehrere auswählen:** **Strg + A** wählt alles, **Umschalt + Klick** fügt Bauteile hinzu. **Strg + C / Strg + V** kopiert und fügt versetzt ein, die **Pfeiltasten** verschieben um ein Raster, **Entf** löscht die ganze Auswahl.
 - **Rückgängig:** **Strg + Z**, **Strg + Y** (oder **Strg + Umschalt + Z**) wiederholt. Bis zu 200 Schritte, auch beim Aufklappen eines Zählers und beim Laden. Probiere ruhig aus.
@@ -47,9 +54,9 @@ Flüssig läuft es bis etwa **50 Bauteile** (siehe `docs/LEISTUNG_STUDIO.md`).
 
 ## 4. Messen
 
-**Der kürzeste Weg:** Mit **Rechtsklick** auf einen Anschluss, ein Bauteil oder eine Leitung – ohne das Werkzeug zu wechseln – bietet das Menü «In den Zeitverlauf», «Ins Oszilloskop», «Ins Bode-Diagramm» an. Nicht passende Ziele sind ausgegraut und sagen, warum. Auf dem Tablet: lange drücken. Im Eigenschaftenfeld hat jede Grösse bei «Messwerte jetzt» einen kleinen Knopf **⤴**, der sie in die passende Anzeige schickt. Ein leeres Oszilloskop, Bode-Diagramm oder Zeitverlauf erklärt in seiner Mitte, wie Signale hineinkommen.
+**Es gibt nur Bauen – keinen Modus.** Ein Klick auf ein Bauteil wählt es aus, mehr nicht: Er öffnet nie ein Fenster. Messen ist eine eigene Handlung. Mit **Rechtsklick** auf einen Anschluss, ein Bauteil oder eine Leitung bietet das Menü «In den Zeitverlauf», «Ins Oszilloskop», «Ins Bode-Diagramm» an. Nicht passende Ziele sind ausgegraut und sagen, warum. Auf dem Tablet: lange drücken. Im Eigenschaftenfeld hat jede Grösse bei «Messwerte jetzt» einen kleinen Knopf **⤴**, der sie in die passende Anzeige schickt. Ein leeres Oszilloskop, Bode-Diagramm oder Zeitverlauf erklärt in seiner Mitte, wie Signale hineinkommen.
 
-**Alternative:** Wähle das Werkzeug **Messen** und klicke einen Anschluss (Spannung gegen den Bezugspunkt) oder ein Bauteil (Spannung oder Strom, rechts neben dem Werkzeug wählbar). Das Signal landet je nach **Ziel** im Oszilloskop, im Bode-Diagramm oder im Zeitverlauf («Auto»: digitale Anschlüsse in den Zeitverlauf, analoge ins Oszilloskop).
+**Dritter Weg:** Menü **Anzeigen**: «Alle digitalen Signale aufnehmen» und, mit einem Bauteil ausgewählt, «Auswahl ins Oszilloskop», «Auswahl in den Zeitverlauf», «Auswahl ins Bode-Diagramm». Analoge Signale kommen so ins Oszilloskop, digitale in den Zeitverlauf; der Zeitverlauf klappt dabei von selbst auf.
 
 **Oszilloskop** (Knopf «Oszilloskop»): beliebig viele Fenster, an der Titelleiste verschiebbar, an der Ecke vergrösserbar. Zeitbasis und Höhe stellen sich selbst ein («Auto»), von Hand wählbar. **Darstellung:** «Überlappend» legt alle Kurven in ein Feld mit gemeinsamer Achse (richtig zum Vergleichen von Höhe und Phase), «Untereinander» gibt jedem Signal eine eigene Spur mit Namen links und gemeinsamer Zeitachse (richtig für Digitalsignale, dort steht an der Achse 0 und 1). Beim ersten Signal wählt das Fenster selbst – digital untereinander, analog überlappend; deine Handwahl bleibt für das Fenster bestehen.
 **Anhalten** friert das Bild ein, **Cursor** zeigt Zeit- und Spannungsdifferenz. **τ bestimmen** legt die Cursor auf Anfang und 63,2 % der letzten Lade- oder Entladekurve und liest die Zeitkonstante ab (R · C bzw. L / R).
@@ -59,7 +66,11 @@ Flüssig läuft es bis etwa **50 Bauteile** (siehe `docs/LEISTUNG_STUDIO.md`).
 **Zeitverlauf** (unten): digitale Signale untereinander, dazu **Zählerstand** als Zahl. **«Alle digitalen Signale aufnehmen»** nimmt Taktgeber, Logikanzeigen, Flipflop-Ausgänge und Zählerausgänge auf einmal auf (jeden Knoten einmal – hängt eine Lampe am Zählerausgang, steht die Lampe da, nicht beide). Dieselbe Umschaltung «Untereinander / Überlappend» wie im Oszilloskop; das erste Signal klappt einen eingeklappten Zeitverlauf auf. mit den Häkchen markierst du Zeilen und fasst sie zum Zählerstand zusammen (oberste markierte Zeile = niederwertigstes Bit). ▲ ▼ ordnen um.
 Die **Laufzeit** der Flipflops (20 ns je Stufe) ist bei langsamen Takten unsichtbar klein. Zwei Wege: **hineinzoomen** (Auswahl «Zeit/Div» bis 1 ns/Div) oder **«Laufzeit überhöht»** (×10³, ×10⁶, ×10⁷). Dann ist der Zeitverlauf rot gerahmt – das sind nicht die echten Werte, die Zählfolge bleibt dieselbe.
 
-Mit **U-Werte** stehen die Spannungen an allen Anschlüssen im Schaltplan.
+**Alle Spannungen und Ströme auf einmal:** Der Knopf **U** (Taste **U**, Menü «Anzeigen») schreibt an jeden Knoten die Spannung gegen den Bezugspunkt in den Schaltplan, der Knopf **I** (Taste **I**) an jedes Bauteil den Strom. Der Bezugspunkt ist mit «⏚ 0 V» gekennzeichnet. Die Werte folgen der laufenden Simulation; die Beschriftungen weichen einander aus.
+
+## Platz auf dem Bildschirm
+
+Die Zeichenfläche bekommt die Höhe: Menü, Werkzeugleiste und Bauteilleiste sind je eine Zeile. Das **Eigenschaftenfeld** klappt mit dem schmalen Streifen **›** rechts ein und aus; der **Zeitverlauf** ist ohne Signale eingeklappt (Knopf «Zeitverlauf» oder das erste Signal öffnen ihn). Registerkarte und Eingeklapptes bleiben über Sitzungen erhalten.
 
 **Gitternetz:** Ansicht → Gitternetz oder die Taste **G** schaltet durch: aus, **Punkte**, **Linien** (feine, helle Linien). Die **Rasterweite** (10, 20, 40, 100) stellst du im Menü Ansicht ein; der Standard 20 ist das Fangraster, in das Bauteile einrasten. Die Wahl bleibt beim nächsten Start erhalten. Im Beamer-Modus und im Druck ist das Gitter immer aus, im Export (SVG, PNG) nur mit dem Häkchen «mit Gitternetz».
 

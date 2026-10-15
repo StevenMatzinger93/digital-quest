@@ -85,7 +85,7 @@
   };
   S.renderTaskPanel = function () {
     var t = S.task; if (!t) return; var w = $('#taskPanel');
-    if (!w) { w = document.createElement('div'); w.id = 'taskPanel'; w.className = 'fwin'; w.style.cssText = 'left:240px;top:150px;width:420px;height:380px'; document.getElementById('floats').appendChild(w); w.addEventListener('pointerdown', function () { w.style.zIndex = 5; }); }
+    if (!w) { w = document.createElement('div'); w.id = 'taskPanel'; w.className = 'fwin'; w.style.cssText = 'left:' + Math.max(20, root.innerWidth - 780) + 'px;top:150px;width:420px;height:380px'; document.getElementById('floats').appendChild(w); w.addEventListener('pointerdown', function () { w.style.zIndex = 5; }); }
     var rows = t.hide.map(function (h) { var key = h.part + '.' + h.prop, f = (S.FIELDS[S.core.part(h.part).type] || []).filter(function (x) { return x.k === h.prop; })[0];
       return '<tr><td>' + esc(h.part) + '</td><td>' + esc(f ? f.l : h.prop) + '</td><td><input class="tin" data-key="' + key + '" value="' + esc(t.answers[key] || '') + '" placeholder="Wert?" style="width:100px;min-height:40px"> <span class="tk" data-k="' + key + '">' + (t.ok[key] === true ? '✓ stimmt' : t.ok[key] === false ? '✗ nicht ganz' : '') + '</span></td></tr>'; }).join('');
     w.innerHTML = '<div class="fh"><b>Aufgabe: ' + esc(t.title) + '</b><button data-a="close" title="Aufgabe schliessen" aria-label="Schliessen">×</button></div><div class="fb" style="padding:10px 14px;overflow:auto"><p>' + esc(t.text) + '</p>' +

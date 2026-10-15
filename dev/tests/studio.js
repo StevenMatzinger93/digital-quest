@@ -225,8 +225,13 @@ function uhr() {
   await page.waitForFunction(() => window.Studio && Studio.sim);
   const retry = async fn => { let err; for (let k = 0; k < 5; k++) { try { return await fn(); } catch (e) { err = e; await page.waitForTimeout(120); } } throw err; }; // die Anzeige zeichnet sich bei laufender Simulation neu: Klick bei Bedarf wiederholen
   const pin = id => retry(() => page.click(`[data-pin="${id}"] .pinhit`, { force: true, timeout: 1500 }));
-  const add = t => page.click(`[data-add="${t}"]`);
+  const tabOf = (pg, t) => pg.evaluate(t => Studio.PALETTE.find(g => g.items.includes(t)).name, t);
+  const tab = async (pg, t) => pg.click(`[data-tab="${await tabOf(pg, t)}"]`);
+  let addN = 0; // Bauteil aus der Leiste wählen (Registerkarte), dann auf die Zeichenfläche klicken; Esc beendet das Mehrfachsetzen
+  const add = async (t, x, y) => { await tab(page, t); await page.click(`[data-add="${t}"]`); const box = await page.locator('#board').boundingBox(), n = (addN++) % 15; await page.mouse.click(box.x + (x !== undefined ? x : 100 + (n % 5) * 200), box.y + (y !== undefined ? y : 160 + Math.floor(n / 5) * 150)); await page.keyboard.press('Escape'); };
   const setField = async (k, v) => { await page.fill(`[data-f="${k}"]`, v); await page.press(`[data-f="${k}"]`, 'Enter'); await page.dispatchEvent(`[data-f="${k}"]`, 'change'); };
+  const ctxPin = async (id, label) => { await retry(() => page.click(`[data-pin="${id}"] .pinhit`, { button: 'right', force: true, timeout: 1500 })); await page.click(`.ctxmenu button:text-matches("^${label}")`); };
+  const ctxPart = async (id, label) => { await retry(() => page.click(`[data-part="${id}"] .hit`, { button: 'right', force: true, timeout: 1500 })); await page.click(`.ctxmenu button:text-matches("^${label}")`); };
   const selectPart = id => retry(() => page.click(`[data-part="${id}"] .hit`, { force: true, timeout: 1500 }));
   const nv = (p) => page.evaluate(pn => { const r = Studio.sim.res, n = Studio.sim.net; return r.nodeV[n.pinNode[pn]]; }, p);
 
@@ -267,7 +272,7 @@ function uhr() {
     await selectPart('R2'); await page.keyboard.press('Delete');
     ok(await page.evaluate(() => Studio.core.layout.parts.length) === 2 && await page.evaluate(() => Studio.core.layout.wires.length) === 1, 'Löschen nimmt Bauteil und seine Leitungen weg');
     // Ziehen aus der Bauteilleiste
-    await page.dragAndDrop('[data-add="capacitor"]', '#board', { targetPosition: { x: 500, y: 300 } });
+    await tab(page, 'capacitor'); await page.dragAndDrop('[data-add="capacitor"]', '#board', { targetPosition: { x: 500, y: 300 } });
     ok(await page.evaluate(() => Studio.core.layout.parts.some(p => p.type === 'capacitor')), 'Bauteil aus der Leiste auf die Fläche gezogen');
     // Neu
     await page.click('#menu-datei > button'); await page.click('#menu-datei .drop button:has-text("Neu")');
@@ -291,18 +296,15 @@ function uhr() {
     // 1. Schleife läuft
     const t0 = await page.evaluate(() => Studio.sim.state.t); await page.waitForTimeout(700);
     const t1 = await page.evaluate(() => Studio.sim.state.t); ok(t1 > t0 + 0.005, 'Simulationsschleife läuft: t ' + t0 + ' → ' + t1);
-    // Signale per Klick im Messen-Modus: erst R1.b (Kondensatorspannung), dann G1.p (Quelle)
-    await page.click('#toolMeasure');
-    await pin('R1.b'); await pin('G1.p');
-    ok(await page.evaluate(() => Studio.scopes.length === 1 && Studio.scopes[0].ch.length === 2), 'Klick auf Anschlüsse legt Kanäle im ersten Fenster an');
+    // Signale per Rechtsklick (ohne Moduswechsel): erst R1.b (Kondensatorspannung), dann G1.p (Quelle)
+    await ctxPin('R1.b', 'Ins Oszilloskop'); await ctxPin('G1.p', 'Ins Oszilloskop');
+    ok(await page.evaluate(() => Studio.scopes.length === 1 && Studio.scopes[0].ch.length === 2), 'Rechtsklick auf Anschlüsse legt Kanäle im ersten Fenster an');
     // 2. zweites Fenster, anderes Signal (Strom durch R1), unabhängig
-    await page.click('#btnScope'); await page.click('#toolMeasure');
+    await page.click('#btnScope');
     await page.evaluate(() => Studio.scopes.forEach(sc => { sc.el.style.left = '700px'; sc.el.style.top = '420px'; })); // Fenster aus dem Weg ziehen
-    await page.click('[data-part="R1"] .hit', { force: true }); // Bauteil anklicken: Spannung über R1
-    await page.selectOption('#measureKind', 'pi'); await page.waitForTimeout(450); /* sonst zaehlt der Editor es als Doppelklick */ await page.click('[data-part="R1"] .hit', { force: true });
+    await ctxPart('R1', 'Ins Oszilloskop: Spannung'); await ctxPart('R1', 'Ins Oszilloskop: Strom');
     const chs = await page.evaluate(() => Studio.scopes.map(s => s.ch.map(c => c.tr.label)));
     ok(chs.length === 2 && chs[0].length === 2 && chs[1].length === 2 && chs[1].join() === 'U(R1),I(R1)', 'zwei Oszilloskop-Fenster mit eigenen Kanälen: ' + JSON.stringify(chs));
-    await page.click('#toolBuild');
     await page.evaluate(() => Studio.scopes[0].close()); // Fenster 1 schliessen: Fenster 2 bleibt
     ok(await page.evaluate(() => Studio.scopes.length === 1 && Studio.scopes[0].ch.length === 2), 'Fenster 2 arbeitet unabhängig weiter');
     await page.evaluate(() => { Studio.scopes[0].close(); });
@@ -374,7 +376,7 @@ function uhr() {
     await page.evaluate(() => Studio.sim.advance(0.55)); // fuenf steigende Flanken (Takt 10 Hz, erste bei 0,1 s)
     const before = await page.evaluate(() => Studio.sim.res.parts.Z1.count);
     ok(before === 5, 'Kasten zählt fünf Takte: ' + before);
-    ok(await page.isVisible('[data-add="ctr_bcd"]') && await page.isVisible('[data-add="ctr_johnson"]'), 'Zähler in der Bauteilleiste');
+    await tab(page, 'ctr_bcd'); ok(await page.isVisible('[data-add="ctr_bcd"]') && await page.isVisible('[data-add="ctr_johnson"]'), 'Zähler in der Bauteilleiste');
     await page.waitForTimeout(450);
     await page.dblclick('[data-part="Z1"] .hit', { force: true });
     const ex = await page.evaluate(() => ({ types: Studio.core.layout.parts.map(p => p.type).sort().join(), wires: Studio.core.layout.wires.length,
@@ -496,7 +498,7 @@ function uhr() {
     // ohne Browserspeicher läuft die Seite
     const page2 = await ctx.newPage(); const e2 = []; page2.on('pageerror', e => e2.push(e.message));
     await page2.addInitScript(() => { Object.defineProperty(window, 'localStorage', { get() { throw new Error('gesperrt'); } }); });
-    await page2.goto(url, { waitUntil: 'domcontentloaded' }); await page2.waitForFunction(() => window.Studio && Studio.sim); await page2.click('[data-add="resistor"]'); await page2.waitForTimeout(3300);
+    await page2.goto(url, { waitUntil: 'domcontentloaded' }); await page2.waitForFunction(() => window.Studio && Studio.sim); await page2.click('[data-tab="Analog"]'); await page2.click('[data-add="resistor"]'); await page2.mouse.click(300, 300); await page2.waitForTimeout(3300);
     ok(!e2.length && await page2.evaluate(() => Studio.core.layout.parts.length) === 1, 'Seite funktioniert ohne Browserspeicher: ' + e2.join('|')); await page2.close();
   }
 
@@ -681,7 +683,7 @@ function uhr() {
     const sameNet = (a, b) => page.evaluate(([a, b]) => { const n = Studio.sim.net.pinNode; return n[a] !== undefined && n[a] === n[b]; }, [a, b]);
     const allClock = async () => (await Promise.all(['FF1', 'FF2', 'FF3', 'FF4'].map(f => sameNet('CLK1.out', f + '.C')))).every(Boolean);
     // Aufbau: Takt und vier D-Flipflops, nur ein Anschluss des Taktes wird gezogen
-    await add('clock'); for (let k = 0; k < 4; k++) await add('dff');
+    await add('clock', 100, 420); for (let k = 0; k < 4; k++) await add('dff', 360 + k * 200, 160 + k * 110);
     ok(await page.evaluate(() => Studio.core.layout.parts.map(p => p.id).join()) === 'CLK1,FF1,FF2,FF3,FF4', 'Takt und vier Flipflops gesetzt');
     await pin('CLK1.out'); await pin('FF1.C');
     ok(await page.evaluate(() => Studio.core.layout.wires.length) === 1, 'eine Leitung vom Takt zum ersten Flipflop');
@@ -756,6 +758,7 @@ function uhr() {
     const load = (lay, o) => page.evaluate(([l, o]) => { Studio.closeScopes(); Studio.timing.clear(); Studio.loadLayout(l, o || { run: true }); }, [lay, o]);
     await load(zaehler); await page.waitForTimeout(300);
     // Layout: Zeitverlauf liegt ganz im Bild und nicht unter der Statusleiste
+    await page.evaluate(() => { if (Studio.timingCollapsed()) Studio.toggleTiming(); });
     const lay = await page.evaluate(() => { const r = s => document.querySelector(s).getBoundingClientRect(); return { tl: r('#timing'), st: r('#statusbar'), main: r('.main'), vh: innerHeight }; });
     ok(lay.tl.bottom <= lay.st.top + 1 && lay.tl.top >= lay.main.bottom - 1 && lay.tl.bottom <= lay.vh && lay.main.height > 250, 'Zeitverlauf sichtbar zwischen Zeichenfläche und Statusleiste (' + Math.round(lay.tl.top) + '–' + Math.round(lay.tl.bottom) + ', Statusleiste ab ' + Math.round(lay.st.top) + ')');
     // leere Anzeigen erklären sich selbst
@@ -763,9 +766,8 @@ function uhr() {
     ok(await page.evaluate(() => Array.from(document.querySelectorAll('.sc-hint')).length) === 2 && await page.evaluate(() => Array.from(document.querySelectorAll('.sc-hint')).every(h => !h.hidden && /Rechtsklick/.test(h.textContent))), 'leeres Oszilloskop und leeres Bode-Fenster zeigen ihren Hinweis');
     ok(/Rechtsklick/.test(await page.textContent('#tlRows')) && /Alle digitalen Signale aufnehmen/.test(await page.textContent('#tlRows')), 'leerer Zeitverlauf zeigt Hinweis und Knopf');
     await page.screenshot({ path: shots + '/h_leer.png' });
-    await page.click('.sc-hint [data-hint="measure:scope"] >> nth=0');
-    ok(await page.evaluate(() => Studio.core.tool === 'probe' && document.querySelector('#measureTarget').value === 'scope'), 'Knopf im Hinweis schaltet auf «Messen» mit dem Ziel Oszilloskop');
-    await page.click('#toolBuild'); await page.evaluate(() => { Studio.closeScopes(); Studio.bodes.slice().forEach(b => b.close()); });
+    ok(!(await page.evaluate(() => /Messen-Werkzeug/.test(document.body.innerText))) && !(await page.$('#toolMeasure')) && !(await page.$('#toolBuild')), 'es gibt kein Messen-Werkzeug und keinen Modus mehr');
+    await page.evaluate(() => { Studio.closeScopes(); Studio.bodes.slice().forEach(b => b.close()); });
     // Rechtsklick im Baumodus: alle vier Lampen in den Zeitverlauf, ohne Werkzeugwechsel
     ok(await page.evaluate(() => Studio.core.tool === 'wire'), 'Werkzeug bleibt «Bauen»');
     for (const k of [1, 2, 3, 4]) {
@@ -932,7 +934,7 @@ function uhr() {
     await page.evaluate(() => { Studio.loadExample('n_teiler'); Studio.stopDemo(); Studio.core.layout.draw = []; Studio.core.changed('draw'); }); await page.click('#exBanner button'); await page.waitForTimeout(200);
     const base = await page.evaluate(() => { const E = Studio.E, l = JSON.parse(JSON.stringify(Studio.core.layout)), net = E.buildNetlist(l), r = E.step(net, E.newState(), {}); return { pin: JSON.stringify(net.pinNode), v: JSON.stringify(r.nodeV), parts: Studio.core.layout.parts.length, wires: Studio.core.layout.wires.length, bom: Studio.bom().length }; });
     // alle fünf Arten über die Leiste anlegen
-    for (const k of ['text', 'line', 'arrow', 'rect', 'ellipse']) await page.click(`[data-add="draw:${k}"]`);
+    await page.click('[data-tab="Zeichnen"]'); for (const k of ['text', 'line', 'arrow', 'rect', 'ellipse']) await page.click(`[data-add="draw:${k}"]`);
     const d1 = await page.evaluate(() => Studio.core.layout.draw.map(e => e.kind + (e.arrow ? '+pfeil' : '')).join());
     ok(d1 === 'text,line,line+pfeil,rect,ellipse', 'fünf Elementarten angelegt: ' + d1);
     ok(await page.evaluate(() => document.querySelectorAll('#board .drawlayer [data-draw]').length) === 5, 'alle fünf stehen in der Zeichnung');
@@ -991,7 +993,7 @@ function uhr() {
     const rt = await page.evaluate(() => { const before = JSON.stringify(Studio.core.layout.draw), hidden = Studio.core.layout.drawHidden, r = Studio.parseFile(JSON.stringify(Studio.serialize())); return { ok: r.ok && JSON.stringify(r.layout.draw) === before && r.layout.drawHidden === hidden, n: r.layout.draw.length }; });
     ok(rt.ok && rt.n === 5, 'Elemente überleben Speichern und Laden (' + rt.n + ')');
     await page.evaluate(() => { Studio.core.sel = null; });
-    const n0 = await page.evaluate(() => Studio.drawList().length); await page.click('[data-add="draw:rect"]'); ok(await page.evaluate(() => Studio.drawList().length) === n0 + 1, 'neues Rechteck'); await page.keyboard.press('Control+z'); await page.waitForTimeout(100);
+    const n0 = await page.evaluate(() => Studio.drawList().length); await page.click('[data-tab="Zeichnen"]'); await page.click('[data-add="draw:rect"]'); ok(await page.evaluate(() => Studio.drawList().length) === n0 + 1, 'neues Rechteck'); await page.keyboard.press('Control+z'); await page.waitForTimeout(100);
     ok(await page.evaluate(() => Studio.drawList().length) === n0, 'Rückgängig nimmt es zurück'); await page.keyboard.press('Control+y'); await page.waitForTimeout(100); ok(await page.evaluate(() => Studio.drawList().length) === n0 + 1, 'Wiederholen stellt es her');
     await page.evaluate(() => { const l = Studio.drawList(); Studio.core.sel = 'd:' + l[l.length - 1].id; Studio.core.redraw(); }); await page.keyboard.press('Delete'); await page.waitForTimeout(100); ok(await page.evaluate(() => Studio.drawList().length) === n0, 'Entf löscht das ausgewählte Element'); await page.keyboard.press('Control+z'); await page.waitForTimeout(100); ok(await page.evaluate(() => Studio.drawList().length) === n0 + 1, 'Löschen lässt sich zurücknehmen');
     await page.screenshot({ path: shots + '/k_beschriftet.png' });
@@ -1110,6 +1112,195 @@ function uhr() {
     await page.evaluate(() => { delete Studio.core.layout.sheet; Studio.core.changed('draw'); });
   }
 
+  /* ===== Auftrag Bedienung: Paket 1 (kein Modus), 2 (Maus), 3 (Platz), 4 (in Leitung einfügen), 5 (Spannungen), 6 (mehrfach setzen) ===== */
+  const scr = (x, y) => page.evaluate(([x, y]) => { const svg = document.querySelector('#board'), pt = svg.createSVGPoint(); pt.x = x; pt.y = y; const r = pt.matrixTransform(svg.getScreenCTM()); return { x: r.x, y: r.y }; }, [x, y]);
+  const RCAC = { parts: [{ id: 'G1', type: 'acsource', x: 200, y: 300, rot: 0, value: 5, props: { freq: 1000 } }, { id: 'R1', type: 'resistor', x: 450, y: 200, rot: 0, value: 1000 }, { id: 'C1', type: 'capacitor', x: 700, y: 300, rot: 90, value: 1e-7 }],
+    wires: [{ from: 'G1.p', to: 'R1.a' }, { from: 'R1.b', to: 'C1.a' }, { from: 'C1.b', to: 'G1.n' }] };
+  const DIG = { parts: [{ id: 'CLK1', type: 'clock', x: 200, y: 300, rot: 0 }, { id: 'FF1', type: 'dff', x: 450, y: 300, rot: 0 }, { id: 'L1', type: 'logicled', x: 700, y: 300, rot: 0 }],
+    wires: [{ from: 'CLK1.out', to: 'FF1.C' }, { from: 'CLK1.out', to: 'FF1.D' }, { from: 'FF1.Q', to: 'L1.in' }] };
+  const reset = async lay => { await page.evaluate(l => { Studio.closeScopes(); Studio.bodes.slice().forEach(b => b.close()); Studio.timing.clear(); Studio.loadLayout(l, { run: true }); if (Studio.core.layout.sheet) delete Studio.core.layout.sheet; }, lay); await page.waitForTimeout(250); };
+  const away = () => page.evaluate(() => { document.querySelectorAll('#floats .fwin').forEach((w, i) => { w.style.left = (300 + i * 40) + 'px'; w.style.top = '640px'; }); });
+  const menuA = async t => { await page.click('#menu-fenster > button'); await page.click(`#menu-fenster .drop button:has-text("${t}")`); };
+  if (!only || only === 'm') { // Paket 1: der Modus wird abgeschafft
+    await reset(RCAC);
+    ok(!(await page.$('#toolBuild')) && !(await page.$('#toolMeasure')) && !(await page.$('#measureTarget')) && !(await page.$('#measureKind')), 'Werkzeugleiste: keine Umschaltung Bauen/Messen, keine Zielwahl mehr');
+    await page.evaluate(() => { if (!Studio.timingCollapsed()) Studio.toggleTiming(); });
+    for (let k = 0; k < 10; k++) { await selectPart(['R1', 'C1', 'G1'][k % 3]); await pin('R1.a'); await pin('R1.a'); await page.waitForTimeout(60); }
+    const fw = await page.evaluate(() => ({ wins: document.querySelectorAll('#floats .fwin').length, sc: Studio.scopes.length, bo: Studio.bodes.length, rows: Studio.timing.rows.length, wires: Studio.core.layout.wires.length, tl: Studio.timingCollapsed() }));
+    ok(fw.wins === 0 && fw.sc === 0 && fw.bo === 0 && fw.rows === 0 && fw.tl, 'zwanzig Klicks auf Bauteile und Anschlüsse: kein Fenster, kein Signal, Zeitverlauf bleibt zu (' + JSON.stringify(fw) + ')');
+    ok(fw.wires === 3, 'die Klicks haben die Schaltung nicht verändert');
+    await ctxPin('R1.b', 'Ins Oszilloskop'); ok(await page.evaluate(() => Studio.scopes.length === 1 && Studio.scopes[0].ch.length === 1), 'Rechtsklick auf Anschluss → Ins Oszilloskop'); await away();
+    await ctxPin('R1.b', 'Ins Bode-Diagramm'); ok(await page.evaluate(() => Studio.bodes.length === 1), 'Rechtsklick auf Anschluss → Ins Bode-Diagramm'); await away();
+    await ctxPart('C1', 'Ins Oszilloskop: Strom'); ok(await page.evaluate(() => Studio.scopes[0].ch.some(c => c.tr.desc.kind === 'pi')), 'Rechtsklick auf Bauteil → Ins Oszilloskop: Strom');
+    await page.evaluate(() => { Studio.closeScopes(); }); await selectPart('R1'); await page.waitForTimeout(250); await page.click('#insLive .sendbtn[aria-label*="Spannung"]');
+    ok(await page.evaluate(() => Studio.scopes.length === 1 && Studio.scopes[0].ch[0].tr.desc.kind === 'pv'), 'Eigenschaftenfeld: Knopf Spannung → Oszilloskop');
+    await page.evaluate(() => { Studio.closeScopes(); Studio.bodes.slice().forEach(b => b.close()); }); await selectPart('C1');
+    await menuA('Auswahl ins Oszilloskop'); ok(await page.evaluate(() => Studio.scopes.length === 1 && Studio.scopes[0].ch.length >= 1), 'Menü Anzeigen → Auswahl ins Oszilloskop');
+    await menuA('Auswahl ins Bode-Diagramm'); ok(await page.evaluate(() => Studio.bodes.length === 1), 'Menü Anzeigen → Auswahl ins Bode-Diagramm');
+    await reset(DIG); await selectPart('FF1');
+    await menuA('Auswahl in den Zeitverlauf'); ok(await page.evaluate(() => Studio.timing.rows.length >= 1 && !Studio.timingCollapsed()), 'Menü Anzeigen → Auswahl in den Zeitverlauf (klappt den Zeitverlauf auf)');
+    await reset(DIG); await menuA('Alle digitalen Signale aufnehmen'); ok(await page.evaluate(() => Studio.timing.rows.length >= 2 && !Studio.timingCollapsed()), 'Menü Anzeigen → Alle digitalen Signale aufnehmen (' + await page.evaluate(() => Studio.timing.rows.length) + ' Zeilen)');
+    const rows0 = await page.evaluate(() => Studio.timing.rows.length); await page.evaluate(() => Studio.timing.clear()); await ctxPart('L1', 'In den Zeitverlauf'); ok(await page.evaluate(() => Studio.timing.rows.length) >= 1 && rows0 >= 2, 'Rechtsklick auf Bauteil → In den Zeitverlauf');
+    await page.evaluate(() => { Studio.timing.clear(); if (!Studio.timingCollapsed()) Studio.toggleTiming(); });
+  }
+  if (!only || only === 'n') { // Paket 2: Maussteuerung
+    await reset({ parts: [{ id: 'R1', type: 'resistor', x: 300, y: 200, rot: 0, value: 1000 }, { id: 'R2', type: 'resistor', x: 500, y: 200, rot: 0, value: 1000 }, { id: 'R3', type: 'resistor', x: 700, y: 200, rot: 0, value: 1000 }, { id: 'R4', type: 'resistor', x: 500, y: 420, rot: 0, value: 1000 }],
+      wires: [{ from: 'R1.b', to: 'R2.a' }, { from: 'R2.b', to: 'R3.a' }] });
+    await page.evaluate(() => Studio.ed.fit());
+    const view = () => page.evaluate(() => Studio.ed.view.slice()), pos = () => page.evaluate(() => Object.fromEntries(Studio.core.layout.parts.map(p => [p.id, [p.x, p.y]])));
+    const box = await page.locator('#board').boundingBox(), cx = box.x + box.width / 2 + 120, cy = box.y + box.height / 2 + 60;
+    const under = async () => page.evaluate(([x, y]) => { const svg = document.querySelector('#board'), pt = svg.createSVGPoint(); pt.x = x; pt.y = y; const r = pt.matrixTransform(svg.getScreenCTM().inverse()); return [r.x, r.y]; }, [cx, cy]);
+    const v0 = await view(), u0 = await under(); await page.mouse.move(cx, cy); await page.mouse.wheel(0, -300); await page.waitForTimeout(80);
+    const v1 = await view(), u1 = await under();
+    ok(v1[2] < v0[2] * 0.9 && Math.hypot(u1[0] - u0[0], u1[1] - u0[1]) < 3, 'Mausrad (ohne Strg) zoomt hinein, der Punkt unter dem Zeiger bleibt stehen (' + Math.round(v0[2]) + ' → ' + Math.round(v1[2]) + ')');
+    await page.mouse.wheel(0, 600); await page.waitForTimeout(80); const v2 = await view(); ok(v2[2] > v1[2] * 1.2, 'Mausrad rückwärts zoomt heraus');
+    await page.evaluate(() => Studio.ed.fit());
+    const e0 = await view(); await page.mouse.move(cx, cy); await page.mouse.down({ button: 'right' }); await page.mouse.move(cx + 60, cy + 30, { steps: 4 }); await page.mouse.move(cx + 120, cy + 60, { steps: 4 });
+    ok(await page.evaluate(() => getComputedStyle(document.querySelector('#board')).cursor) === 'grabbing', 'Mauszeiger beim Schieben: greifende Hand');
+    await page.mouse.up({ button: 'right' }); await page.waitForTimeout(80); const e1 = await view();
+    ok(Math.abs(e1[0] - e0[0]) > 20 && Math.abs(e1[1] - e0[1]) > 10 && !(await page.isVisible('.ctxmenu')), 'rechte Taste gehalten und ziehen schiebt die Fläche, kein Menü (' + Math.round(e1[0] - e0[0]) + ',' + Math.round(e1[1] - e0[1]) + ')');
+    await page.evaluate(() => Studio.ed.fit());
+    const r2 = await scr(500, 200); await page.mouse.click(r2.x, r2.y, { button: 'right' }); await page.waitForTimeout(60); ok(await page.isVisible('.ctxmenu'), 'Rechtsklick ohne Bewegung öffnet das Menü'); await page.keyboard.press('Escape');
+    await page.mouse.move(r2.x, r2.y); await page.mouse.down({ button: 'right' }); await page.mouse.move(r2.x + 3, r2.y + 1); await page.mouse.up({ button: 'right' }); await page.waitForTimeout(60); ok(await page.isVisible('.ctxmenu'), 'Rechtsklick mit 3 Punkten Wackeln: weiter Menü'); await page.keyboard.press('Escape');
+    const vb = await view(); await page.mouse.move(r2.x, r2.y); await page.mouse.down({ button: 'right' }); await page.mouse.move(r2.x + 10, r2.y + 2, { steps: 3 }); await page.mouse.up({ button: 'right' }); await page.waitForTimeout(60);
+    ok(!(await page.isVisible('.ctxmenu')) && (await view())[0] !== vb[0], 'Rechtsklick mit 10 Punkten Bewegung schiebt und öffnet kein Menü');
+    await page.evaluate(() => Studio.ed.fit());
+    ok(await page.evaluate(() => { const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true }); document.querySelector('#board').dispatchEvent(ev); return ev.defaultPrevented; }), 'das Browser-Kontextmenü ist auf der Zeichenfläche unterdrückt');
+    await page.keyboard.press('Escape');
+    const m0 = await view(); await page.mouse.move(cx, cy); await page.mouse.down({ button: 'middle' }); await page.mouse.move(cx + 80, cy, { steps: 4 }); await page.mouse.up({ button: 'middle' }); await page.waitForTimeout(60);
+    ok(Math.abs((await view())[0] - m0[0]) > 20 && !(await page.isVisible('.ctxmenu')), 'mittlere Taste gehalten schiebt die Fläche');
+    await page.evaluate(() => Studio.ed.fit());
+    const a = await scr(220, 130), b = await scr(780, 290); await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move((a.x + b.x) / 2, (a.y + b.y) / 2, { steps: 4 });
+    ok(await page.evaluate(() => document.querySelectorAll('#board .marquee').length) === 1, 'beim Ziehen auf leerer Fläche erscheint der Auswahlrahmen');
+    await page.mouse.move(b.x, b.y, { steps: 4 }); await page.mouse.up(); await page.waitForTimeout(80);
+    ok(await page.evaluate(() => Studio.multi.slice().sort().join()) === 'R1,R2,R3', 'Auswahlrahmen über drei Bauteile wählt genau diese drei aus: ' + await page.evaluate(() => Studio.multi.join()));
+    ok(await page.evaluate(() => document.querySelectorAll('#board .marquee').length) === 0 && await page.evaluate(() => document.querySelectorAll('#board .part.selected').length) === 3, 'Rahmen verschwindet, drei Bauteile sind hervorgehoben');
+    const net0 = await page.evaluate(() => JSON.stringify([Studio.sim.net.nodes.length, Studio.core.layout.wires])), p0 = await pos(), s0 = await scr(500, 200);
+    await page.mouse.move(s0.x, s0.y); await page.mouse.down(); await page.mouse.move(s0.x + 40, s0.y + 60, { steps: 5 }); await page.mouse.move(s0.x + 80, s0.y + 120, { steps: 5 }); await page.mouse.up(); await page.waitForTimeout(100); const p1 = await pos();
+    const dxs = ['R1', 'R2', 'R3'].map(i => [p1[i][0] - p0[i][0], p1[i][1] - p0[i][1]]);
+    ok(dxs.every(d => d[0] === dxs[0][0] && d[1] === dxs[0][1]) && dxs[0][0] > 20 && dxs[0][1] > 40 && p1.R4.join() === p0.R4.join(), 'Ziehen auf einem ausgewählten Bauteil verschiebt die ganze Auswahl gemeinsam (' + dxs[0] + '), R4 bleibt');
+    ok(await page.evaluate(() => JSON.stringify([Studio.sim.net.nodes.length, Studio.core.layout.wires])) === net0 && await page.evaluate(() => Studio.multi.length) === 3, 'Leitungen bleiben hängen, die Auswahl bleibt bestehen');
+    await page.keyboard.press('Control+z'); await page.waitForTimeout(80); const p2 = await pos();
+    ok(['R1', 'R2', 'R3'].every(i => p2[i].join() === p0[i].join()), 'Rückgängig macht das Verschieben der Auswahl in einem Schritt rückgängig');
+    await page.evaluate(() => Studio.ed.fit()); await page.mouse.click(a.x - 30, a.y - 30); await page.waitForTimeout(60); const s4 = await scr(500, 420), q0 = await pos();
+    await page.mouse.move(s4.x, s4.y); await page.mouse.down(); await page.mouse.move(s4.x + 60, s4.y + 20, { steps: 5 }); await page.mouse.up(); await page.waitForTimeout(80); const q1 = await pos();
+    ok(q1.R4[0] > q0.R4[0] && ['R1', 'R2', 'R3'].every(i => q1[i].join() === q0[i].join()), 'Ziehen auf einem Bauteil verschiebt nur dieses');
+    const cur = await page.evaluate(() => ({ part: getComputedStyle(document.querySelector('#board [data-part="R4"] .hit')).cursor, pin: getComputedStyle(document.querySelector('#board [data-pin] .pinhit')).cursor, bg: getComputedStyle(document.querySelector('#board .gridrect') || document.querySelector('#board')).cursor }));
+    ok(cur.part === 'move' && cur.pin === 'crosshair' && cur.bg === 'default', 'Mauszeiger: Verschiebekreuz über Bauteil, Kreuz über Anschluss, Pfeil über leerer Fläche (' + JSON.stringify(cur) + ')');
+    await page.keyboard.press('Control+z'); await page.waitForTimeout(80); ok((await pos()).R4.join() === q0.R4.join(), 'Rückgängig macht das Verschieben eines Bauteils rückgängig');
+    await page.mouse.click(a.x - 30, a.y - 30); await selectPart('R1'); await page.keyboard.down('Shift'); await page.click('[data-part="R2"] .hit', { force: true }); await page.keyboard.up('Shift'); await page.waitForTimeout(60);
+    ok(await page.evaluate(() => Studio.multi.slice().sort().join()) === 'R1,R2', 'Umschalt + Klick fügt zur Auswahl hinzu');
+    await page.keyboard.down('Shift'); await page.click('[data-part="R2"] .hit', { force: true }); await page.keyboard.up('Shift'); await page.waitForTimeout(60);
+    ok(await page.evaluate(() => Studio.multi.join()) === 'R1', 'Umschalt + Klick auf ein ausgewähltes Bauteil nimmt es heraus');
+    await page.mouse.click(a.x - 30, a.y - 30); await page.waitForTimeout(60);
+  }
+  if (!only || only === 'o') { // Paket 3: Platz für die Zeichenfläche
+    const ctx3 = await browser.newContext({ viewport: { width: 1366, height: 768 } }), p3 = await ctx3.newPage(); await p3.goto(url, { waitUntil: 'domcontentloaded' }); await p3.waitForFunction(() => window.Studio && Studio.sim);
+    const names = await p3.evaluate(() => Array.from(document.querySelectorAll('#palette .ptab')).map(t => t.textContent));
+    ok(names.slice(0, 5).join('|') === 'Logik|Flip-Flops|Zähler|Anzeigen|Analog', 'Bauteilleiste oben mit den Registerkarten Logik · Flip-Flops · Zähler · Anzeigen · Analog (+ ' + names.slice(5).join(', ') + ')');
+    const geo = await p3.evaluate(() => { const r = s => document.querySelector(s).getBoundingClientRect(); return { pal: r('#palette'), tb: r('#toolbar'), cv: r('#canvasWrap'), main: r('.main'), vh: innerHeight, pw: r('#palette').width, left: document.querySelector('aside.palette') }; });
+    ok(!geo.left && geo.pal.top >= geo.tb.bottom - 1 && geo.pal.bottom <= geo.cv.top + 1, 'keine linke Spalte mehr: die Leiste liegt über der Zeichenfläche');
+    ok(geo.pal.height < 62 && geo.tb.height < 50, 'Bauteilleiste und Werkzeugleiste je eine Zeile hoch (' + Math.round(geo.pal.height) + ' und ' + Math.round(geo.tb.height) + ' Punkte)');
+    ok(geo.cv.height >= 0.7 * geo.vh, 'bei 1366 × 768 nimmt die Zeichenfläche ' + (100 * geo.cv.height / geo.vh).toFixed(1) + ' % der Fensterhöhe ein (≥ 70 %)');
+    await p3.click('#inspFold'); await p3.waitForTimeout(150);
+    const g2 = await p3.evaluate(() => ({ cv: document.querySelector('#canvasWrap').getBoundingClientRect(), vh: innerHeight, ins: document.querySelector('#inspector').getBoundingClientRect().width, fold: document.querySelector('#inspFold').getBoundingClientRect() }));
+    ok(g2.cv.height >= 0.8 * g2.vh && g2.ins === 0 && g2.fold.width > 10, 'Eigenschaftenfeld eingeklappt: Zeichenfläche ' + (100 * g2.cv.height / g2.vh).toFixed(1) + ' % der Höhe (≥ 80 %), schmaler Streifen zum Aufklappen bleibt');
+    for (const t of ['Logik', 'Flip-Flops', 'Zähler', 'Anzeigen', 'Analog']) {
+      await p3.click(`[data-tab="${t}"]`); const r = await p3.evaluate(() => { const l = document.querySelector('#palette .plist'), its = Array.from(l.querySelectorAll('.pitem')); return { n: its.length, tops: new Set(its.map(i => Math.round(i.getBoundingClientRect().top))).size, over: l.scrollWidth > l.clientWidth, txt: its.every(i => i.querySelector('svg') && i.querySelector('.nm').textContent.length > 0) }; });
+      ok(r.n >= 5 && r.tops === 1 && r.txt, 'Karte «' + t + '»: ' + r.n + ' Bauteile waagrecht in einer Zeile mit Symbol und Namen' + (r.over ? ' (scrollt)' : ''));
+      if (t === 'Analog') ok(r.over, 'Analog hat mehr Bauteile als Platz: es wird gescrollt, nicht umbrochen');
+    }
+    await p3.click('[data-tab="Zähler"]'); await p3.reload({ waitUntil: 'domcontentloaded' }); await p3.waitForFunction(() => window.Studio && Studio.sim);
+    ok(await p3.evaluate(() => document.querySelector('#palette .ptab.on').textContent === 'Zähler' && document.body.classList.contains('inspfolded') && Studio.timingCollapsed()), 'Registerkarte, eingeklapptes Eigenschaftenfeld und eingeklappter Zeitverlauf bleiben über Sitzungen');
+    await p3.click('#inspFold'); await p3.click('#btnTiming'); await p3.reload({ waitUntil: 'domcontentloaded' }); await p3.waitForFunction(() => window.Studio && Studio.sim);
+    ok(await p3.evaluate(() => !document.body.classList.contains('inspfolded') && !Studio.timingCollapsed()), 'wieder aufgeklappt bleibt ebenfalls erhalten');
+    await p3.screenshot({ path: shots + '/o_platz.png' }); await ctx3.close();
+  }
+  if (!only || only === 'p') { // Paket 4: Bauteil in eine Leitung einfügen
+    const LAMP = { parts: [{ id: 'B1', type: 'battery', x: 200, y: 300, rot: 0, value: 9 }, { id: 'H1', type: 'lamp', x: 600, y: 300, rot: 0, value: 60 }, { id: 'R8', type: 'resistor', x: 300, y: 120, rot: 90, value: 1000 }, { id: 'R9', type: 'resistor', x: 300, y: 480, rot: 90, value: 1000 }],
+      wires: [{ from: 'B1.p', to: 'H1.a' }, { from: 'H1.b', to: 'B1.n' }, { from: 'R8.b', to: 'R9.a' }] };
+    await reset(LAMP); await page.evaluate(() => Studio.ed.fit());
+    const seg = await page.evaluate(() => { const L = Studio.core.layout, out = []; L.wires.forEach((w, i) => { const pts = DQEditor.wirePoly(L, w); for (let k = 0; k + 1 < pts.length; k++) { const a = pts[k], b = pts[k + 1], hor = a[1] === b[1], len = Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]); if (len >= 100) out.push({ i, hor, x: Math.round((a[0] + b[0]) / 40) * 20, y: Math.round((a[1] + b[1]) / 40) * 20 }); } }); return out; });
+    const hs = seg.find(s => s.i === 0 && s.hor), vs = seg.find(s => s.i === 2 && !s.hor);
+    ok(!!hs && !!vs, 'Testleitungen gefunden (waagrecht ' + JSON.stringify(hs) + ', senkrecht ' + JSON.stringify(vs) + ')');
+    const nodes0 = await page.evaluate(() => Studio.sim.net.nodes.length), st0 = await page.evaluate(() => ({ p: Studio.core.layout.parts.length, w: Studio.core.layout.wires.length }));
+    await tab(page, 'resistor'); await page.click('[data-add="resistor"]'); const sh = await scr(hs.x, hs.y); await page.mouse.move(sh.x, sh.y); await page.waitForTimeout(120);
+    ok(await page.evaluate(() => document.querySelectorAll('#board .insmark').length) === 1, 'Beim Überfahren der Leitung mit dem Bauteil am Zeiger wird die Einfügestelle hervorgehoben');
+    await page.mouse.move(sh.x + 5, sh.y - 120); await page.waitForTimeout(120); ok(await page.evaluate(() => document.querySelectorAll('#board .insmark').length) === 0, 'neben der Leitung keine Hervorhebung');
+    await page.mouse.move(sh.x, sh.y); await page.mouse.click(sh.x, sh.y); await page.waitForTimeout(250); await page.keyboard.press('Escape');
+    const a1 = await page.evaluate(() => { const L = Studio.core.layout, r = L.parts.find(p => p.id === 'R1'); return { p: L.parts.length, w: L.wires.length, rot: r && r.rot, nodes: Studio.sim.net.nodes.length, wires: L.wires.filter(w => /^R1\./.test(w.from) || /^R1\./.test(w.to)).length, i: Studio.sim.res.parts.R1 && Studio.sim.res.parts.R1.i, ids: L.wires.slice(0, 2).map(w => w.from + '>' + w.to).join(' ') }; });
+    ok(a1.p === st0.p + 1 && a1.w === st0.w + 1 && a1.wires === 2 && a1.rot === 0, 'Widerstand auf waagrechte Leitung gesetzt: Leitung geteilt, Bauteil mit beiden Anschlüssen darin, waagrecht (' + a1.ids + ')');
+    ok(a1.nodes === nodes0 + 1, 'die Netzliste zeigt einen Knoten mehr (' + nodes0 + ' → ' + a1.nodes + ')');
+    ok(Math.abs(a1.i - 9 / (1000 + 60 + 0.05)) < 1e-5, 'die Schaltung rechnet richtig: I = ' + (a1.i * 1000).toFixed(3) + ' mA (9 V / 1060 Ω = 8,491 mA)');
+    await page.keyboard.press('Control+z'); await page.waitForTimeout(150);
+    ok(await page.evaluate(() => ({ p: Studio.core.layout.parts.length, w: Studio.core.layout.wires.length, n: Studio.sim.net.nodes.length })).then(x => x.p === st0.p && x.w === st0.w && x.n === nodes0), 'Rückgängig stellt die ungeteilte Leitung wieder her');
+    await page.evaluate(() => Studio.ed.fit()); const sv = await scr(vs.x, vs.y); await tab(page, 'capacitor'); await page.click('[data-add="capacitor"]'); await page.mouse.move(sv.x, sv.y); await page.waitForTimeout(100); await page.mouse.click(sv.x, sv.y); await page.waitForTimeout(200); await page.keyboard.press('Escape');
+    ok(await page.evaluate(() => { const c = Studio.core.layout.parts.find(p => p.type === 'capacitor'); return !!c && c.rot === 90 && Studio.core.layout.wires.filter(w => /^C1\./.test(w.from) || /^C1\./.test(w.to)).length === 2; }), 'Kondensator auf senkrechte Leitung: richtet sich aus (gedreht auf 90°)');
+    await page.keyboard.press('Control+z'); await page.waitForTimeout(100); await page.evaluate(() => Studio.ed.fit());
+    // Bauteil mit mehr Anschlüssen: nichts geschieht
+    const sh2 = await scr(hs.x, hs.y); await tab(page, 'and'); await page.click('[data-add="and"]'); await page.mouse.move(sh2.x, sh2.y); await page.waitForTimeout(100);
+    ok(await page.evaluate(() => document.querySelectorAll('#board .insmark').length) === 0, 'UND-Gatter (drei Anschlüsse): keine Einfügestelle gezeigt'); await page.mouse.click(sh2.x, sh2.y); await page.waitForTimeout(150); await page.keyboard.press('Escape');
+    ok(await page.evaluate(() => Studio.core.layout.wires.length) === st0.w && await page.evaluate(() => Studio.core.layout.parts.some(p => p.type === 'and')), 'UND-Gatter auf eine Leitung gesetzt: die Leitung bleibt, das Gatter liegt daneben');
+    await page.keyboard.press('Control+z'); await page.waitForTimeout(100); await page.evaluate(() => Studio.ed.fit());
+    // Ziehen aus der Leiste
+    const sh3 = await scr(hs.x, hs.y), bb = await page.locator('#board').boundingBox(); await tab(page, 'capacitor');
+    await page.dragAndDrop('[data-add="inductor"]', '#board', { targetPosition: { x: sh3.x - bb.x, y: sh3.y - bb.y } }); await page.waitForTimeout(200);
+    ok(await page.evaluate(() => { const L = Studio.core.layout, c = L.parts.find(p => p.type === 'inductor'); return !!c && L.wires.filter(w => /^L\d\./.test(w.from) || /^L\d\./.test(w.to)).length === 2 && L.wires.length === 4; }), 'Spule aus der Leiste auf die Leitung gezogen: eingefügt');
+    await page.keyboard.press('Control+z'); await page.waitForTimeout(100);
+    // vorhandenes freies Bauteil auf die Leitung ziehen
+    await page.evaluate(() => { Studio.core.addPart('diode', 800, 520, 'schema'); Studio.ed.fit(); }); await page.waitForTimeout(100);
+    const dpos = await page.evaluate(() => { const d = Studio.core.layout.parts.find(p => p.type === 'diode'); return [d.x, d.y]; }), sd = await scr(dpos[0], dpos[1]), sh4 = await scr(hs.x, hs.y);
+    await page.mouse.move(sd.x, sd.y); await page.mouse.down(); await page.mouse.move((sd.x + sh4.x) / 2, (sd.y + sh4.y) / 2, { steps: 6 }); await page.mouse.move(sh4.x, sh4.y, { steps: 6 }); await page.waitForTimeout(100);
+    const midmark = await page.evaluate(() => document.querySelectorAll('#board .insmark').length); await page.mouse.up(); await page.waitForTimeout(200);
+    ok(midmark === 1 && await page.evaluate(() => Studio.core.layout.wires.filter(w => /^V1\./.test(w.from) || /^V1\./.test(w.to)).length) === 2, 'bereits gesetzte, noch unverdrahtete Diode auf die Leitung gezogen: Stelle hervorgehoben, beim Loslassen eingefügt');
+    await page.screenshot({ path: shots + '/p_einfuegen.png' });
+  }
+  if (!only || only === 'q') { // Paket 5: alle Spannungen auf einmal
+    const DIV = { parts: [{ id: 'B1', type: 'battery', x: 200, y: 300, rot: 0, value: 10 }, { id: 'R1', type: 'resistor', x: 500, y: 200, rot: 0, value: 1000 }, { id: 'R2', type: 'resistor', x: 500, y: 400, rot: 0, value: 3000 }],
+      wires: [{ from: 'B1.p', to: 'R1.a' }, { from: 'R1.b', to: 'R2.a' }, { from: 'R2.b', to: 'B1.n' }] };
+    await reset(DIV); await page.evaluate(() => Studio.ed.fit());
+    const bt = await page.evaluate(() => Array.from(document.querySelectorAll('#toolbar button')).map(b => b.textContent.trim()).join('|'));
+    ok(!/U-Werte/.test(bt) && await page.evaluate(() => !!document.querySelector('#btnVolt') && !!document.querySelector('#btnAmp')), 'ein Knopf für die Spannungen (U) und einer für die Ströme (I); «U-Werte» gibt es nicht mehr');
+    ok(await page.evaluate(() => document.querySelectorAll('#board .vlabel, #board .ilabel').length) === 0, 'anfangs keine Messwerte im Schaltplan');
+    await page.click('#btnVolt'); await page.waitForTimeout(250);
+    const vl = await page.evaluate(() => Array.from(document.querySelectorAll('#board .vlabel')).map(e => e.textContent));
+    ok(vl.some(t => /^7[.,]5 ?V/.test(t)) && vl.some(t => /^10 ?V/.test(t)), 'Spannungsteiler 1 kΩ / 3 kΩ an 10 V: am mittleren Knoten steht 7,5 V (' + vl.join(' | ') + ')');
+    ok(await page.evaluate(() => Array.from(document.querySelectorAll('#board .refmark')).some(t => /0 V/.test(t.textContent))), 'der Bezugspunkt ist gekennzeichnet («⏚ 0 V»)');
+    await page.click('#btnAmp'); await page.waitForTimeout(250);
+    const il = await page.evaluate(() => Array.from(document.querySelectorAll('#board .ilabel')).map(e => e.textContent));
+    ok(il.length >= 3 && il.every(t => /^2[.,]5/.test(t)) || il.some(t => /2[.,]5/.test(t)), 'Ströme durch die Bauteile: 2,5 mA (' + il.join(' | ') + ')');
+    await menuA('Spannungen im Schaltplan'); await page.waitForTimeout(120); ok(await page.evaluate(() => document.querySelectorAll('#board .vlabel').length) === 0 && await page.evaluate(() => !document.querySelector('#btnVolt').classList.contains('on')), 'Menü «Anzeigen» schaltet dieselbe Anzeige (Knopf und Menü sind eins)');
+    await page.keyboard.press('u'); await page.waitForTimeout(120); ok(await page.evaluate(() => document.querySelectorAll('#board .vlabel').length) > 0, 'Taste U schaltet die Spannungen ein');
+    await selectPart('B1'); await page.waitForTimeout(250); await setField('value', '20'); await page.waitForTimeout(400);
+    ok(await page.evaluate(() => Array.from(document.querySelectorAll('#board .vlabel')).some(e => /^15 ?V/.test(e.textContent))), 'die Werte folgen der laufenden Simulation (20 V → 15 V am Teiler)');
+    await page.click('#btnAmp'); await page.keyboard.press('i'); await page.keyboard.press('i');
+    // Digitaluhr: nichts überdeckt etwas
+    await page.evaluate(() => { Studio.loadExample('uhr'); Studio.stopDemo(); }); await page.waitForTimeout(300); await page.click('#banner button, #exBanner button').catch(() => { });
+    await page.evaluate(() => { Studio.setValues('volt', true); Studio.setValues('amp', true); }); await page.waitForTimeout(500);
+    const ov = await page.evaluate(() => { const els = Array.from(document.querySelectorAll('#board .vlabel, #board .ilabel')), bb = els.map(e => e.getBBox()); let n = 0, first = ''; for (let i = 0; i < bb.length; i++) for (let j = i + 1; j < bb.length; j++) { const a = bb[i], b = bb[j]; if (a.x < b.x + b.width - 0.5 && a.x + a.width > b.x + 0.5 && a.y < b.y + b.height - 0.5 && a.y + a.height > b.y + 0.5) { n++; if (!first) first = els[i].textContent + '/' + els[j].textContent; } } return { n: bb.length, overlaps: n, first }; });
+    ok(ov.n >= 10 && ov.overlaps === 0, 'Digitaluhr: ' + ov.n + ' Beschriftungen, keine überdeckt eine andere (' + ov.overlaps + ' Überdeckungen ' + ov.first + ')');
+    await page.screenshot({ path: shots + '/q_uhr.png' });
+    await page.evaluate(() => { Studio.setValues('volt', false); Studio.setValues('amp', false); });
+  }
+  if (!only || only === 'r') { // Paket 6: mehrfach setzen, beim Platzieren drehen
+    await reset({ parts: [], wires: [] }); await page.evaluate(() => Studio.ed.fit());
+    const bb = await page.locator('#board').boundingBox(), at = i => ({ x: bb.x + 140 + i * 170, y: bb.y + 200 });
+    await tab(page, 'resistor'); await page.click('[data-add="resistor"]');
+    ok(await page.evaluate(() => Studio.armedType() === 'resistor' && !!document.querySelector('.pitem.armed')), 'Klick auf die Leiste hängt das Bauteil an den Zeiger');
+    await page.mouse.move(at(0).x, at(0).y); await page.waitForTimeout(100); ok(await page.evaluate(() => document.querySelectorAll('#board .ghost').length) === 1, 'das Bauteil hängt sichtbar am Zeiger');
+    await page.mouse.click(at(0).x, at(0).y); await page.mouse.click(at(1).x, at(1).y);
+    await page.keyboard.press('r'); await page.mouse.move(at(2).x, at(2).y); await page.waitForTimeout(80); ok(await page.evaluate(() => Studio.ed.ghost && Studio.ed.ghost.rot) === 90, 'R dreht das Bauteil am Zeiger um 90°');
+    await page.mouse.click(at(2).x, at(2).y); await page.keyboard.press('r'); await page.keyboard.press('r'); await page.keyboard.press('r'); await page.mouse.click(at(3).x, at(3).y); await page.waitForTimeout(150);
+    const rs = await page.evaluate(() => Studio.core.layout.parts.map(p => p.id + ':' + p.type + ':' + (p.rot || 0)).join());
+    ok(rs === 'R1:resistor:0,R2:resistor:0,R3:resistor:90,R4:resistor:0', 'vier Widerstände hintereinander gesetzt, ohne die Leiste erneut anzufassen; der dritte gedreht (' + rs + ')');
+    ok(await page.evaluate(() => Studio.armedType()) === 'resistor', 'das Bauteil bleibt nach dem Setzen gewählt');
+    await page.keyboard.press('Escape'); await page.mouse.move(at(4).x, at(4).y); await page.waitForTimeout(80);
+    ok(await page.evaluate(() => Studio.armedType() === undefined || Studio.armedType() === null) && await page.evaluate(() => document.querySelectorAll('#board .ghost').length) === 0, 'Esc beendet das Setzen: nichts hängt mehr am Zeiger');
+    await page.mouse.click(at(4).x, at(4).y); await page.waitForTimeout(100); ok(await page.evaluate(() => Studio.core.layout.parts.length) === 4, 'danach setzt ein Klick auf die Fläche nichts mehr');
+    await selectPart('R1'); await page.keyboard.press('r'); await page.waitForTimeout(80); ok(await page.evaluate(() => Studio.core.part('R1').rot) === 90, 'ein gesetztes, ausgewähltes Bauteil dreht R wie bisher');
+    await page.keyboard.press('Control+z'); await page.waitForTimeout(60);
+  }
+  //@@BEDIENUNG_ENDE
   ok(!external.length, 'Netzzugriffe (Offline-Fassung): ' + external.join(', '));
   ok(!errors.length, 'Fehler in der Konsole: ' + errors.join(' | '));
   await browser.close();

@@ -1,6 +1,6 @@
 /* Digital Quest Studio – Oszilloskop-Fenster (Stufe 1)
  * Mehrere, frei platzierbar (Titelleiste ziehen) und in der Grösse veraenderbar (Ecke unten rechts), jedes mit eigenen Kanaelen.
- * Signal hinzufuegen: Werkzeug «Messen», dann Anschluss oder Bauteil im Schaltplan anklicken. Die Kurve schreibt fortlaufend mit.
+ * Signal hinzufuegen: Rechtsklick auf einen Anschluss oder ein Bauteil im Schaltplan (signale.js). Die Kurve schreibt fortlaufend mit.
  * Zeitbasis und Amplitude stellen sich selbst ein (Auto), von Hand umschaltbar. Messcursor: Δt, ΔU, 1/Δt; «τ bestimmen» legt die
  * Cursor auf Start und 63,2 % der letzten Lade-/Entladekurve. Eigene Komponente (kein Teil von bench.js, das zum Spiel gehoert). */
 (function (root) {
@@ -297,14 +297,6 @@
     if (now - lastDraw < 33) return; lastDraw = now;
     S.scopes.forEach(function (sc) { if (!sc.frozen && sc.version !== S.sim.version) sc.draw(); else if (sc.version === -1) sc.draw(); });
     if (S.timingFrame) S.timingFrame(now);
-  };
-  S.measurePin = function (pin) {
-    var sc = active || S.openScope(); sc.addChannel({ kind: 'node', a: pin }); setActive(sc);
-  };
-  S.measurePart = function (p) {
-    var kind = S.measureKind(), d = E.PARTS[p.type];
-    if (kind === 'pi' && (d.digital || d.logic)) kind = 'pv';
-    var sc = active || S.openScope(); sc.addChannel({ kind: kind, id: p.id }); setActive(sc);
   };
   S.closeScopes = function () { S.scopes.slice().forEach(function (s) { s.close(); }); };
   S.onLoad = (function (prev) { return function (o) { S.closeScopes(); if (prev) prev(o); (o.scopes || []).forEach(function (sc) { var w = S.openScope(sc.channels || sc); if (sc.span) { w.spanMan = sc.span; var sel = w.el.querySelector('[data-a="span"]'); sel.value = String(sc.span); } }); }; })(S.onLoad);

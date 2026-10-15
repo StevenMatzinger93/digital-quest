@@ -78,9 +78,9 @@
 
   /* ---------- Hinweis in leeren Anzeigen ---------- */
   var HINT = {
-    scope: ['Oszilloskop – noch kein Signal', 'Rechtsklick auf einen Anschluss oder ein Bauteil im Schaltplan, dann «Ins Oszilloskop».', [['measure:scope', 'Messen-Werkzeug einschalten']]],
-    bode: ['Bode-Diagramm – noch kein Signal', 'Rechtsklick auf einen Anschluss im Schaltplan, dann «Ins Bode-Diagramm». Es braucht eine Wechselspannungsquelle.', [['measure:bode', 'Messen-Werkzeug einschalten']]],
-    timing: ['Zeitverlauf – noch kein Signal', 'Rechtsklick auf einen Anschluss oder ein Bauteil im Schaltplan, dann «In den Zeitverlauf» – oder alle digitalen Signale auf einmal:', [['all', 'Alle digitalen Signale aufnehmen'], ['measure:timing', 'Messen-Werkzeug einschalten']]]
+    scope: ['Oszilloskop – noch kein Signal', 'Rechtsklick auf einen Anschluss oder ein Bauteil im Schaltplan, dann «Ins Oszilloskop».', []],
+    bode: ['Bode-Diagramm – noch kein Signal', 'Rechtsklick auf einen Anschluss im Schaltplan, dann «Ins Bode-Diagramm». Es braucht eine Wechselspannungsquelle.', []],
+    timing: ['Zeitverlauf – noch kein Signal', 'Rechtsklick auf einen Anschluss oder ein Bauteil im Schaltplan, dann «In den Zeitverlauf» – oder alle digitalen Signale auf einmal:', [['all', 'Alle digitalen Signale aufnehmen']]]
   };
   S.hintHTML = function (kind) { var h = HINT[kind]; return '<b>' + esc(h[0]) + '</b>' + esc(h[1]) + '<br>' + h[2].map(function (b) { return '<button class="tl-btn" data-hint="' + b[0] + '">' + esc(b[1]) + '</button>'; }).join(' '); };
   S.makeHint = function (win, kind) { var d = document.createElement('div'); d.className = 'sc-hint'; d.innerHTML = S.hintHTML(kind); $('.fb', win.el).appendChild(d); return d; };
@@ -122,12 +122,30 @@
     }
     return { title: title, items: items };
   }
+  /* ---------- Menü «Anzeigen»: dieselben Wege ohne Mausklick auf ein Bauteil ---------- */
+  function selectedWhat() { var p = S.core.sel && S.core.part(S.core.sel); return p ? (p.type === 'node' ? { pin: p.id + '.p' } : { part: p }) : null; }
+  function viewMenu() {
+    var w = selectedWhat(), o = w ? optionsFor(w) : [];
+    var send = function (target) { return { label: { timing: 'Auswahl in den Zeitverlauf', scope: 'Auswahl ins Oszilloskop', bode: 'Auswahl ins Bode-Diagramm' }[target], act: function () {
+      var cur = selectedWhat(); if (!cur) { S.core.opts.onMessage('Erst ein Bauteil auswählen – oder rechts auf ein Bauteil klicken.'); return; }
+      var op = optionsFor(cur).filter(function (x) { return x.target === target; })[0]; if (!op || op.ok === false) { S.core.opts.onMessage(op && op.why || 'Das geht mit dieser Auswahl nicht.'); return; }
+      SEND[target](Object.assign({}, cur, op.q ? { q: op.q } : {})); S.redraw();
+    } }; };
+    return [{ label: 'Neues Oszilloskop', act: function () { S.openScope(); } }, { label: 'Neues Bode-Diagramm', act: function () { S.openBode(); } }, { label: 'Logik: Ausdruck, Tabelle, KV', act: function () { S.openLogic && S.openLogic(); } }, { label: 'Zeitverlauf ein/aus', act: function () { S.toggleTiming && S.toggleTiming(); } },
+      { sep: 1 }, { label: 'Alle digitalen Signale aufnehmen', act: function () { var r = S.addAllDigital(); if (!r.found) S.core.opts.onMessage('Keine digitalen Signale gefunden: Logikanzeigen, Flipflops, Zähler oder Taktgeber setzen.'); } },
+      send('timing'), send('scope'), send('bode'),
+      { sep: 1 }, { label: (S.ed.showVolt ? '✓ ' : '  ') + 'Spannungen im Schaltplan', key: 'U', act: function () { S.setValues('volt', !S.ed.showVolt); } }, { label: (S.ed.showAmp ? '✓ ' : '  ') + 'Ströme im Schaltplan', key: 'I', act: function () { S.setValues('amp', !S.ed.showAmp); } }];
+  }
   S.initFns.push(function () {
+    S.viewMenuSync = function () { S.setMenu('fenster', viewMenu()); }; S.viewMenuSync();
     var svg = $('#board'), press = null;
     svg.addEventListener('contextmenu', function (ev) {
+      ev.preventDefault(); // das Browsermenü gibt es auf der Zeichenfläche nicht
+      if (S.ed.rightActive()) return; // Maus: das Menü kommt vom Editor beim Loslassen der rechten Taste, wenn nicht geschoben wurde
       var c = ctxFor(ev); if (!c) { closeCtx(); return; }
-      ev.preventDefault(); showCtx(ev.clientX, ev.clientY, c.title, c.items);
+      showCtx(ev.clientX, ev.clientY, c.title, c.items); // Tastatur (Menütaste, Umschalt + F10)
     });
+    S.ed.opts.onContext = function (ev) { var c = ctxFor(ev); if (!c) { closeCtx(); return; } showCtx(ev.clientX, ev.clientY, c.title, c.items); };
     // langes Drücken (Touch) wie Rechtsklick
     svg.addEventListener('pointerdown', function (ev) {
       if (ev.pointerType !== 'touch') return; var x = ev.clientX, y = ev.clientY, tgt = ev.target;
@@ -141,7 +159,6 @@
     document.addEventListener('click', function (ev) {
       var b = ev.target.closest('[data-hint]'); if (!b) return; var a = b.dataset.hint;
       if (a === 'all') { var r = S.addAllDigital(); if (!r.found) S.core.opts.onMessage('Keine digitalen Signale gefunden: Logikanzeigen, Flipflops, Zähler oder Taktgeber setzen.'); }
-      else if (a.indexOf('measure:') === 0) { S.setTool('measure'); var t = $('#measureTarget'); if (t) t.value = a.slice(8); }
     });
   });
 })(window);

@@ -22,9 +22,9 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
-body { background: var(--bg); color: var(--dunkel); font: 15px/1.45 var(--font-ui); display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto auto; overflow: hidden; }
+body { background: var(--bg); color: var(--dunkel); font: 15px/1.45 var(--font-ui); display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr) auto auto; overflow: hidden; }
 /* feste Zeilen: die ausgeblendete Schieberegler-Leiste darf die Zeilen nicht verschieben (sonst rutscht der Zeitverlauf aus dem Bild) */
-.menubar { grid-row: 1; } .toolbar { grid-row: 2; } .sliderbar { grid-row: 3; } .main { grid-row: 4; } .timing { grid-row: 5; } .statusbar { grid-row: 6; }
+.menubar { grid-row: 1; } .toolbar { grid-row: 2; } .palettebar { grid-row: 3; } .sliderbar { grid-row: 4; } .main { grid-row: 5; } .timing { grid-row: 6; } .statusbar { grid-row: 7; }
 button, select, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 3px solid var(--hellblau); outline-offset: 1px; }
@@ -50,7 +50,7 @@ button { cursor: pointer; }
 .menubar .ver { color: #9fc4d3; font-size: 13px; padding-right: 6px; }
 
 /* ---- Werkzeugleiste ---- */
-.toolbar { background: var(--karte); border-bottom: 1px solid var(--rand); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 4px 8px; }
+.toolbar { background: var(--karte); border-bottom: 1px solid var(--rand); display: flex; flex-wrap: nowrap; overflow-x: auto; align-items: center; gap: 4px 8px; padding: 3px 8px; }
 .tgroup { display: flex; align-items: center; gap: 4px; padding-right: 12px; border-right: 1px solid var(--rand); }
 .tgroup:last-child { border-right: 0; }
 .tgroup > .tl { color: var(--grau); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin-right: 4px; }
@@ -64,16 +64,17 @@ button { cursor: pointer; }
 .tin { width: 96px; font-family: var(--font-mono); }
 
 /* ---- Hauptbereich ---- */
-.main { display: grid; grid-template-columns: 224px minmax(0, 1fr) 300px; min-height: 0; }
-.palette, .inspector { background: var(--karte); overflow: auto; min-height: 0; }
-.palette { border-right: 1px solid var(--rand); }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 22px 300px; min-height: 0; }
+.main > .canvas { grid-column: 1; } .main > .inspfold { grid-column: 2; } .main > .inspector { grid-column: 3; }
+body.inspfolded .main { grid-template-columns: minmax(0, 1fr) 22px; } body.inspfolded .inspector { display: none; }
+.inspfold { border: 0; border-left: 1px solid var(--rand); background: var(--bg); color: var(--blau-text); font-size: 18px; line-height: 1; padding: 0; cursor: pointer; } .inspfold:hover { background: #e3f2f7; }
+.inspector { background: var(--karte); overflow: auto; min-height: 0; }
+/* Bauteilleiste: eine Zeile über der Zeichenfläche, links die Registerkarten, rechts die Bauteile (scrollt waagrecht) */
+.palettebar { background: var(--karte); border-bottom: 1px solid var(--rand); display: flex; align-items: stretch; gap: 8px; min-width: 0; }
+.ptabs { display: flex; flex: none; align-items: stretch; } .ptab { background: none; border: 0; border-bottom: 3px solid transparent; padding: 0 10px; min-height: 44px; font-weight: 600; color: var(--grau); white-space: nowrap; } .ptab:hover { color: var(--dunkel); background: var(--bg); } .ptab.on { color: var(--dunkel); border-bottom-color: var(--hellblau); }
+.palettebar .plist { display: flex; flex: 1; gap: 6px; padding: 3px 6px; overflow-x: auto; overflow-y: hidden; min-width: 0; border-left: 1px solid var(--rand); }
+.palettebar .pitem { flex: none; min-height: 52px; min-width: 64px; padding: 2px 6px; flex-direction: row; gap: 6px; } .palettebar .pitem .symicon { width: 44px; height: 28px; } .palettebar .pitem .nm { white-space: nowrap; } .pitem.armed { background: var(--dunkel); color: #fff; border-color: var(--dunkel); }
 .inspector { border-left: 1px solid var(--rand); padding: 10px 12px 16px; }
-.palette details { border-bottom: 1px solid var(--rand); }
-.palette summary { cursor: pointer; padding: 0 12px; min-height: 44px; display: flex; align-items: center; font-weight: 600; list-style: none; }
-.palette summary::-webkit-details-marker { display: none; }
-.palette summary::before { content: '▸'; margin-right: 8px; color: var(--blau-text); }
-.palette details[open] > summary::before { content: '▾'; }
-.palette .plist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 2px 8px 10px; }
 .pitem { background: var(--bg); border: 1px solid var(--rand); border-radius: 8px; min-height: 64px; padding: 4px 2px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; font-size: 12px; line-height: 1.2; text-align: center; color: var(--dunkel); }
 .pitem:hover { border-color: var(--hellblau); }
 .pitem .symicon { width: 54px; height: 34px; }
@@ -100,6 +101,7 @@ button { cursor: pointer; }
 .nodedot { fill: var(--wire); stroke: none; } .part.selected .nodedot { fill: var(--hellblau); r: 5; } .nodehit { fill: transparent; stroke: none; cursor: move; }
 .snapdot { fill: var(--hellblau); fill-opacity: .35; stroke: var(--hellblau); stroke-width: 1.5; }
 .pinhit { fill: transparent; cursor: crosshair; } [data-pin]:hover .pin { stroke: var(--hellblau); stroke-width: 3; }
+.ilabel { fill: #8a5200; font: 11px var(--font-mono); pointer-events: none; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
 .vlabel { fill: var(--blau-text); font: 11px var(--font-mono); pointer-events: none; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
 .burnt { stroke: var(--schlecht); stroke-width: 3.5; fill: none; }
 .lamp-on { fill: var(--gut); filter: drop-shadow(0 0 4px var(--gut)); } .lamp-off { fill: #cdd9dc; }
@@ -129,7 +131,7 @@ button { cursor: pointer; }
 
 /* ---- Zeitverlauf (fest unten) ---- */
 .timing { background: var(--karte); border-top: 1px solid var(--rand); min-height: 0; height: 230px; display: flex; flex-direction: column; }
-.timing.collapsed { height: auto; } .timing.collapsed .tl-body { display: none; }
+.timing.collapsed { display: none; } /* eingeklappt: keine Zeile, die der Zeichenfläche Höhe nimmt; aufklappen über «Zeitverlauf» (Werkzeugleiste, Menü) oder mit dem ersten Signal */
 .timing .th { display: flex; align-items: center; gap: 8px; padding: 2px 10px; min-height: 40px; flex: none; flex-wrap: wrap; }
 .timing .th b { font-weight: 600; }
 .tl-btn { background: var(--bg); border: 1px solid var(--rand); border-radius: 6px; min-height: 32px; padding: 0 10px; color: var(--dunkel); }
@@ -153,7 +155,7 @@ button { cursor: pointer; }
 .sfd text { font: 600 11px var(--font-mono); fill: var(--dunkel); } .sfd g.cur circle { fill: #cdeefc; stroke: var(--blau-text); stroke-width: 3.5; }
 
 /* ---- Statusleiste ---- */
-.statusbar { background: var(--dunkel); color: #e7f3f7; display: flex; gap: 6px 18px; flex-wrap: wrap; align-items: center; min-height: 36px; padding: 4px 12px; font-size: 13px; }
+.statusbar { background: var(--dunkel); color: #e7f3f7; display: flex; gap: 6px 18px; flex-wrap: wrap; align-items: center; min-height: 26px; padding: 1px 12px; font-size: 13px; }
 .statusbar .mono { color: #fff; }
 .statusbar .err { color: #ffb4ac; } .statusbar .ok { color: #8fe0b6; } .statusbar .warn { color: #ffe08a; }
 .statusbar .sp { flex: 1; }
@@ -188,7 +190,7 @@ button { cursor: pointer; }
 @media (max-width: 900px) {
   body { display: block; overflow: auto; height: auto; }
   .main { display: block; }
-  .palette { max-height: 220px; border-right: 0; border-bottom: 1px solid var(--rand); }
+  .palettebar { flex-direction: column; } .ptabs { overflow-x: auto; } .inspfold { display: none; }
   .canvas { height: 62vh; min-height: 360px; }
   .inspector { border-left: 0; border-top: 1px solid var(--rand); }
   .timing { height: 260px; } .tl-row, .tl-axisrow { grid-template-columns: 130px minmax(0, 1fr); }
@@ -221,7 +223,7 @@ button { cursor: pointer; }
 /* ---- Beamer-Modus (Nacht-Paket 10): dicke Linien, grosse Schrift, höherer Kontrast, grosse Bedienelemente ---- */
 body.beamer { font-size: 20px; --grau: #263238; --blau-text: #04485f; --gut-text: #0a5f35; --sch-text: #8a241c; --rand: #a9c1c8; --wire: #04485f; --dunkel: #000a10; }
 body.beamer .tb, body.beamer .tsel, body.beamer .tin { min-height: 58px; font-size: 19px; } body.beamer .menu > button { min-height: 52px; font-size: 19px; } body.beamer .menubar { min-height: 52px; } body.beamer .drop button { min-height: 56px; font-size: 19px; }
-body.beamer .pitem { min-height: 92px; font-size: 15px; } body.beamer .pitem .symicon { width: 64px; height: 42px; } body.beamer .palette { width: 250px; } body.beamer .main { grid-template-columns: 250px minmax(0, 1fr) 340px; }
+body.beamer .pitem { min-height: 92px; font-size: 15px; } body.beamer .pitem .symicon { width: 64px; height: 42px; } body.beamer .main { grid-template-columns: minmax(0, 1fr) 22px 340px; } body.beamer.inspfolded .main { grid-template-columns: minmax(0, 1fr) 22px; } body.beamer .ptab { min-height: 56px; font-size: 18px; }
 body.beamer .inspector { font-size: 19px; } body.beamer .field input[type="text"], body.beamer .field select { min-height: 56px; font-size: 19px; width: 170px; } body.beamer .live { font-size: 17px; } body.beamer .statusbar { font-size: 17px; min-height: 44px; }
 body.beamer .griddot { fill: #dde9ec; }
 body.beamer .sym { stroke-width: 3.6; stroke: #000; } body.beamer .sym.thin { stroke-width: 2.6; } body.beamer .sym.thick { stroke-width: 6; } body.beamer .sym.thick2 { stroke-width: 9; } body.beamer .sym.fillsym { fill: #000; }
@@ -296,6 +298,21 @@ body.beamer .dr text { font-size: inherit; }
   body > *:not(#printArea) { display: none !important; } body { display: block !important; overflow: visible !important; height: auto !important; }
   #printArea { display: block !important; } .pg { margin: 0; box-shadow: none; }
 }
+
+/* ---- Maussteuerung (Auftrag Bedienung, Paket 2) ---- */
+#board { cursor: default; } #board [data-part] { cursor: move; } #board [data-pin] { cursor: crosshair; } #board [data-wire] { cursor: pointer; }
+#board.panning, #board.panning * { cursor: grabbing !important; } #board.armed, #board.armed * { cursor: copy !important; }
+.marquee { fill: rgba(79,195,247,.16); stroke: var(--hellblau); stroke-width: 1.5; stroke-dasharray: 5 3; vector-effect: non-scaling-stroke; }
+.ghost { opacity: .55; } .insmark { fill: rgba(34,181,115,.25); stroke: var(--gut); stroke-width: 3; }
+
+/* ---- kompakte Kopfbereiche (Auftrag Bedienung, Paket 3): die Zeichenfläche bekommt die Höhe ---- */
+@media (pointer: fine) {
+  .menubar { min-height: 34px; } .menu > button { min-height: 34px; padding: 0 10px; }
+  .toolbar { padding: 2px 8px; } .toolbar .tb, .toolbar .tsel, .toolbar .tin { min-height: 34px; min-width: 34px; padding: 0 8px; }
+  .toolbar .tin { width: 64px; } .tgroup { padding-right: 8px; gap: 3px; flex: none; } .tgroup > .tl { display: none; }
+  .ptab { min-height: 38px; } .palettebar .pitem { min-height: 42px; } .palettebar .pitem .symicon { width: 38px; height: 24px; } .palettebar .plist { padding: 3px 6px; }
+}
+@media (pointer: fine) and (max-width: 1699px) { .toolbar .lb { display: none; } .toolbar #selFactor { width: 118px; } }
 </style>
 </head>
 <body>
@@ -307,26 +324,23 @@ body.beamer .dr text { font-size: inherit; }
 <div class="toolbar" id="toolbar" role="toolbar" aria-label="Werkzeuge">
   <div class="tgroup" aria-label="Simulation"><span class="tl">Simulation</span>
     <button class="tb run is-running" id="btnRun" title="Simulation starten / anhalten (Leertaste)">⏸ Pause</button>
-    <button class="tb" id="btnStep" title="Einen Rechenschritt ausführen">⏭ Schritt</button>
-    <button class="tb" id="btnReset" title="Zurück auf Zeit 0, Speicher und Kondensatoren leeren">⟲ Zurück</button>
+    <button class="tb" id="btnStep" title="Einen Rechenschritt ausführen">⏭<span class="lb"> Schritt</span></button>
+    <button class="tb" id="btnReset" title="Zurück auf Zeit 0, Speicher und Kondensatoren leeren">⟲<span class="lb"> Zurück</span></button>
     <label class="sr" for="selFactor" hidden>Zeitfaktor</label>
     <select class="tsel" id="selFactor" title="Zeitfaktor: wie schnell die Simulationszeit läuft"></select>
   </div>
   <div class="tgroup" aria-label="Takt"><span class="tl">Takt</span>
     <label for="clockHz" class="hint">Taktgeber</label><input class="tin" id="clockHz" type="text" inputmode="decimal" value="1" title="Frequenz aller Taktgeber, z. B. 1, 50, 1k"><span class="hint">Hz</span>
   </div>
-  <div class="tgroup" aria-label="Werkzeuge"><span class="tl">Werkzeuge</span>
-    <button class="tb on" id="toolBuild" title="Bauen: Bauteile ziehen, Anschlüsse nacheinander anklicken = Leitung">✎ Bauen</button>
-    <button class="tb" id="toolMeasure" title="Messen: Anschluss oder Bauteil anklicken = Signal ins Oszilloskop">⌖ Messen</button>
-    <select class="tsel" id="measureTarget" hidden title="Wohin das Signal kommt: Auto = digitale Anschlüsse in den Zeitverlauf, analoge ins Oszilloskop"><option value="auto">Ziel: Auto</option><option value="scope">Oszilloskop</option><option value="bode">Bode-Diagramm</option><option value="timing">Zeitverlauf</option></select>
-    <select class="tsel" id="measureKind" hidden title="Was beim Klick auf ein Bauteil gemessen wird"><option value="pv">Spannung</option><option value="pi">Strom</option></select>
-    <button class="tb" id="btnUndo" title="Rückgängig (Strg+Z)">↶ Zurück</button>
-    <button class="tb" id="btnRedo" title="Wiederholen (Strg+Y)">↷ Wieder</button>
-    <button class="tb" id="btnRot" title="Bauteil drehen (R)">⟳ Drehen</button>
-    <button class="tb" id="btnDel" title="Auswahl löschen (Entf)">🗑 Löschen</button>
-    <button class="tb" id="btnVolt" title="Spannungen an den Anschlüssen anzeigen" aria-pressed="false">U-Werte</button>
-    <button class="tb" id="btnBeamer" title="Beamer-Modus: dicke Linien, grosse Schrift, hoher Kontrast (F9)" aria-pressed="false">🎥 Beamer</button>
-    <button class="tb" id="btnFit" title="Schaltung einpassen">⛶ Einpassen</button>
+  <div class="tgroup" aria-label="Werkzeuge"><span class="tl">Bearbeiten</span>
+    <button class="tb" id="btnUndo" title="Rückgängig (Strg+Z)">↶<span class="lb"> Zurück</span></button>
+    <button class="tb" id="btnRedo" title="Wiederholen (Strg+Y)">↷<span class="lb"> Wieder</span></button>
+    <button class="tb" id="btnRot" title="Bauteil drehen (R)">⟳<span class="lb"> Drehen</span></button>
+    <button class="tb" id="btnDel" title="Auswahl löschen (Entf)">🗑<span class="lb"> Löschen</span></button>
+    <button class="tb" id="btnVolt" title="Spannung an jedem Knoten im Schaltplan anzeigen (gegen den Bezugspunkt)" aria-pressed="false">U<span class="lb"> Spannungen</span></button>
+    <button class="tb" id="btnAmp" title="Strom durch jedes Bauteil im Schaltplan anzeigen" aria-pressed="false">I<span class="lb"> Ströme</span></button>
+    <button class="tb" id="btnBeamer" title="Beamer-Modus: dicke Linien, grosse Schrift, hoher Kontrast (F9)" aria-pressed="false">🎥<span class="lb"> Beamer</span></button>
+    <button class="tb" id="btnFit" title="Schaltung einpassen">⛶<span class="lb"> Einpassen</span></button>
   </div>
   <div class="tgroup" aria-label="Messen"><span class="tl">Anzeigen</span>
     <button class="tb" id="btnScope" title="Neues Oszilloskop-Fenster">∿ Oszilloskop</button>
@@ -335,12 +349,13 @@ body.beamer .dr text { font-size: inherit; }
     <button class="tb on" id="btnTiming" title="Zeitverlaufsdiagramm unten ein- oder ausblenden">▤ Zeitverlauf</button>
   </div>
 </div>
+<nav class="palettebar" id="palette" aria-label="Bauteile"></nav>
 <div class="sliderbar" id="sliderBar" hidden aria-label="Schieberegler"></div>
 <div class="main">
-  <aside class="palette" id="palette" aria-label="Bauteile"></aside>
   <section class="canvas" id="canvasWrap" aria-label="Zeichenfläche">
     <svg id="board" role="img" aria-label="Schaltplan"></svg>
   </section>
+  <button class="inspfold" id="inspFold" type="button" aria-label="Eigenschaftenfeld ein- oder ausklappen" aria-expanded="true" title="Eigenschaftenfeld einklappen">›</button>
   <aside class="inspector" id="inspector" aria-label="Eigenschaften"></aside>
 </div>
 <section class="timing" id="timing" aria-label="Zeitverlauf"></section>
@@ -1365,7 +1380,7 @@ body.beamer .dr text { font-size: inherit; }
   /* Neues Bauteil moeglichst nahe (cx, cy) im Raum der aufrufenden Ansicht. Auf der Werkbank bekommt es
    * zusaetzlich einen freien Platz im Schema (Mitte der vorhandenen Bauteile). */
   var TOGGLE = { switch: 1, button: 1, logicin: 1 };
-  Circuit.prototype.addPart = function (type, cx, cy, space) {
+  Circuit.prototype.addPart = function (type, cx, cy, space, rot) {
     if (this.opts.readonly) return null;
     space = space || 'schema';
     var id = this.nextId(type), p = { id: id, type: type, x: 0, y: 0, rot: 0, props: {} }, xy;
@@ -1379,6 +1394,7 @@ body.beamer .dr text { font-size: inherit; }
       xy = this._place(cx, cy, 'schema', type); p.x = xy[0]; p.y = xy[1];
       if (this.benchHints[id]) p.bench = E.clone(this.benchHints[id]);
     }
+    if (rot && space !== 'bench') p.rot = rot;
     this.layout.parts.push(p); this.sel = id; this.changed('add');
     return p;
   };
@@ -1531,7 +1547,7 @@ body.beamer .dr text { font-size: inherit; }
   ['and', 'or', 'nand', 'nor', 'xor', 'xnor'].forEach(function (g) { GEO[g] = { in1: [-40, -20], in2: [-40, 20], out: [40, 0] }; });
   /* Dynamische Geometrie: Gatter mit einstellbarer Eingangszahl, Flipflops mit preSet/preClear (nur wenn Editor.extra.async, Studio) und Bausteine des Studios
    * (Editor.DYNGEO[type] = function (part) → {pin: [x, y]}, z. B. Zaehler) */
-  var DYNGEO = {}, EXTRA = { async: false, nodes: false, grid: { mode: 'dots', size: 20 } }; // nodes: Knotenpunkte auf Leitungen (nur Studio)
+  var DYNGEO = {}, EXTRA = { async: false, nodes: false, mouse: false, grid: { mode: 'dots', size: 20 } }; // nodes: Knotenpunkte auf Leitungen (nur Studio)
   function gateInputs(p) { var q = p.props || {}; return Math.max(2, Math.min(8, Math.round(q.inputs || 2))); }
   function slots(n) { var k = Math.floor(n / 2), a = []; for (var i = -k; i <= k; i++) { if (i === 0 && n % 2 === 0) continue; a.push(i * 20); } return a; }
   function geoOf(p) {
@@ -1650,11 +1666,47 @@ body.beamer .dr text { font-size: inherit; }
         var t = hor ? xy[0] : xy[1], c = Math.max(lo, Math.min(hi, t)), q = hor ? [c, a[1]] : [a[0], c];
         var gc = Math.round(c / g) * g; if (gc >= lo && gc <= hi) q = hor ? [gc, a[1]] : [a[0], gc];
         var dd = Math.hypot(q[0] - xy[0], q[1] - xy[1]);
-        if (dd <= radius && (!best || dd < best.dist)) best = { i: i, xy: q, dist: dd };
+        if (dd <= radius && (!best || dd < best.dist)) best = { i: i, xy: q, dist: dd, hor: hor };
       }
     });
     if (best) { var b0 = best, near = layout.parts.some(function (p) { return Object.keys(geoOf(p)).some(function (pin) { var pp = pinPos(p, pin); return Math.hypot(pp[0] - b0.xy[0], pp[1] - b0.xy[1]) < 8; }); }); if (near) best = null; }
     return best;
+  }
+  /* Messwerte im Schaltplan: je Knoten die Spannung gegen den Bezugspunkt, je Bauteil der Strom. Die Beschriftungen weichen einander und den
+   * Bauteilkoerpern aus (Kandidatenplaetze rund um den Anschluss, dann immer weiter aussen). Klasse vlabel = Spannung, ilabel = Strom. */
+  function shortFmt(v, u) { return E.fmt(v, u).replace(/(\.\d*?)0+(?= )/, '$1').replace(/\.(?= )/, ''); } // 7.500 V → 7.5 V, 10.000 V → 10 V
+  function measureLabels(self, L, res, pinNode, pinWireCount, byId) {
+    var occ = [], out = [], H = 13, ref = self.refMark ? pinNode[self.refMark] : undefined;
+    L.parts.forEach(function (p) {
+      if (p.type === 'node') return;
+      var xs = [], ys = []; Object.keys(geoOf(p)).forEach(function (k) { var q = pinPos(p, k); xs.push(q[0]); ys.push(q[1]); });
+      var hx = Math.max(22, (Math.max.apply(null, xs) - Math.min.apply(null, xs)) / 2 - 10), hy = Math.max(16, (Math.max.apply(null, ys) - Math.min.apply(null, ys)) / 2 - 10);
+      occ.push([p.x - hx, p.y - hy, p.x + hx, p.y + hy]);
+    });
+    if (self.refMark && byId[self.refMark.split('.')[0]]) { var rq = self.refMark.split('.'), rxy = pinPos(byId[rq[0]], rq[1]); occ.push([rxy[0] - 10, rxy[1] + 5, rxy[0] + 52, rxy[1] + 23]); } // «⏚ 0 V» bleibt frei
+    function hit(r) { return occ.some(function (o) { return r[0] < o[2] && r[2] > o[0] && r[1] < o[3] && r[3] > o[1]; }); }
+    function put(cls, txt, cands) {
+      var w = txt.length * 6.7 + 6, r = null, k, c;
+      for (k = 0; k < cands.length && !r; k++) { c = cands[k](w); var q = [c[0], c[1], c[0] + w, c[1] + H]; if (!hit(q)) r = q; }
+      for (var ring = 1; ring <= 40 && !r; ring++) for (k = 0; k < 8 && !r; k++) { var ang = k * Math.PI / 4, base = cands[0](w); var q2 = [base[0] + Math.cos(ang) * 12 * ring, base[1] + Math.sin(ang) * 10 * ring]; q2 = [q2[0], q2[1], q2[0] + w, q2[1] + H]; if (!hit(q2)) r = q2; }
+      if (!r) return; occ.push(r); out.push('<text class="' + cls + '" x="' + (r[0] + 3).toFixed(1) + '" y="' + (r[1] + H - 3).toFixed(1) + '">' + txt + '</text>');
+    }
+    if (self.showVolt) {
+      var done = {}, nodes = {};
+      var add = function (pid, xy) { var n = pinNode[pid]; if (n === undefined) return; (nodes[n] = nodes[n] || []).push({ pid: pid, xy: xy, used: pinWireCount[pid] || 0 }); };
+      L.parts.forEach(function (p) { if (p.type === 'node') add(p.id + '.p', [p.x, p.y]); else Object.keys(geoOf(p)).forEach(function (k) { if (k !== 'g') add(p.id + '.' + k, pinPos(p, k)); }); });
+      Object.keys(nodes).forEach(function (n) {
+        var a = nodes[n]; if (String(n) === String(ref) || !a.some(function (x) { return x.used; })) return;
+        var an = a.filter(function (x) { return x.used; })[0], ax = an.xy[0], ay = an.xy[1];
+        put('vlabel', shortFmt(res.nodeV[n] || 0, 'V'), [function () { return [ax + 6, ay - 19]; }, function () { return [ax + 6, ay + 6]; }, function (w) { return [ax - 6 - w, ay - 19]; }, function (w) { return [ax - 6 - w, ay + 6]; }, function (w) { return [ax - w / 2, ay - 26]; }, function (w) { return [ax - w / 2, ay + 12]; }]);
+      });
+    }
+    if (self.showAmp) L.parts.forEach(function (p) {
+      var r = res.parts[p.id], d = E.PARTS[p.type]; if (!r || !d || p.type === 'ground' || p.type === 'node' || d.logic || d.ff || d.ctr || d.digital || typeof r.i !== 'number' || !isFinite(r.i)) return;
+      var b = occ.filter(function (o) { return o[0] <= p.x && o[2] >= p.x && o[1] <= p.y && o[3] >= p.y; })[0] || [p.x - 22, p.y - 16, p.x + 22, p.y + 16];
+      put('ilabel', shortFmt(Math.abs(r.i), 'A'), [function (w) { return [p.x - w / 2, b[3] + 2]; }, function (w) { return [p.x - w / 2, b[1] - H - 2]; }, function (w) { return [b[2] + 2, p.y - H / 2]; }, function (w) { return [b[0] - w - 2, p.y - H / 2]; }]);
+    });
+    return out.join('');
   }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
@@ -1837,7 +1889,7 @@ body.beamer .dr text { font-size: inherit; }
   function Editor(svg, opts) {
     this.svg = svg; this.opts = opts || {};
     this.core = this.opts.core || new Circuit(this.opts); // Zustand + Bedienlogik (circuit-ui.js); geteilt, falls uebergeben
-    this.sim = null; this.snap = null; this.refMark = null; this.showVolt = false; this.mouse = [0, 0];
+    this.sim = null; this.snap = null; this.refMark = null; this.showVolt = false; this.showAmp = false; this.mouse = [0, 0];
     svg.setAttribute('viewBox', '0 0 ' + SW() + ' ' + SH());
     this.view = [0, 0, SW(), SH()];
     this.core.attach(this);
@@ -1903,7 +1955,7 @@ body.beamer .dr text { font-size: inherit; }
   };
   /* Nur Hit-Testing und Koordinaten-Umrechnung – die Bedienlogik steckt im Kern */
   Editor.prototype._bind = function () {
-    var self = this, svg = this.svg, core = this.core, pan = null, pinch = null, wirePress = null, touches = {}, lastTap = { t: 0, x: 0, y: 0 };
+    var self = this, svg = this.svg, core = this.core, pan = null, pinch = null, wirePress = null, gdrag = null, mq = null, touches = {}, lastTap = { t: 0, x: 0, y: 0 };
     function dblAt(ev) { // Doppeltipp/Doppelklick: Bauteil → heranzoomen, leere Fläche → einpassen
       var dr = ev.target.closest('[data-draw]'); if (dr && Editor.drawDouble) { Editor.drawDouble(dr.dataset.draw); return; }
       var t = ev.target.closest('[data-part]'), p = t && core.part(t.dataset.part);
@@ -1911,7 +1963,14 @@ body.beamer .dr text { font-size: inherit; }
       if (p) self.zoomTo(p); else self.fit();
     }
     svg.addEventListener('pointerdown', function (ev) {
+      var mouseM = EXTRA.mouse && ev.pointerType === 'mouse' && !self.opts.tight; // Studio: Maussteuerung wie in CAD-Programmen
+      if (mouseM && (ev.button === 2 || ev.button === 1)) { // rechte/mittlere Taste gehalten: Zeichenflaeche schieben; rechts ohne Ziehen = Kontextmenue beim Loslassen
+        ev.preventDefault(); pan = { x: ev.clientX, y: ev.clientY, view: self.view.slice(), moved: false, button: ev.button, target: ev.target };
+        if (ev.button === 2) self._rightUntil = Infinity;
+        try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ } return;
+      }
       if (ev.pointerType === 'mouse' && ev.button !== 0) return; // Rechtsklick: nur das Kontextmenue (Studio)
+      if (mouseM && self.opts.armed && self.opts.armed()) { ev.preventDefault(); self.opts.onPlace(self._pt(ev), ev); return; } // Bauteil haengt am Zeiger: Klick setzt es
       if (self.opts.tight) { /* Mini-Schaltung: kein Zoom, die Lektion scrollt */ }
       else {
         if (ev.isPrimary !== false) touches = {};
@@ -1944,16 +2003,35 @@ body.beamer .dr text { font-size: inherit; }
       if (t && t.dataset.part) {
         var tp0 = core.part(t.dataset.part);
         if (tp0 && tp0.type === 'node' && core.wireStart) { core.clickPin(tp0.id + '.p'); return; } // Leitung an einem Knoten beenden
+        var gids = EXTRA.mouse && !core.opts.readonly && self.opts.selectedIds ? self.opts.selectedIds() : [];
+        if (gids.length > 1 && gids.indexOf(t.dataset.part) >= 0) { // Teil einer Mehrfachauswahl: die ganze Auswahl verschieben
+          gdrag = { id: t.dataset.part, sx: xy[0], sy: xy[1], moved: false, orig: gids.map(function (id) { var q = core.part(id); return q && { id: id, x: q.x, y: q.y }; }).filter(Boolean) };
+          try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ } return;
+        }
         if (core.pressPart(t.dataset.part, xy)) svg.setPointerCapture(ev.pointerId); return;
       }
       if (self.opts.tight) { core.clickEmpty(); return; }
+      if (mouseM) { // leere Flaeche, linke Taste: Auswahlrahmen
+        mq = { x0: xy[0], y0: xy[1], cx: ev.clientX, cy: ev.clientY, moved: false, add: ev.shiftKey };
+        try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ } return;
+      }
       pan = { x: ev.clientX, y: ev.clientY, view: self.view.slice(), moved: false }; // leere Fläche: Ziehen verschiebt, Klick hebt die Auswahl auf
       try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ }
     });
     svg.addEventListener('pointermove', function (ev) {
       if (touches[ev.pointerId]) touches[ev.pointerId] = [ev.clientX, ev.clientY];
       if (pinch && Object.keys(touches).length === 2) { var tp = Object.keys(touches).map(function (k) { return touches[k]; }), d = Math.hypot(tp[0][0] - tp[1][0], tp[0][1] - tp[1][1]); if (d > 10) { self.view = pinch.view.slice(); self.zoomAt(pinch.d / d, pinch.c[0], pinch.c[1]); } return; }
-      if (pan) { var dx = ev.clientX - pan.x, dy = ev.clientY - pan.y; if (Math.abs(dx) + Math.abs(dy) > 5) pan.moved = true; if (pan.moved) { var f = pan.view[2] / (svg.getBoundingClientRect().width || 1); self.setView([pan.view[0] - dx * f, pan.view[1] - dy * f, pan.view[2], pan.view[3]]); } return; }
+      if (EXTRA.mouse) self.mouse = self._pt(ev);
+      if (mq) { if (Math.hypot(ev.clientX - mq.cx, ev.clientY - mq.cy) > 4) mq.moved = true; if (mq.moved) { var q2 = self._pt(ev); self.marquee = { x0: Math.min(mq.x0, q2[0]), y0: Math.min(mq.y0, q2[1]), x1: Math.max(mq.x0, q2[0]), y1: Math.max(mq.y0, q2[1]) }; self.render(); } return; }
+      if (gdrag) { // Auswahl verschieben: alle um dasselbe Rasterstueck, zusammen im Zeichenbereich gehalten
+        var xg = self._pt(ev), spc = Circuit.SPACES.schema, g = spc.grid, ddx = Math.round((xg[0] - gdrag.sx) / g) * g, ddy = Math.round((xg[1] - gdrag.sy) / g) * g;
+        if (Math.abs(xg[0] - gdrag.sx) + Math.abs(xg[1] - gdrag.sy) > 6) gdrag.moved = true;
+        if (gdrag.moved) {
+          gdrag.orig.forEach(function (o) { ddx = Math.max(spc.edge - o.x, Math.min(spc.w - spc.edge - o.x, ddx)); ddy = Math.max(spc.edge - o.y, Math.min(spc.h - spc.edge - o.y, ddy)); });
+          gdrag.orig.forEach(function (o) { var q = core.part(o.id); q.x = o.x + ddx; q.y = o.y + ddy; }); self.render();
+        } return;
+      }
+      if (pan) { var dx = ev.clientX - pan.x, dy = ev.clientY - pan.y; if (pan.button === 2 ? Math.hypot(dx, dy) > 4 : Math.abs(dx) + Math.abs(dy) > 5) { if (!pan.moved) svg.classList.add('panning'); pan.moved = true; } if (pan.moved) { var f = pan.view[2] / (svg.getBoundingClientRect().width || 1); self.setView([pan.view[0] - dx * f, pan.view[1] - dy * f, pan.view[2], pan.view[3]]); } return; }
       var xy = self._pt(ev); self.mouse = xy;
       if (self.ddrag) { Editor.drawMove(self, xy); return; }
       if (self.sdrag) { Editor.sheetMove(self, xy); return; }
@@ -1961,7 +2039,7 @@ body.beamer .dr text { font-size: inherit; }
         if (Math.abs(ev.clientX - wirePress.x) + Math.abs(ev.clientY - wirePress.y) > 6) { var wp = wirePress; wirePress = null; var np = core.splitWire(wp.i, wp.xy); core.wireStart = np; core.sel = null; self.render(); }
         return;
       }
-      if (core.drag) core.dragTo(xy);
+      if (core.drag) { core.dragTo(xy); if (self.opts.onDragMove && core.drag) self.opts.onDragMove(core.drag.id); }
       else if (core.wireStart || (core.tool === 'wire' && ev.altKey)) {
         var sn = core.opts.readonly || !EXTRA.nodes ? null : Editor.snapWire(core.layout, xy, 12, -1);
         self.snap = sn; self.render();
@@ -1973,13 +2051,24 @@ body.beamer .dr text { font-size: inherit; }
       if (self.ddrag) { Editor.drawRelease(self); return; }
       if (self.sdrag) { Editor.sheetRelease(self); return; }
       if (wirePress) { wirePress = null; return; }
-      if (pan) { var wasPan = pan.moved; pan = null; if (!wasPan) core.clickEmpty(); return; }
+      if (mq) { var m0 = mq; mq = null; var mr = self.marquee; self.marquee = null; if (!m0.moved) { if (!m0.add) core.clickEmpty(); else self.render(); return; }
+        var ids = core.layout.parts.filter(function (q) { return q.x >= mr.x0 && q.x <= mr.x1 && q.y >= mr.y0 && q.y <= mr.y1; }).map(function (q) { return q.id; });
+        if (self.opts.onMarquee) self.opts.onMarquee(ids, m0.add); else self.render(); return; }
+      if (gdrag) { var gd = gdrag; gdrag = null; if (gd.moved) core.changed('move'); else { core.pressPart(gd.id, [gd.sx, gd.sy]); core.release(); } return; }
+      if (pan) {
+        var wasPan = pan.moved, pb = pan.button, ptg = pan.target; pan = null; svg.classList.remove('panning');
+        if (pb === 2) { self._rightUntil = performance.now() + 150; if (!wasPan && self.opts.onContext) self.opts.onContext({ target: ptg, clientX: ev.clientX, clientY: ev.clientY, preventDefault: function () { } }); return; }
+        if (pb === 1) return;
+        if (!wasPan) core.clickEmpty(); return;
+      }
       var d0 = core.drag, np0 = d0 && !d0.moved && core.part(d0.id);
       core.release();
+      if (d0 && d0.moved && self.opts.onMoved) self.opts.onMoved(d0.id); // Studio: Bauteil auf eine Leitung gezogen
       if (np0 && np0.type === 'node') core.clickPin(np0.id + '.p'); // Knoten angeklickt (nicht gezogen): Leitung beginnen
     }
     svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
-    svg.addEventListener('wheel', function (ev) { if (self.opts.tight || !(ev.ctrlKey || ev.metaKey)) return; ev.preventDefault(); self.zoomAt(Math.exp(ev.deltaY * 0.0015), ev.clientX, ev.clientY); }, { passive: false });
+    svg.addEventListener('wheel', function (ev) { if (self.opts.tight || !(ev.ctrlKey || ev.metaKey || EXTRA.mouse)) return; ev.preventDefault(); var dy = Math.max(-300, Math.min(300, ev.deltaY * (ev.deltaMode === 1 ? 33 : 1))); self.zoomAt(Math.exp(dy * 0.0015), ev.clientX, ev.clientY); }, { passive: false }); // Studio: das Mausrad allein zoomt, zum Zeiger hin
+    Editor.prototype.rightActive = function () { return performance.now() < (this._rightUntil || 0); };
     svg.addEventListener('dblclick', function (ev) { if (self.opts.tight) return; ev.preventDefault(); dblAt(ev); });
   };
   Editor.prototype.key = function (ev) { this.core.key(ev); };
@@ -2034,11 +2123,10 @@ body.beamer .dr text { font-size: inherit; }
         var pid = p.id + '.' + pin, xy = pinPos(p, pin), col = wcol(pid);
         var cls = 'pin' + (self.wireStart === pid ? ' active' : '') + (pinWireCount[pid] ? ' used' : '') + (pinWireCount[pid] > 1 ? ' junction' : '');
         h.push('<g data-pin="' + pid + '"><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (11 * hit).toFixed(1) + '"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');
-        if (self.showVolt && res && pinNode && pinNode[pid] !== undefined && pin !== 'g')
-          h.push('<text class="vlabel" x="' + (xy[0] + 6) + '" y="' + (xy[1] - 6) + '">' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + '</text>');
         if (self.refMark === pid) h.push('<text class="refmark" x="' + (xy[0] - 8) + '" y="' + (xy[1] + 18) + '">⏚ 0 V<title>Bezugspunkt 0 V – ohne schwarze Spitze misst das Oszilloskop hiergegen</title></text>'); // G1
       });
     });
+    if ((self.showVolt || self.showAmp) && res && pinNode) h.push(measureLabels(self, L, res, pinNode, pinWireCount, byId)); // Spannung je Knoten, Strom je Bauteil (Studio), ueberdeckungsfrei
     if (this.snap) h.push('<circle class="snapdot" cx="' + this.snap.xy[0] + '" cy="' + this.snap.xy[1] + '" r="6" pointer-events="none"/>'); // Vorschau: hier entsteht ein Knotenpunkt
     // Leitung im Entstehen
     if (this.wireStart && byId[this.wireStart.split('.')[0]]) {
@@ -2051,6 +2139,9 @@ body.beamer .dr text { font-size: inherit; }
       var xy = pp(pid);
       h.push('<g class="probe ' + k[1] + '" pointer-events="none"><path d="M' + xy[0] + ' ' + xy[1] + 'l14 -30"/><circle cx="' + (xy[0] + 14) + '" cy="' + (xy[1] - 36) + '" r="9"/><text x="' + (xy[0] + 14) + '" y="' + (xy[1] - 32) + '">' + (k[0] === 'a' ? '+' : '−') + '</text></g>');
     });
+    if (this.marquee) { var mq2 = this.marquee; h.push('<rect class="marquee" x="' + mq2.x0 + '" y="' + mq2.y0 + '" width="' + (mq2.x1 - mq2.x0) + '" height="' + (mq2.y1 - mq2.y0) + '" pointer-events="none"/>'); }
+    if (this.ghost) { var gh = this.ghost, ghp = { id: '', type: gh.type, props: {}, rot: gh.rot || 0 }; h.push('<g class="ghost" pointer-events="none" transform="translate(' + gh.x + ' ' + gh.y + ')"><g transform="rotate(' + ghp.rot + ')">' + symbol(ghp, null) + '</g></g>'); } // Bauteil am Zeiger (Studio)
+    if (this.insertMark) h.push('<circle class="insmark" cx="' + this.insertMark[0] + '" cy="' + this.insertMark[1] + '" r="9" pointer-events="none"/>'); // Stelle auf einer Leitung, wo das Bauteil eingefuegt wird
     this.svg.innerHTML = h.join('');
     if (root.DQBench) root.DQBench.prototype._animSetup.call(this); // Stromfluss-Punkte wie auf der Werkbank
   };
@@ -3058,19 +3149,20 @@ body.beamer .dr text { font-size: inherit; }
   S.getProp = getProp; S.setProp = setProp;
 
   /* ---------- Aufbau ---------- */
-  var ed, core, sim, svg, rafId = 0, selId = null, lastDraw = 0, lastVersion = -1, lastInsVersion = -1, measureTool = false;
+  var ed, core, sim, svg, rafId = 0, selId = null, lastDraw = 0, lastVersion = -1, lastInsVersion = -1;
   S.digitalNodes = {}; S.logicColors = true;
 
   function init() {
+    Editor.extra.mouse = true; // Maussteuerung: Rad zoomt, rechte Taste schiebt, linke zieht Auswahlrahmen (im Spiel nicht)
     Editor.extra.nodes = true; // Leitung auf Leitung: Knotenpunkte (im Spiel nicht)
     Editor.extra.async = true; // Flipflops mit preSet/preClear zeichnen (im Spiel nicht)
     Circuit.SPACES.schema.w = 2400; Circuit.SPACES.schema.h = 1500; // grosse Zeichenflaeche (Spiel: 1000 × 620)
     svg = $('#board');
     ed = S.ed = new Editor(svg, {
-      faultOf: function (id) { return S.faultTag(id); }, onChange: onChange, onSelect: onSelect, onProbe: onProbe, onDouble: function (p) { return !!(E.PARTS[p.type].ctr && S.expandCounter && S.expandCounter(p)); }, onMessage: function (m) { flash(m); },
+      faultOf: function (id) { return S.faultTag(id); }, onChange: onChange, onSelect: onSelect, onDouble: function (p) { return !!(E.PARTS[p.type].ctr && S.expandCounter && S.expandCounter(p)); }, onMessage: function (m) { flash(m); },
       wireColor: wireColor
     });
-    core = S.core = ed.core; core.tool = 'wire';
+    core = S.core = ed.core; core.tool = 'wire'; // immer Bauen
     ed.showVolt = false;
     sim = S.sim = new Sim({ getLayout: function () { return core.layout; } });
     buildPalette(); buildMenus(); buildToolbar(); bindCanvas(); bindKeys();
@@ -3091,19 +3183,20 @@ body.beamer .dr text { font-size: inherit; }
     if (!force && now - lastDraw < 30) { lastVersion = -1; return; }
     lastDraw = now;
     var sig = visSig();
-    if (force || sig !== lastSig) { lastSig = sig; if (sim.res && sim.net) ed.setSim({ res: sim.res, pinNode: sim.net.pinNode, ref: null }); else ed.setSim(null); }
+    if (force || sig !== lastSig) { lastSig = sig; ed.refMark = (ed.showVolt || ed.showAmp) && sim.net ? sim.net.refPin : null; if (sim.res && sim.net) ed.setSim({ res: sim.res, pinNode: sim.net.pinNode, ref: null }); else ed.setSim(null); }
     renderStatus(); renderLive();
   }
   var lastSig = '';
   /* Was der Schaltplan zeigt (Leuchten, Pegel, Segmente, Schaeden, Spannungsbeschriftung) – nur bei Aenderung neu zeichnen, das Bild bleibt ruhig und klickbar */
   function visSig() {
     var r = sim.res; if (!r) return 'none';
-    var a = [sim.err || '', r.faults.map(function (f) { return f.code + (f.part || ''); }).join(), ed.showVolt ? 1 : 0];
+    var a = [sim.err || '', r.faults.map(function (f) { return f.code + (f.part || ''); }).join(), (ed.showVolt ? 1 : 0) + (ed.showAmp ? 2 : 0)];
     Object.keys(r.parts).forEach(function (id) {
       var q = r.parts[id]; a.push(q.on ? 1 : 0, q.out === undefined ? '' : Array.isArray(q.out) ? q.out.join('') : q.out ? 1 : 0, q.q ? 1 : 0, q.high ? 1 : 0, q.burnt ? 1 : 0,
         q.brightness ? Math.round(q.brightness * 12) : 0, q.seg ? q.seg.map(Number).join('') : '', q.p !== undefined && /lamp|motor/.test(id) ? Math.round(Math.min(1, Math.abs(q.p)) * 8) : '');
     });
     if (ed.showVolt || S.logicColors) Object.keys(r.nodeV).forEach(function (n) { a.push(ed.showVolt ? Math.round(r.nodeV[n] * 100) : (r.nodeV[n] > E.LOGIC.vth ? 1 : 0)); });
+    if (ed.showAmp) Object.keys(r.parts).forEach(function (id) { var i = r.parts[id].i; a.push(typeof i === 'number' ? Math.round(i * 1e6) : ''); });
     return a.join('|');
   }
   S.redraw = function () { draw(performance.now(), true); };
@@ -3133,22 +3226,28 @@ body.beamer .dr text { font-size: inherit; }
       Object.keys(p.n).forEach(function (pin) { S.digitalNodes[p.n[pin]] = true; });
     });
   }
-  function onSelect(p) { if (S.onSelectHook) S.onSelectHook(p); selId = p ? p.id : null; renderInspector(true); if (p && measureTool && S.measurePart) S.measurePart(p); }
-  function onProbe(pin) { if (S.measurePin) S.measurePin(pin); }
+  function onSelect(p) { if (S.onSelectHook) S.onSelectHook(p); selId = p ? p.id : null; renderInspector(true); }
 
   /* ---------- Bauteilleiste ---------- */
+  var palTab = 'Logik', palBound = false;
   function buildPalette() {
-    var h = '';
-    PALETTE.forEach(function (g, gi) {
-      h += '<details' + (gi < 4 || g.items.length ? ' open' : '') + '><summary>' + esc(g.name) + '</summary>';
-      if (!g.items.length) h += '<div class="pempty">Kommt in einer späteren Stufe.</div>';
-      else h += '<div class="plist">' + g.items.map(function (t) { var d = E.PARTS[t] || { label: (S.DRAW_ITEMS.filter(function (x) { return x[0] === t; })[0] || [0, t])[1] }; return '<button class="pitem" draggable="true" data-add="' + t + '" title="' + esc(d.label) + ' – anklicken oder auf die Zeichenfläche ziehen">' + (E.PARTS[t] ? Editor.icon(t) : S.drawIcon(t)) + '<span class="nm">' + esc(d.label) + '</span></button>'; }).join('') + '</div>';
-      h += '</details>';
+    var el = $('#palette'), g = PALETTE.filter(function (x) { return x.name === palTab; })[0] || PALETTE[0]; palTab = g.name;
+    var h = '<div class="ptabs" role="tablist">' + PALETTE.map(function (x) { return '<button type="button" role="tab" class="ptab' + (x === g ? ' on' : '') + '" data-tab="' + esc(x.name) + '" aria-selected="' + (x === g) + '">' + esc(x.name) + '</button>'; }).join('') + '</div>';
+    h += '<div class="plist" role="tabpanel" aria-label="' + esc(g.name) + '">' + g.items.map(function (t) {
+      var d = E.PARTS[t] || { label: (S.DRAW_ITEMS.filter(function (x) { return x[0] === t; })[0] || [0, t])[1] };
+      return '<button type="button" class="pitem' + (S.armedType && S.armedType() === t ? ' armed' : '') + '" draggable="true" data-add="' + t + '" title="' + esc(d.label) + ' – anklicken, dann auf die Zeichenfläche klicken (R dreht, Esc beendet) – oder auf die Zeichenfläche ziehen">' + (E.PARTS[t] ? Editor.icon(t) : S.drawIcon(t)) + '<span class="nm">' + esc(d.label) + '</span></button>';
+    }).join('') + '</div>';
+    el.innerHTML = h;
+    if (palBound) return; palBound = true;
+    el.addEventListener('click', function (ev) {
+      var t = ev.target.closest('[data-tab]'); if (t) { palTab = t.dataset.tab; if (S.uiSet) S.uiSet('tab', palTab); buildPalette(); return; }
+      var b = ev.target.closest('[data-add]'); if (b) S.pickPart(b.dataset.add);
     });
-    $('#palette').innerHTML = h;
-    $('#palette').addEventListener('click', function (ev) { var b = ev.target.closest('[data-add]'); if (b) S.addPart(b.dataset.add); });
-    $('#palette').addEventListener('dragstart', function (ev) { var b = ev.target.closest('[data-add]'); if (!b) return; ev.dataTransfer.setData('text/plain', b.dataset.add); ev.dataTransfer.effectAllowed = 'copy'; });
+    el.addEventListener('dragstart', function (ev) { var b = ev.target.closest('[data-add]'); if (!b) return; ev.dataTransfer.setData('text/plain', b.dataset.add); ev.dataTransfer.effectAllowed = 'copy'; });
   }
+  S.setPaletteTab = function (name) { palTab = name; buildPalette(); };
+  /* Palettenknopf: Zeichenelemente entstehen sofort, Bauteile hängen danach am Zeiger (bedienung.js) */
+  S.pickPart = function (type) { var touch = root.matchMedia && root.matchMedia('(pointer: coarse)').matches; if (S.arm && !touch && !/^draw:/.test(type)) S.arm(type); else S.addPart(type); };
   /* Palette neu aufbauen (nach Erweiterungen durch spaetere Module) */
   S.rebuildPalette = buildPalette;
   S.addPart = function (type, x, y) {
@@ -3162,7 +3261,7 @@ body.beamer .dr text { font-size: inherit; }
     svg.addEventListener('dragover', function (ev) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; });
     svg.addEventListener('drop', function (ev) {
       ev.preventDefault(); var t = ev.dataTransfer.getData('text/plain'); if (!t || !(E.PARTS[t] || /^draw:/.test(t))) return;
-      var xy = ed._pt(ev); S.addPart(t, xy[0], xy[1]);
+      var xy = ed._pt(ev); if (/^draw:/.test(t)) S.addPart(t, xy[0], xy[1]); else { ed.insertMark = null; S.placePart(t, xy); }
     });
   }
   function inField(el) { return el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) && el.type !== 'range' && el.type !== 'checkbox'; }
@@ -3184,8 +3283,8 @@ body.beamer .dr text { font-size: inherit; }
       { id: 'bsp', label: 'Beispiele', items: [] },
       { id: 'bearb', label: 'Bearbeiten', items: [{ label: 'Rückgängig', key: 'Strg+Z', act: function () { S.undo(); } }, { label: 'Wiederholen', key: 'Strg+Y', act: function () { S.redo(); } }, { sep: 1 }, { label: 'Drehen', key: 'R', act: function () { core.rotateSelected('schema'); S.redraw(); } }, { label: 'Löschen', key: 'Entf', act: function () { core.removeSelected(); } }, { label: 'Auswahl aufheben', key: 'Esc', act: function () { core.cancel(); } }] },
       { id: 'sim', label: 'Simulation', items: [{ label: 'Start / Pause', key: 'Leertaste', act: function () { S.toggleRun(); } }, { label: 'Einzelschritt', act: function () { S.stepOnce(); } }, { label: 'Zurücksetzen', act: function () { S.resetSim(); } }] },
-      { id: 'ansicht', label: 'Ansicht', items: [{ label: 'Beamer-Modus', key: 'F9', act: function () { S.setBeamer(!S.beamer); } }, { label: 'Schaltung einpassen', act: function () { ed.fit(); } }, { label: 'U-Werte ein/aus', act: function () { $('#btnVolt').click(); } }] },
-      { id: 'fenster', label: 'Fenster', items: [{ label: 'Neues Oszilloskop', act: function () { if (S.openScope) S.openScope(); } }, { label: 'Neues Bode-Diagramm', act: function () { if (S.openBode) S.openBode(); } }, { label: 'Logik: Ausdruck, Tabelle, KV', act: function () { if (S.openLogic) S.openLogic(); } }, { label: 'Zeitverlauf ein/aus', act: function () { S.toggleTiming && S.toggleTiming(); } }] },
+      { id: 'ansicht', label: 'Ansicht', items: [{ label: 'Beamer-Modus', key: 'F9', act: function () { S.setBeamer(!S.beamer); } }, { label: 'Schaltung einpassen', act: function () { ed.fit(); } }] },
+      { id: 'fenster', label: 'Anzeigen', items: [{ label: 'Neues Oszilloskop', act: function () { if (S.openScope) S.openScope(); } }, { label: 'Neues Bode-Diagramm', act: function () { if (S.openBode) S.openBode(); } }, { label: 'Logik: Ausdruck, Tabelle, KV', act: function () { if (S.openLogic) S.openLogic(); } }, { label: 'Zeitverlauf ein/aus', act: function () { S.toggleTiming && S.toggleTiming(); } }] },
       { id: 'hilfe', label: 'Hilfe', items: [{ label: 'Kurzanleitung', act: function () { help(); } }, { label: 'Tastenkürzel', act: function () { openModal('<h2>Tastenkürzel</h2><table class="itab" style="font-family:var(--font-ui);font-size:14px">' + S.shortcuts.map(function (r) { return '<tr><td style="text-align:left"><kbd>' + esc(r[0]) + '</kbd></td><td style="text-align:left">' + esc(r[1]) + '</td></tr>'; }).join('') + '</table><p><button class="tb" id="mClose">Schliessen</button></p>'); } }] }
     ];
     var bar = $('#menubar'), sp = $('.spacer', bar), h = '';
@@ -3203,11 +3302,11 @@ body.beamer .dr text { font-size: inherit; }
   function closeMenus() { $$('.menu.open').forEach(function (m) { m.classList.remove('open'); $('button', m).setAttribute('aria-expanded', 'false'); }); }
   S.setMenu = function (id, items) { var m = MENUS.filter(function (x) { return x.id === id; })[0]; if (m) { m.items = items; fillMenu(m); } };
   function help() {
-    openModal('<h2>Kurzanleitung</h2><ul><li><b>Bauen:</b> Bauteil links anklicken oder auf die Zeichenfläche ziehen. Zwei Anschlüsse nacheinander anklicken = Leitung. <b>Leitung auf Leitung:</b> mit einer Leitung im Entstehen auf eine bestehende Leitung klicken, oder von einer Leitung wegziehen – dort entsteht ein Knotenpunkt (Punkt = verbunden, Kreuzung ohne Punkt = nicht verbunden).</li>' +
+    openModal('<h2>Kurzanleitung</h2><ul><li><b>Bauen:</b> Bauteil oben in der Leiste anklicken, dann auf die Zeichenfläche klicken (so oft man will; <kbd>R</kbd> dreht, <kbd>Esc</kbd> beendet) – oder auf die Zeichenfläche ziehen; auf eine Leitung gesetzt oder gezogen, hängt ein Zweipol (Widerstand, Kondensator …) darin. Zwei Anschlüsse nacheinander anklicken = Leitung. <b>Leitung auf Leitung:</b> mit einer Leitung im Entstehen auf eine bestehende Leitung klicken, oder von einer Leitung wegziehen – dort entsteht ein Knotenpunkt (Punkt = verbunden, Kreuzung ohne Punkt = nicht verbunden).</li>' +
       '<li><b>Bearbeiten:</b> Bauteil anklicken, rechts Werte ändern (<kbd>4k7</kbd>, <kbd>100n</kbd> und <kbd>2,2u</kbd> gehen). <kbd>R</kbd> dreht, <kbd>Entf</kbd> löscht.</li>' +
       '<li><b>Simulation:</b> <kbd>Leertaste</kbd> startet und hält an, <b>Schritt</b> rechnet einen Schritt. Der Zeitfaktor bestimmt, wie schnell die Simulationszeit läuft.</li>' +
-      '<li><b>Messen:</b> Werkzeug «Messen» wählen, dann Anschluss oder Bauteil anklicken – das Signal erscheint im Oszilloskop.</li>' +
-      '<li><b>Zoom:</b> <kbd>Strg</kbd> + Mausrad oder zwei Finger; Ziehen auf leerer Fläche verschiebt, Doppelklick passt ein.</li></ul><p><button class="tb" id="mClose">Schliessen</button></p>');
+      '<li><b>Messen:</b> Es gibt nur Bauen. Rechtsklick auf einen Anschluss, ein Bauteil oder eine Leitung schickt das Signal in den Zeitverlauf, ins Oszilloskop oder ins Bode-Diagramm; im Eigenschaftenfeld und im Menü «Anzeigen» geht es auch. <kbd>U</kbd> zeigt alle Spannungen, <kbd>I</kbd> alle Ströme im Schaltplan.</li>' +
+      '<li><b>Maus:</b> Mausrad zoomt zum Zeiger, rechte Taste gehalten (oder mittlere) schiebt die Fläche, linke Taste auf leerer Fläche zieht einen Auswahlrahmen, auf einem Bauteil verschiebt sie es (eine Auswahl gemeinsam). Auf dem Handy: zwei Finger zoomen, Ziehen schiebt. Doppelklick auf leere Fläche passt ein.</li></ul><p><button class="tb" id="mClose">Schliessen</button></p>');
   }
   function openModal(html) { $('#modal').innerHTML = html; $('#modalBg').classList.add('open'); var c = $('#mClose'); if (c) { c.onclick = closeModal; c.focus(); } }
   function closeModal() { $('#modalBg').classList.remove('open'); }
@@ -3222,14 +3321,13 @@ body.beamer .dr text { font-size: inherit; }
     $('#btnRun').addEventListener('click', function () { S.toggleRun(); });
     $('#btnStep').addEventListener('click', function () { S.stepOnce(); });
     $('#btnReset').addEventListener('click', function () { S.resetSim(); });
-    $('#toolBuild').addEventListener('click', function () { S.setTool('build'); });
-    $('#toolMeasure').addEventListener('click', function () { S.setTool('measure'); });
     $('#btnUndo').addEventListener('click', function () { S.undo(); }); $('#btnRedo').addEventListener('click', function () { S.redo(); });
     $('#btnRot').addEventListener('click', function () { core.rotateSelected('schema'); S.redraw(); });
     $('#btnDel').addEventListener('click', function () { core.removeSelected(); });
     $('#btnBeamer').addEventListener('click', function () { S.setBeamer(!S.beamer); });
     $('#btnFit').addEventListener('click', function () { ed.fit(); });
-    $('#btnVolt').addEventListener('click', function () { ed.showVolt = !ed.showVolt; this.classList.toggle('on', ed.showVolt); this.setAttribute('aria-pressed', ed.showVolt); S.redraw(); });
+    $('#btnVolt').addEventListener('click', function () { S.setValues('volt', !ed.showVolt); });
+    $('#btnAmp').addEventListener('click', function () { S.setValues('amp', !ed.showAmp); });
     $('#btnScope').addEventListener('click', function () { if (S.openScope) S.openScope(); });
     $('#btnTiming').addEventListener('click', function () { if (S.toggleTiming) S.toggleTiming(); });
     $('#clockHz').addEventListener('change', function () {
@@ -3239,12 +3337,13 @@ body.beamer .dr text { font-size: inherit; }
     });
     $('#clockHz').addEventListener('keydown', function (ev) { if (ev.key === 'Enter') this.dispatchEvent(new Event('change')); });
   }
-  S.setTool = function (t) {
-    measureTool = t === 'measure'; core.tool = measureTool ? 'probe' : 'wire'; core.wireStart = null;
-    $('#toolBuild').classList.toggle('on', !measureTool); $('#toolMeasure').classList.toggle('on', measureTool); $('#measureKind').hidden = !measureTool; $('#measureTarget').hidden = !measureTool;
-    svg.style.cursor = measureTool ? 'crosshair' : ''; ed.render();
+  /* Messwerte im Schaltplan: Spannung je Knoten (volt), Strom je Bauteil (amp) – ein Knopf je Grösse, Bezugspunkt gekennzeichnet */
+  S.setValues = function (what, on) {
+    if (what === 'volt') ed.showVolt = !!on; else ed.showAmp = !!on;
+    $('#btnVolt').classList.toggle('on', ed.showVolt); $('#btnVolt').setAttribute('aria-pressed', ed.showVolt); $('#btnAmp').classList.toggle('on', ed.showAmp); $('#btnAmp').setAttribute('aria-pressed', ed.showAmp);
+    if (S.viewMenuSync) S.viewMenuSync(); S.redraw();
   };
-  S.measureKind = function () { return $('#measureKind').value; };
+  // Kein Messmodus mehr: Signale gehen per Rechtsklick, Eigenschaftenfeld oder Menü in die Anzeigen (signale.js)
   S.toggleRun = function () { if (sim.running) sim.pause(); else sim.start(); syncRun(); };
   function syncRun() { var b = $('#btnRun'); b.textContent = sim.running ? '⏸ Pause' : '▶ Start'; b.classList.toggle('is-running', sim.running); renderStatus(); }
   S.syncRun = syncRun;
@@ -3552,6 +3651,14 @@ body.beamer .dr text { font-size: inherit; }
   /* ---------- Auswahl, Kopieren, Einfügen ---------- */
   function selIds() { return S.multi.length ? S.multi.slice() : (S.core.sel && S.core.part(S.core.sel) ? [S.core.sel] : []); }
   S.selectAll = function () { S.multi = S.core.layout.parts.map(function (p) { return p.id; }); S.core.sel = null; S.ed.render(); S.redraw(); };
+  S.selectedIds = selIds;
+  /* Auswahl setzen (Auswahlrahmen): kein Bauteil = nichts gewählt, eines = normal gewählt (Eigenschaften), mehrere = Mehrfachauswahl */
+  S.setSelection = function (ids, add) {
+    var core = S.core, cur = add ? selIds() : []; ids = cur.concat(ids.filter(function (i) { return cur.indexOf(i) < 0; }));
+    if (!ids.length) { core.clickEmpty(); return; }
+    S.keepMulti = true;
+    try { if (ids.length === 1) { S.multi = []; core.sel = ids[0]; core.redraw(); core._select(core.part(ids[0])); } else { S.multi = ids; core.sel = null; core.wireStart = null; core.redraw(); core._select(null); S.multi = ids; core.redraw(); } } finally { S.keepMulti = false; }
+  };
   S.copy = function () {
     var ids = selIds(); if (!ids.length) return 0; var set = {}; ids.forEach(function (i) { set[i] = 1; });
     S.clip = { parts: S.core.layout.parts.filter(function (p) { return set[p.id]; }).map(E.clone), wires: S.core.layout.wires.filter(function (w) { return set[w.from.split('.')[0]] && set[w.to.split('.')[0]]; }).map(E.clone) };
@@ -3604,6 +3711,7 @@ body.beamer .dr text { font-size: inherit; }
   S.initFns.push(function () {
     S.history.reset();
     S.ed.opts.selected = function (id) { return S.multi.indexOf(id) >= 0; };
+    S.ed.opts.selectedIds = function () { return S.multi.slice(); }; S.ed.opts.onMarquee = function (ids, add) { S.setSelection(ids, add); };
     document.addEventListener('keydown', function (ev) {
       if (inField(ev.target) || ev.altKey) return;
       var k = ev.key, ctrl = ev.ctrlKey || ev.metaKey, done = false;
@@ -3632,7 +3740,7 @@ body.beamer .dr text { font-size: inherit; }
   S.onSelectHook = function (p) { if (p && S.multi.length && S.multi.indexOf(p.id) < 0) S.multi = []; if (!p && S.multi.length && !S.keepMulti) S.multi = []; };
   S.shortcuts = [['G', 'Gitternetz umschalten: aus, Punkte, Linien'], ['Alt + Klick auf eine Leitung', 'Knotenpunkt setzen und von dort weiterziehen'], ['Strg + Z', 'Rückgängig (bis 200 Schritte)'], ['Strg + Y  oder  Strg + Umschalt + Z', 'Wiederholen'], ['Entf', 'Auswahl löschen'], ['R', 'Bauteil drehen'], ['Esc', 'Abbrechen, Auswahl aufheben'],
     ['Strg + A', 'Alles auswählen'], ['Umschalt + Klick', 'Bauteil zur Auswahl hinzufügen'], ['Strg + C  /  Strg + V', 'Kopieren und Einfügen (versetzt)'], ['Pfeiltasten', 'Auswahl um ein Raster verschieben'],
-    ['Leertaste', 'Simulation starten und anhalten'], ['F9', 'Beamer-Modus ein und aus'], ['Strg + S  /  Strg + O  /  Strg + P', 'Speichern, Öffnen, Drucken'], ['Strg + Mausrad / zwei Finger', 'Zoom'], ['Doppelklick auf leere Fläche', 'Schaltung einpassen'], ['Doppelklick auf einen Zähler', 'Zähler aufklappen']];
+    ['Leertaste', 'Simulation starten und anhalten'], ['F9', 'Beamer-Modus ein und aus'], ['Strg + S  /  Strg + O  /  Strg + P', 'Speichern, Öffnen, Drucken'], ['U  /  I', 'Spannungen  /  Ströme im Schaltplan zeigen'], ['Bauteil am Zeiger: R / Esc', 'drehen / Setzen beenden'], ['Mausrad', 'Zoomen, zum Zeiger hin (Touch: zwei Finger)'], ['Rechte Taste gehalten und ziehen  /  mittlere Taste', 'Zeichenfläche schieben'], ['Rechtsklick ohne Ziehen', 'Menü: Signal in eine Anzeige'], ['Linke Taste auf leerer Fläche ziehen', 'Auswahlrahmen'], ['Ziehen auf einem ausgewählten Bauteil', 'ganze Auswahl verschieben'], ['Doppelklick auf leere Fläche', 'Schaltung einpassen'], ['Doppelklick auf einen Zähler', 'Zähler aufklappen']];
 })(window);
 
 /* ==== studio/slider.js ==== */
@@ -4298,7 +4406,7 @@ body.beamer .dr text { font-size: inherit; }
   };
   S.renderTaskPanel = function () {
     var t = S.task; if (!t) return; var w = $('#taskPanel');
-    if (!w) { w = document.createElement('div'); w.id = 'taskPanel'; w.className = 'fwin'; w.style.cssText = 'left:240px;top:150px;width:420px;height:380px'; document.getElementById('floats').appendChild(w); w.addEventListener('pointerdown', function () { w.style.zIndex = 5; }); }
+    if (!w) { w = document.createElement('div'); w.id = 'taskPanel'; w.className = 'fwin'; w.style.cssText = 'left:' + Math.max(20, root.innerWidth - 780) + 'px;top:150px;width:420px;height:380px'; document.getElementById('floats').appendChild(w); w.addEventListener('pointerdown', function () { w.style.zIndex = 5; }); }
     var rows = t.hide.map(function (h) { var key = h.part + '.' + h.prop, f = (S.FIELDS[S.core.part(h.part).type] || []).filter(function (x) { return x.k === h.prop; })[0];
       return '<tr><td>' + esc(h.part) + '</td><td>' + esc(f ? f.l : h.prop) + '</td><td><input class="tin" data-key="' + key + '" value="' + esc(t.answers[key] || '') + '" placeholder="Wert?" style="width:100px;min-height:40px"> <span class="tk" data-k="' + key + '">' + (t.ok[key] === true ? '✓ stimmt' : t.ok[key] === false ? '✗ nicht ganz' : '') + '</span></td></tr>'; }).join('');
     w.innerHTML = '<div class="fh"><b>Aufgabe: ' + esc(t.title) + '</b><button data-a="close" title="Aufgabe schliessen" aria-label="Schliessen">×</button></div><div class="fb" style="padding:10px 14px;overflow:auto"><p>' + esc(t.text) + '</p>' +
@@ -4374,7 +4482,7 @@ body.beamer .dr text { font-size: inherit; }
 /* ==== studio/scope.js ==== */
 /* Digital Quest Studio – Oszilloskop-Fenster (Stufe 1)
  * Mehrere, frei platzierbar (Titelleiste ziehen) und in der Grösse veraenderbar (Ecke unten rechts), jedes mit eigenen Kanaelen.
- * Signal hinzufuegen: Werkzeug «Messen», dann Anschluss oder Bauteil im Schaltplan anklicken. Die Kurve schreibt fortlaufend mit.
+ * Signal hinzufuegen: Rechtsklick auf einen Anschluss oder ein Bauteil im Schaltplan (signale.js). Die Kurve schreibt fortlaufend mit.
  * Zeitbasis und Amplitude stellen sich selbst ein (Auto), von Hand umschaltbar. Messcursor: Δt, ΔU, 1/Δt; «τ bestimmen» legt die
  * Cursor auf Start und 63,2 % der letzten Lade-/Entladekurve. Eigene Komponente (kein Teil von bench.js, das zum Spiel gehoert). */
 (function (root) {
@@ -4672,14 +4780,6 @@ body.beamer .dr text { font-size: inherit; }
     S.scopes.forEach(function (sc) { if (!sc.frozen && sc.version !== S.sim.version) sc.draw(); else if (sc.version === -1) sc.draw(); });
     if (S.timingFrame) S.timingFrame(now);
   };
-  S.measurePin = function (pin) {
-    var sc = active || S.openScope(); sc.addChannel({ kind: 'node', a: pin }); setActive(sc);
-  };
-  S.measurePart = function (p) {
-    var kind = S.measureKind(), d = E.PARTS[p.type];
-    if (kind === 'pi' && (d.digital || d.logic)) kind = 'pv';
-    var sc = active || S.openScope(); sc.addChannel({ kind: kind, id: p.id }); setActive(sc);
-  };
   S.closeScopes = function () { S.scopes.slice().forEach(function (s) { s.close(); }); };
   S.onLoad = (function (prev) { return function (o) { S.closeScopes(); if (prev) prev(o); (o.scopes || []).forEach(function (sc) { var w = S.openScope(sc.channels || sc); if (sc.span) { w.spanMan = sc.span; var sel = w.el.querySelector('[data-a="span"]'); sel.value = String(sc.span); } }); }; })(S.onLoad);
   S.onReset = function () { S.scopes.forEach(function (sc) { sc.autoSpan = null; sc.cls = {}; if (sc.frozen) sc.setFrozen(false); sc.dirty(); }); };
@@ -4690,7 +4790,7 @@ body.beamer .dr text { font-size: inherit; }
 /* Digital Quest Studio – Bode-Diagramm (Stufe 7)
  * Frequenzgang aus der Wechselstromanalyse der Engine (E.acSweep: komplexe Knotenanalyse um den Arbeitspunkt, dieselbe Netzliste):
  * Verstärkung in dB (oben) und Phase in Grad (unten) über logarithmischer Frequenzachse. Reiz: 1 V an der ersten Wechselspannungsquelle.
- * Signal hinzufügen: Werkzeug «Messen», Ziel «Bode», Anschluss anklicken (gegen den Bezugspunkt) oder Bauteil (Spannung über dem Bauteil). */
+ * Signal hinzufügen: Rechtsklick auf einen Anschluss (gegen den Bezugspunkt) oder ein Bauteil (Spannung über dem Bauteil), siehe signale.js. */
 (function (root) {
   'use strict';
   var S = root.Studio, E = S.E;
@@ -4798,11 +4898,6 @@ body.beamer .dr text { font-size: inherit; }
   S.onCircuitChange = function () { S.bodes.forEach(function (b) { b.compute(); }); };
   S.initFns.push(function () {
     var btn = $('#btnBode'); if (btn) btn.addEventListener('click', function () { S.openBode(); });
-    var prevPin = S.measurePin, prevPart = S.measurePart;
-    S.measurePin = function (pin) { if (S.measureTarget() === 'bode') { var b = active || S.openBode(); b.addChannel({ a: pin }); } else if (prevPin) prevPin(pin); };
-    S.measurePart = function (p) {
-      if (S.measureTarget() === 'bode') { var d = E.PARTS[p.type], pins = d.pins; if (pins.length >= 2) { var b = active || S.openBode(); b.addChannel({ a: p.id + '.' + pins[0], b: p.id + '.' + (p.type === 'led' || p.type === 'diode' || p.type === 'zener' ? 'k' : pins[1]) }); } } else if (prevPart) prevPart(p);
-    };
   });
   S.onLoad = (function (prev) { return function (o) { S.bodes.slice().forEach(function (b) { b.close(); }); if (prev) prev(o); (o.bode || []).forEach(function (b) { S.openBode(b.channels); }); }; })(S.onLoad);
 })(window);
@@ -4810,7 +4905,7 @@ body.beamer .dr text { font-size: inherit; }
 /* ==== studio/timing.js ==== */
 /* Digital Quest Studio – Zeitverlaufsdiagramm (Stufe 5)
  * Feste Leiste unten im Fenster (kein Oszilloskop-Fenster): digitale Signale untereinander, zeitlich ausgerichtet, dazu Zeilen mit dem
- * Zählerstand als Zahl (Bus aus markierten Zeilen, unterstes Bit zuerst). Signale per Klick hinzufügen (Werkzeug «Messen») und mit ▲ ▼ umordnen.
+ * Zählerstand als Zahl (Bus aus markierten Zeilen, unterstes Bit zuerst). Signale per Rechtsklick hinzufügen (signale.js) und mit ▲ ▼ umordnen.
  * Die Laufzeit der Flipflops steht im Bild: Die Aufzeichnung enthält die Zwischenloesungen je Rechenschritt (sim.js), Stufe k einen Durchgang spaeter. */
 (function (root) {
   'use strict';
@@ -4825,12 +4920,12 @@ body.beamer .dr text { font-size: inherit; }
   /* Signalzeile: tr = Aufzeichnung (Pegel). Zaehlerstand-Zeile (bus): bits = Liste von Aufzeichnungen, niederwertigstes zuerst; oder tr vom Typ cnt (Zahl). */
   function addRow(desc, label) {
     var key = JSON.stringify(desc); if (rows.some(function (r) { return r.key === key; })) return null;
-    var r = { key: key, desc: desc, tr: S.sim.addTrace(desc), mark: false, label: label || null }; rows.push(r); renderRows(); if (collapsed) S.toggleTiming(); // das erste Signal klappt einen eingeklappten Zeitverlauf auf
+    var r = { key: key, desc: desc, tr: S.sim.addTrace(desc), mark: false, label: label || null }; rows.push(r); renderRows(); if (collapsed) flip(); // das erste Signal klappt einen eingeklappten Zeitverlauf auf
     return r;
   }
   function addBus(label, descs) {
     var r = { key: 'bus:' + descs.map(JSON.stringify).join('|'), bus: true, bits: descs.map(function (d) { return S.sim.addTrace(d); }), mark: false, label: label || 'Zählerstand' };
-    rows.push(r); renderRows(); if (collapsed) S.toggleTiming(); return r;
+    rows.push(r); renderRows(); if (collapsed) flip(); return r;
   }
   function removeRow(i) {
     var r = rows.splice(i, 1)[0]; if (!r) return; if (r.tr) S.sim.removeTrace(r.tr); (r.bits || []).forEach(function (t) { S.sim.removeTrace(t); }); renderRows();
@@ -4978,29 +5073,17 @@ body.beamer .dr text { font-size: inherit; }
     });
     renderRows();
   };
-  S.toggleTiming = function () {
+  S.timingCollapsed = function () { return collapsed; };
+  function flip() {
     collapsed = !collapsed; var el = $('#timing'); el.classList.toggle('collapsed', collapsed); $('#btnTiming').classList.toggle('on', !collapsed); version = -1;
-  };
+  }
+  S.toggleTiming = function () { flip(); if (S.onTimingToggle) S.onTimingToggle(collapsed); }; // vom Nutzer (Knopf, Menü): wird gemerkt
   S.timingFrame = function (now) {
     if (collapsed || now - lastDraw < 50) return; lastDraw = now;
     if (frozen === null && version === S.sim.version) return; if (frozen !== null && version !== -1) return;
     draw();
   };
   S.timingDraw = draw;
-  /* Messen-Werkzeug: digitale Anschluesse gehen in den Zeitverlauf (Ziel einstellbar) */
-  var prevPin = S.measurePin, prevPart = S.measurePart;
-  S.measureTarget = function () { var t = $('#measureTarget'); return t ? t.value : 'auto'; };
-  S.measurePin = function (pin) {
-    var net = S.sim.net, node = net && net.pinNode[pin], dig = node !== undefined && S.digitalNodes[node], tg = S.measureTarget();
-    if (tg === 'timing' || (tg === 'auto' && dig)) { addRow({ kind: 'dig', a: pin }); if (collapsed) S.toggleTiming(); } else if (prevPin) prevPin(pin);
-  };
-  S.measurePart = function (p) {
-    var d = E.PARTS[p.type], tg = S.measureTarget();
-    if ((tg === 'timing' || (tg === 'auto' && (d.ff || d.ctr || d.logic))) && (d.ff || d.logic || d.ctr || p.type === 'clock' || p.type === 'logicin')) {
-      var outs = d.ff ? ['Q'] : d.ctr ? E.pinsOf(p.type, p.props).filter(function (x) { return /^Q/.test(x); }) : p.type === 'clock' || p.type === 'logicin' ? ['out'] : d.outs || ['out'];
-      outs.forEach(function (pin) { addRow({ kind: 'dig', a: p.id + '.' + pin }); }); if (collapsed) S.toggleTiming();
-    } else if (prevPart) prevPart(p);
-  };
   S.onLoad = (function (prev) { return function (o) { clearRows(); frozen = null; autoSpan = null; spanMan = null; var sp = $('#tlSpan'); if (sp) sp.value = 'auto'; var fb = $('#tlFreeze'); if (fb) { fb.textContent = '⏸ Anhalten'; fb.classList.remove('on'); } if (prev) prev(o); var t = o.timing; if (t) { (t.rows || []).forEach(function (d) { addRow(d); }); (t.buses || []).forEach(function (b) { addBus(b.label, b.bits); }); } if (t && t.auto) autoRows(); }; })(S.onLoad);
   S.onReset = (function (prev) { return function () { if (prev) prev(); autoSpan = null; frozen = null; version = -1; }; })(S.onReset);
 })(window);
@@ -5255,9 +5338,9 @@ body.beamer .dr text { font-size: inherit; }
 
   /* ---------- Hinweis in leeren Anzeigen ---------- */
   var HINT = {
-    scope: ['Oszilloskop – noch kein Signal', 'Rechtsklick auf einen Anschluss oder ein Bauteil im Schaltplan, dann «Ins Oszilloskop».', [['measure:scope', 'Messen-Werkzeug einschalten']]],
-    bode: ['Bode-Diagramm – noch kein Signal', 'Rechtsklick auf einen Anschluss im Schaltplan, dann «Ins Bode-Diagramm». Es braucht eine Wechselspannungsquelle.', [['measure:bode', 'Messen-Werkzeug einschalten']]],
-    timing: ['Zeitverlauf – noch kein Signal', 'Rechtsklick auf einen Anschluss oder ein Bauteil im Schaltplan, dann «In den Zeitverlauf» – oder alle digitalen Signale auf einmal:', [['all', 'Alle digitalen Signale aufnehmen'], ['measure:timing', 'Messen-Werkzeug einschalten']]]
+    scope: ['Oszilloskop – noch kein Signal', 'Rechtsklick auf einen Anschluss oder ein Bauteil im Schaltplan, dann «Ins Oszilloskop».', []],
+    bode: ['Bode-Diagramm – noch kein Signal', 'Rechtsklick auf einen Anschluss im Schaltplan, dann «Ins Bode-Diagramm». Es braucht eine Wechselspannungsquelle.', []],
+    timing: ['Zeitverlauf – noch kein Signal', 'Rechtsklick auf einen Anschluss oder ein Bauteil im Schaltplan, dann «In den Zeitverlauf» – oder alle digitalen Signale auf einmal:', [['all', 'Alle digitalen Signale aufnehmen']]]
   };
   S.hintHTML = function (kind) { var h = HINT[kind]; return '<b>' + esc(h[0]) + '</b>' + esc(h[1]) + '<br>' + h[2].map(function (b) { return '<button class="tl-btn" data-hint="' + b[0] + '">' + esc(b[1]) + '</button>'; }).join(' '); };
   S.makeHint = function (win, kind) { var d = document.createElement('div'); d.className = 'sc-hint'; d.innerHTML = S.hintHTML(kind); $('.fb', win.el).appendChild(d); return d; };
@@ -5299,12 +5382,30 @@ body.beamer .dr text { font-size: inherit; }
     }
     return { title: title, items: items };
   }
+  /* ---------- Menü «Anzeigen»: dieselben Wege ohne Mausklick auf ein Bauteil ---------- */
+  function selectedWhat() { var p = S.core.sel && S.core.part(S.core.sel); return p ? (p.type === 'node' ? { pin: p.id + '.p' } : { part: p }) : null; }
+  function viewMenu() {
+    var w = selectedWhat(), o = w ? optionsFor(w) : [];
+    var send = function (target) { return { label: { timing: 'Auswahl in den Zeitverlauf', scope: 'Auswahl ins Oszilloskop', bode: 'Auswahl ins Bode-Diagramm' }[target], act: function () {
+      var cur = selectedWhat(); if (!cur) { S.core.opts.onMessage('Erst ein Bauteil auswählen – oder rechts auf ein Bauteil klicken.'); return; }
+      var op = optionsFor(cur).filter(function (x) { return x.target === target; })[0]; if (!op || op.ok === false) { S.core.opts.onMessage(op && op.why || 'Das geht mit dieser Auswahl nicht.'); return; }
+      SEND[target](Object.assign({}, cur, op.q ? { q: op.q } : {})); S.redraw();
+    } }; };
+    return [{ label: 'Neues Oszilloskop', act: function () { S.openScope(); } }, { label: 'Neues Bode-Diagramm', act: function () { S.openBode(); } }, { label: 'Logik: Ausdruck, Tabelle, KV', act: function () { S.openLogic && S.openLogic(); } }, { label: 'Zeitverlauf ein/aus', act: function () { S.toggleTiming && S.toggleTiming(); } },
+      { sep: 1 }, { label: 'Alle digitalen Signale aufnehmen', act: function () { var r = S.addAllDigital(); if (!r.found) S.core.opts.onMessage('Keine digitalen Signale gefunden: Logikanzeigen, Flipflops, Zähler oder Taktgeber setzen.'); } },
+      send('timing'), send('scope'), send('bode'),
+      { sep: 1 }, { label: (S.ed.showVolt ? '✓ ' : '  ') + 'Spannungen im Schaltplan', key: 'U', act: function () { S.setValues('volt', !S.ed.showVolt); } }, { label: (S.ed.showAmp ? '✓ ' : '  ') + 'Ströme im Schaltplan', key: 'I', act: function () { S.setValues('amp', !S.ed.showAmp); } }];
+  }
   S.initFns.push(function () {
+    S.viewMenuSync = function () { S.setMenu('fenster', viewMenu()); }; S.viewMenuSync();
     var svg = $('#board'), press = null;
     svg.addEventListener('contextmenu', function (ev) {
+      ev.preventDefault(); // das Browsermenü gibt es auf der Zeichenfläche nicht
+      if (S.ed.rightActive()) return; // Maus: das Menü kommt vom Editor beim Loslassen der rechten Taste, wenn nicht geschoben wurde
       var c = ctxFor(ev); if (!c) { closeCtx(); return; }
-      ev.preventDefault(); showCtx(ev.clientX, ev.clientY, c.title, c.items);
+      showCtx(ev.clientX, ev.clientY, c.title, c.items); // Tastatur (Menütaste, Umschalt + F10)
     });
+    S.ed.opts.onContext = function (ev) { var c = ctxFor(ev); if (!c) { closeCtx(); return; } showCtx(ev.clientX, ev.clientY, c.title, c.items); };
     // langes Drücken (Touch) wie Rechtsklick
     svg.addEventListener('pointerdown', function (ev) {
       if (ev.pointerType !== 'touch') return; var x = ev.clientX, y = ev.clientY, tgt = ev.target;
@@ -5318,8 +5419,112 @@ body.beamer .dr text { font-size: inherit; }
     document.addEventListener('click', function (ev) {
       var b = ev.target.closest('[data-hint]'); if (!b) return; var a = b.dataset.hint;
       if (a === 'all') { var r = S.addAllDigital(); if (!r.found) S.core.opts.onMessage('Keine digitalen Signale gefunden: Logikanzeigen, Flipflops, Zähler oder Taktgeber setzen.'); }
-      else if (a.indexOf('measure:') === 0) { S.setTool('measure'); var t = $('#measureTarget'); if (t) t.value = a.slice(8); }
     });
+  });
+})(window);
+
+/* ==== studio/bedienung.js ==== */
+/* Digital Quest Studio – Bedienung (Auftrag «Bedienung», Paket 3, 4, 6)
+ * - Oberflächenzustand über Sitzungen (gewählte Registerkarte, eingeklapptes Eigenschaftenfeld und Zeitverlauf)
+ * - Bauteil mehrfach setzen: ein Klick auf die Leiste hängt das Bauteil an den Zeiger, jeder Klick auf die Fläche setzt es, R dreht, Esc beendet
+ * - Bauteil in eine Leitung einfügen (Zweipole): Fangstelle wird hervorgehoben, die Leitung teilt sich, das Bauteil richtet sich nach ihr aus */
+(function (root) {
+  'use strict';
+  var S = root.Studio, E = S.E, Editor = root.DQEditor;
+  var $ = function (s) { return document.querySelector(s); };
+
+  /* ---------- Zustand über Sitzungen ---------- */
+  var KEY = 'dqstudio_ui_v1', ui = {};
+  function load() { try { ui = JSON.parse(root.localStorage.getItem(KEY)) || {}; } catch (e) { ui = {}; } }
+  S.uiGet = function (k, d) { return ui[k] === undefined ? d : ui[k]; };
+  S.uiSet = function (k, v) { ui[k] = v; try { root.localStorage.setItem(KEY, JSON.stringify(ui)); } catch (e) { /* ohne Speicher weiter */ } };
+  load();
+
+  /* ---------- Bauteil in eine Leitung einfügen ---------- */
+  function twoPole(type) { var d = E.PARTS[type]; return !!d && type !== 'ground' && type !== 'node' && d.pins && d.pins.length === 2 && !!Editor.GEO[type]; }
+  var RADIUS = 16;
+  function wireSnap(xy) { return Editor.extra.nodes ? Editor.snapWire(S.core.layout, xy, RADIUS, -1) : null; }
+  /* Drehung, bei der die zwei Anschlüsse auf der Leitungsrichtung liegen */
+  function rotFor(type, hor) {
+    var g = Editor.GEO[type], ks = Object.keys(g), a = g[ks[0]], b = g[ks[1]], axisHor = Math.abs(a[0] - b[0]) >= Math.abs(a[1] - b[1]);
+    return axisHor === hor ? 0 : 90;
+  }
+  /* Teilt Leitung sn.i und hängt das Bauteil (Typ oder vorhandenes Bauteil) mit beiden Anschlüssen hinein */
+  function insertInto(sn, type, existing) {
+    var core = S.core, L = core.layout, w = L.wires[sn.i]; if (!w) return null;
+    var p = existing || { id: core.nextId(type), type: type, x: 0, y: 0, rot: 0, props: {} }, g = Editor.GEO[p.type], ks = Object.keys(g);
+    p.x = Math.round(sn.xy[0] / 20) * 20; p.y = Math.round(sn.xy[1] / 20) * 20; p.rot = rotFor(p.type, sn.hor);
+    delete p.bench; if (!existing) L.parts.push(p);
+    var P = ks.map(function (k) { return Editor.pinPos(p, k); }), at = function (pin) { var q = L.parts.filter(function (x) { return x.id === pin.split('.')[0]; })[0]; return q ? Editor.pinPos(q, pin.split('.')[1]) : [0, 0]; };
+    var F = at(w.from), T = at(w.to), d = function (u, v) { return Math.hypot(u[0] - v[0], u[1] - v[1]); };
+    var straight = d(P[0], F) + d(P[1], T) <= d(P[1], F) + d(P[0], T), pf = p.id + '.' + ks[straight ? 0 : 1], pt = p.id + '.' + ks[straight ? 1 : 0], to = w.to;
+    w.to = pf; L.wires.splice(sn.i + 1, 0, { from: pt, to: to });
+    core.sel = p.id; core.wireStart = null; S.multi = []; core.changed('add'); S.ed.insertMark = null;
+    return p;
+  }
+  /* Einfügemarke direkt im SVG setzen (ohne neu zu zeichnen: beim Ziehen aus der Leiste darf das Ziel der Ablage nicht ersetzt werden) */
+  S.setInsertMark = function (m) {
+    var ed = S.ed, svg = ed.svg, el = svg.querySelector('.insmark'); ed.insertMark = m;
+    if (!m) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); el.setAttribute('class', 'insmark'); el.setAttribute('r', '9'); el.setAttribute('pointer-events', 'none'); svg.appendChild(el); }
+    el.setAttribute('cx', m[0]); el.setAttribute('cy', m[1]);
+  };
+  S.insertAt = function (type, xy) { var sn = twoPole(type) ? wireSnap(xy) : null; return sn ? insertInto(sn, type) : null; };
+
+  /* ---------- Bauteil am Zeiger ---------- */
+  var armed = null, raf = 0, last = null;
+  S.armedType = function () { return armed && armed.type; };
+  function refresh() { raf = 0; var ed = S.ed; if (armed && last) { var g = 20, x = Math.round(last[0] / g) * g, y = Math.round(last[1] / g) * g, sn = twoPole(armed.type) ? wireSnap(last) : null; ed.ghost = { type: armed.type, rot: sn ? rotFor(armed.type, sn.hor) : armed.rot, x: sn ? sn.xy[0] : x, y: sn ? sn.xy[1] : y }; ed.insertMark = sn ? sn.xy : null; } else { ed.ghost = null; } ed.render(); }
+  function sched() { if (!raf) raf = root.requestAnimationFrame(refresh); }
+  S.arm = function (type) {
+    if (armed && armed.type === type) { S.disarm(); return; }
+    armed = { type: type, rot: 0 }; S.ed.svg.classList.add('armed'); S.rebuildPalette();
+    var d = E.PARTS[type]; S.core.opts.onMessage && S.core.opts.onMessage(d.label + ': auf die Zeichenfläche klicken – R dreht, Esc beendet.'); sched();
+  };
+  S.disarm = function () { if (!armed) return; armed = null; last = null; S.ed.svg.classList.remove('armed'); S.ed.ghost = null; S.ed.insertMark = null; S.rebuildPalette(); S.ed.render(); };
+  S.placePart = function (type, xy, rot) {
+    var core = S.core, p = S.insertAt(type, xy);
+    if (p) return p;
+    p = core.addPart(type, xy[0], xy[1], 'schema', rot || 0); return p;
+  };
+  S.rotateArmed = function () { if (!armed) return false; armed.rot = (armed.rot + 90) % 360; sched(); return true; };
+
+  S.initFns.push(function () {
+    var ed = S.ed, svg = ed.svg, core = S.core;
+    ed.opts.armed = function () { return armed; };
+    ed.opts.onPlace = function (xy) { if (armed) { var p = S.placePart(armed.type, xy, armed.rot); if (p) { last = xy; sched(); } } };
+    svg.addEventListener('pointermove', function (ev) { if (ev.pointerType === 'touch') return; last = ed._pt(ev); if (armed) sched(); }, true);
+    svg.addEventListener('pointerleave', function () { if (armed) { last = null; sched(); } });
+    document.addEventListener('keydown', function (ev) {
+      if (!armed || ev.ctrlKey || ev.metaKey || ev.altKey || /^(INPUT|SELECT|TEXTAREA)$/.test((ev.target || {}).tagName || '')) return;
+      if (ev.key === 'r' || ev.key === 'R') { S.rotateArmed(); ev.preventDefault(); ev.stopImmediatePropagation(); }
+      else if (ev.key === 'Escape') { S.disarm(); ev.preventDefault(); ev.stopImmediatePropagation(); }
+    }, true);
+    document.addEventListener('keydown', function (ev) { // U und I: Spannungen und Ströme im Schaltplan
+      if (ev.ctrlKey || ev.metaKey || ev.altKey || /^(INPUT|SELECT|TEXTAREA)$/.test((ev.target || {}).tagName || '')) return;
+      if (ev.key === 'u' || ev.key === 'U') S.setValues('volt', !ed.showVolt); else if (ev.key === 'i' || ev.key === 'I') S.setValues('amp', !ed.showAmp);
+    });
+    // Ziehen aus der Leiste: Fangstelle zeigen und beim Loslassen einfügen
+    svg.addEventListener('dragover', function (ev) { var sn = wireSnap(ed._pt(ev)); S.setInsertMark(sn ? sn.xy : null); });
+    svg.addEventListener('dragleave', function () { S.setInsertMark(null); });
+    // vorhandenes, noch unverdrahtetes Bauteil auf eine Leitung ziehen
+    var free = function (id) { var p = core.part(id); return p && twoPole(p.type) && !core.layout.wires.some(function (w) { return w.from.split('.')[0] === id || w.to.split('.')[0] === id; }); };
+    ed.opts.onDragMove = function (id) { var m = null; if (free(id)) { var p = core.part(id), sn = wireSnap([p.x, p.y]); m = sn ? sn.xy : null; } if ((m && !ed.insertMark) || (!m && ed.insertMark) || (m && ed.insertMark && (m[0] !== ed.insertMark[0] || m[1] !== ed.insertMark[1]))) { ed.insertMark = m; ed.render(); } };
+    ed.opts.onMoved = function (id) { ed.insertMark = null; if (!free(id)) { ed.render(); return; } var p = core.part(id), sn = wireSnap([p.x, p.y]); if (sn) insertInto(sn, p.type, p); else ed.render(); };
+
+    var ll = S.loadLayout; S.loadLayout = function () { S.disarm(); return ll.apply(this, arguments); }; // beim Laden hängt nichts mehr am Zeiger
+    // Registerkarte und eingeklappte Teile aus der letzten Sitzung
+    var tab = S.uiGet('tab'); if (tab) S.setPaletteTab(tab);
+    var fold = $('#inspFold'); if (fold) {
+      var apply = function (c, save) { document.body.classList.toggle('inspfolded', c); fold.setAttribute('aria-expanded', String(!c)); fold.textContent = c ? '‹' : '›'; fold.title = c ? 'Eigenschaftenfeld aufklappen' : 'Eigenschaftenfeld einklappen'; if (save) S.uiSet('inspFolded', c); setTimeout(function () { ed.render(); }, 0); };
+      fold.addEventListener('click', function () { apply(!document.body.classList.contains('inspfolded'), true); });
+      if (S.uiGet('inspFolded', false)) apply(true, false);
+      S.foldInspector = function (c) { apply(!!c, true); };
+    }
+    if (S.toggleTiming) {
+      S.onTimingToggle = function (c) { S.uiSet('timingCollapsed', c); };
+      if (S.uiGet('timingCollapsed', true) && !S.timingCollapsed()) S.toggleTiming(); // ohne Signale eingeklappt: die Fläche gehört dem Schaltplan
+    }
   });
 })(window);
 
@@ -5341,7 +5546,7 @@ body.beamer .dr text { font-size: inherit; }
   /* Was gerade gezeichnet wird: im Beamer-Modus nie */
   function apply() {
     Editor.extra.grid = { mode: S.beamer ? 'off' : S.grid.mode, size: S.grid.size };
-    var b = document.getElementById('btnGrid'); if (b) { b.classList.toggle('on', S.grid.mode !== 'off'); b.setAttribute('aria-pressed', S.grid.mode !== 'off'); b.title = 'Gitternetz: ' + LABEL[S.grid.mode] + ' (Taste G schaltet um)'; b.textContent = '▦ Gitter: ' + LABEL[S.grid.mode]; }
+    var b = document.getElementById('btnGrid'); if (b) { b.classList.toggle('on', S.grid.mode !== 'off'); b.setAttribute('aria-pressed', S.grid.mode !== 'off'); b.title = 'Gitternetz: ' + LABEL[S.grid.mode] + ' (Taste G schaltet um)'; b.innerHTML = '▦<span class="lb"> Gitter: ' + LABEL[S.grid.mode] + '</span>'; }
     S.ed.render(); menu();
   }
   S.setGrid = function (mode, size) {
@@ -5353,7 +5558,7 @@ body.beamer .dr text { font-size: inherit; }
 
   function menu() {
     var mark = function (on, t) { return (on ? '✓ ' : ' ') + t; }, items = [
-      { label: 'Beamer-Modus', key: 'F9', act: function () { S.setBeamer(!S.beamer); } }, { label: 'Schaltung einpassen', act: function () { S.ed.fit(); } }, { label: 'U-Werte ein/aus', act: function () { document.getElementById('btnVolt').click(); } },
+      { label: 'Beamer-Modus', key: 'F9', act: function () { S.setBeamer(!S.beamer); } }, { label: 'Schaltung einpassen', act: function () { S.ed.fit(); } },
       { head: 'Gitternetz' }].concat(MODES.map(function (m) { return { label: mark(S.grid.mode === m, LABEL[m]), key: m === 'off' ? 'G' : '', act: function () { S.setGrid(m); } }; }),
       [{ head: 'Rasterweite' }], SIZES.map(function (z) { return { label: mark(S.grid.size === z, z + (z === 20 ? ' (wie Fangraster)' : '')), act: function () { S.setGrid(null, z); } }; }));
     if (S.extraViewItems) items = items.concat(S.extraViewItems());
@@ -5418,7 +5623,7 @@ body.beamer .dr text { font-size: inherit; }
   };
   S.drawVisible = function () { return !S.core.layout.drawHidden; };
   S.setDrawVisible = function (on) { if (on) delete S.core.layout.drawHidden; else S.core.layout.drawHidden = true; S.core.changed('draw'); syncToggle(); };
-  function syncToggle() { var b = $('#btnDraw'); if (b) { var on = S.drawVisible(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.title = 'Zeichenelemente (Text, Linien, Rahmen) ' + (on ? 'ausblenden' : 'einblenden'); b.textContent = '✎ Zeichnung: ' + (on ? 'ein' : 'aus'); } }
+  function syncToggle() { var b = $('#btnDraw'); if (b) { var on = S.drawVisible(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.title = 'Zeichenelemente (Text, Linien, Rahmen) ' + (on ? 'ausblenden' : 'einblenden'); b.innerHTML = '✎<span class="lb"> Zeichnung: ' + (on ? 'ein' : 'aus') + '</span>'; } }
   S.drawSync = syncToggle;
 
   /* ---------- Darstellung ---------- */

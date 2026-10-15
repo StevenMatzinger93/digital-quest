@@ -24,6 +24,14 @@
   /* ---------- Auswahl, Kopieren, Einfügen ---------- */
   function selIds() { return S.multi.length ? S.multi.slice() : (S.core.sel && S.core.part(S.core.sel) ? [S.core.sel] : []); }
   S.selectAll = function () { S.multi = S.core.layout.parts.map(function (p) { return p.id; }); S.core.sel = null; S.ed.render(); S.redraw(); };
+  S.selectedIds = selIds;
+  /* Auswahl setzen (Auswahlrahmen): kein Bauteil = nichts gewählt, eines = normal gewählt (Eigenschaften), mehrere = Mehrfachauswahl */
+  S.setSelection = function (ids, add) {
+    var core = S.core, cur = add ? selIds() : []; ids = cur.concat(ids.filter(function (i) { return cur.indexOf(i) < 0; }));
+    if (!ids.length) { core.clickEmpty(); return; }
+    S.keepMulti = true;
+    try { if (ids.length === 1) { S.multi = []; core.sel = ids[0]; core.redraw(); core._select(core.part(ids[0])); } else { S.multi = ids; core.sel = null; core.wireStart = null; core.redraw(); core._select(null); S.multi = ids; core.redraw(); } } finally { S.keepMulti = false; }
+  };
   S.copy = function () {
     var ids = selIds(); if (!ids.length) return 0; var set = {}; ids.forEach(function (i) { set[i] = 1; });
     S.clip = { parts: S.core.layout.parts.filter(function (p) { return set[p.id]; }).map(E.clone), wires: S.core.layout.wires.filter(function (w) { return set[w.from.split('.')[0]] && set[w.to.split('.')[0]]; }).map(E.clone) };
@@ -76,6 +84,7 @@
   S.initFns.push(function () {
     S.history.reset();
     S.ed.opts.selected = function (id) { return S.multi.indexOf(id) >= 0; };
+    S.ed.opts.selectedIds = function () { return S.multi.slice(); }; S.ed.opts.onMarquee = function (ids, add) { S.setSelection(ids, add); };
     document.addEventListener('keydown', function (ev) {
       if (inField(ev.target) || ev.altKey) return;
       var k = ev.key, ctrl = ev.ctrlKey || ev.metaKey, done = false;
@@ -104,5 +113,5 @@
   S.onSelectHook = function (p) { if (p && S.multi.length && S.multi.indexOf(p.id) < 0) S.multi = []; if (!p && S.multi.length && !S.keepMulti) S.multi = []; };
   S.shortcuts = [['G', 'Gitternetz umschalten: aus, Punkte, Linien'], ['Alt + Klick auf eine Leitung', 'Knotenpunkt setzen und von dort weiterziehen'], ['Strg + Z', 'Rückgängig (bis 200 Schritte)'], ['Strg + Y  oder  Strg + Umschalt + Z', 'Wiederholen'], ['Entf', 'Auswahl löschen'], ['R', 'Bauteil drehen'], ['Esc', 'Abbrechen, Auswahl aufheben'],
     ['Strg + A', 'Alles auswählen'], ['Umschalt + Klick', 'Bauteil zur Auswahl hinzufügen'], ['Strg + C  /  Strg + V', 'Kopieren und Einfügen (versetzt)'], ['Pfeiltasten', 'Auswahl um ein Raster verschieben'],
-    ['Leertaste', 'Simulation starten und anhalten'], ['F9', 'Beamer-Modus ein und aus'], ['Strg + S  /  Strg + O  /  Strg + P', 'Speichern, Öffnen, Drucken'], ['Strg + Mausrad / zwei Finger', 'Zoom'], ['Doppelklick auf leere Fläche', 'Schaltung einpassen'], ['Doppelklick auf einen Zähler', 'Zähler aufklappen']];
+    ['Leertaste', 'Simulation starten und anhalten'], ['F9', 'Beamer-Modus ein und aus'], ['Strg + S  /  Strg + O  /  Strg + P', 'Speichern, Öffnen, Drucken'], ['U  /  I', 'Spannungen  /  Ströme im Schaltplan zeigen'], ['Bauteil am Zeiger: R / Esc', 'drehen / Setzen beenden'], ['Mausrad', 'Zoomen, zum Zeiger hin (Touch: zwei Finger)'], ['Rechte Taste gehalten und ziehen  /  mittlere Taste', 'Zeichenfläche schieben'], ['Rechtsklick ohne Ziehen', 'Menü: Signal in eine Anzeige'], ['Linke Taste auf leerer Fläche ziehen', 'Auswahlrahmen'], ['Ziehen auf einem ausgewählten Bauteil', 'ganze Auswahl verschieben'], ['Doppelklick auf leere Fläche', 'Schaltung einpassen'], ['Doppelklick auf einen Zähler', 'Zähler aufklappen']];
 })(window);

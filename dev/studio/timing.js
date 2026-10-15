@@ -1,6 +1,6 @@
 /* Digital Quest Studio – Zeitverlaufsdiagramm (Stufe 5)
  * Feste Leiste unten im Fenster (kein Oszilloskop-Fenster): digitale Signale untereinander, zeitlich ausgerichtet, dazu Zeilen mit dem
- * Zählerstand als Zahl (Bus aus markierten Zeilen, unterstes Bit zuerst). Signale per Klick hinzufügen (Werkzeug «Messen») und mit ▲ ▼ umordnen.
+ * Zählerstand als Zahl (Bus aus markierten Zeilen, unterstes Bit zuerst). Signale per Rechtsklick hinzufügen (signale.js) und mit ▲ ▼ umordnen.
  * Die Laufzeit der Flipflops steht im Bild: Die Aufzeichnung enthält die Zwischenloesungen je Rechenschritt (sim.js), Stufe k einen Durchgang spaeter. */
 (function (root) {
   'use strict';
@@ -15,12 +15,12 @@
   /* Signalzeile: tr = Aufzeichnung (Pegel). Zaehlerstand-Zeile (bus): bits = Liste von Aufzeichnungen, niederwertigstes zuerst; oder tr vom Typ cnt (Zahl). */
   function addRow(desc, label) {
     var key = JSON.stringify(desc); if (rows.some(function (r) { return r.key === key; })) return null;
-    var r = { key: key, desc: desc, tr: S.sim.addTrace(desc), mark: false, label: label || null }; rows.push(r); renderRows(); if (collapsed) S.toggleTiming(); // das erste Signal klappt einen eingeklappten Zeitverlauf auf
+    var r = { key: key, desc: desc, tr: S.sim.addTrace(desc), mark: false, label: label || null }; rows.push(r); renderRows(); if (collapsed) flip(); // das erste Signal klappt einen eingeklappten Zeitverlauf auf
     return r;
   }
   function addBus(label, descs) {
     var r = { key: 'bus:' + descs.map(JSON.stringify).join('|'), bus: true, bits: descs.map(function (d) { return S.sim.addTrace(d); }), mark: false, label: label || 'Zählerstand' };
-    rows.push(r); renderRows(); if (collapsed) S.toggleTiming(); return r;
+    rows.push(r); renderRows(); if (collapsed) flip(); return r;
   }
   function removeRow(i) {
     var r = rows.splice(i, 1)[0]; if (!r) return; if (r.tr) S.sim.removeTrace(r.tr); (r.bits || []).forEach(function (t) { S.sim.removeTrace(t); }); renderRows();
@@ -168,29 +168,17 @@
     });
     renderRows();
   };
-  S.toggleTiming = function () {
+  S.timingCollapsed = function () { return collapsed; };
+  function flip() {
     collapsed = !collapsed; var el = $('#timing'); el.classList.toggle('collapsed', collapsed); $('#btnTiming').classList.toggle('on', !collapsed); version = -1;
-  };
+  }
+  S.toggleTiming = function () { flip(); if (S.onTimingToggle) S.onTimingToggle(collapsed); }; // vom Nutzer (Knopf, Menü): wird gemerkt
   S.timingFrame = function (now) {
     if (collapsed || now - lastDraw < 50) return; lastDraw = now;
     if (frozen === null && version === S.sim.version) return; if (frozen !== null && version !== -1) return;
     draw();
   };
   S.timingDraw = draw;
-  /* Messen-Werkzeug: digitale Anschluesse gehen in den Zeitverlauf (Ziel einstellbar) */
-  var prevPin = S.measurePin, prevPart = S.measurePart;
-  S.measureTarget = function () { var t = $('#measureTarget'); return t ? t.value : 'auto'; };
-  S.measurePin = function (pin) {
-    var net = S.sim.net, node = net && net.pinNode[pin], dig = node !== undefined && S.digitalNodes[node], tg = S.measureTarget();
-    if (tg === 'timing' || (tg === 'auto' && dig)) { addRow({ kind: 'dig', a: pin }); if (collapsed) S.toggleTiming(); } else if (prevPin) prevPin(pin);
-  };
-  S.measurePart = function (p) {
-    var d = E.PARTS[p.type], tg = S.measureTarget();
-    if ((tg === 'timing' || (tg === 'auto' && (d.ff || d.ctr || d.logic))) && (d.ff || d.logic || d.ctr || p.type === 'clock' || p.type === 'logicin')) {
-      var outs = d.ff ? ['Q'] : d.ctr ? E.pinsOf(p.type, p.props).filter(function (x) { return /^Q/.test(x); }) : p.type === 'clock' || p.type === 'logicin' ? ['out'] : d.outs || ['out'];
-      outs.forEach(function (pin) { addRow({ kind: 'dig', a: p.id + '.' + pin }); }); if (collapsed) S.toggleTiming();
-    } else if (prevPart) prevPart(p);
-  };
   S.onLoad = (function (prev) { return function (o) { clearRows(); frozen = null; autoSpan = null; spanMan = null; var sp = $('#tlSpan'); if (sp) sp.value = 'auto'; var fb = $('#tlFreeze'); if (fb) { fb.textContent = '⏸ Anhalten'; fb.classList.remove('on'); } if (prev) prev(o); var t = o.timing; if (t) { (t.rows || []).forEach(function (d) { addRow(d); }); (t.buses || []).forEach(function (b) { addBus(b.label, b.bits); }); } if (t && t.auto) autoRows(); }; })(S.onLoad);
   S.onReset = (function (prev) { return function () { if (prev) prev(); autoSpan = null; frozen = null; version = -1; }; })(S.onReset);
 })(window);

@@ -13,9 +13,9 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
-body { background: var(--bg); color: var(--dunkel); font: 15px/1.45 var(--font-ui); display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto auto; overflow: hidden; }
+body { background: var(--bg); color: var(--dunkel); font: 15px/1.45 var(--font-ui); display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr) auto auto; overflow: hidden; }
 /* feste Zeilen: die ausgeblendete Schieberegler-Leiste darf die Zeilen nicht verschieben (sonst rutscht der Zeitverlauf aus dem Bild) */
-.menubar { grid-row: 1; } .toolbar { grid-row: 2; } .sliderbar { grid-row: 3; } .main { grid-row: 4; } .timing { grid-row: 5; } .statusbar { grid-row: 6; }
+.menubar { grid-row: 1; } .toolbar { grid-row: 2; } .palettebar { grid-row: 3; } .sliderbar { grid-row: 4; } .main { grid-row: 5; } .timing { grid-row: 6; } .statusbar { grid-row: 7; }
 button, select, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 3px solid var(--hellblau); outline-offset: 1px; }
@@ -41,7 +41,7 @@ button { cursor: pointer; }
 .menubar .ver { color: #9fc4d3; font-size: 13px; padding-right: 6px; }
 
 /* ---- Werkzeugleiste ---- */
-.toolbar { background: var(--karte); border-bottom: 1px solid var(--rand); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 4px 8px; }
+.toolbar { background: var(--karte); border-bottom: 1px solid var(--rand); display: flex; flex-wrap: nowrap; overflow-x: auto; align-items: center; gap: 4px 8px; padding: 3px 8px; }
 .tgroup { display: flex; align-items: center; gap: 4px; padding-right: 12px; border-right: 1px solid var(--rand); }
 .tgroup:last-child { border-right: 0; }
 .tgroup > .tl { color: var(--grau); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin-right: 4px; }
@@ -55,16 +55,17 @@ button { cursor: pointer; }
 .tin { width: 96px; font-family: var(--font-mono); }
 
 /* ---- Hauptbereich ---- */
-.main { display: grid; grid-template-columns: 224px minmax(0, 1fr) 300px; min-height: 0; }
-.palette, .inspector { background: var(--karte); overflow: auto; min-height: 0; }
-.palette { border-right: 1px solid var(--rand); }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 22px 300px; min-height: 0; }
+.main > .canvas { grid-column: 1; } .main > .inspfold { grid-column: 2; } .main > .inspector { grid-column: 3; }
+body.inspfolded .main { grid-template-columns: minmax(0, 1fr) 22px; } body.inspfolded .inspector { display: none; }
+.inspfold { border: 0; border-left: 1px solid var(--rand); background: var(--bg); color: var(--blau-text); font-size: 18px; line-height: 1; padding: 0; cursor: pointer; } .inspfold:hover { background: #e3f2f7; }
+.inspector { background: var(--karte); overflow: auto; min-height: 0; }
+/* Bauteilleiste: eine Zeile über der Zeichenfläche, links die Registerkarten, rechts die Bauteile (scrollt waagrecht) */
+.palettebar { background: var(--karte); border-bottom: 1px solid var(--rand); display: flex; align-items: stretch; gap: 8px; min-width: 0; }
+.ptabs { display: flex; flex: none; align-items: stretch; } .ptab { background: none; border: 0; border-bottom: 3px solid transparent; padding: 0 10px; min-height: 44px; font-weight: 600; color: var(--grau); white-space: nowrap; } .ptab:hover { color: var(--dunkel); background: var(--bg); } .ptab.on { color: var(--dunkel); border-bottom-color: var(--hellblau); }
+.palettebar .plist { display: flex; flex: 1; gap: 6px; padding: 3px 6px; overflow-x: auto; overflow-y: hidden; min-width: 0; border-left: 1px solid var(--rand); }
+.palettebar .pitem { flex: none; min-height: 52px; min-width: 64px; padding: 2px 6px; flex-direction: row; gap: 6px; } .palettebar .pitem .symicon { width: 44px; height: 28px; } .palettebar .pitem .nm { white-space: nowrap; } .pitem.armed { background: var(--dunkel); color: #fff; border-color: var(--dunkel); }
 .inspector { border-left: 1px solid var(--rand); padding: 10px 12px 16px; }
-.palette details { border-bottom: 1px solid var(--rand); }
-.palette summary { cursor: pointer; padding: 0 12px; min-height: 44px; display: flex; align-items: center; font-weight: 600; list-style: none; }
-.palette summary::-webkit-details-marker { display: none; }
-.palette summary::before { content: '▸'; margin-right: 8px; color: var(--blau-text); }
-.palette details[open] > summary::before { content: '▾'; }
-.palette .plist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 2px 8px 10px; }
 .pitem { background: var(--bg); border: 1px solid var(--rand); border-radius: 8px; min-height: 64px; padding: 4px 2px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; font-size: 12px; line-height: 1.2; text-align: center; color: var(--dunkel); }
 .pitem:hover { border-color: var(--hellblau); }
 .pitem .symicon { width: 54px; height: 34px; }
@@ -91,6 +92,7 @@ button { cursor: pointer; }
 .nodedot { fill: var(--wire); stroke: none; } .part.selected .nodedot { fill: var(--hellblau); r: 5; } .nodehit { fill: transparent; stroke: none; cursor: move; }
 .snapdot { fill: var(--hellblau); fill-opacity: .35; stroke: var(--hellblau); stroke-width: 1.5; }
 .pinhit { fill: transparent; cursor: crosshair; } [data-pin]:hover .pin { stroke: var(--hellblau); stroke-width: 3; }
+.ilabel { fill: #8a5200; font: 11px var(--font-mono); pointer-events: none; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
 .vlabel { fill: var(--blau-text); font: 11px var(--font-mono); pointer-events: none; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
 .burnt { stroke: var(--schlecht); stroke-width: 3.5; fill: none; }
 .lamp-on { fill: var(--gut); filter: drop-shadow(0 0 4px var(--gut)); } .lamp-off { fill: #cdd9dc; }
@@ -120,7 +122,7 @@ button { cursor: pointer; }
 
 /* ---- Zeitverlauf (fest unten) ---- */
 .timing { background: var(--karte); border-top: 1px solid var(--rand); min-height: 0; height: 230px; display: flex; flex-direction: column; }
-.timing.collapsed { height: auto; } .timing.collapsed .tl-body { display: none; }
+.timing.collapsed { display: none; } /* eingeklappt: keine Zeile, die der Zeichenfläche Höhe nimmt; aufklappen über «Zeitverlauf» (Werkzeugleiste, Menü) oder mit dem ersten Signal */
 .timing .th { display: flex; align-items: center; gap: 8px; padding: 2px 10px; min-height: 40px; flex: none; flex-wrap: wrap; }
 .timing .th b { font-weight: 600; }
 .tl-btn { background: var(--bg); border: 1px solid var(--rand); border-radius: 6px; min-height: 32px; padding: 0 10px; color: var(--dunkel); }
@@ -144,7 +146,7 @@ button { cursor: pointer; }
 .sfd text { font: 600 11px var(--font-mono); fill: var(--dunkel); } .sfd g.cur circle { fill: #cdeefc; stroke: var(--blau-text); stroke-width: 3.5; }
 
 /* ---- Statusleiste ---- */
-.statusbar { background: var(--dunkel); color: #e7f3f7; display: flex; gap: 6px 18px; flex-wrap: wrap; align-items: center; min-height: 36px; padding: 4px 12px; font-size: 13px; }
+.statusbar { background: var(--dunkel); color: #e7f3f7; display: flex; gap: 6px 18px; flex-wrap: wrap; align-items: center; min-height: 26px; padding: 1px 12px; font-size: 13px; }
 .statusbar .mono { color: #fff; }
 .statusbar .err { color: #ffb4ac; } .statusbar .ok { color: #8fe0b6; } .statusbar .warn { color: #ffe08a; }
 .statusbar .sp { flex: 1; }
@@ -179,7 +181,7 @@ button { cursor: pointer; }
 @media (max-width: 900px) {
   body { display: block; overflow: auto; height: auto; }
   .main { display: block; }
-  .palette { max-height: 220px; border-right: 0; border-bottom: 1px solid var(--rand); }
+  .palettebar { flex-direction: column; } .ptabs { overflow-x: auto; } .inspfold { display: none; }
   .canvas { height: 62vh; min-height: 360px; }
   .inspector { border-left: 0; border-top: 1px solid var(--rand); }
   .timing { height: 260px; } .tl-row, .tl-axisrow { grid-template-columns: 130px minmax(0, 1fr); }
@@ -212,7 +214,7 @@ button { cursor: pointer; }
 /* ---- Beamer-Modus (Nacht-Paket 10): dicke Linien, grosse Schrift, höherer Kontrast, grosse Bedienelemente ---- */
 body.beamer { font-size: 20px; --grau: #263238; --blau-text: #04485f; --gut-text: #0a5f35; --sch-text: #8a241c; --rand: #a9c1c8; --wire: #04485f; --dunkel: #000a10; }
 body.beamer .tb, body.beamer .tsel, body.beamer .tin { min-height: 58px; font-size: 19px; } body.beamer .menu > button { min-height: 52px; font-size: 19px; } body.beamer .menubar { min-height: 52px; } body.beamer .drop button { min-height: 56px; font-size: 19px; }
-body.beamer .pitem { min-height: 92px; font-size: 15px; } body.beamer .pitem .symicon { width: 64px; height: 42px; } body.beamer .palette { width: 250px; } body.beamer .main { grid-template-columns: 250px minmax(0, 1fr) 340px; }
+body.beamer .pitem { min-height: 92px; font-size: 15px; } body.beamer .pitem .symicon { width: 64px; height: 42px; } body.beamer .main { grid-template-columns: minmax(0, 1fr) 22px 340px; } body.beamer.inspfolded .main { grid-template-columns: minmax(0, 1fr) 22px; } body.beamer .ptab { min-height: 56px; font-size: 18px; }
 body.beamer .inspector { font-size: 19px; } body.beamer .field input[type="text"], body.beamer .field select { min-height: 56px; font-size: 19px; width: 170px; } body.beamer .live { font-size: 17px; } body.beamer .statusbar { font-size: 17px; min-height: 44px; }
 body.beamer .griddot { fill: #dde9ec; }
 body.beamer .sym { stroke-width: 3.6; stroke: #000; } body.beamer .sym.thin { stroke-width: 2.6; } body.beamer .sym.thick { stroke-width: 6; } body.beamer .sym.thick2 { stroke-width: 9; } body.beamer .sym.fillsym { fill: #000; }
@@ -287,3 +289,18 @@ body.beamer .dr text { font-size: inherit; }
   body > *:not(#printArea) { display: none !important; } body { display: block !important; overflow: visible !important; height: auto !important; }
   #printArea { display: block !important; } .pg { margin: 0; box-shadow: none; }
 }
+
+/* ---- Maussteuerung (Auftrag Bedienung, Paket 2) ---- */
+#board { cursor: default; } #board [data-part] { cursor: move; } #board [data-pin] { cursor: crosshair; } #board [data-wire] { cursor: pointer; }
+#board.panning, #board.panning * { cursor: grabbing !important; } #board.armed, #board.armed * { cursor: copy !important; }
+.marquee { fill: rgba(79,195,247,.16); stroke: var(--hellblau); stroke-width: 1.5; stroke-dasharray: 5 3; vector-effect: non-scaling-stroke; }
+.ghost { opacity: .55; } .insmark { fill: rgba(34,181,115,.25); stroke: var(--gut); stroke-width: 3; }
+
+/* ---- kompakte Kopfbereiche (Auftrag Bedienung, Paket 3): die Zeichenfläche bekommt die Höhe ---- */
+@media (pointer: fine) {
+  .menubar { min-height: 34px; } .menu > button { min-height: 34px; padding: 0 10px; }
+  .toolbar { padding: 2px 8px; } .toolbar .tb, .toolbar .tsel, .toolbar .tin { min-height: 34px; min-width: 34px; padding: 0 8px; }
+  .toolbar .tin { width: 64px; } .tgroup { padding-right: 8px; gap: 3px; flex: none; } .tgroup > .tl { display: none; }
+  .ptab { min-height: 38px; } .palettebar .pitem { min-height: 42px; } .palettebar .pitem .symicon { width: 38px; height: 24px; } .palettebar .plist { padding: 3px 6px; }
+}
+@media (pointer: fine) and (max-width: 1699px) { .toolbar .lb { display: none; } .toolbar #selFactor { width: 118px; } }

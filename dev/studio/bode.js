@@ -1,7 +1,7 @@
 /* Digital Quest Studio – Bode-Diagramm (Stufe 7)
  * Frequenzgang aus der Wechselstromanalyse der Engine (E.acSweep: komplexe Knotenanalyse um den Arbeitspunkt, dieselbe Netzliste):
  * Verstärkung in dB (oben) und Phase in Grad (unten) über logarithmischer Frequenzachse. Reiz: 1 V an der ersten Wechselspannungsquelle.
- * Signal hinzufügen: Werkzeug «Messen», Ziel «Bode», Anschluss anklicken (gegen den Bezugspunkt) oder Bauteil (Spannung über dem Bauteil). */
+ * Signal hinzufügen: Rechtsklick auf einen Anschluss (gegen den Bezugspunkt) oder ein Bauteil (Spannung über dem Bauteil), siehe signale.js. */
 (function (root) {
   'use strict';
   var S = root.Studio, E = S.E;
@@ -109,11 +109,6 @@
   S.onCircuitChange = function () { S.bodes.forEach(function (b) { b.compute(); }); };
   S.initFns.push(function () {
     var btn = $('#btnBode'); if (btn) btn.addEventListener('click', function () { S.openBode(); });
-    var prevPin = S.measurePin, prevPart = S.measurePart;
-    S.measurePin = function (pin) { if (S.measureTarget() === 'bode') { var b = active || S.openBode(); b.addChannel({ a: pin }); } else if (prevPin) prevPin(pin); };
-    S.measurePart = function (p) {
-      if (S.measureTarget() === 'bode') { var d = E.PARTS[p.type], pins = d.pins; if (pins.length >= 2) { var b = active || S.openBode(); b.addChannel({ a: p.id + '.' + pins[0], b: p.id + '.' + (p.type === 'led' || p.type === 'diode' || p.type === 'zener' ? 'k' : pins[1]) }); } } else if (prevPart) prevPart(p);
-    };
   });
   S.onLoad = (function (prev) { return function (o) { S.bodes.slice().forEach(function (b) { b.close(); }); if (prev) prev(o); (o.bode || []).forEach(function (b) { S.openBode(b.channels); }); }; })(S.onLoad);
 })(window);

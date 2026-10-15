@@ -122,3 +122,14 @@ Alle in `docs/ENTSCHEIDUNGEN_STUDIO.md` unter «Nacht 14./15.10.2026». Die wich
 3. **Erklärender Satz** kommt aus dem Beschreibungsfeld (Dialog «Schriftfeld bearbeiten»); leer = kein Text.
 4. **A4 hoch bleibt Voreinstellung.**
 **Grenze:** Eine sehr breite, flache Schaltung (z. B. das Probebeispiel, ca. 2 : 1) füllt auf A4 hoch die Breite, nicht die Höhe; das Seitenverhältnis bleibt erhalten, darüber und darunter bleibt Weiss. A4 quer füllt solche Schaltungen besser.
+
+## Auftrag «Bedienung» (15.10.2026)
+Gebaut in der Reihenfolge des Auftrags; ein gemeinsamer Teststand (`tests/studio.js` 419 Prüfungen, Stufen `m` bis `r` neu).
+1. **Kein Modus** (`--stufe=m`): Bauen/Messen-Umschaltung und Zielwahl entfernt; Klick wählt nur aus; Wege in die Anzeigen einzeln geprüft (Rechtsklick auf Anschluss/Bauteil, Eigenschaftenfeld, Menü «Anzeigen»); 20 Klicks öffnen kein Fenster.
+2. **Maus** (`--stufe=n`): Rad zoomt zum Zeiger, rechte/mittlere Taste schiebt, Rechtsklick ohne Ziehen = Menü (Schwelle 4 Punkte), Auswahlrahmen, Verschieben einer Auswahl, Umschalt, Cursorformen, Rückgängig.
+3. **Platz** (`--stufe=o`): Bauteilleiste oben mit Registerkarten, kompakte Köpfe, Zeitverlauf ohne Signale zu, Eigenschaftenfeld einklappbar, Zustand gemerkt (`dqstudio_ui_v1`); gemessen bei 1366 × 768: Zeichenfläche 80,7 % der Fensterhöhe.
+4. **In Leitung einfügen** (`--stufe=p`): Zweipole aus Leiste (Klick, Ziehen) und vorhandene unverdrahtete Zweipole; Marke, Ausrichtung, Rückgängig; Netzliste +1 Knoten, I = 8,491 mA.
+5. **Spannungen und Ströme** (`--stufe=q`): Knöpfe U und I, Menü, Tasten; Teiler 10 V / 1 k / 3 k zeigt 7,5 V; Digitaluhr ohne Überdeckungen.
+6. **Mehrfach setzen** (`--stufe=r`): Bauteil am Zeiger, R, Esc.
+**Funde:** (a) Das Aufgabenfenster verdeckte Bauteile → rechts. (b) Neuzeichnen beim Ziehen aus der Leiste verlor die Ablage → Marke direkt im SVG. (c) Eine ältere Prüfung (Druck) und mehrere Aufbauten der Browser-Tests mussten auf die neue Leiste (Registerkarte, Klick, Setzen) umgestellt werden, nicht abgeschaltet.
+**Zu prüfen durch Steven:** 80-%-Vorgabe wurde über Höhe erreicht, nicht über das Eigenschaftenfeld; Zeitverlauf ist ohne Signale komplett zu; sieben statt fünf Registerkarten; die Texte vieler Werkzeugknöpfe sind unter 1700 Punkten Breite nur noch Symbole (Tooltips bleiben).

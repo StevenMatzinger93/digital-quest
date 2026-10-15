@@ -15,7 +15,7 @@
   /* Was gerade gezeichnet wird: im Beamer-Modus nie */
   function apply() {
     Editor.extra.grid = { mode: S.beamer ? 'off' : S.grid.mode, size: S.grid.size };
-    var b = document.getElementById('btnGrid'); if (b) { b.classList.toggle('on', S.grid.mode !== 'off'); b.setAttribute('aria-pressed', S.grid.mode !== 'off'); b.title = 'Gitternetz: ' + LABEL[S.grid.mode] + ' (Taste G schaltet um)'; b.textContent = '▦ Gitter: ' + LABEL[S.grid.mode]; }
+    var b = document.getElementById('btnGrid'); if (b) { b.classList.toggle('on', S.grid.mode !== 'off'); b.setAttribute('aria-pressed', S.grid.mode !== 'off'); b.title = 'Gitternetz: ' + LABEL[S.grid.mode] + ' (Taste G schaltet um)'; b.innerHTML = '▦<span class="lb"> Gitter: ' + LABEL[S.grid.mode] + '</span>'; }
     S.ed.render(); menu();
   }
   S.setGrid = function (mode, size) {
@@ -27,7 +27,7 @@
 
   function menu() {
     var mark = function (on, t) { return (on ? '✓ ' : ' ') + t; }, items = [
-      { label: 'Beamer-Modus', key: 'F9', act: function () { S.setBeamer(!S.beamer); } }, { label: 'Schaltung einpassen', act: function () { S.ed.fit(); } }, { label: 'U-Werte ein/aus', act: function () { document.getElementById('btnVolt').click(); } },
+      { label: 'Beamer-Modus', key: 'F9', act: function () { S.setBeamer(!S.beamer); } }, { label: 'Schaltung einpassen', act: function () { S.ed.fit(); } },
       { head: 'Gitternetz' }].concat(MODES.map(function (m) { return { label: mark(S.grid.mode === m, LABEL[m]), key: m === 'off' ? 'G' : '', act: function () { S.setGrid(m); } }; }),
       [{ head: 'Rasterweite' }], SIZES.map(function (z) { return { label: mark(S.grid.size === z, z + (z === 20 ? ' (wie Fangraster)' : '')), act: function () { S.setGrid(null, z); } }; }));
     if (S.extraViewItems) items = items.concat(S.extraViewItems());
