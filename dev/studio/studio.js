@@ -31,6 +31,7 @@
   /* ---------- Bauteilleiste ---------- */
   var PALETTE = [
     { name: 'Quellen', items: ['battery', 'acsource', 'clock', 'ground'] },
+    { name: 'Verbindung', items: ['node'] },
     { name: 'Bauteile', items: ['resistor', 'pot', 'capacitor', 'inductor', 'switch', 'button', 'lamp', 'motor', 'ammeter'] },
     { name: 'Halbleiter', items: ['diode', 'led', 'zener', 'npn'] },
     { name: 'Gatter', items: ['not', 'and', 'or', 'nand', 'nor', 'xor', 'xnor'] },
@@ -87,6 +88,7 @@
   S.digitalNodes = {}; S.logicColors = true;
 
   function init() {
+    Editor.extra.nodes = true; // Leitung auf Leitung: Knotenpunkte (im Spiel nicht)
     Editor.extra.async = true; // Flipflops mit preSet/preClear zeichnen (im Spiel nicht)
     Circuit.SPACES.schema.w = 2400; Circuit.SPACES.schema.h = 1500; // grosse Zeichenflaeche (Spiel: 1000 × 620)
     svg = $('#board');
@@ -98,6 +100,7 @@
     ed.showVolt = false;
     sim = S.sim = new Sim({ getLayout: function () { return core.layout; } });
     buildPalette(); buildMenus(); buildToolbar(); bindCanvas(); bindKeys();
+    $('#inspector').addEventListener('click', function (ev) { var b = ev.target.closest('[data-send]'), p = selId && core.part(selId); if (!b || !p || !S.sendSignal) return; var k = b.dataset.send; S.sendSignal(k === 'v' || k === 'i' ? 'scope' : 'timing', k === 'v' || k === 'i' ? { part: p, q: k } : { part: p, cnt: k === 'cnt' }); });
     ed.load({ parts: [], wires: [] }, [], null);
     sim.refresh(true); sim.reset();
     renderInspector(); renderStatus();
@@ -225,7 +228,7 @@
   function closeMenus() { $$('.menu.open').forEach(function (m) { m.classList.remove('open'); $('button', m).setAttribute('aria-expanded', 'false'); }); }
   S.setMenu = function (id, items) { var m = MENUS.filter(function (x) { return x.id === id; })[0]; if (m) { m.items = items; fillMenu(m); } };
   function help() {
-    openModal('<h2>Kurzanleitung</h2><ul><li><b>Bauen:</b> Bauteil links anklicken oder auf die Zeichenfläche ziehen. Zwei Anschlüsse nacheinander anklicken = Leitung.</li>' +
+    openModal('<h2>Kurzanleitung</h2><ul><li><b>Bauen:</b> Bauteil links anklicken oder auf die Zeichenfläche ziehen. Zwei Anschlüsse nacheinander anklicken = Leitung. <b>Leitung auf Leitung:</b> mit einer Leitung im Entstehen auf eine bestehende Leitung klicken, oder von einer Leitung wegziehen – dort entsteht ein Knotenpunkt (Punkt = verbunden, Kreuzung ohne Punkt = nicht verbunden).</li>' +
       '<li><b>Bearbeiten:</b> Bauteil anklicken, rechts Werte ändern (<kbd>4k7</kbd>, <kbd>100n</kbd> und <kbd>2,2u</kbd> gehen). <kbd>R</kbd> dreht, <kbd>Entf</kbd> löscht.</li>' +
       '<li><b>Simulation:</b> <kbd>Leertaste</kbd> startet und hält an, <b>Schritt</b> rechnet einen Schritt. Der Zeitfaktor bestimmt, wie schnell die Simulationszeit läuft.</li>' +
       '<li><b>Messen:</b> Werkzeug «Messen» wählen, dann Anschluss oder Bauteil anklicken – das Signal erscheint im Oszilloskop.</li>' +
@@ -334,17 +337,23 @@
   function renderLive() {
     var el = $('#insLive'), r = sim.res, p = selId && core.part(selId);
     if (el && p && r && r.parts[p.id]) {
-      var q = r.parts[p.id], h = '';
-      function row(k, v) { h += '<dt>' + k + '</dt><dd>' + v + '</dd>'; }
-      if (q.v !== undefined) row('Spannung', E.fmt(q.v, 'V'));
-      if (q.i !== undefined) row('Strom', E.fmt(q.i, 'A'));
+      var q = r.parts[p.id], rows = [];
+      function row(k, v, send, name) { rows.push({ k: k, v: v, send: send, name: name }); }
+      if (q.v !== undefined) row('Spannung', E.fmt(q.v, 'V'), 'v', 'Spannung über ' + p.id);
+      if (q.i !== undefined) row('Strom', E.fmt(q.i, 'A'), 'i', 'Strom durch ' + p.id);
       if (q.p !== undefined && Math.abs(q.p) > 1e-12) row('Leistung', E.fmt(q.p, 'W'));
-      if (q.on !== undefined) row('Zustand', q.on ? '<span class="bigon">an</span>' : '<span class="bigoff">aus</span>');
-      if (q.out !== undefined && !Array.isArray(q.out)) row('Ausgang', q.out ? '<span class="bigon">1</span>' : '0');
-      if (q.q !== undefined) row('Q', q.q ? '<span class="bigon">1</span>' : '0');
-      if (q.count !== undefined) row('Zählerstand', q.count);
+      if (q.on !== undefined) row('Zustand', q.on ? '<span class="bigon">an</span>' : '<span class="bigoff">aus</span>', p.type === 'logicled' ? 'dig' : null, 'Pegel von ' + p.id);
+      if (q.out !== undefined && !Array.isArray(q.out)) row('Ausgang', q.out ? '<span class="bigon">1</span>' : '0', 'dig', 'Ausgang von ' + p.id);
+      if (q.q !== undefined) row('Q', q.q ? '<span class="bigon">1</span>' : '0', 'dig', 'Ausgang Q von ' + p.id);
+      if (q.count !== undefined) row('Zählerstand', q.count, 'cnt', 'Zählerstand von ' + p.id);
       if (q.state !== undefined && typeof q.state === 'string') row('Bereich', q.state);
-      el.innerHTML = h || '<dt>–</dt><dd></dd>';
+      // Zeilen nur neu bauen, wenn sich die Art der Zeilen ändert – die Knöpfe bleiben beim Klicken stehen
+      var sig = p.id + '|' + rows.map(function (x) { return x.k + (x.send || ''); }).join();
+      if (el.dataset.sig !== sig) {
+        el.dataset.sig = sig;
+        el.innerHTML = rows.map(function (x, i) { return '<dt>' + x.k + (x.send ? ' <button class="sendbtn" data-send="' + x.send + '" aria-label="' + esc(x.name) + ' anzeigen" title="' + esc(x.name) + ' in die passende Anzeige schicken">⤴</button>' : '') + '</dt><dd data-r="' + i + '"></dd>'; }).join('') || '<dt>–</dt><dd></dd>';
+      }
+      rows.forEach(function (x, i) { var dd = el.querySelector('dd[data-r="' + i + '"]'); if (dd && dd.innerHTML !== String(x.v)) dd.innerHTML = x.v; });
     }
     var ss = $('#insSim');
     if (ss) ss.innerHTML = '<dt>Zeit t</dt><dd>' + fmtT(sim.state.t) + '</dd><dt>Δt</dt><dd>' + fmtT(sim.dt) + '</dd><dt>Schritte</dt><dd>' + sim.steps + '</dd><dt>Zeitfaktor</dt><dd>' + fmtFactor(sim.effFactor()) + '</dd>';
@@ -387,7 +396,7 @@
     }
     var seen = {}; (sim.faults || []).forEach(function (f) { var t = S.faultText(f); if (!seen[t]) { seen[t] = 1; h += '<span class="err">⚠ ' + esc(t) + '</span>'; } });
     if (sim.tpdScale !== 1) h += '<span class="warn">⚠ Laufzeit überhöht ×' + (sim.tpdScale === 1e3 ? '10³' : sim.tpdScale === 1e6 ? '10⁶' : '10⁷') + '</span>';
-    h += '<span class="sp"></span><span>' + (core.layout.parts.length) + ' Bauteile · ' + core.layout.wires.length + ' Leitungen</span>';
+    h += '<span class="sp"></span><span>' + (core.layout.parts.filter(function (p) { return p.type !== 'node'; }).length) + ' Bauteile · ' + core.layout.wires.length + ' Leitungen</span>';
     if (el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; }
   }
   function flash(m) { var el = $('#statusbar'); el.insertAdjacentHTML('afterbegin', '<span class="warn">' + esc(m) + '</span>'); setTimeout(renderStatus, 3000); }

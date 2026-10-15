@@ -92,3 +92,13 @@ Alle in `docs/ENTSCHEIDUNGEN_STUDIO.md` unter «Nacht 14./15.10.2026». Die wich
 
 - Die Testkette `tests/studio.js` hat zeitabhängige Stellen (Doppelklick-Erkennung, Neuzeichnen bei laufender Simulation); ich habe Wiederholungen und Wartezeiten eingebaut und den Lauf mehrfach wiederholt, ein seltenes Flackern kann nicht ausgeschlossen werden.
 - Zeichnet die Bildschleife schwere Schaltungen, kann ein Bild bis rund 100 ms dauern (ein Rechenschritt ist nicht unterbrechbar).
+
+
+# Auftrag «Freier bauen und zeichnen» (`docs/AUFTRAG_BAUEN.md`, 15.10.2026)
+
+| Paket | Stand |
+|---|---|
+| 1 Knotenpunkte | **fertig** – Bauteil `node` (Studio), Leitung auf Leitung (Klick, Wegziehen, Alt + Klick, Rechtsklick), Vorschaupunkt, Verschieben, Löschen mit Zusammenführen, Rückgängig und Datei ohne Zutun; Test `tests/studio.js --stufe=g` (25 Prüfungen) |
+| 2 Anzeigen auffindbar | **fertig** – Kontextmenü, Hinweise in leeren Anzeigen, «Alle digitalen Signale aufnehmen», Knöpfe im Eigenschaftenfeld, Zeitverlauf klappt auf, Überlappend / Untereinander im Oszilloskop und im Zeitverlauf; Test `--stufe=h` (35 Prüfungen) |
+
+**Fund beim Bauen von Paket 2:** Die Statusleiste verdeckte den **gesamten Zeitverlauf**. Die ausgeblendete Schieberegler-Leiste (Nachtpaket 4) ist ein Gitterkind, das nicht angezeigt wird; dadurch rutschten Hauptfenster, Zeitverlauf und Statusleiste um eine Gitterzeile nach oben und der Zeitverlauf lag bei 1440 × 900 unter der Statusleiste (Bildschirmzeilen 864–1094). Das erklärt Stevens Eindruck, der Zeitverlauf gehe nicht. Behoben mit festen Gitterzeilen (`studio.css`). Die Browser-Tests hatten das nicht bemerkt, weil sie die Leiste nur per Skript ansprachen; Paket 2 klickt jetzt wirklich auf `#tlAuto`.

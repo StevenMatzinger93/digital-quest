@@ -833,6 +833,7 @@ body.beamer-mode main{ min-height:100vh; }
   /* Bauteilkatalog: Pins, Standardwerte, Namenspraefix. Geometrie liegt im Editor. */
   var PARTS = {
     ground:    { label: 'Masse', prefix: 'GND', pins: ['g'], props: {} },
+    node:      { label: 'Knoten', studio: true, prefix: 'K', pins: ['p'], props: {} }, // Verbindungspunkt auf einer Leitung (Studio): kein Bauteil, verbindet nur seine Leitungen
     battery:   { label: 'Spannungsquelle', prefix: 'B', pins: ['p', 'n'], props: { value: 9, ri: 0.05, imax: 3 }, unit: 'V' },
     resistor:  { label: 'Widerstand', prefix: 'R', pins: ['a', 'b'], props: { value: 1000, pmax: 0.25 }, unit: 'Ω' },
     pot:       { label: 'Potentiometer', prefix: 'P', pins: ['a', 'w', 'b'], props: { value: 10000, pos: 0.5, pmax: 0.25 }, unit: 'Ω' },
@@ -1842,9 +1843,32 @@ body.beamer-mode main{ min-height:100vh; }
     this.layout.parts.push(p); this.sel = id; this.changed('add');
     return p;
   };
+  /* Knotenpunkt (Studio): Leitung i bei xy (Schema-Koordinaten) teilen. Es entsteht ein Bauteil 'node' mit dem Anschluss p;
+   * aus A–B werden A–K und K–B (die erste Haelfte behaelt den Index, die zweite haengt hinten an – andere Indizes bleiben). Gibt 'K1.p' zurueck. silent: keine Meldung (der Aufrufer meldet die ganze Handlung einmal). */
+  Circuit.prototype.splitWire = function (i, xy, silent) {
+    var w = this.layout.wires[i]; if (!w || this.opts.readonly || !E.PARTS.node) return null;
+    var id = this.nextId('node'), g = SPACES.schema.grid;
+    this.layout.parts.push({ id: id, type: 'node', x: Math.round(xy[0] / g) * g, y: Math.round(xy[1] / g) * g, rot: 0, props: {} });
+    var to = w.to; w.to = id + '.p'; this.layout.wires.push({ from: id + '.p', to: to });
+    this.sel = null; if (!silent) this.changed('wire'); return id + '.p';
+  };
+  /* Knoten mit genau zwei Leitungen loeschen: die Leitungen werden wieder zu einer zusammengefuehrt */
+  Circuit.prototype._mergeNode = function (id) {
+    var pin = id + '.p', at = [], self = this;
+    this.layout.wires.forEach(function (w, i) { if (w.from === pin || w.to === pin) at.push(i); });
+    if (at.length !== 2) return false;
+    var o = at.map(function (i) { var w = self.layout.wires[i]; return w.from === pin ? w.to : w.from; });
+    var first = at[0], ws = this.layout.wires;
+    this.layout.wires = ws.filter(function (w, i) { return at.indexOf(i) < 0; });
+    var dup = o[0] === o[1] || this.layout.wires.some(function (w) { return (w.from === o[0] && w.to === o[1]) || (w.from === o[1] && w.to === o[0]); });
+    if (!dup) this.layout.wires.splice(first, 0, { from: o[0], to: o[1] });
+    this.layout.parts = this.layout.parts.filter(function (p) { return p.id !== id; });
+    return true;
+  };
   Circuit.prototype.removeSelected = function () {
     var s = this.sel; if (!s || this.opts.readonly) return false;
     if (s.indexOf('w:') === 0) { this.layout.wires.splice(+s.slice(2), 1); }
+    else if ((this.part(s) || {}).type === 'node' && this._mergeNode(s)) { /* zusammengefuehrt */ }
     else {
       if (this.locked[s]) { if (this.opts.onMessage) this.opts.onMessage('Dieses Bauteil gehört zur Aufgabe und bleibt.'); return false; }
       this.layout.parts = this.layout.parts.filter(function (p) { return p.id !== s; });
@@ -1950,7 +1974,7 @@ body.beamer-mode main{ min-height:100vh; }
   function SW() { return Circuit.SPACES.schema.w; } function SH() { return Circuit.SPACES.schema.h; } // Zeichenflaeche (Spiel 1000 × 620, Studio gross – circuit-ui.js SPACES.schema)
   var TWO = { a: [-40, 0], b: [40, 0] };
   var GEO = {
-    ground: { g: [0, -20] }, battery: { p: [0, -40], n: [0, 40] }, acsource: { p: [0, -40], n: [0, 40] },
+    ground: { g: [0, -20] }, node: { p: [0, 0] }, battery: { p: [0, -40], n: [0, 40] }, acsource: { p: [0, -40], n: [0, 40] },
     resistor: TWO, lamp: TWO, switch: TWO, button: TWO, capacitor: TWO, inductor: TWO, ammeter: TWO,
     led: { a: [-40, 0], k: [40, 0] }, diode: { a: [-40, 0], k: [40, 0] },
     pot: { a: [-40, 0], b: [40, 0], w: [0, 40] }, clock: { out: [40, 0] },
@@ -1969,7 +1993,7 @@ body.beamer-mode main{ min-height:100vh; }
   ['and', 'or', 'nand', 'nor', 'xor', 'xnor'].forEach(function (g) { GEO[g] = { in1: [-40, -20], in2: [-40, 20], out: [40, 0] }; });
   /* Dynamische Geometrie: Gatter mit einstellbarer Eingangszahl, Flipflops mit preSet/preClear (nur wenn Editor.extra.async, Studio) und Bausteine des Studios
    * (Editor.DYNGEO[type] = function (part) → {pin: [x, y]}, z. B. Zaehler) */
-  var DYNGEO = {}, EXTRA = { async: false };
+  var DYNGEO = {}, EXTRA = { async: false, nodes: false }; // nodes: Knotenpunkte auf Leitungen (nur Studio)
   function gateInputs(p) { var q = p.props || {}; return Math.max(2, Math.min(8, Math.round(q.inputs || 2))); }
   function slots(n) { var k = Math.floor(n / 2), a = []; for (var i = -k; i <= k; i++) { if (i === 0 && n % 2 === 0) continue; a.push(i * 20); } return a; }
   function geoOf(p) {
@@ -2000,6 +2024,47 @@ body.beamer-mode main{ min-height:100vh; }
     switch (((rot || 0) % 360 + 360) % 360) { case 90: return [-y, x]; case 180: return [-x, -y]; case 270: return [y, -x]; default: return [x, y]; }
   }
   function pinPos(part, pin) { var o = rotPt(geoOf(part)[pin], part.rot); return [part.x + o[0], part.y + o[1]]; }
+  /* Leitungsweg als Punktfolge: kurzer Stummel aus jedem Anschluss heraus, dazwischen rechtwinklig (Knotenpunkte haben keine Richtung) */
+  function routePts(a, b, da, db) {
+    da = da.slice(); db = db.slice();
+    if (da[1] !== 0) da[0] = 0; if (db[1] !== 0) db[0] = 0;
+    var sa = [a[0] + da[0] * 20, a[1] + da[1] * 20], sb = [b[0] + db[0] * 20, b[1] + db[1] * 20];
+    if (a[0] === b[0] || a[1] === b[1]) return [a, b];
+    function sg(v) { return v > 0 ? 1 : v < 0 ? -1 : 0; }
+    function pen(c) { // Umwege bestrafen: erstes Segment gegen die Austrittsrichtung, letztes gegen die Eintrittsrichtung
+      var s1 = [sg(c[0] - sa[0]), sg(c[1] - sa[1])], s2 = [sg(sb[0] - c[0]), sg(sb[1] - c[1])];
+      return (s1[0] === -da[0] && s1[0] !== 0 ? 1 : 0) + (s1[1] === -da[1] && s1[1] !== 0 ? 1 : 0) +
+        (s2[0] === db[0] && s2[0] !== 0 ? 1 : 0) + (s2[1] === db[1] && s2[1] !== 0 ? 1 : 0);
+    }
+    var hFirst = pen([sb[0], sa[1]]) <= pen([sa[0], sb[1]]);
+    return [a, sa, hFirst ? [sb[0], sa[1]] : [sa[0], sb[1]], sb, b];
+  }
+  /* Punktfolge der Leitung w im Layout (fuer Treffer auf der Leitung und Knotenpunkte) */
+  function wirePoly(layout, w) {
+    var byId = {}; layout.parts.forEach(function (p) { byId[p.id] = p; });
+    function end(pid) { var t = pid.split('.'), p = byId[t[0]]; if (!p || !geoOf(p)[t[1]]) return null; var o = rotPt(geoOf(p)[t[1]], p.rot); return { xy: [p.x + o[0], p.y + o[1]], d: [Math.sign(o[0]), Math.abs(o[0]) >= Math.abs(o[1]) ? 0 : Math.sign(o[1])] }; }
+    var a = end(w.from), b = end(w.to); if (!a || !b) return [];
+    return routePts(a.xy, b.xy, a.d, b.d);
+  }
+  /* Naechster Punkt auf den Leitungen zu xy: {i, xy (auf dem Raster der Leitung), dist} oder null ausserhalb des Fangradius.
+   * Nahe an einem Anschluss (Stummel) gilt kein Fang – dort wirkt der Anschluss. */
+  function snapWire(layout, xy, radius, skip) {
+    var best = null, g = 20;
+    layout.wires.forEach(function (w, i) {
+      if (skip === i) return;
+      var pts = wirePoly(layout, w);
+      for (var k = 0; k + 1 < pts.length; k++) {
+        var a = pts[k], b = pts[k + 1], hor = a[1] === b[1], ver = a[0] === b[0]; if (!hor && !ver) continue;
+        var lo = hor ? Math.min(a[0], b[0]) : Math.min(a[1], b[1]), hi = hor ? Math.max(a[0], b[0]) : Math.max(a[1], b[1]);
+        var t = hor ? xy[0] : xy[1], c = Math.max(lo, Math.min(hi, t)), q = hor ? [c, a[1]] : [a[0], c];
+        var gc = Math.round(c / g) * g; if (gc >= lo && gc <= hi) q = hor ? [gc, a[1]] : [a[0], gc];
+        var dd = Math.hypot(q[0] - xy[0], q[1] - xy[1]);
+        if (dd <= radius && (!best || dd < best.dist)) best = { i: i, xy: q, dist: dd };
+      }
+    });
+    if (best) { var b0 = best, near = layout.parts.some(function (p) { return Object.keys(geoOf(p)).some(function (pin) { var pp = pinPos(p, pin); return Math.hypot(pp[0] - b0.xy[0], pp[1] - b0.xy[1]) < 8; }); }); if (near) best = null; }
+    return best;
+  }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   function fmtVal(v) { // 4700 -> '4.7k', 1e-4 -> '100µ'
@@ -2070,6 +2135,8 @@ body.beamer-mode main{ min-height:100vh; }
         s = '<path ' + c + ' d="M0-40V-6M0 6V40"/><path class="sym thick" d="M-16-6H16"/><path class="sym thick2" d="M-8 6H8"/><text class="plus" x="12" y="-14">+</text>'; break;
       case 'ground':
         s = '<path ' + c + ' d="M0-20V0M-14 0H14M-9 6H9M-4 12H4"/>'; break;
+      case 'node': // Verbindungspunkt: ausgefuellter Punkt (IEC/DIN: Punkt = verbunden)
+        s = '<circle class="nodedot" r="3.6"/><rect class="hit nodehit" x="-9" y="-9" width="18" height="18"/>'; break;
       case 'acsource':
         s = '<path ' + c + ' d="M0-40V-16M0 16V40"/><circle ' + c + ' r="16"/><path class="sym thin" d="M-10 0C-6-10-2-10 0 0S6 10 10 0"/><text class="plus" x="12" y="-20">+</text>'; break;
       case 'logicin': // Pegelschalter: Schiebeschalter mit Pegelanzeige
@@ -2137,7 +2204,8 @@ body.beamer-mode main{ min-height:100vh; }
     return s;
   }
 
-  function labels(p) { // Beschriftung neben senkrechten, ueber/unter waagrechten Bauteilen
+  function labels(p, selected) { // Beschriftung neben senkrechten, ueber/unter waagrechten Bauteilen
+    if (p.type === 'node') return selected ? '<text class="lbl" x="8" y="-8" text-anchor="start">' + esc(p.id) + '</text>' : '';
     if (p.type === 'seg7' || p.type === 'dec7') return '<text class="lbl" y="-78">' + esc(p.id) + '</text>';
     if (E.PARTS[p.type].ctr) return '<text class="lbl" y="' + (-ctrHalf(p) - 8) + '">' + esc(p.id) + '</text><text class="val" y="' + (ctrHalf(p) + 16) + '">' + esc(valueText(p)) + '</text>';
     var vert = (p.type === 'battery' || p.type === 'ground' || p.type === 'acsource') ? (p.rot || 0) % 180 === 0 : (p.rot || 0) % 180 === 90;
@@ -2178,7 +2246,7 @@ body.beamer-mode main{ min-height:100vh; }
   function Editor(svg, opts) {
     this.svg = svg; this.opts = opts || {};
     this.core = this.opts.core || new Circuit(this.opts); // Zustand + Bedienlogik (circuit-ui.js); geteilt, falls uebergeben
-    this.sim = null; this.refMark = null; this.showVolt = false; this.mouse = [0, 0];
+    this.sim = null; this.snap = null; this.refMark = null; this.showVolt = false; this.mouse = [0, 0];
     svg.setAttribute('viewBox', '0 0 ' + SW() + ' ' + SH());
     this.view = [0, 0, SW(), SH()];
     this.core.attach(this);
@@ -2201,7 +2269,7 @@ body.beamer-mode main{ min-height:100vh; }
     var v = this.view, w = Math.max(160, Math.min(v[2], 360)), h = w * v[3] / v[2];
     this.setView([part.x - w / 2, part.y - h / 2, w, h]);
   };
-  Editor.DYNGEO = DYNGEO; Editor.extra = EXTRA; Editor.geoOf = geoOf; Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText; Editor.partTip = partTip; Editor.voltColor = voltColor; Editor.icon = icon;
+  Editor.DYNGEO = DYNGEO; Editor.extra = EXTRA; Editor.geoOf = geoOf; Editor.GEO = GEO; Editor.pinPos = pinPos; Editor.symbol = symbol; Editor.fmtVal = fmtVal; Editor.valueText = valueText; Editor.partTip = partTip; Editor.voltColor = voltColor; Editor.icon = icon; Editor.wirePoly = wirePoly; Editor.snapWire = snapWire;
   // Zustand liegt im Kern; die bisherigen Eigenschaften bleiben fuer app.js erhalten
   ['layout', 'locked', 'sel', 'wireStart', 'tool', 'probes', 'drag'].forEach(function (k) {
     Object.defineProperty(Editor.prototype, k, { get: function () { return this.core[k]; }, set: function (v) { this.core[k] = v; } });
@@ -2241,13 +2309,14 @@ body.beamer-mode main{ min-height:100vh; }
   };
   /* Nur Hit-Testing und Koordinaten-Umrechnung – die Bedienlogik steckt im Kern */
   Editor.prototype._bind = function () {
-    var self = this, svg = this.svg, core = this.core, pan = null, pinch = null, touches = {}, lastTap = { t: 0, x: 0, y: 0 };
+    var self = this, svg = this.svg, core = this.core, pan = null, pinch = null, wirePress = null, touches = {}, lastTap = { t: 0, x: 0, y: 0 };
     function dblAt(ev) { // Doppeltipp/Doppelklick: Bauteil → heranzoomen, leere Fläche → einpassen
       var t = ev.target.closest('[data-part]'), p = t && core.part(t.dataset.part);
       if (p && self.opts.onDouble && self.opts.onDouble(p)) return; // Studio: Zaehler aufklappen
       if (p) self.zoomTo(p); else self.fit();
     }
     svg.addEventListener('pointerdown', function (ev) {
+      if (ev.pointerType === 'mouse' && ev.button !== 0) return; // Rechtsklick: nur das Kontextmenue (Studio)
       if (self.opts.tight) { /* Mini-Schaltung: kein Zoom, die Lektion scrollt */ }
       else {
         if (ev.isPrimary !== false) touches = {};
@@ -2259,8 +2328,24 @@ body.beamer-mode main{ min-height:100vh; }
       }
       var t = ev.target.closest('[data-pin],[data-part],[data-wire]'), xy = self._pt(ev);
       if (t && t.dataset.pin) { ev.preventDefault(); core.clickPin(t.dataset.pin); return; }
-      if (t && t.dataset.wire !== undefined) { core.clickWire(+t.dataset.wire); return; }
-      if (t && t.dataset.part) { if (core.pressPart(t.dataset.part, xy)) svg.setPointerCapture(ev.pointerId); return; }
+      if (t && t.dataset.wire !== undefined) {
+        var wi = +t.dataset.wire, sn = !core.opts.readonly && core.tool === 'wire' && EXTRA.nodes ? Editor.snapWire(core.layout, xy, 12, -1) : null;
+        if (sn && sn.i !== wi) sn = null;
+        if (sn && core.wireStart) { // Leitung auf einer Leitung beenden: dort entsteht ein Knotenpunkt
+          var w0 = core.layout.wires[wi], st = core.wireStart; self.snap = null;
+          if (w0.from === st || w0.to === st) { core.wireStart = null; core.clickWire(wi); return; }
+          var np = core.splitWire(wi, sn.xy, true); core.wireStart = st; core.connectPin(np); return;
+        }
+        if (sn && ev.altKey) { var n2 = core.splitWire(wi, sn.xy); core.wireStart = n2; core.redraw(); return; } // Alt + Klick: Knoten setzen und von dort weiterziehen
+        core.clickWire(wi);
+        if (sn) { wirePress = { i: wi, x: ev.clientX, y: ev.clientY, xy: sn.xy }; try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ } }
+        return;
+      }
+      if (t && t.dataset.part) {
+        var tp0 = core.part(t.dataset.part);
+        if (tp0 && tp0.type === 'node' && core.wireStart) { core.clickPin(tp0.id + '.p'); return; } // Leitung an einem Knoten beenden
+        if (core.pressPart(t.dataset.part, xy)) svg.setPointerCapture(ev.pointerId); return;
+      }
       if (self.opts.tight) { core.clickEmpty(); return; }
       pan = { x: ev.clientX, y: ev.clientY, view: self.view.slice(), moved: false }; // leere Fläche: Ziehen verschiebt, Klick hebt die Auswahl auf
       try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ohne Capture weiter */ }
@@ -2270,14 +2355,24 @@ body.beamer-mode main{ min-height:100vh; }
       if (pinch && Object.keys(touches).length === 2) { var tp = Object.keys(touches).map(function (k) { return touches[k]; }), d = Math.hypot(tp[0][0] - tp[1][0], tp[0][1] - tp[1][1]); if (d > 10) { self.view = pinch.view.slice(); self.zoomAt(pinch.d / d, pinch.c[0], pinch.c[1]); } return; }
       if (pan) { var dx = ev.clientX - pan.x, dy = ev.clientY - pan.y; if (Math.abs(dx) + Math.abs(dy) > 5) pan.moved = true; if (pan.moved) { var f = pan.view[2] / (svg.getBoundingClientRect().width || 1); self.setView([pan.view[0] - dx * f, pan.view[1] - dy * f, pan.view[2], pan.view[3]]); } return; }
       var xy = self._pt(ev); self.mouse = xy;
+      if (wirePress) { // Ziehen von einer Leitung weg: dort einen Knotenpunkt setzen und die neue Leitung beginnen
+        if (Math.abs(ev.clientX - wirePress.x) + Math.abs(ev.clientY - wirePress.y) > 6) { var wp = wirePress; wirePress = null; var np = core.splitWire(wp.i, wp.xy); core.wireStart = np; core.sel = null; self.render(); }
+        return;
+      }
       if (core.drag) core.dragTo(xy);
-      else if (core.wireStart) self.render();
+      else if (core.wireStart || (core.tool === 'wire' && ev.altKey)) {
+        var sn = core.opts.readonly || !EXTRA.nodes ? null : Editor.snapWire(core.layout, xy, 12, -1);
+        self.snap = sn; self.render();
+      } else if (self.snap) { self.snap = null; self.render(); }
     });
     function up(ev) {
       delete touches[ev.pointerId];
       if (pinch) { if (Object.keys(touches).length < 2) pinch = null; return; }
+      if (wirePress) { wirePress = null; return; }
       if (pan) { var wasPan = pan.moved; pan = null; if (!wasPan) core.clickEmpty(); return; }
+      var d0 = core.drag, np0 = d0 && !d0.moved && core.part(d0.id);
       core.release();
+      if (np0 && np0.type === 'node') core.clickPin(np0.id + '.p'); // Knoten angeklickt (nicht gezogen): Leitung beginnen
     }
     svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
     svg.addEventListener('wheel', function (ev) { if (self.opts.tight || !(ev.ctrlKey || ev.metaKey)) return; ev.preventDefault(); self.zoomAt(Math.exp(ev.deltaY * 0.0015), ev.clientX, ev.clientY); }, { passive: false });
@@ -2294,21 +2389,7 @@ body.beamer-mode main{ min-height:100vh; }
     var pinWireCount = {}; L.wires.forEach(function (w) { pinWireCount[w.from] = (pinWireCount[w.from] || 0) + 1; pinWireCount[w.to] = (pinWireCount[w.to] || 0) + 1; });
     function pp(pid) { var s = pid.split('.'); return byId[s[0]] ? pinPos(byId[s[0]], s[1]) : [0, 0]; }
     function dir(pid) { var s = pid.split('.'), p = byId[s[0]]; if (!p) return [0, 0]; var o = rotPt(geoOf(p)[s[1]], p.rot); return [Math.sign(o[0]), Math.abs(o[0]) >= Math.abs(o[1]) ? 0 : Math.sign(o[1])]; }
-    function route(fa, fb) { // kurzer Stummel aus jedem Anschluss heraus, dazwischen rechtwinklig
-      var a = pp(fa), b = pp(fb), da = dir(fa), db = dir(fb);
-      if (da[1] !== 0) da[0] = 0; if (db[1] !== 0) db[0] = 0;
-      var sa = [a[0] + da[0] * 20, a[1] + da[1] * 20], sb = [b[0] + db[0] * 20, b[1] + db[1] * 20];
-      if (a[0] === b[0] || a[1] === b[1]) return 'M' + a[0] + ' ' + a[1] + 'L' + b[0] + ' ' + b[1];
-      function sg(v) { return v > 0 ? 1 : v < 0 ? -1 : 0; }
-      function pen(c) { // Umwege bestrafen: erstes Segment gegen die Austrittsrichtung, letztes gegen die Eintrittsrichtung
-        var s1 = [sg(c[0] - sa[0]), sg(c[1] - sa[1])], s2 = [sg(sb[0] - c[0]), sg(sb[1] - c[1])];
-        return (s1[0] === -da[0] && s1[0] !== 0 ? 1 : 0) + (s1[1] === -da[1] && s1[1] !== 0 ? 1 : 0) +
-          (s2[0] === db[0] && s2[0] !== 0 ? 1 : 0) + (s2[1] === db[1] && s2[1] !== 0 ? 1 : 0);
-      }
-      var hFirst = pen([sb[0], sa[1]]) <= pen([sa[0], sb[1]]);
-      var mid = hFirst ? 'H' + sb[0] + 'V' + sb[1] : 'V' + sb[1] + 'H' + sb[0];
-      return 'M' + a[0] + ' ' + a[1] + 'L' + sa[0] + ' ' + sa[1] + mid + 'L' + b[0] + ' ' + b[1];
-    }
+    function route(fa, fb) { return 'M' + routePts(pp(fa), pp(fb), dir(fa), dir(fb)).map(function (q) { return q[0] + ' ' + q[1]; }).join('L'); }
     function wcol(pid) {
       if (!res || !pinNode) return null;
       var own = self.opts.wireColor && self.opts.wireColor(pid, res, pinNode); if (own) return own; // Studio: Logikleitungen nach Pegel faerben
@@ -2334,11 +2415,12 @@ body.beamer-mode main{ min-height:100vh; }
       h.push('<g class="part' + (sel ? ' selected' : '') + (self.locked[p.id] ? ' locked' : '') + '" data-part="' + p.id + '" transform="translate(' + p.x + ' ' + p.y + ')">' +
         '<title>' + esc(tip) + '</title><rect class="hit" x="-44" y="-34" width="88" height="68"/>' +
         '<g transform="rotate(' + (p.rot || 0) + ')">' + symbol(p, r) + '</g>' +
-        labels(p) + faultMark(p) + '</g>');
+        labels(p, sel) + faultMark(p) + '</g>');
     });
     if (self.showFlow) h.push('<g class="bflow" pointer-events="none"></g>');
     // Anschluesse
     L.parts.forEach(function (p) {
+      if (p.type === 'node') return; // Knoten: der Punkt selbst ist das Bauteil (Klick = Leitung beginnen/beenden, Ziehen = verschieben)
       Object.keys(geoOf(p)).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = pinPos(p, pin), col = wcol(pid);
         var cls = 'pin' + (self.wireStart === pid ? ' active' : '') + (pinWireCount[pid] ? ' used' : '') + (pinWireCount[pid] > 1 ? ' junction' : '');
@@ -2348,10 +2430,11 @@ body.beamer-mode main{ min-height:100vh; }
         if (self.refMark === pid) h.push('<text class="refmark" x="' + (xy[0] - 8) + '" y="' + (xy[1] + 18) + '">⏚ 0 V<title>Bezugspunkt 0 V – ohne schwarze Spitze misst das Oszilloskop hiergegen</title></text>'); // G1
       });
     });
+    if (this.snap) h.push('<circle class="snapdot" cx="' + this.snap.xy[0] + '" cy="' + this.snap.xy[1] + '" r="6" pointer-events="none"/>'); // Vorschau: hier entsteht ein Knotenpunkt
     // Leitung im Entstehen
     if (this.wireStart && byId[this.wireStart.split('.')[0]]) {
-      var a = pp(this.wireStart);
-      h.push('<path class="wire pending" d="M' + a[0] + ' ' + a[1] + 'H' + this.mouse[0] + 'V' + this.mouse[1] + '"/>');
+      var a = pp(this.wireStart), e = this.snap ? this.snap.xy : this.mouse;
+      h.push('<path class="wire pending" d="M' + a[0] + ' ' + a[1] + 'H' + e[0] + 'V' + e[1] + '"/>');
     }
     // Messspitzen
     [['a', 'probe-red', '+'], ['b', 'probe-black', 'COM']].forEach(function (k) {

@@ -72,7 +72,7 @@
   S.bom = function (layout) {
     var groups = {}, order = [];
     (layout || S.core.layout).parts.forEach(function (p) {
-      if (p.type === 'ground') return; var val = bomValue(p), key = p.type + '|' + val;
+      if (p.type === 'ground' || p.type === 'node') return; var val = bomValue(p), key = p.type + '|' + val;
       if (!groups[key]) { groups[key] = { type: p.type, label: E.PARTS[p.type].label, value: val, count: 0, ids: [] }; order.push(key); }
       groups[key].count++; groups[key].ids.push(p.id);
     });

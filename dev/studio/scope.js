@@ -72,14 +72,14 @@
   var count = 0, active = null;
   function Scope() {
     var self = this; this.id = ++count; this.ch = []; this.auto = true; this.spanMan = null; this.vdiv = null; this.frozen = null;
-    this.cur = { on: false, x1: null, x2: null }; this.cls = {}; this.autoSpan = null; this.autoAt = -1e9; this.version = -1; this.fit = null;
+    this.mode = 'overlap'; this.modeSet = false; this.cur = { on: false, x1: null, x2: null }; this.cls = {}; this.autoSpan = null; this.autoAt = -1e9; this.version = -1; this.fit = null;
     var el = this.el = document.createElement('div'); el.className = 'fwin'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Oszilloskop ' + this.id);
     var k = S.scopes.length, W = Math.min(560, root.innerWidth - 16), x = Math.max(8, root.innerWidth - W - 330 - 24 * k), y = 150 + 28 * k;
     if (root.innerWidth <= 900) { x = 8 + 10 * k; y = 120 + 20 * k; }
     el.style.cssText = 'left:' + x + 'px;top:' + y + 'px;width:' + W + 'px;height:430px';
     el.innerHTML = '<div class="fh"><b>Oszilloskop ' + this.id + '</b><button data-a="close" title="Fenster schliessen" aria-label="Schliessen">×</button></div>' +
       '<div class="fb"><canvas></canvas><div class="sc-read" hidden></div><div class="sc-chs"></div>' +
-      '<div class="sc-bar"><label>Zeit <select data-a="span"></select></label><label>Höhe <select data-a="vdiv"></select></label>' +
+      '<div class="sc-bar"><label>Zeit <select data-a="span"></select></label><label>Höhe <select data-a="vdiv"></select></label><label>Darstellung <select data-a="mode" title="Überlappend: alle Kurven in einem Feld mit gemeinsamer Achse (Höhe und Phase vergleichen). Untereinander: jedes Signal in einer eigenen Spur (Digitalsignale)."><option value="overlap">Überlappend</option><option value="stack">Untereinander</option></select></label>' +
       '<button data-a="freeze" title="Anzeige anhalten, die Simulation läuft weiter">⏸ Anhalten</button><button data-a="cursor" title="Messcursor ein/aus (hält die Anzeige an)">↔ Cursor</button><button data-a="tau" title="Zeitkonstante τ der letzten Lade-/Entladekurve bestimmen">τ bestimmen</button></div></div>';
     $('#floats').appendChild(el);
     this.cv = $('canvas', el); this.ctx = this.cv.getContext('2d');
@@ -89,6 +89,7 @@
     el.addEventListener('change', function (ev) {
       var a = ev.target.dataset.a;
       if (a === 'span') { self.spanMan = ev.target.value === 'auto' ? null : +ev.target.value; self.dirty(); }
+      if (a === 'mode') { self.mode = ev.target.value; self.modeSet = true; self.cls = {}; self.dirty(); }
       if (a === 'vdiv') { self.vdiv = ev.target.value === 'auto' ? null : +ev.target.value; self.cls = {}; self.dirty(); }
     });
     el.addEventListener('click', function (ev) {
@@ -128,12 +129,15 @@
     if (this.ch.some(function (c) { return JSON.stringify(c.tr.desc) === JSON.stringify(desc); })) return null;
     var tr = S.sim.addTrace(desc), used = this.ch.map(function (c) { return c.color; });
     var color = COLORS.filter(function (c) { return used.indexOf(c) < 0; })[0] || COLORS[this.ch.length % COLORS.length];
-    var c = { tr: tr, color: color }; this.ch.push(c); this.cls = {}; this.renderChannels(); this.dirty(); return c;
+    var c = { tr: tr, color: color, dig: desc.kind === 'dig' || (desc.kind === 'node' && !!S.isDigitalPin && S.isDigitalPin(desc.a)) }; this.ch.push(c); this.cls = {};
+    if (!this.modeSet && this.ch.length === 1) { this.mode = c.dig ? 'stack' : 'overlap'; $('[data-a="mode"]', this.el).value = this.mode; } // Vorauswahl nach Inhalt des ersten Signals
+    this.renderChannels(); this.dirty(); return c;
   };
   Scope.prototype.removeChannel = function (i) { var c = this.ch.splice(i, 1)[0]; if (c) S.sim.removeTrace(c.tr); this.cls = {}; this.renderChannels(); this.dirty(); };
   Scope.prototype.renderChannels = function () {
     var h = this.ch.map(function (c, i) { return '<span class="sc-ch"><i style="background:' + c.color + '"></i>' + c.tr.label + '<button data-a="rm" data-i="' + i + '" aria-label="Kanal entfernen" title="Kanal entfernen">×</button></span>'; }).join('');
-    $('.sc-chs', this.el).innerHTML = h || '<span class="sc-empty">Kein Signal. Werkzeug «Messen» wählen und im Schaltplan einen Anschluss oder ein Bauteil anklicken.</span>';
+    $('.sc-chs', this.el).innerHTML = h || '<span class="sc-empty">Kein Signal.</span>';
+    if (!this.hint) this.hint = S.makeHint(this, 'scope'); this.hint.hidden = this.ch.length > 0;
   };
   Scope.prototype.setFrozen = function (on) {
     this.frozen = on ? { tEnd: S.sim.state.t } : null; var b = $('[data-a="freeze"]', this.el); b.classList.toggle('on', !!on); b.textContent = on ? '▶ Weiter' : '⏸ Anhalten';
@@ -171,66 +175,100 @@
   };
   Scope.prototype.version_ = function () { return S.sim.version; };
 
+  /* Kurve eines Kanals in das Feld [top, top + h] zeichnen (Hüllkurve je Bildspalte bei dichten Daten) */
+  function drawCurve(ctx, g, c, cl, top, h) {
+    var tr = c.tr; if (!cl || !tr.n) return;
+    var a = Math.max(0, tr.lower(g.t0) - 1), b = Math.min(tr.n, tr.lower(g.t1 + 1e-15) + 1), dense = (b - a) > g.w * 2;
+    function px(t) { return g.l + (t - g.t0) / (g.t1 - g.t0) * g.w; } function py(v) { return top + h - (v - cl.lo) / (cl.hi - cl.lo) * h; }
+    ctx.strokeStyle = c.color; ctx.beginPath();
+    if (!dense) { for (var j = a; j < b; j++) { var X = px(tr.t[j]), Y = py(tr.v[j]); if (j === a) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); } }
+    else {
+      var col = -1, lo = 0, hi = 0, first = true, last = 0;
+      for (var j2 = a; j2 < b; j2++) {
+        var X2 = Math.floor(px(tr.t[j2])), v2 = tr.v[j2];
+        if (X2 !== col) { if (col >= 0) { if (first) { ctx.moveTo(col + .5, py(lo)); first = false; } else ctx.lineTo(col + .5, py(last)); ctx.lineTo(col + .5, py(lo)); ctx.lineTo(col + .5, py(hi)); last = hi; } col = X2; lo = hi = v2; }
+        else { if (v2 < lo) lo = v2; if (v2 > hi) hi = v2; }
+      }
+      if (col >= 0) { if (first) ctx.moveTo(col + .5, py(lo)); ctx.lineTo(col + .5, py(lo)); ctx.lineTo(col + .5, py(hi)); }
+    }
+    ctx.stroke();
+  }
+  /* Messbereich eines Kanals (oder einer Einheit) an die sichtbaren Werte anpassen; Rueckgabe cl {lo, hi, step} */
+  function fitScale(cl, items, g, fixed) {
+    var mn = Infinity, mx = -Infinity;
+    items.forEach(function (c) {
+      var tr = c.tr, a = tr.lower(g.t0), b = Math.min(tr.n, tr.lower(g.t1 + 1e-15) + 1), stride = Math.max(1, Math.floor((b - a) / 3000));
+      for (var j = a; j < b; j += stride) { var v = tr.v[j]; if (v < mn) mn = v; if (v > mx) mx = v; }
+    });
+    if (fixed) { cl.lo = -fixed.lo; cl.hi = fixed.hi; cl.set = true; }
+    else if (isFinite(mn)) {
+      var pad = (mx - mn) * 0.1 || Math.max(Math.abs(mx) * 0.1, 0.1), lo = mn - pad, hi = mx + pad, step = niceStep(hi - lo, 8);
+      var nlo = Math.floor(lo / step) * step, nhi = Math.ceil(hi / step) * step; if (nhi - nlo < step * 4) nhi = nlo + step * 4;
+      if (mn >= 0 && mn < (mx - mn) * 0.5) nlo = Math.min(nlo, 0); if (mx <= 0 && -mx < (mx - mn) * 0.5) nhi = Math.max(nhi, 0);
+      if (!cl.set || mn < cl.lo || mx > cl.hi || (cl.hi - cl.lo) > 2.6 * (nhi - nlo)) { cl.lo = nlo; cl.hi = nhi; cl.set = true; }
+    }
+    cl.step = niceStep(cl.hi - cl.lo, 8);
+  }
+  var tickTxt = function (v, u) { return E.fmt(Math.abs(v) < 1e-12 ? 0 : v, u).replace(/\.?0+ /, ' ').replace(/\.(\d) /, '.$1 '); };
+  /* Untereinander: jedes Signal in einer eigenen Spur mit eigener Hoehenachse, gemeinsame Zeitachse. Digitale Spuren tragen 0 und 1 statt einer Voltskala. */
+  Scope.prototype.drawLanes = function (ctx, g) {
+    var self = this, n = this.ch.length, gap = 8, lh = (g.h - gap * (n - 1)) / Math.max(1, n); this.lanes = [];
+    this.ch.forEach(function (c, i) {
+      var top = g.t + i * (lh + gap), bot = top + lh, key = 'c' + i, cl = self.cls[key] || (self.cls[key] = { lo: 0, hi: 1, set: false });
+      if (c.dig) { cl.lo = -0.9; cl.hi = 5.9; cl.set = true; cl.step = 5; }
+      else fitScale(cl, [c], g, self.vdiv && c.tr.unit === 'V' ? { lo: 2 * self.vdiv, hi: 2 * self.vdiv } : null);
+      self.lanes.push({ top: top, bot: bot });
+      ctx.fillStyle = i % 2 ? '#f6fafb' : '#fff'; ctx.fillRect(g.l, top, g.w, lh);
+      function y(v) { return Math.round(bot - (v - cl.lo) / (cl.hi - cl.lo) * lh) + .5; }
+      ctx.lineWidth = 1; ctx.textBaseline = 'middle';
+      var ticks = c.dig ? [[0, '0'], [5, '1']] : (function () { var t = []; for (var v = Math.ceil(cl.lo / cl.step - 1e-9) * cl.step; v <= cl.hi + cl.step * 1e-6; v += cl.step) t.push([v, tickTxt(v, c.tr.unit)]); return t.length > 4 ? [t[0], t[t.length - 1]].concat(t.filter(function (q) { return Math.abs(q[0]) < cl.step * 1e-6; })) : t; })();
+      ticks.forEach(function (tk) { var yy = y(tk[0]); ctx.strokeStyle = tk[0] === 0 && !c.dig ? '#9db7c0' : '#e2eef0'; ctx.beginPath(); ctx.moveTo(g.l, yy); ctx.lineTo(g.r, yy); ctx.stroke(); ctx.fillStyle = c.color; ctx.textAlign = 'right'; ctx.font = '11px ' + self.mono; ctx.fillText(tk[1], g.l - 6, yy); });
+      ctx.strokeStyle = '#0f2d3a'; ctx.strokeRect(g.l + .5, top + .5, g.w, lh);
+      var nm = c.tr.label.replace(/^U\((.*)\)$/, '$1'); if (nm.length > 10) nm = nm.slice(0, 9) + '…';
+      ctx.font = 'bold 12px ' + self.mono; ctx.fillStyle = c.color; ctx.textAlign = 'left'; ctx.fillText(nm, 6, top + lh / 2 - (c.dig ? 0 : 7));
+      if (!c.dig) { ctx.font = '10px ' + self.mono; ctx.fillStyle = '#5b6b73'; ctx.fillText(c.tr.unit === 'A' ? 'Strom' : 'Spannung', 6, top + lh / 2 + 7); }
+      ctx.save(); ctx.beginPath(); ctx.rect(g.l, top, g.w, lh); ctx.clip(); ctx.lineWidth = 2; ctx.lineJoin = 'round'; drawCurve(ctx, g, c, cl, top, lh); ctx.restore();
+    });
+  };
+
   Scope.prototype.draw = function (force) {
     var cv = this.cv, dpr = root.devicePixelRatio || 1, W = Math.max(50, cv.clientWidth), H = Math.max(50, cv.clientHeight);
     if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
     var ctx = this.ctx, sim = S.sim; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    this.mono = getComputedStyle(document.body).getPropertyValue('--font-mono');
     var units = []; this.ch.forEach(function (c) { if (units.indexOf(c.tr.unit) < 0) units.push(c.tr.unit); });
-    var g = this.geom = { l: 58, r: W - (units.length > 1 ? 58 : 12), t: 10, b: H - 24 }; g.w = g.r - g.l; g.h = g.b - g.t;
+    var stack = this.mode === 'stack' && this.ch.length > 0;
+    var g = this.geom = { l: stack ? 104 : 58, r: W - (!stack && units.length > 1 ? 58 : 12), t: 10, b: H - 24 }; g.w = g.r - g.l; g.h = g.b - g.t;
     var span = this.span(), tEnd = this.frozen ? this.frozen.tEnd : sim.state.t, t0 = tEnd > span ? tEnd - span : 0; g.t0 = t0; g.t1 = t0 + span;
     // Zeitgitter
-    ctx.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--font-mono'); ctx.textBaseline = 'top';
+    ctx.font = '11px ' + this.mono; ctx.textBaseline = 'top';
     ctx.strokeStyle = '#e2eef0'; ctx.lineWidth = 1; ctx.fillStyle = '#5b6b73'; ctx.textAlign = 'center';
     for (var i = 0; i <= 10; i++) {
-      var x = Math.round(g.l + g.w * i / 10) + .5; ctx.beginPath(); ctx.moveTo(x, g.t); ctx.lineTo(x, g.b); ctx.stroke();
+      var x = Math.round(g.l + g.w * i / 10) + .5; if (!stack) { ctx.beginPath(); ctx.moveTo(x, g.t); ctx.lineTo(x, g.b); ctx.stroke(); }
       if (i % 2 === 0) ctx.fillText(S.fmtT(t0 + span * i / 10), Math.min(Math.max(x, g.l + 24), g.r - 24), g.b + 6);
     }
-    // je Einheit eine Skala
     var self = this; this.cls = this.cls || {};
-    units.forEach(function (u, ui) {
-      var items = self.ch.filter(function (c) { return c.tr.unit === u; }), i0s = [], mn = Infinity, mx = -Infinity;
-      items.forEach(function (c) {
-        var tr = c.tr, a = tr.lower(g.t0), b = Math.min(tr.n, tr.lower(g.t1 + 1e-15) + 1), stride = Math.max(1, Math.floor((b - a) / 3000));
-        for (var j = a; j < b; j += stride) { var v = tr.v[j]; if (v < mn) mn = v; if (v > mx) mx = v; }
-      });
-      var cl = self.cls[u] || (self.cls[u] = { lo: 0, hi: 1, set: false });
-      if (u === 'V' && self.vdiv) { cl.lo = -4 * self.vdiv; cl.hi = 4 * self.vdiv; cl.set = true; }
-      else if (isFinite(mn)) {
-        var pad = (mx - mn) * 0.1 || Math.max(Math.abs(mx) * 0.1, 0.1), lo = mn - pad, hi = mx + pad, step = niceStep(hi - lo, 8);
-        var nlo = Math.floor(lo / step) * step, nhi = Math.ceil(hi / step) * step; if (nhi - nlo < step * 4) nhi = nlo + step * 4;
-        if (mn >= 0 && mn < (mx - mn) * 0.5) nlo = Math.min(nlo, 0); if (mx <= 0 && -mx < (mx - mn) * 0.5) nhi = Math.max(nhi, 0);
-        if (!cl.set || mn < cl.lo || mx > cl.hi || (cl.hi - cl.lo) > 2.6 * (nhi - nlo)) { cl.lo = nlo; cl.hi = nhi; cl.set = true; }
-      }
-      cl.step = niceStep(cl.hi - cl.lo, 8);
-      // Skala zeichnen: erste Einheit mit Gitter links, zweite rechts
-      ctx.textBaseline = 'middle'; ctx.textAlign = ui === 0 ? 'right' : 'left'; ctx.fillStyle = items[0].color;
-      for (var v = Math.ceil(cl.lo / cl.step - 1e-9) * cl.step; v <= cl.hi + cl.step * 1e-6; v += cl.step) {
-        var y = Math.round(g.b - (v - cl.lo) / (cl.hi - cl.lo) * g.h) + .5;
-        if (ui === 0) { ctx.strokeStyle = Math.abs(v) < cl.step * 1e-6 ? '#9db7c0' : '#e2eef0'; ctx.beginPath(); ctx.moveTo(g.l, y); ctx.lineTo(g.r, y); ctx.stroke(); }
-        ctx.fillText(E.fmt(Math.abs(v) < cl.step * 1e-6 ? 0 : v, u).replace(/\.?0+ /, ' ').replace(/\.(\d) /, '.$1 '), ui === 0 ? g.l - 6 : g.r + 6, y);
-      }
-    });
-    ctx.strokeStyle = '#0f2d3a'; ctx.lineWidth = 1; ctx.strokeRect(g.l + .5, g.t + .5, g.w, g.h);
-    // Kurven (Huellkurve je Bildspalte bei dichten Daten)
-    ctx.save(); ctx.beginPath(); ctx.rect(g.l, g.t, g.w, g.h); ctx.clip(); ctx.lineWidth = 2; ctx.lineJoin = 'round';
-    this.ch.forEach(function (c) {
-      var tr = c.tr, cl = self.cls[tr.unit]; if (!cl || !tr.n) return;
-      var a = Math.max(0, tr.lower(g.t0) - 1), b = Math.min(tr.n, tr.lower(g.t1 + 1e-15) + 1), dense = (b - a) > g.w * 2;
-      function px(t) { return g.l + (t - g.t0) / (g.t1 - g.t0) * g.w; } function py(v) { return g.b - (v - cl.lo) / (cl.hi - cl.lo) * g.h; }
-      ctx.strokeStyle = c.color; ctx.beginPath();
-      if (!dense) { for (var j = a; j < b; j++) { var X = px(tr.t[j]), Y = py(tr.v[j]); if (j === a) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); } }
-      else {
-        var col = -1, lo = 0, hi = 0, first = true, last = 0;
-        for (var j2 = a; j2 < b; j2++) {
-          var X2 = Math.floor(px(tr.t[j2])), v2 = tr.v[j2];
-          if (X2 !== col) { if (col >= 0) { if (first) { ctx.moveTo(col + .5, py(lo)); first = false; } else ctx.lineTo(col + .5, py(last)); ctx.lineTo(col + .5, py(lo)); ctx.lineTo(col + .5, py(hi)); last = hi; } col = X2; lo = hi = v2; }
-          else { if (v2 < lo) lo = v2; if (v2 > hi) hi = v2; }
+    if (stack) {
+      this.drawLanes(ctx, g);
+      ctx.strokeStyle = '#e2eef0'; ctx.lineWidth = 1; for (var i2 = 0; i2 <= 10; i2++) { var x2 = Math.round(g.l + g.w * i2 / 10) + .5; ctx.beginPath(); ctx.moveTo(x2, g.t); ctx.lineTo(x2, g.b); ctx.globalAlpha = .55; ctx.stroke(); ctx.globalAlpha = 1; }
+    } else {
+      // je Einheit eine Skala
+      units.forEach(function (u, ui) {
+        var items = self.ch.filter(function (c) { return c.tr.unit === u; }), cl = self.cls[u] || (self.cls[u] = { lo: 0, hi: 1, set: false });
+        fitScale(cl, items, g, u === 'V' && self.vdiv ? { lo: 4 * self.vdiv, hi: 4 * self.vdiv } : null);
+        // Skala zeichnen: erste Einheit mit Gitter links, zweite rechts
+        ctx.textBaseline = 'middle'; ctx.textAlign = ui === 0 ? 'right' : 'left'; ctx.fillStyle = items[0].color;
+        for (var v = Math.ceil(cl.lo / cl.step - 1e-9) * cl.step; v <= cl.hi + cl.step * 1e-6; v += cl.step) {
+          var y = Math.round(g.b - (v - cl.lo) / (cl.hi - cl.lo) * g.h) + .5;
+          if (ui === 0) { ctx.strokeStyle = Math.abs(v) < cl.step * 1e-6 ? '#9db7c0' : '#e2eef0'; ctx.beginPath(); ctx.moveTo(g.l, y); ctx.lineTo(g.r, y); ctx.stroke(); }
+          ctx.fillText(tickTxt(v, u), ui === 0 ? g.l - 6 : g.r + 6, y);
         }
-        if (col >= 0) { if (first) ctx.moveTo(col + .5, py(lo)); ctx.lineTo(col + .5, py(lo)); ctx.lineTo(col + .5, py(hi)); }
-      }
-      ctx.stroke();
-    });
-    ctx.restore();
+      });
+      ctx.strokeStyle = '#0f2d3a'; ctx.lineWidth = 1; ctx.strokeRect(g.l + .5, g.t + .5, g.w, g.h);
+      ctx.save(); ctx.beginPath(); ctx.rect(g.l, g.t, g.w, g.h); ctx.clip(); ctx.lineWidth = 2; ctx.lineJoin = 'round';
+      this.ch.forEach(function (c) { drawCurve(ctx, g, c, self.cls[c.tr.unit], g.t, g.h); });
+      ctx.restore();
+    }
     // Cursor
     if (this.cur.on && this.cur.x1 !== null) {
       ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; [['x1', '1'], ['x2', '2']].forEach(function (k) {
@@ -239,7 +277,6 @@
       }); ctx.setLineDash([]);
       this.renderReadout();
     }
-    if (!this.ch.length) { ctx.fillStyle = '#5b6b73'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '13px ' + getComputedStyle(document.body).getPropertyValue('--font-ui'); ctx.fillText('Werkzeug «Messen» wählen und ein Signal anklicken', g.l + g.w / 2, g.t + g.h / 2); }
     this.version = sim.version;
   };
   Scope.prototype.renderReadout = function () {

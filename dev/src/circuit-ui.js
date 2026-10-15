@@ -110,9 +110,32 @@
     this.layout.parts.push(p); this.sel = id; this.changed('add');
     return p;
   };
+  /* Knotenpunkt (Studio): Leitung i bei xy (Schema-Koordinaten) teilen. Es entsteht ein Bauteil 'node' mit dem Anschluss p;
+   * aus A–B werden A–K und K–B (die erste Haelfte behaelt den Index, die zweite haengt hinten an – andere Indizes bleiben). Gibt 'K1.p' zurueck. silent: keine Meldung (der Aufrufer meldet die ganze Handlung einmal). */
+  Circuit.prototype.splitWire = function (i, xy, silent) {
+    var w = this.layout.wires[i]; if (!w || this.opts.readonly || !E.PARTS.node) return null;
+    var id = this.nextId('node'), g = SPACES.schema.grid;
+    this.layout.parts.push({ id: id, type: 'node', x: Math.round(xy[0] / g) * g, y: Math.round(xy[1] / g) * g, rot: 0, props: {} });
+    var to = w.to; w.to = id + '.p'; this.layout.wires.push({ from: id + '.p', to: to });
+    this.sel = null; if (!silent) this.changed('wire'); return id + '.p';
+  };
+  /* Knoten mit genau zwei Leitungen loeschen: die Leitungen werden wieder zu einer zusammengefuehrt */
+  Circuit.prototype._mergeNode = function (id) {
+    var pin = id + '.p', at = [], self = this;
+    this.layout.wires.forEach(function (w, i) { if (w.from === pin || w.to === pin) at.push(i); });
+    if (at.length !== 2) return false;
+    var o = at.map(function (i) { var w = self.layout.wires[i]; return w.from === pin ? w.to : w.from; });
+    var first = at[0], ws = this.layout.wires;
+    this.layout.wires = ws.filter(function (w, i) { return at.indexOf(i) < 0; });
+    var dup = o[0] === o[1] || this.layout.wires.some(function (w) { return (w.from === o[0] && w.to === o[1]) || (w.from === o[1] && w.to === o[0]); });
+    if (!dup) this.layout.wires.splice(first, 0, { from: o[0], to: o[1] });
+    this.layout.parts = this.layout.parts.filter(function (p) { return p.id !== id; });
+    return true;
+  };
   Circuit.prototype.removeSelected = function () {
     var s = this.sel; if (!s || this.opts.readonly) return false;
     if (s.indexOf('w:') === 0) { this.layout.wires.splice(+s.slice(2), 1); }
+    else if ((this.part(s) || {}).type === 'node' && this._mergeNode(s)) { /* zusammengefuehrt */ }
     else {
       if (this.locked[s]) { if (this.opts.onMessage) this.opts.onMessage('Dieses Bauteil gehört zur Aufgabe und bleibt.'); return false; }
       this.layout.parts = this.layout.parts.filter(function (p) { return p.id !== s; });

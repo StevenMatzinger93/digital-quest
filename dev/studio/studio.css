@@ -14,6 +14,8 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body { background: var(--bg); color: var(--dunkel); font: 15px/1.45 var(--font-ui); display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto auto; overflow: hidden; }
+/* feste Zeilen: die ausgeblendete Schieberegler-Leiste darf die Zeilen nicht verschieben (sonst rutscht der Zeitverlauf aus dem Bild) */
+.menubar { grid-row: 1; } .toolbar { grid-row: 2; } .sliderbar { grid-row: 3; } .main { grid-row: 4; } .timing { grid-row: 5; } .statusbar { grid-row: 6; }
 button, select, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 3px solid var(--hellblau); outline-offset: 1px; }
@@ -86,6 +88,8 @@ button { cursor: pointer; }
 .wire.selected { stroke: var(--hellblau); stroke-width: 4; } .wire.pending { stroke-dasharray: 6 5; opacity: .8; }
 .wirehit { fill: none; stroke: transparent; stroke-width: 14; cursor: pointer; }
 .pin { fill: var(--karte); stroke: var(--grau); stroke-width: 1.5; } .pin.used { fill: var(--wire); stroke: var(--wire); } .pin.active { fill: var(--hellblau); stroke: var(--dunkel); }
+.nodedot { fill: var(--wire); stroke: none; } .part.selected .nodedot { fill: var(--hellblau); r: 5; } .nodehit { fill: transparent; stroke: none; cursor: move; }
+.snapdot { fill: var(--hellblau); fill-opacity: .35; stroke: var(--hellblau); stroke-width: 1.5; }
 .pinhit { fill: transparent; cursor: crosshair; } [data-pin]:hover .pin { stroke: var(--hellblau); stroke-width: 3; }
 .vlabel { fill: var(--blau-text); font: 11px var(--font-mono); pointer-events: none; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
 .burnt { stroke: var(--schlecht); stroke-width: 3.5; fill: none; }
@@ -223,7 +227,20 @@ body.beamer .pitem { min-height: 92px; font-size: 15px; } body.beamer .pitem .sy
 body.beamer .inspector { font-size: 19px; } body.beamer .field input[type="text"], body.beamer .field select { min-height: 56px; font-size: 19px; width: 170px; } body.beamer .live { font-size: 17px; } body.beamer .statusbar { font-size: 17px; min-height: 44px; }
 body.beamer .griddot { fill: #dde9ec; }
 body.beamer .sym { stroke-width: 3.6; stroke: #000; } body.beamer .sym.thin { stroke-width: 2.6; } body.beamer .sym.thick { stroke-width: 6; } body.beamer .sym.thick2 { stroke-width: 9; } body.beamer .sym.fillsym { fill: #000; }
-body.beamer .wire { stroke-width: 4.6; } body.beamer .wire.selected { stroke-width: 6.5; } body.beamer .pin { stroke-width: 2.4; r: 6; } body.beamer .pin.used { r: 6.5; }
+body.beamer .wire { stroke-width: 4.6; } body.beamer .wire.selected { stroke-width: 6.5; } body.beamer .nodedot { r: 6.5; } body.beamer .pin { stroke-width: 2.4; r: 6; } body.beamer .pin.used { r: 6.5; }
 body.beamer .symtxt { font-size: 21px; fill: #000; } body.beamer .symtxt.small { font-size: 14px; } body.beamer .lbl { font-size: 20px; font-weight: 700; fill: #000; } body.beamer .val { font-size: 20px; font-weight: 700; fill: var(--blau-text); } body.beamer .vlabel { font-size: 17px; font-weight: 700; stroke-width: 4px; }
 body.beamer .tl-nm { font-size: 17px; } body.beamer .sc-bar, body.beamer .sc-chs { font-size: 15px; } body.beamer .itab { font-size: 15px; }
 body.beamer text[text-anchor="start"] { transform: translateX(20px); } /* senkrechte Bauteile: Beschriftung weiter weg vom Symbol */
+
+/* Kontextmenü (Rechtsklick) und Senden-Knöpfe im Eigenschaftenfeld (Paket 2) */
+.ctxmenu { position: fixed; z-index: 90; min-width: 250px; max-width: 340px; background: var(--karte); color: var(--dunkel); border: 1px solid var(--dunkel); border-radius: 8px; box-shadow: 0 10px 30px rgba(15,45,58,.3); padding: 4px 0; }
+.ctxmenu .ctx-t { padding: 6px 14px 6px; font-family: var(--font-mono); font-size: 13px; color: var(--grau); border-bottom: 1px solid var(--rand); margin-bottom: 4px; }
+.ctxmenu button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 8px 14px; min-height: 40px; font-size: 14px; }
+.ctxmenu button:hover:not(:disabled), .ctxmenu button:focus-visible { background: var(--bg); }
+.ctxmenu button:disabled { color: #8a9aa1; cursor: default; } .ctxmenu button small { display: block; font-size: 12px; margin-top: 2px; white-space: normal; }
+.ctxmenu hr { border: 0; border-top: 1px solid var(--rand); margin: 4px 0; }
+.sendbtn { background: var(--bg); border: 1px solid var(--rand); border-radius: 5px; min-width: 26px; min-height: 22px; padding: 0 4px; font-size: 13px; color: var(--blau-text, #0b6e94); cursor: pointer; vertical-align: middle; } .sendbtn:hover { background: var(--dunkel); color: #fff; }
+.sc-hint { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); width: min(420px, 86%); text-align: center; background: rgba(255,255,255,.94); border: 1px dashed var(--rand); border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--dunkel); }
+.sc-hint b { display: block; margin-bottom: 4px; } .sc-hint .tl-btn { margin-top: 8px; }
+.fwin .fb { position: relative; }
+.tl-empty b { display: block; margin-bottom: 2px; }

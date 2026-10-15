@@ -37,6 +37,26 @@ function counterEquivalence() {
   ok(C.minimize(3, [0, 2, 4], [6, 7]).length <= 3, 'Quine-McCluskey liefert eine kleine Überdeckung');
 }
 
+/* ===== Auftrag «Bauen», Paket 1 (ohne Browser): Knoten in der Netzliste ===== */
+function knotenNetzliste() {
+  const E = require('../src/engine.js'), P = (id, type, x, y, extra) => Object.assign({ id, type, x, y, rot: 0 }, extra || {}), Wr = (a, b) => ({ from: a, to: b });
+  // Takt auf vier Flipflops über eine Sammelleitung aus drei Knoten
+  const bus = { parts: [P('CLK1', 'clock', 0, 0), P('K1', 'node', 100, 0), P('K2', 'node', 200, 0), P('K3', 'node', 300, 0)].concat([1, 2, 3, 4].map(k => P('FF' + k, 'dff', 100 * k, 100))),
+    wires: [Wr('CLK1.out', 'K1.p'), Wr('K1.p', 'K2.p'), Wr('K2.p', 'K3.p'), Wr('K1.p', 'FF1.C'), Wr('K2.p', 'FF2.C'), Wr('K3.p', 'FF3.C'), Wr('K3.p', 'FF4.C')] };
+  const n = E.buildNetlist(bus).pinNode;
+  ok([1, 2, 3, 4].every(k => n['FF' + k + '.C'] === n['CLK1.out']), 'Netzliste: Takt und alle vier Takteingänge über Knoten = ein Knoten');
+  ok(n['FF1.D'] !== n['FF1.C'] && n['FF2.D'] !== n['FF3.D'], 'Netzliste: die übrigen Anschlüsse bleiben getrennt');
+  // Rechnen mit und ohne Knoten identisch (Spannungsteiler)
+  const base = { parts: [P('B1', 'battery', 0, 0, { value: 9, props: { ri: 1 } }), P('R1', 'resistor', 1, 0, { value: 1000 }), P('R2', 'resistor', 2, 0, { value: 2000 }), P('GND1', 'ground', 3, 0)], wires: [Wr('B1.p', 'R1.a'), Wr('R1.b', 'R2.a'), Wr('R2.b', 'B1.n'), Wr('B1.n', 'GND1.g')] };
+  const mit = JSON.parse(JSON.stringify(base)); mit.parts.push(P('K1', 'node', 5, 5), P('K2', 'node', 6, 6)); mit.wires = [Wr('B1.p', 'R1.a'), Wr('R1.b', 'K1.p'), Wr('K1.p', 'R2.a'), Wr('R2.b', 'K2.p'), Wr('K2.p', 'B1.n'), Wr('B1.n', 'GND1.g')];
+  const sol = l => { const net = E.buildNetlist(l), r = E.step(net, E.newState(), {}); return { v: r.nodeV[net.pinNode['R1.b']], i: r.parts.R1.i, nodes: net.nodes.length, faults: r.faults.length }; };
+  const a = sol(base), b = sol(mit);
+  ok(near(a.v, b.v, 1e-12) && near(a.i, b.i, 1e-12) && a.faults === 0 && b.faults === 0, 'mit Knoten rechnet die Schaltung identisch (U = ' + b.v.toFixed(4) + ' V)');
+  // Kreuzung ohne Knoten: nur Leitungen, die sich im Bild kreuzen, haben keinen gemeinsamen Anschluss
+  const cross = { parts: [P('R1', 'resistor', 0, 0), P('R2', 'resistor', 0, 0), P('R3', 'resistor', 0, 0), P('R4', 'resistor', 0, 0)], wires: [Wr('R1.b', 'R2.a'), Wr('R3.b', 'R4.a')] };
+  const c = E.buildNetlist(cross).pinNode; ok(c['R1.b'] !== c['R3.b'] && c['R2.a'] !== c['R4.a'], 'Netzliste: zwei Leitungen ohne gemeinsamen Anschluss bleiben getrennt, auch wenn sie sich kreuzen');
+}
+
 /* ===== Stufe 5 (ohne Browser): Laufzeit des asynchronen Zählers im Zeitverlauf ===== */
 function rippleDelay() {
   const E = require('../src/engine.js'), Sim = require('../studio/sim.js'), C = require('../studio/counters.js');
@@ -212,6 +232,7 @@ function uhr() {
 
   if (!only || only === '4') counterEquivalence();
   if (!only || only === '5') rippleDelay();
+  if (!only || only === 'g') knotenNetzliste();
   if (!only || only === '1') overdrive();
   if (!only || only === '6') uhr();
   if (!only || only === 'c') logikTests();
@@ -642,6 +663,177 @@ function uhr() {
     await page.click('#menu-datei > button'); const [fc2] = await Promise.all([page.waitForEvent('filechooser'), page.click('#menu-datei .drop button:has-text("Öffnen")')]); await fc2.setFiles(solF); await page.waitForTimeout(500);
     const sol = await page.textContent('#modal'); ok(/Lösung: Vorwiderstand finden/.test(sol) && /R1\.value = 330/.test(sol) && /unterbrochen/.test(sol), 'Lösungsdatei lässt sich getrennt öffnen: Werte und Störung genannt');
     ok(await page.evaluate(() => Studio.sim.res.parts.D1.on && !Studio.task), 'Lösung zeigt die richtige Schaltung (LED leuchtet), Aufgabe ist geschlossen'); await page.screenshot({ path: shots + '/p11_loesung.png' }); await page.evaluate(() => Studio.closeModal());
+  }
+
+  /* ===== Auftrag «Bauen», Paket 1: Knotenpunkte ===== */
+  if (!only || only === 'g') {
+    await page.click('#menu-datei > button'); await page.click('#menu-datei .drop button:has-text("Neu")'); await page.waitForTimeout(100);
+    // Bildschirmkoordinate eines Punktes auf der Leitung i (Mitte des längsten Abschnitts)
+    const wirePt = i => page.evaluate(i => {
+      const L = Studio.core.layout, len = w => { const q = DQEditor.wirePoly(L, w); let t = 0; for (let k = 0; k + 1 < q.length; k++) t += Math.abs(q[k][0] - q[k + 1][0]) + Math.abs(q[k][1] - q[k + 1][1]); return t; };
+      if (i === 'long') i = L.wires.reduce((b, w, k) => len(w) > len(L.wires[b]) ? k : b, 0);
+      const pts = DQEditor.wirePoly(L, L.wires[i]); let best = null;
+      for (let k = 0; k + 1 < pts.length; k++) { const d = Math.abs(pts[k][0] - pts[k + 1][0]) + Math.abs(pts[k][1] - pts[k + 1][1]); if (!best || d > best.d) best = { d, a: pts[k], b: pts[k + 1] }; }
+      const m = [Math.round((best.a[0] + best.b[0]) / 2 / 20) * 20, Math.round((best.a[1] + best.b[1]) / 2 / 20) * 20];
+      const svg = document.querySelector('#board'), pt = svg.createSVGPoint(); pt.x = m[0]; pt.y = m[1]; const r = pt.matrixTransform(svg.getScreenCTM()); return { x: r.x, y: r.y, m };
+    }, i);
+    const nodeCount = () => page.evaluate(() => Studio.core.layout.parts.filter(p => p.type === 'node').length);
+    const sameNet = (a, b) => page.evaluate(([a, b]) => { const n = Studio.sim.net.pinNode; return n[a] !== undefined && n[a] === n[b]; }, [a, b]);
+    const allClock = async () => (await Promise.all(['FF1', 'FF2', 'FF3', 'FF4'].map(f => sameNet('CLK1.out', f + '.C')))).every(Boolean);
+    // Aufbau: Takt und vier D-Flipflops, nur ein Anschluss des Taktes wird gezogen
+    await add('clock'); for (let k = 0; k < 4; k++) await add('dff');
+    ok(await page.evaluate(() => Studio.core.layout.parts.map(p => p.id).join()) === 'CLK1,FF1,FF2,FF3,FF4', 'Takt und vier Flipflops gesetzt');
+    await pin('CLK1.out'); await pin('FF1.C');
+    ok(await page.evaluate(() => Studio.core.layout.wires.length) === 1, 'eine Leitung vom Takt zum ersten Flipflop');
+    // Leitung auf Leitung beenden: FF2.C anfassen, dann auf die Taktleitung klicken
+    for (const f of ['FF2', 'FF3', 'FF4']) {
+      await pin(f + '.C'); const w = await wirePt('long');
+      await page.mouse.move(w.x + 2, w.y + 2); await page.waitForTimeout(60);
+      ok(await page.evaluate(() => !!Studio.ed.snap), 'Vorschaupunkt beim Ziehen über die Leitung (' + f + ')');
+      await page.mouse.click(w.x, w.y); await page.waitForTimeout(80);
+      if (f === 'FF2') await page.screenshot({ path: shots + '/g_knoten.png' });
+    }
+    ok(await nodeCount() === 3, 'drei Knotenpunkte entstanden (' + await nodeCount() + ')');
+    ok(await allClock(), 'die Netzliste erkennt alle vier Takteingänge als denselben Knoten wie den Takt');
+    ok(await page.evaluate(() => document.querySelectorAll('#board .nodedot').length) === 3, 'drei ausgefüllte Verbindungspunkte gezeichnet');
+    // Rückgängig und Wiederholen umfassen Knoten
+    await page.keyboard.press('Control+z'); await page.waitForTimeout(80);
+    ok(await nodeCount() === 2, 'Rückgängig nimmt den letzten Knoten zurück');
+    await page.keyboard.press('Control+y'); await page.waitForTimeout(80);
+    ok(await nodeCount() === 3 && await allClock(), 'Wiederholen stellt ihn wieder her');
+    // Datei: speichern und identisch laden
+    const rt = await page.evaluate(() => { const before = JSON.stringify(Studio.core.layout), r = Studio.parseFile(JSON.stringify(Studio.serialize())); return { same: r.ok && JSON.stringify(r.layout) === before, err: r.error }; });
+    ok(rt.same, 'Datei mit Knoten lädt identisch zurück ' + (rt.err || ''));
+    // Knoten verschieben: Leitungen folgen
+    const k1 = await page.evaluate(() => { const p = Studio.core.layout.parts.find(p => p.type === 'node'); return { id: p.id, x: p.x, y: p.y }; });
+    await page.evaluate(id => { const c = Studio.core, p = c.part(id); c.pressPart(id, [p.x, p.y], 'schema'); c.dragTo([p.x + 40, p.y + 60]); c.release(); }, k1.id);
+    const k1b = await page.evaluate(id => { const p = Studio.core.part(id); return { x: p.x, y: p.y }; }, k1.id);
+    ok(k1b.x !== k1.x || k1b.y !== k1.y, 'Knoten lässt sich verschieben (' + k1.x + ',' + k1.y + ' → ' + k1b.x + ',' + k1b.y + ')');
+    await page.waitForTimeout(80); ok(await allClock(), 'nach dem Verschieben bleiben alle verbunden');
+    // Löschen mit genau zwei Leitungen führt zusammen
+    const two = await page.evaluate(() => {
+      const c = Studio.core; c.layout = { parts: [{ id: 'R1', type: 'resistor', x: 200, y: 200, rot: 0 }, { id: 'R2', type: 'resistor', x: 500, y: 200, rot: 0 }, { id: 'K1', type: 'node', x: 340, y: 200, rot: 0 }], wires: [{ from: 'R1.b', to: 'K1.p' }, { from: 'K1.p', to: 'R2.a' }] };
+      c.sel = 'K1'; const okd = c.removeSelected();
+      return { okd, parts: c.layout.parts.map(p => p.id).join(), wires: c.layout.wires };
+    });
+    ok(two.okd && two.parts === 'R1,R2' && two.wires.length === 1 && [two.wires[0].from, two.wires[0].to].sort().join() === 'R1.b,R2.a', 'Knoten mit zwei Leitungen löschen führt sie zusammen: ' + JSON.stringify(two.wires));
+    const three = await page.evaluate(() => {
+      const c = Studio.core; c.layout = { parts: [{ id: 'R1', type: 'resistor', x: 200, y: 200, rot: 0 }, { id: 'R2', type: 'resistor', x: 500, y: 200, rot: 0 }, { id: 'R3', type: 'resistor', x: 500, y: 400, rot: 0 }, { id: 'K1', type: 'node', x: 340, y: 200, rot: 0 }], wires: [{ from: 'R1.b', to: 'K1.p' }, { from: 'K1.p', to: 'R2.a' }, { from: 'K1.p', to: 'R3.a' }] };
+      c.sel = 'K1'; c.removeSelected(); return c.layout.wires.length;
+    });
+    ok(three === 0, 'Knoten mit drei Leitungen: Löschen entfernt Knoten und Leitungen');
+    // Kreuzung ohne Knoten bleibt getrennt
+    await page.evaluate(() => { Studio.loadLayout({ parts: [{ id: 'B1', type: 'battery', x: 200, y: 300, rot: 0 }, { id: 'R1', type: 'resistor', x: 500, y: 200, rot: 0 }, { id: 'R2', type: 'resistor', x: 340, y: 100, rot: 90 }, { id: 'R3', type: 'resistor', x: 340, y: 400, rot: 90 }, { id: 'GND1', type: 'ground', x: 200, y: 500, rot: 0 }],
+      wires: [{ from: 'B1.p', to: 'R1.a' }, { from: 'R2.a', to: 'R3.b' }, { from: 'B1.n', to: 'GND1.g' }] }, { run: true }); });
+    await page.waitForTimeout(120);
+    ok(!(await sameNet('R1.a', 'R2.a')) && !(await sameNet('R1.a', 'R3.b')), 'sich kreuzende Leitungen ohne Knoten bleiben getrennt');
+    ok(await page.evaluate(() => document.querySelectorAll('#board .nodedot').length) === 0, 'an der Kreuzung steht kein Punkt');
+    // Ziehen von einer Leitung weg beginnt dort eine neue Leitung; Alt+Klick setzt einen Knoten
+    await page.evaluate(() => { Studio.loadLayout({ parts: [{ id: 'R1', type: 'resistor', x: 300, y: 300, rot: 0 }, { id: 'R2', type: 'resistor', x: 700, y: 300, rot: 0 }, { id: 'R3', type: 'resistor', x: 500, y: 460, rot: 90 }], wires: [{ from: 'R1.b', to: 'R2.a' }] }, { run: false }); });
+    await page.waitForTimeout(100);
+    let w0 = await wirePt(0); await page.mouse.move(w0.x, w0.y); await page.mouse.down(); await page.mouse.move(w0.x + 12, w0.y + 30, { steps: 4 }); await page.mouse.up();
+    ok(await nodeCount() === 1 && await page.evaluate(() => !!Studio.core.wireStart && /^K\d+\.p$/.test(Studio.core.wireStart)), 'Ziehen von einer Leitung setzt einen Knoten und beginnt eine Leitung');
+    await pin('R3.a'); await page.waitForTimeout(80); ok(await sameNet('R3.a', 'R1.b'), 'die neue Leitung verbindet R3 mit der Leitung');
+    await page.evaluate(() => { Studio.loadLayout({ parts: [{ id: 'R1', type: 'resistor', x: 300, y: 300, rot: 0 }, { id: 'R2', type: 'resistor', x: 700, y: 300, rot: 0 }], wires: [{ from: 'R1.b', to: 'R2.a' }] }, { run: false }); });
+    await page.waitForTimeout(100); w0 = await wirePt(0); await page.keyboard.down('Alt'); await page.mouse.click(w0.x, w0.y); await page.keyboard.up('Alt');
+    ok(await nodeCount() === 1, 'Alt + Klick auf eine Leitung setzt einen Knoten');
+    // Palette: Knoten als Bauteil
+    await page.evaluate(() => Studio.newCircuit()); await page.waitForTimeout(80); await add('node');
+    ok(await nodeCount() === 1, 'Knoten aus der Bauteilleiste setzen');
+    ok(/^0 Bauteile/.test((await page.textContent('#statusbar')).match(/\d+ Bauteile/)[0]), 'Knoten zählen nicht als Bauteil');
+    // Beamer: Punkt wächst
+    await page.evaluate(() => Studio.loadLayout({ parts: [{ id: 'K1', type: 'node', x: 300, y: 300, rot: 0 }], wires: [] }, { run: false })); await page.waitForTimeout(80);
+    const r0 = await page.evaluate(() => document.querySelector('.nodedot').getBoundingClientRect().width); await page.keyboard.press('F9'); await page.waitForTimeout(150);
+    const r1 = await page.evaluate(() => document.querySelector('.nodedot').getBoundingClientRect().width); await page.keyboard.press('F9'); await page.waitForTimeout(100);
+    ok(r1 > r0 * 1.3, 'im Beamer-Modus wächst der Punkt (' + r0.toFixed(1) + ' → ' + r1.toFixed(1) + ' px)');
+  }
+
+  /* ===== Auftrag «Bauen», Paket 2: Anzeigen auffindbar ===== */
+  if (!only || only === 'h') {
+    const zaehler = { parts: [{ id: 'CLK1', type: 'clock', x: 240, y: 300, rot: 0, props: { freq: 100 } }, { id: 'Z1', type: 'ctr_async', x: 560, y: 300, rot: 0 }, { id: 'GND1', type: 'ground', x: 240, y: 440, rot: 0 }]
+      .concat([0, 1, 2, 3].map(k => ({ id: 'L' + (k + 1), type: 'logicled', x: 900, y: 180 + 80 * k, rot: 0 }))),
+      wires: [{ from: 'CLK1.out', to: 'Z1.C' }].concat([0, 1, 2, 3].map(k => ({ from: 'Z1.Q' + k, to: 'L' + (k + 1) + '.in' }))) };
+    const load = (lay, o) => page.evaluate(([l, o]) => { Studio.closeScopes(); Studio.timing.clear(); Studio.loadLayout(l, o || { run: true }); }, [lay, o]);
+    await load(zaehler); await page.waitForTimeout(300);
+    // Layout: Zeitverlauf liegt ganz im Bild und nicht unter der Statusleiste
+    const lay = await page.evaluate(() => { const r = s => document.querySelector(s).getBoundingClientRect(); return { tl: r('#timing'), st: r('#statusbar'), main: r('.main'), vh: innerHeight }; });
+    ok(lay.tl.bottom <= lay.st.top + 1 && lay.tl.top >= lay.main.bottom - 1 && lay.tl.bottom <= lay.vh && lay.main.height > 250, 'Zeitverlauf sichtbar zwischen Zeichenfläche und Statusleiste (' + Math.round(lay.tl.top) + '–' + Math.round(lay.tl.bottom) + ', Statusleiste ab ' + Math.round(lay.st.top) + ')');
+    // leere Anzeigen erklären sich selbst
+    await page.evaluate(() => { Studio.openScope(); Studio.openBode(); });
+    ok(await page.evaluate(() => Array.from(document.querySelectorAll('.sc-hint')).length) === 2 && await page.evaluate(() => Array.from(document.querySelectorAll('.sc-hint')).every(h => !h.hidden && /Rechtsklick/.test(h.textContent))), 'leeres Oszilloskop und leeres Bode-Fenster zeigen ihren Hinweis');
+    ok(/Rechtsklick/.test(await page.textContent('#tlRows')) && /Alle digitalen Signale aufnehmen/.test(await page.textContent('#tlRows')), 'leerer Zeitverlauf zeigt Hinweis und Knopf');
+    await page.screenshot({ path: shots + '/h_leer.png' });
+    await page.click('.sc-hint [data-hint="measure:scope"] >> nth=0');
+    ok(await page.evaluate(() => Studio.core.tool === 'probe' && document.querySelector('#measureTarget').value === 'scope'), 'Knopf im Hinweis schaltet auf «Messen» mit dem Ziel Oszilloskop');
+    await page.click('#toolBuild'); await page.evaluate(() => { Studio.closeScopes(); Studio.bodes.slice().forEach(b => b.close()); });
+    // Rechtsklick im Baumodus: alle vier Lampen in den Zeitverlauf, ohne Werkzeugwechsel
+    ok(await page.evaluate(() => Studio.core.tool === 'wire'), 'Werkzeug bleibt «Bauen»');
+    for (const k of [1, 2, 3, 4]) {
+      await page.click(`[data-part="L${k}"] .hit`, { button: 'right', force: true });
+      ok(await page.isVisible('.ctxmenu'), 'Kontextmenü an L' + k);
+      if (k === 1) { const t = await page.textContent('.ctxmenu'); ok(/In den Zeitverlauf/.test(t) && /Ins Oszilloskop/.test(t) && /Ins Bode-Diagramm/.test(t), 'Menü bietet Zeitverlauf, Oszilloskop und Bode an: ' + t.replace(/\s+/g, ' ')); await page.screenshot({ path: shots + '/h_kontext.png' }); }
+      await page.click('.ctxmenu button:has-text("In den Zeitverlauf")');
+    }
+    ok(await page.evaluate(() => Studio.core.tool === 'wire' && Studio.timing.rows.length === 4), 'vier Zeilen im Zeitverlauf per Rechtsklick, Werkzeug unverändert (' + await page.evaluate(() => Studio.timing.rows.length) + ')');
+    await page.waitForTimeout(500);
+    const grow = await page.evaluate(() => Studio.timing.rows.map(r => r.tr.n)); ok(grow.every(n => n > 20), 'die Kurven laufen (Messpunkte ' + grow.join(',') + ')');
+    ok(await page.evaluate(() => Studio.timing.rows.some(r => { const t = r.tr; let a = t.v[0] > 2.5; for (let i = 1; i < t.n; i++) if ((t.v[i] > 2.5) !== a) return true; return false; })), 'mindestens ein Ausgang wechselt den Pegel');
+    await page.screenshot({ path: shots + '/h_zeitverlauf.png' });
+    // Alle digitalen Signale: Takt + 4 Lampen, keine Doppelten, keine Versorgung
+    await page.evaluate(() => Studio.timing.clear()); await page.click('#tlAuto');
+    const all = await page.evaluate(() => Studio.timing.rows.map(r => r.desc.a + '|' + (r.label || '')));
+    ok(all.length === 5 && /^CLK1\.out/.test(all[0]) && all.slice(1).map(x => x.split('|')[1]).join() === 'L1,L2,L3,L4', 'Alle digitalen Signale: Takt und genau die vier Lampen (' + all.join('  ') + ')');
+    ok(!all.some(x => /GND|VCC|B\d/.test(x)), 'keine Versorgungsleitungen darunter');
+    // zusätzlich Flipflops und Zähler ohne Lampen: je Ausgang einmal
+    await load({ parts: [{ id: 'CLK1', type: 'clock', x: 240, y: 300, rot: 0 }, { id: 'FF1', type: 'tff', x: 500, y: 300, rot: 0 }, { id: 'FF2', type: 'tff', x: 760, y: 300, rot: 0 }, { id: 'Z1', type: 'ctr_bcd', x: 500, y: 600, rot: 0 }, { id: 'GND1', type: 'ground', x: 240, y: 440, rot: 0 }], wires: [{ from: 'CLK1.out', to: 'FF1.C' }, { from: 'FF1.Q', to: 'FF2.C' }, { from: 'CLK1.out', to: 'Z1.C' }] });
+    await page.click('#tlAuto'); const all2 = await page.evaluate(() => Studio.timing.rows.map(r => r.desc.a));
+    ok(all2.join() === 'CLK1.out,FF1.Q,FF2.Q,Z1.Q0,Z1.Q1,Z1.Q2,Z1.Q3', 'Flipflop-Ausgänge und Zählerausgänge, jeder Knoten einmal: ' + all2.join());
+    await page.click('#tlAuto'); ok(await page.evaluate(() => Studio.timing.rows.length) === 7, 'zweiter Klick fügt nichts doppelt ein');
+    // eingeklappter Zeitverlauf klappt beim ersten Signal auf
+    await load(zaehler); await page.evaluate(() => { Studio.timing.clear(); }); await page.click('#btnTiming');
+    ok(await page.evaluate(() => document.querySelector('#timing').classList.contains('collapsed')), 'Zeitverlauf eingeklappt');
+    await page.click('[data-part="L1"] .hit', { button: 'right', force: true }); await page.click('.ctxmenu button:has-text("In den Zeitverlauf")');
+    ok(await page.evaluate(() => !document.querySelector('#timing').classList.contains('collapsed')), 'das erste Signal klappt den Zeitverlauf auf');
+    // Eigenschaftenfeld: Knopf je Grösse
+    await selectPart('L2'); await page.waitForTimeout(200);
+    ok(await page.evaluate(() => document.querySelectorAll('#insLive .sendbtn').length) >= 1, 'Eigenschaftenfeld bietet einen Knopf je Grösse');
+    await page.click('#insLive .sendbtn[data-send="dig"]'); ok(await page.evaluate(() => Studio.timing.rows.some(r => r.desc.a === 'L2.in')), 'Knopf im Eigenschaftenfeld schickt die Grösse in den Zeitverlauf');
+    await load({ parts: [{ id: 'B1', type: 'battery', x: 300, y: 300, rot: 90, value: 9 }, { id: 'R1', type: 'resistor', x: 600, y: 200, rot: 0, value: 1000 }, { id: 'GND1', type: 'ground', x: 300, y: 450, rot: 0 }], wires: [{ from: 'B1.p', to: 'R1.a' }, { from: 'R1.b', to: 'B1.n' }, { from: 'GND1.g', to: 'B1.n' }] });
+    await selectPart('R1'); await page.waitForTimeout(200); await page.click('#insLive .sendbtn[aria-label*="Spannung"]');
+    ok(await page.evaluate(() => Studio.scopes.length === 1 && Studio.scopes[0].ch[0].tr.desc.kind === 'pv'), 'Spannung über R1 → Oszilloskop');
+    // Kontextmenü auf analogem Anschluss: Zeitverlauf ausgegraut und begründet; Bode ohne Wechselquelle begründet
+    await page.evaluate(() => Studio.closeScopes()); await page.click('[data-pin="R1.a"] .pinhit', { button: 'right', force: true });
+    const dis = await page.evaluate(() => Array.from(document.querySelectorAll('.ctxmenu button')).map(b => ({ t: b.textContent, d: b.disabled })));
+    ok(dis.find(b => /Zeitverlauf/.test(b.t)).d && /Spannung/.test(dis.find(b => /Zeitverlauf/.test(b.t)).t) && dis.find(b => /Bode/.test(b.t)).d && /Wechselspannungsquelle/.test(dis.find(b => /Bode/.test(b.t)).t), 'nicht passende Ziele sind ausgegraut mit Begründung');
+    await page.keyboard.press('Escape'); ok(!(await page.isVisible('.ctxmenu')), 'Esc schliesst das Kontextmenü');
+    // Darstellung: überlappend oder untereinander
+    await page.evaluate(() => { Studio.closeScopes(); Studio.timing.clear(); });
+    await load(zaehler); await page.waitForTimeout(150);
+    const sc = await page.evaluate(() => { const s = Studio.openScope([0, 1, 2, 3].map(k => ({ kind: 'node', a: 'L' + (k + 1) + '.in' }))); return { mode: s.mode, n: s.ch.length }; });
+    ok(sc.mode === 'stack' && sc.n === 4, 'Fenster mit Digitalsignalen startet «untereinander»');
+    ok(await page.evaluate(() => { const w = Studio.scopes[0].el; return w.querySelector('.sc-hint').hidden && w.querySelectorAll('.sc-ch').length === 4; }), 'mit Signalen verschwindet der Hinweis, die Kanäle stehen als Chips da');
+    await page.waitForTimeout(700);
+    const lanes = await page.evaluate(() => { const s = Studio.scopes[0]; s.draw(true); return s.lanes.map(l => [l.top, l.bot]); });
+    ok(lanes.length === 4 && lanes.every((l, i) => l[1] > l[0] + 20 && (i === 0 || l[0] >= lanes[i - 1][1])), 'vier getrennte Spuren ohne Überschneidung: ' + JSON.stringify(lanes.map(l => l.map(Math.round))));
+    await page.screenshot({ path: shots + '/h_stack.png' });
+    await page.selectOption('.fwin [data-a="mode"]', 'overlap'); await page.waitForTimeout(100);
+    ok(await page.evaluate(() => Studio.scopes[0].mode === 'overlap' && Studio.scopes[0].ch.length === 4), 'umschalten auf überlappend ändert die Signale nicht');
+    await page.screenshot({ path: shots + '/h_overlap.png' });
+    await page.selectOption('.fwin [data-a="mode"]', 'stack'); ok(await page.evaluate(() => Studio.scopes[0].mode === 'stack' && Studio.scopes[0].ch.length === 4 && Studio.scopes[0].modeSet), 'und zurück; Handwahl bleibt');
+    await page.evaluate(() => { const s = Studio.scopes[0]; s.removeChannel(3); s.removeChannel(2); s.removeChannel(1); s.removeChannel(0); s.addChannel({ kind: 'node', a: 'Z1.Q0' }); });
+    ok(await page.evaluate(() => Studio.scopes[0].mode) === 'stack', 'die von Hand gewählte Darstellung bleibt für dieses Fenster bestehen');
+    const an = await page.evaluate(() => { const s = Studio.openScope([{ kind: 'pv', id: 'R1' }]); return s.mode; }); await load({ parts: [{ id: 'B1', type: 'battery', x: 300, y: 300, rot: 90, value: 9 }, { id: 'R1', type: 'resistor', x: 600, y: 200, rot: 0, value: 1000 }, { id: 'GND1', type: 'ground', x: 300, y: 450, rot: 0 }], wires: [{ from: 'B1.p', to: 'R1.a' }, { from: 'R1.b', to: 'B1.n' }, { from: 'GND1.g', to: 'B1.n' }] });
+    const an2 = await page.evaluate(() => { const s = Studio.openScope([{ kind: 'pv', id: 'R1' }]); return s.mode; });
+    ok(an2 === 'overlap', 'Fenster mit einem analogen Signal startet «überlappend»');
+    // Zeitverlauf: dieselbe Umschaltung
+    await load(zaehler); await page.waitForTimeout(100); await page.click('#tlAuto'); await page.waitForTimeout(300);
+    ok(await page.evaluate(() => document.querySelectorAll('#tlRows .tl-row').length) === 5, 'Zeitverlauf untereinander: fünf Zeilen');
+    await page.selectOption('#tlMode', 'overlap'); await page.waitForTimeout(250);
+    ok(await page.evaluate(() => document.querySelectorAll('#tlRows .tl-row').length) === 1 && await page.evaluate(() => Studio.timing.rows.length) === 5, 'überlappend: ein gemeinsames Feld, die Signale bleiben aufgenommen');
+    await page.screenshot({ path: shots + '/h_tl_overlap.png' });
+    await page.selectOption('#tlMode', 'stack'); await page.waitForTimeout(100);
+    ok(await page.evaluate(() => document.querySelectorAll('#tlRows .tl-row').length) === 5, 'zurück auf untereinander');
+    await page.evaluate(() => { Studio.closeScopes(); Studio.timing.clear(); });
   }
 
   ok(!external.length, 'Netzzugriffe (Offline-Fassung): ' + external.join(', '));

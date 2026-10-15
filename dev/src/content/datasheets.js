@@ -132,6 +132,10 @@
     nor: gate('NOR-Gatter (NICHT-ODER): Der Ausgang ist nur 1, wenn beide Eingänge 0 sind. Zwei NOR ergeben ein RS-Flipflop.', null, 'Y = ¬(A ∨ B)'),
     xor: gate('XOR (Exklusiv-ODER, Antivalenz): Der Ausgang ist 1, wenn die Eingänge <b>verschieden</b> sind.', null, 'Y = A ⊕ B'),
     xnor: gate('XNOR (Äquivalenz): Der Ausgang ist 1, wenn die Eingänge <b>gleich</b> sind – ein 1-Bit-Vergleicher.', null, 'Y = ¬(A ⊕ B)'),
+    node: {
+      funktion: 'Knoten (Verbindungspunkt): Hier sind alle Leitungen, die den Punkt berühren, <b>leitend verbunden</b>. Nach IEC/DIN gilt: Punkt = verbunden, Kreuzung ohne Punkt = nicht verbunden.',
+      anschluesse: { p: 'Verbindungspunkt' }
+    },
     logicin: {
       funktion: 'Pegelschalter am Experimentierboard: gibt per Klick eine logische <b>1 (5 V)</b> oder <b>0 (0 V)</b> aus. Öffner-Taster (z. B. Stopp, Not-Halt) stehen in Ruhe auf 1.',
       anschluesse: { out: 'Pegelausgang' },

@@ -24,6 +24,7 @@
   /* Bauteilkatalog: Pins, Standardwerte, Namenspraefix. Geometrie liegt im Editor. */
   var PARTS = {
     ground:    { label: 'Masse', prefix: 'GND', pins: ['g'], props: {} },
+    node:      { label: 'Knoten', studio: true, prefix: 'K', pins: ['p'], props: {} }, // Verbindungspunkt auf einer Leitung (Studio): kein Bauteil, verbindet nur seine Leitungen
     battery:   { label: 'Spannungsquelle', prefix: 'B', pins: ['p', 'n'], props: { value: 9, ri: 0.05, imax: 3 }, unit: 'V' },
     resistor:  { label: 'Widerstand', prefix: 'R', pins: ['a', 'b'], props: { value: 1000, pmax: 0.25 }, unit: 'Ω' },
     pot:       { label: 'Potentiometer', prefix: 'P', pins: ['a', 'w', 'b'], props: { value: 10000, pos: 0.5, pmax: 0.25 }, unit: 'Ω' },

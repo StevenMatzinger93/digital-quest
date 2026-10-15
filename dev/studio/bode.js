@@ -39,7 +39,8 @@
   };
   Bode.prototype.renderChannels = function () {
     $('.sc-chs', this.el).innerHTML = this.ch.map(function (c, i) { var p = c.probe; return '<span class="sc-ch"><i style="background:' + c.color + '"></i>U(' + p.a + (p.b ? ' − ' + p.b : '') + ')/U₀<button data-a="rm" data-i="' + i + '" aria-label="Kanal entfernen">×</button></span>'; }).join('') ||
-      '<span class="sc-empty">Kein Signal. Werkzeug «Messen», Ziel «Bode», dann einen Anschluss anklicken.</span>';
+      '<span class="sc-empty">Kein Signal.</span>';
+    if (!this.hint) this.hint = S.makeHint(this, 'bode'); this.hint.hidden = this.ch.length > 0;
   };
   Bode.prototype.compute = function () {
     var self = this; clearTimeout(this.timer);
