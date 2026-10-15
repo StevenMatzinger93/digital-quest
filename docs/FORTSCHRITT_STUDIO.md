@@ -115,3 +115,10 @@ Alle in `docs/ENTSCHEIDUNGEN_STUDIO.md` unter «Nacht 14./15.10.2026». Die wich
 **Fund:** Nach «Aufgabe stellen → Schliessen» stand unter jedem senkrechten Bauteil der Text «null» (`Editor.mask` war `null` statt undefiniert). Behoben.
 
 **Zu Paket 5 (Abweichungen vom Entwurf, siehe auch ENTSCHEIDUNGEN):** «PDF erzeugen» öffnet den Druckdialog des Browsers («Als PDF speichern»), statt selbst eine PDF-Datei zu schreiben: Die Seiten sind vektorielle HTML-/SVG-Seiten in 96-dpi-Massen mit `@page`-Grösse, Chromium und Firefox erzeugen daraus das PDF (im Test mit `page.pdf`: 2 Seiten, richtige Blattgrösse). Die KV-Gruppenbezeichnungen stehen unter dem Raster (mit Muster der Strichart), nicht rechts daneben, weil neben der 300 Einheiten breiten Tabelle auf A4 hoch nur 346 Einheiten bleiben.
+
+## Korrektur Druckseiten (15.10.2026, `docs/KORREKTUR_DRUCK.md`)
+1. **Inhalt füllt die Seite:** Seite 1: Schaltung wächst bis auf 5 % Rand (auch vergrössernd). Folgeseiten: `fillPage` misst den Inhalt in natürlicher Breite (nebeneinander oder Tabelle über KV untereinander, mehrere Breiten) und skaliert ihn als Ganzes, bis der Inhaltsbereich gefüllt ist (3 % Reserve). Obergrenze keine.
+2. **Titel = Name, Formel nur rechts oben:** kein Rückgriff mehr auf den Dateinamen; leer bleibt leer. Langer Titel bricht im Schriftfeld auf zwei Zeilen um.
+3. **Erklärender Satz** kommt aus dem Beschreibungsfeld (Dialog «Schriftfeld bearbeiten»); leer = kein Text.
+4. **A4 hoch bleibt Voreinstellung.**
+**Grenze:** Eine sehr breite, flache Schaltung (z. B. das Probebeispiel, ca. 2 : 1) füllt auf A4 hoch die Breite, nicht die Höhe; das Seitenverhältnis bleibt erhalten, darüber und darunter bleibt Weiss. A4 quer füllt solche Schaltungen besser.

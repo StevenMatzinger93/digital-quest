@@ -981,7 +981,7 @@ function uhr() {
     await page.click('#btnDraw'); ok(await page.evaluate(() => document.querySelectorAll('#board .drawlayer').length === 0 && !Studio.drawVisible()), 'Ebene ausblenden wirkt');
     const hidden = await page.evaluate(() => Studio.exportSVG({ color: true }).svg); ok(!/data-draw|<tspan|<ellipse/.test(hidden), 'ausgeblendet: Export ohne Zeichenelemente');
     await page.click('#btnDraw'); ok(await page.evaluate(() => document.querySelectorAll('#board .drawlayer [data-draw]').length === 5), 'Ebene einblenden wirkt');
-    const shown = await page.evaluate(() => ({ svg: Studio.exportSVG({ color: true }).svg, bw: Studio.exportSVG({ color: false }).svg, nodr: Studio.exportSVG({ color: true, draw: false }).svg, print: Studio.printPrepare().innerHTML }));
+    const shown = await page.evaluate(() => ({ svg: Studio.exportSVG({ color: true }).svg, bw: Studio.exportSVG({ color: false }).svg, nodr: Studio.exportSVG({ color: true, draw: false }).svg, print: decodeURIComponent(Studio.printPrepare().innerHTML) }));
     ok(/<ellipse/.test(shown.svg) && /<tspan/.test(shown.svg) && /<polygon/.test(shown.svg) && !/drhandle|drhit|drsel/.test(shown.svg), 'Export (SVG) enthält die Elemente, aber keine Griffe oder Trefferflächen');
     ok(!/#d9480f|#123456|#11864f/i.test(shown.bw.replace(/<style[\s\S]*?<\/style>/, '')), 'Schwarzweiss-Export rechnet die Farben der Elemente in Grau um');
     ok(!/data-draw/.test(shown.nodr), 'Export auf Wunsch ohne Zeichenelemente'); ok(/data-draw/.test(shown.print) && /<tspan/.test(shown.print), 'Druck enthält die Elemente');
@@ -1064,13 +1064,19 @@ function uhr() {
     const an = await page.evaluate(() => Array.from(document.querySelectorAll('.pdlg [data-it]')).map(i => [i.dataset.it, i.disabled, i.closest('label').textContent.replace(/\s+/g, ' ')]).filter(x => /table|expr|kv/.test(x[0])));
     ok(an.length === 3 && an.every(x => x[1] && /Logik|Pegelschalter/.test(x[2])), 'Analogschaltung: Tabelle, Ausdruck, KV ausgegraut mit Begründung: ' + an[0][2].slice(0, 110)); await page.click('#mClose');
     // PDF: zwei Seiten in der richtigen Blattgrösse
-    await loadZus(); await page.evaluate(() => Studio.sheetSet({ on: true, format: 'a4p', fields: { titel: 'A = e1 ( e2 v e3 )', name: 'S. Muster' } }));
+    await loadZus(); await page.evaluate(() => Studio.sheetSet({ on: true, format: 'a4p', fields: { titel: 'UND-Verknüpfung mit vorgeschaltetem ODER', name: 'S. Muster', text: 'Die Schaltung verknüpft e2 und e3 mit ODER, dann UND mit e1.' } }));
     await page.evaluate(() => new Promise(res => Studio.printPages(null, b => res(b.count)))); await page.emulateMedia({ media: 'print' });
     const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true }); const txt = pdf.toString('latin1');
     const pgCount = (txt.match(/\/Type\s*\/Page[^s]/g) || []).length, mb = (txt.match(/\/MediaBox\s*\[([^\]]+)\]/) || [])[1] || '';
     ok(pgCount === 2, 'PDF hat zwei Seiten (' + pgCount + ')'); ok(/^0 0 59[45]\.\d+ 84[12]\.\d+$/.test(mb.trim()), 'PDF-Blattgrösse A4 hoch (' + mb.trim() + ')');
     fs.writeFileSync(path.join(shots, 'l_druck.pdf'), pdf);
     await page.locator('#printArea .pg').nth(0).screenshot({ path: shots + '/l_seite1.png' }); await page.locator('#printArea .pg').nth(1).screenshot({ path: shots + '/l_seite2.png' });
+    const fill = await page.evaluate(() => Array.from(document.querySelectorAll('#printArea .pg')).map(pg => { const r = pg.getBoundingClientRect(), fr = pg.querySelector('.pgframe'), sf = fr ? fr.getBoundingClientRect() : r; const inner = Array.from(pg.querySelectorAll('.figimg, .para, .fitin')).map(e => e.getBoundingClientRect().bottom); const top = pg.querySelector('.pgh').getBoundingClientRect().bottom; const bottom = Math.max(...inner); const lim = pg.querySelector('.pgc').getBoundingClientRect().bottom; const fi = pg.querySelector('.figimg'); return { gap: (lim - bottom) / r.height, H: r.height, head: pg.querySelector('.pgh b').textContent, right: pg.querySelector('.pgh span').textContent, para: (pg.querySelector('.para') || {}).textContent || '', imgW: fi ? fi.getBoundingClientRect().width : 0 }; }));
+    notes.push('Füllung: ' + JSON.stringify(fill.map(f => [f.gap.toFixed(3), f.imgW])));
+    ok(fill.every(f => f.gap <= 0.1), 'Druck füllt beide Seiten: Leerraum über dem Schriftfeld höchstens ein Zehntel der Seitenhöhe (' + fill.map(f => (f.gap * 100).toFixed(1) + ' %').join(', ') + ')');
+    ok(fill[0].head === 'UND-Verknüpfung mit vorgeschaltetem ODER' && fill[1].head === fill[0].head && /A = e1 \( e2 v e3 \)/.test(fill[0].right) && /Blatt 1/.test(fill[1].right) && !/e1 \(/.test(fill[0].head), 'Titel links ist der Name, die Formel steht nur rechts oben (Seite 1), Folgeseite «zur Schaltung auf Blatt 1»');
+    ok(/verknüpft e2 und e3/.test(fill[0].para), 'Erklärender Satz aus dem Beschreibungsfeld steht unter der Schaltung');
+    ok(fill[0].imgW > 600, 'Schaltung auf Seite 1 gross gezeichnet (' + Math.round(fill[0].imgW) + ' px breit)');
     await page.evaluate(() => Studio.printOptions.version = 'aufgabe'); await page.evaluate(() => new Promise(res => Studio.printPages(null, b => res(b.count)))); await page.locator('#printArea .pg').nth(1).screenshot({ path: shots + '/l_seite2_aufgabe.png' });
     await page.evaluate(() => { Studio.printOptions.version = 'loesung'; }); await page.emulateMedia({ media: 'screen' });
     // A4 quer und A3 quer im PDF

@@ -380,8 +380,9 @@ stehen.
 ## A.3 Seite 1 — Schaltung
 
 Die Schaltung sitzt mittig im Inhaltsbereich und wird so skaliert, dass sie
-hineinpasst, ohne zu verzerren; sie wird nie über ihre natürliche Grösse
-hinaus vergrössert. Darunter, linksbündig, ein Absatz mit höchstens 60 Zeichen
+hineinpasst, ohne zu verzerren (seit 15.10.2026: auch vergrössernd, bis auf
+5 % Rand; die frühere Regel «nie über die natürliche Grösse» war falsch,
+siehe `KORREKTUR_DRUCK.md`). Darunter, linksbündig, ein Absatz mit höchstens 60 Zeichen
 je Zeile: ein bis zwei Sätze, was die Schaltung tut.
 
 Alles schwarz auf weiss. Gattersymbole nach IEC mit `&`, `≥1`, `1`.

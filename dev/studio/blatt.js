@@ -17,7 +17,7 @@
   /* ---------- Daten ---------- */
   S.sheet = function () { return S.core.layout.sheet || null; };
   S.sheetOn = function () { var s = S.sheet(); return !!(s && s.on); };
-  S.sheetFields = function () { var s = S.sheet() || {}, f = s.fields || {}; return { titel: f.titel || S.name || '', thema: f.thema || '', name: f.name || '', datum: f.datum || '', klasse: f.klasse || '', aenderung: f.aenderung || '', text: f.text || '' }; };
+  S.sheetFields = function () { var s = S.sheet() || {}, f = s.fields || {}; return { titel: f.titel || '', thema: f.thema || '', name: f.name || '', datum: f.datum || '', klasse: f.klasse || '', aenderung: f.aenderung || '', text: f.text || '' }; };
   /* Schaltungsrahmen (Ausdehnung aller Bauteile und Zeichenelemente), für die Mitte des Blattes */
   function contentBox() {
     var L = S.core.layout, xs = [], ys = [];
@@ -62,7 +62,13 @@
       '<path d="M' + x0 + ' ' + ty + 'H' + (x0 + tw) + 'M' + c1 + ' ' + ty + 'V' + (ty + M.title) + 'M' + c2 + ' ' + ty + 'V' + (ty + M.title) + '" stroke-width="1.2"/>' +
       '<path d="M' + (c1 + (c2 - c1) / 2) + ' ' + ty + 'V' + (ty + M.title) + 'M' + c1 + ' ' + (ty + M.title / 2) + 'H' + c2 + '" stroke-width="0.8" stroke="' + gray + '"/></g>';
     // links: Titel (fett, 13,5) und Thema
-    s += label(x0 + 12, ty + 18, 'Titel') + value(x0 + 12, ty + 40, fields.titel, { size: 13.5, bold: true }) + label(x0 + 12, ty + 66, 'Thema') + value(x0 + 12, ty + 88, fields.thema, { size: 12 });
+    function titelSvg(x, y, t, cap) { // ein langer Titel bricht auf zwei Zeilen um (kleiner), statt in die Spalte Name zu laufen
+      if (!t) return ''; var n1 = Math.floor(cap / (13.5 * 0.62)); if (String(t).length <= n1) return value(x, y, t, { size: 13.5, bold: true });
+      var n2 = Math.floor(cap / (12 * 0.62)), ls = [], line = ''; String(t).split(/\s+/).forEach(function (w) { if (line && (line + ' ' + w).length > n2) { ls.push(line); line = w; } else line = line ? line + ' ' + w : w; }); ls.push(line);
+      if (ls.length > 2) { ls = ls.slice(0, 2); ls[1] = ls[1].slice(0, n2 - 1) + '…'; }
+      return T(x, y - 19, ls.join('\n'), { size: 12, bold: true });
+    }
+    s += label(x0 + 12, ty + 18, 'Titel') + titelSvg(x0 + 12, ty + 40, fields.titel, colL - 24) + label(x0 + 12, ty + 66, 'Thema') + value(x0 + 12, ty + 88, fields.thema, { size: 12 });
     // Mitte: Name, Datum, Klasse, Änderung als 2 × 2
     var mx = c1 + 12, mx2 = c1 + (c2 - c1) / 2 + 12;
     s += label(mx, ty + 18, 'Name') + value(mx, ty + 40, fields.name) + label(mx2, ty + 18, 'Datum') + value(mx2, ty + 40, fields.datum) +
@@ -111,7 +117,6 @@
     $('#shDnow').onclick = function () { var d = new Date(); $('#shD').value = d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' }); };
     $('#shOk').onclick = function () {
       var v = $('#shF').value, fields = { titel: $('#shT').value, thema: $('#shTh').value, name: $('#shN').value, datum: $('#shD').value, klasse: $('#shK').value, aenderung: $('#shA').value, text: $('#shB').value };
-      if (fields.titel === (S.name || '')) fields.titel = ''; // Standard: Name der Schaltung
       var sc = $('#shS').value;
       if (v === 'off') S.sheetSet({ on: false, fields: fields });
       else if (sc === 'auto') S.sheetSet({ on: true, format: v, fields: fields, center: true });

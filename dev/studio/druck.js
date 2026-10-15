@@ -169,6 +169,19 @@
     return pages;
   }
 
+  /* Folgeseite füllen: Inhalt in natürlicher Breite messen und gemeinsam (Schrift, Tabelle, KV) so skalieren, dass er den Inhaltsbereich füllt */
+  function fillPage(html, Wn, cw, availH) {
+    var m = document.createElement('div'); document.body.appendChild(m); var best = null;
+    [[Wn, false], [Wn, true], [600, true], [520, true], [460, true], [420, true]].forEach(function (c) {
+      var W = Math.min(c[0], Wn); m.style.cssText = 'position:absolute;left:-99999px;top:0;display:flow-root;width:' + W + 'px'; m.className = c[1] ? 'fitin stack' : 'fitin'; m.innerHTML = html;
+      if (m.scrollWidth > W + 1) return; // passt in dieser Breite nicht
+      var k = Math.min(cw / W, availH * 0.97 / Math.max(m.offsetHeight, 1)); if (!best || k > best.k) best = { k: k, W: W, stack: c[1] };
+    }); m.remove();
+    if (!best) best = { k: 1, W: Wn, stack: false };
+    var k = Math.max(0.01, best.k);
+    return '<div class="fitbox" style="height:' + availH + 'px"><div class="fitin' + (best.stack ? ' stack' : '') + '" style="width:' + best.W + 'px;margin-left:' + Math.max(0, Math.round((cw - best.W * k) / 2)) + 'px;transform:scale(' + k.toFixed(4) + ')">' + html + '</div></div>';
+  }
+
   /* Alle Seiten: [{html}] plus {format, count}; opts siehe S.printOptions */
   S.buildPages = function (o) {
     var opts = Object.assign({}, S.printOptions, o || {}); opts.items = Object.assign({}, S.printOptions.items, (o || {}).items || {});
@@ -177,13 +190,13 @@
     var region = S.sheetContent(); // nur was im Inhaltsbereich des Rahmens liegt
     // --- Seite 1: Schaltung
     var fig = figureImage(opts, region), para = wrapText(fields.text, 60), paraH = para.length ? para.length * 19 + 14 : 0, availH = ch - headH - paraH - 10;
-    var sc = Math.min(1, (cw - 2) / fig.w, availH / fig.h), iw = Math.round(fig.w * sc), ih = Math.round(fig.h * sc);
+    var sc = Math.min((cw - 2) * 0.95 / fig.w, availH * 0.95 / fig.h), iw = Math.round(fig.w * sc), ih = Math.round(fig.h * sc); // füllt den Inhaltsbereich bis auf etwa 5 % Rand, auch vergrössernd
     var head1 = info.ok && !aufgabe && info.outs.length ? H(S.factorOut(derive(info, 0).minimal).ast) : '';
     if (info.ok && !aufgabe) head1 = info.names[0] + ' = ' + head1;
     var p1 = '<div class="fig" style="height:' + availH + 'px"><img class="figimg" alt="Schaltung" style="width:' + iw + 'px;height:' + ih + 'px" src="' + fig.url + '"></div>' + (para.length ? '<p class="para">' + para.map(esc).join('<br>') + '</p>' : '');
     var pages = [{ headRight: head1, html: p1, info: 'schaltung' }];
     // --- Folgeseiten
-    var blocks = [], it = opts.items, ds = null;
+    var blocks = [], it = opts.items, ds = null, Wn = Math.min(cw, 700); // natürliche Breite der Folgeseiten, danach als Ganzes auf die Seite skaliert
     var wantLogic = it.table || it.expr || it.kv;
     if (wantLogic && info.ok) {
       ds = info.outs.map(function (o, i) { return derive(info, i); });
@@ -193,10 +206,12 @@
       if (tableOn || kvOn) blocks.push({ h: Math.max(tH, kH) + 10, html: '<div class="side">' + (tableOn ? '<div class="sideL">' + tHtml + '</div>' : '') + (kvOn ? '<div class="sideR">' + kvs.map(function (k, i) { return (info.outs.length > 1 ? '<div class="kvn">' + esc(info.names[i]) + '</div>' : '') + k.svg; }).join('') + '</div>' : '') + '</div>' });
       if (it.expr) ds.forEach(function (d, i) { blocks.push({ h: 118 + (aufgabe ? 0 : Math.ceil(lawText(info, d).replace(/<[^>]+>/g, '').length / 80) * 20 + 20), html: exprLines(info, d, info.names[i], aufgabe) + (aufgabe ? '' : '<p class="law">' + lawText(info, d) + '</p>') }); });
     }
-    if (it.scope) scopeImages().forEach(function (im) { var s2 = Math.min(1, cw / im.w, 360 / im.h), w2 = Math.round(im.w * s2), h2 = Math.round(im.h * s2); blocks.push({ h: h2 + 40, html: '<h3 class="hl3">' + esc(im.title) + '</h3><img class="shot" style="width:' + w2 + 'px;height:' + h2 + 'px" src="' + im.url + '" alt="Oszilloskop">' }); });
-    if (it.timing) { var tm = timingImage(); if (tm) { var s3 = Math.min(1, cw / tm.w, 520 / tm.h), w3 = Math.round(tm.w * s3), h3 = Math.round(tm.h * s3); blocks.push({ h: h3 + 40, html: '<h3 class="hl3">Zeitverlauf</h3><img class="shot" style="width:' + w3 + 'px;height:' + h3 + 'px" src="' + tm.url + '" alt="Zeitverlauf">' }); } }
+    if (it.scope) scopeImages().forEach(function (im) { var s2 = Math.min(1, Wn / im.w, 360 / im.h), w2 = Math.round(im.w * s2), h2 = Math.round(im.h * s2); blocks.push({ h: h2 + 40, html: '<h3 class="hl3">' + esc(im.title) + '</h3><img class="shot" style="width:' + w2 + 'px;height:' + h2 + 'px" src="' + im.url + '" alt="Oszilloskop">' }); });
+    if (it.timing) { var tm = timingImage(); if (tm) { var s3 = Math.min(1, Wn / tm.w, 520 / tm.h), w3 = Math.round(tm.w * s3), h3 = Math.round(tm.h * s3); blocks.push({ h: h3 + 40, html: '<h3 class="hl3">Zeitverlauf</h3><img class="shot" style="width:' + w3 + 'px;height:' + h3 + 'px" src="' + tm.url + '" alt="Zeitverlauf">' }); } }
     if (it.bom) { var rows = S.bom(); if (rows.length) blocks.push({ rows: rows, head: 70, rh: 26, build: function (take, first) { return (first ? '<h3 class="hl3">Stückliste</h3>' : '<h3 class="hl3">Stückliste (Fortsetzung)</h3>') + '<table class="tt bom"><thead><tr><th>Bauteil</th><th>Wert</th><th>Anzahl</th><th>Bezeichnungen</th></tr></thead><tbody>' + take.map(function (r) { return '<tr><td class="l">' + esc(r.label) + '</td><td class="l">' + esc(r.value) + '</td><td>' + r.count + '</td><td class="l">' + esc(r.ids.join(', ')) + '</td></tr>'; }).join('') + '</tbody></table>'; } }); }
     if (blocks.length) paginate(blocks, ch - headH - 6).forEach(function (pg) { if (pg.length) pages.push({ headRight: 'zur Schaltung auf Blatt 1', html: pg.map(function (b) { return b.html; }).join(''), info: 'folge' }); });
+    var foll = ch - headH - 6;
+    pages.forEach(function (p) { if (p.info === 'folge') p.html = fillPage(p.html, Wn, cw, foll); });
     var N = pages.length, title = esc(fields.titel);
     var out = pages.map(function (p, i) {
       var fr = frame ? '<svg class="pgframe" xmlns="http://www.w3.org/2000/svg" width="' + f.w + '" height="' + f.h + '" viewBox="0 0 ' + f.w + ' ' + f.h + '">' + S.frameSVG(fmt, fields, i + 1, N) + '</svg>' : '';
@@ -209,7 +224,7 @@
   S.exportSheetSVG = function (opts) {
     var fmt = S.sheetOn() ? S.sheet().format : S.printOptions.format, f = F[fmt], fields = S.sheetFields(), ns = 'http://www.w3.org/2000/svg';
     var r = S.exportSVG(Object.assign({}, opts, { frame: false, region: S.sheetContent() })), cw = f.w - 2 * M.contentLeft, ch = f.h - M.contentLeft - M.contentBottom, headH = 44, para = wrapText(fields.text, 60), paraH = para.length ? para.length * 19 + 14 : 0, availH = ch - headH - paraH - 10;
-    var sc = Math.min(1, (cw - 2) / r.w, availH / r.h), iw = r.w * sc, ih = r.h * sc, xs = M.contentLeft + (cw - iw) / 2, ys = M.contentLeft + headH + (availH - ih) / 2;
+    var sc = Math.min((cw - 2) * 0.95 / r.w, availH * 0.95 / r.h), iw = r.w * sc, ih = r.h * sc, xs = M.contentLeft + (cw - iw) / 2, ys = M.contentLeft + headH + (availH - ih) / 2;
     var doc = new DOMParser().parseFromString(r.svg, 'image/svg+xml').documentElement, vb = doc.getAttribute('viewBox'), inner = Array.prototype.map.call(doc.childNodes, function (n) { return new XMLSerializer().serializeToString(n); }).join('');
     var title = S.textSVG({ x: M.contentLeft, y: M.contentLeft, text: fields.titel, size: 19, color: '#000', bold: true });
     var svg = '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="' + ns + '" width="' + f.w + '" height="' + f.h + '" viewBox="0 0 ' + f.w + ' ' + f.h + '"><title>' + esc(S.name) + '</title><rect width="' + f.w + '" height="' + f.h + '" fill="#fff"/>' + S.frameSVG(fmt, fields, 1, 1) + title +

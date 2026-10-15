@@ -276,6 +276,7 @@ body.beamer .dr text { font-size: inherit; }
 .pgframe { position: absolute; left: 0; top: 0; } .pgc { position: absolute; display: flex; flex-direction: column; overflow: hidden; }
 .pgh { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 10px; min-height: 28px; } .pgh b { font-size: 19px; } .pgh span { font: 14px 'DejaVu Sans Mono', Consolas, monospace; text-align: right; }
 .pgno { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; font-size: 11px; color: #555; }
+.fitin.stack .side { flex-direction: column; gap: 14px; align-items: stretch; } .fitin.stack .sideL { width: 300px; margin: 0 auto; } .fitin.stack .sideR { text-align: center; } .fitbox { overflow: hidden; } .fitin { transform-origin: 0 0; display: flow-root; }
 .fig { display: flex; align-items: center; justify-content: center; } .figimg { display: block; } .para { margin: 10px 0 0; font-size: 13px; line-height: 19px; text-align: left; }
 .hl { font-size: 20px; margin: 0 0 12px; } .hl3 { font-size: 14px; margin: 6px 0 6px; } .shot { display: block; border: 1px solid #999; margin-bottom: 6px; }
 .side { display: flex; gap: 32px; align-items: flex-start; margin-bottom: 10px; } .sideL { width: 300px; flex: none; } .sideR { flex: 1; min-width: 0; } .kvn { font-weight: 700; margin: 4px 0 0 4px; }

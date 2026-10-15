@@ -285,6 +285,7 @@ body.beamer .dr text { font-size: inherit; }
 .pgframe { position: absolute; left: 0; top: 0; } .pgc { position: absolute; display: flex; flex-direction: column; overflow: hidden; }
 .pgh { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 10px; min-height: 28px; } .pgh b { font-size: 19px; } .pgh span { font: 14px 'DejaVu Sans Mono', Consolas, monospace; text-align: right; }
 .pgno { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; font-size: 11px; color: #555; }
+.fitin.stack .side { flex-direction: column; gap: 14px; align-items: stretch; } .fitin.stack .sideL { width: 300px; margin: 0 auto; } .fitin.stack .sideR { text-align: center; } .fitbox { overflow: hidden; } .fitin { transform-origin: 0 0; display: flow-root; }
 .fig { display: flex; align-items: center; justify-content: center; } .figimg { display: block; } .para { margin: 10px 0 0; font-size: 13px; line-height: 19px; text-align: left; }
 .hl { font-size: 20px; margin: 0 0 12px; } .hl3 { font-size: 14px; margin: 6px 0 6px; } .shot { display: block; border: 1px solid #999; margin-bottom: 6px; }
 .side { display: flex; gap: 32px; align-items: flex-start; margin-bottom: 10px; } .sideL { width: 300px; flex: none; } .sideR { flex: 1; min-width: 0; } .kvn { font-weight: 700; margin: 4px 0 0 4px; }
@@ -5599,7 +5600,7 @@ body.beamer .dr text { font-size: inherit; }
   /* ---------- Daten ---------- */
   S.sheet = function () { return S.core.layout.sheet || null; };
   S.sheetOn = function () { var s = S.sheet(); return !!(s && s.on); };
-  S.sheetFields = function () { var s = S.sheet() || {}, f = s.fields || {}; return { titel: f.titel || S.name || '', thema: f.thema || '', name: f.name || '', datum: f.datum || '', klasse: f.klasse || '', aenderung: f.aenderung || '', text: f.text || '' }; };
+  S.sheetFields = function () { var s = S.sheet() || {}, f = s.fields || {}; return { titel: f.titel || '', thema: f.thema || '', name: f.name || '', datum: f.datum || '', klasse: f.klasse || '', aenderung: f.aenderung || '', text: f.text || '' }; };
   /* Schaltungsrahmen (Ausdehnung aller Bauteile und Zeichenelemente), für die Mitte des Blattes */
   function contentBox() {
     var L = S.core.layout, xs = [], ys = [];
@@ -5644,7 +5645,13 @@ body.beamer .dr text { font-size: inherit; }
       '<path d="M' + x0 + ' ' + ty + 'H' + (x0 + tw) + 'M' + c1 + ' ' + ty + 'V' + (ty + M.title) + 'M' + c2 + ' ' + ty + 'V' + (ty + M.title) + '" stroke-width="1.2"/>' +
       '<path d="M' + (c1 + (c2 - c1) / 2) + ' ' + ty + 'V' + (ty + M.title) + 'M' + c1 + ' ' + (ty + M.title / 2) + 'H' + c2 + '" stroke-width="0.8" stroke="' + gray + '"/></g>';
     // links: Titel (fett, 13,5) und Thema
-    s += label(x0 + 12, ty + 18, 'Titel') + value(x0 + 12, ty + 40, fields.titel, { size: 13.5, bold: true }) + label(x0 + 12, ty + 66, 'Thema') + value(x0 + 12, ty + 88, fields.thema, { size: 12 });
+    function titelSvg(x, y, t, cap) { // ein langer Titel bricht auf zwei Zeilen um (kleiner), statt in die Spalte Name zu laufen
+      if (!t) return ''; var n1 = Math.floor(cap / (13.5 * 0.62)); if (String(t).length <= n1) return value(x, y, t, { size: 13.5, bold: true });
+      var n2 = Math.floor(cap / (12 * 0.62)), ls = [], line = ''; String(t).split(/\s+/).forEach(function (w) { if (line && (line + ' ' + w).length > n2) { ls.push(line); line = w; } else line = line ? line + ' ' + w : w; }); ls.push(line);
+      if (ls.length > 2) { ls = ls.slice(0, 2); ls[1] = ls[1].slice(0, n2 - 1) + '…'; }
+      return T(x, y - 19, ls.join('\n'), { size: 12, bold: true });
+    }
+    s += label(x0 + 12, ty + 18, 'Titel') + titelSvg(x0 + 12, ty + 40, fields.titel, colL - 24) + label(x0 + 12, ty + 66, 'Thema') + value(x0 + 12, ty + 88, fields.thema, { size: 12 });
     // Mitte: Name, Datum, Klasse, Änderung als 2 × 2
     var mx = c1 + 12, mx2 = c1 + (c2 - c1) / 2 + 12;
     s += label(mx, ty + 18, 'Name') + value(mx, ty + 40, fields.name) + label(mx2, ty + 18, 'Datum') + value(mx2, ty + 40, fields.datum) +
@@ -5693,7 +5700,6 @@ body.beamer .dr text { font-size: inherit; }
     $('#shDnow').onclick = function () { var d = new Date(); $('#shD').value = d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' }); };
     $('#shOk').onclick = function () {
       var v = $('#shF').value, fields = { titel: $('#shT').value, thema: $('#shTh').value, name: $('#shN').value, datum: $('#shD').value, klasse: $('#shK').value, aenderung: $('#shA').value, text: $('#shB').value };
-      if (fields.titel === (S.name || '')) fields.titel = ''; // Standard: Name der Schaltung
       var sc = $('#shS').value;
       if (v === 'off') S.sheetSet({ on: false, fields: fields });
       else if (sc === 'auto') S.sheetSet({ on: true, format: v, fields: fields, center: true });
@@ -5886,6 +5892,19 @@ body.beamer .dr text { font-size: inherit; }
     return pages;
   }
 
+  /* Folgeseite füllen: Inhalt in natürlicher Breite messen und gemeinsam (Schrift, Tabelle, KV) so skalieren, dass er den Inhaltsbereich füllt */
+  function fillPage(html, Wn, cw, availH) {
+    var m = document.createElement('div'); document.body.appendChild(m); var best = null;
+    [[Wn, false], [Wn, true], [600, true], [520, true], [460, true], [420, true]].forEach(function (c) {
+      var W = Math.min(c[0], Wn); m.style.cssText = 'position:absolute;left:-99999px;top:0;display:flow-root;width:' + W + 'px'; m.className = c[1] ? 'fitin stack' : 'fitin'; m.innerHTML = html;
+      if (m.scrollWidth > W + 1) return; // passt in dieser Breite nicht
+      var k = Math.min(cw / W, availH * 0.97 / Math.max(m.offsetHeight, 1)); if (!best || k > best.k) best = { k: k, W: W, stack: c[1] };
+    }); m.remove();
+    if (!best) best = { k: 1, W: Wn, stack: false };
+    var k = Math.max(0.01, best.k);
+    return '<div class="fitbox" style="height:' + availH + 'px"><div class="fitin' + (best.stack ? ' stack' : '') + '" style="width:' + best.W + 'px;margin-left:' + Math.max(0, Math.round((cw - best.W * k) / 2)) + 'px;transform:scale(' + k.toFixed(4) + ')">' + html + '</div></div>';
+  }
+
   /* Alle Seiten: [{html}] plus {format, count}; opts siehe S.printOptions */
   S.buildPages = function (o) {
     var opts = Object.assign({}, S.printOptions, o || {}); opts.items = Object.assign({}, S.printOptions.items, (o || {}).items || {});
@@ -5894,13 +5913,13 @@ body.beamer .dr text { font-size: inherit; }
     var region = S.sheetContent(); // nur was im Inhaltsbereich des Rahmens liegt
     // --- Seite 1: Schaltung
     var fig = figureImage(opts, region), para = wrapText(fields.text, 60), paraH = para.length ? para.length * 19 + 14 : 0, availH = ch - headH - paraH - 10;
-    var sc = Math.min(1, (cw - 2) / fig.w, availH / fig.h), iw = Math.round(fig.w * sc), ih = Math.round(fig.h * sc);
+    var sc = Math.min((cw - 2) * 0.95 / fig.w, availH * 0.95 / fig.h), iw = Math.round(fig.w * sc), ih = Math.round(fig.h * sc); // füllt den Inhaltsbereich bis auf etwa 5 % Rand, auch vergrössernd
     var head1 = info.ok && !aufgabe && info.outs.length ? H(S.factorOut(derive(info, 0).minimal).ast) : '';
     if (info.ok && !aufgabe) head1 = info.names[0] + ' = ' + head1;
     var p1 = '<div class="fig" style="height:' + availH + 'px"><img class="figimg" alt="Schaltung" style="width:' + iw + 'px;height:' + ih + 'px" src="' + fig.url + '"></div>' + (para.length ? '<p class="para">' + para.map(esc).join('<br>') + '</p>' : '');
     var pages = [{ headRight: head1, html: p1, info: 'schaltung' }];
     // --- Folgeseiten
-    var blocks = [], it = opts.items, ds = null;
+    var blocks = [], it = opts.items, ds = null, Wn = Math.min(cw, 700); // natürliche Breite der Folgeseiten, danach als Ganzes auf die Seite skaliert
     var wantLogic = it.table || it.expr || it.kv;
     if (wantLogic && info.ok) {
       ds = info.outs.map(function (o, i) { return derive(info, i); });
@@ -5910,10 +5929,12 @@ body.beamer .dr text { font-size: inherit; }
       if (tableOn || kvOn) blocks.push({ h: Math.max(tH, kH) + 10, html: '<div class="side">' + (tableOn ? '<div class="sideL">' + tHtml + '</div>' : '') + (kvOn ? '<div class="sideR">' + kvs.map(function (k, i) { return (info.outs.length > 1 ? '<div class="kvn">' + esc(info.names[i]) + '</div>' : '') + k.svg; }).join('') + '</div>' : '') + '</div>' });
       if (it.expr) ds.forEach(function (d, i) { blocks.push({ h: 118 + (aufgabe ? 0 : Math.ceil(lawText(info, d).replace(/<[^>]+>/g, '').length / 80) * 20 + 20), html: exprLines(info, d, info.names[i], aufgabe) + (aufgabe ? '' : '<p class="law">' + lawText(info, d) + '</p>') }); });
     }
-    if (it.scope) scopeImages().forEach(function (im) { var s2 = Math.min(1, cw / im.w, 360 / im.h), w2 = Math.round(im.w * s2), h2 = Math.round(im.h * s2); blocks.push({ h: h2 + 40, html: '<h3 class="hl3">' + esc(im.title) + '</h3><img class="shot" style="width:' + w2 + 'px;height:' + h2 + 'px" src="' + im.url + '" alt="Oszilloskop">' }); });
-    if (it.timing) { var tm = timingImage(); if (tm) { var s3 = Math.min(1, cw / tm.w, 520 / tm.h), w3 = Math.round(tm.w * s3), h3 = Math.round(tm.h * s3); blocks.push({ h: h3 + 40, html: '<h3 class="hl3">Zeitverlauf</h3><img class="shot" style="width:' + w3 + 'px;height:' + h3 + 'px" src="' + tm.url + '" alt="Zeitverlauf">' }); } }
+    if (it.scope) scopeImages().forEach(function (im) { var s2 = Math.min(1, Wn / im.w, 360 / im.h), w2 = Math.round(im.w * s2), h2 = Math.round(im.h * s2); blocks.push({ h: h2 + 40, html: '<h3 class="hl3">' + esc(im.title) + '</h3><img class="shot" style="width:' + w2 + 'px;height:' + h2 + 'px" src="' + im.url + '" alt="Oszilloskop">' }); });
+    if (it.timing) { var tm = timingImage(); if (tm) { var s3 = Math.min(1, Wn / tm.w, 520 / tm.h), w3 = Math.round(tm.w * s3), h3 = Math.round(tm.h * s3); blocks.push({ h: h3 + 40, html: '<h3 class="hl3">Zeitverlauf</h3><img class="shot" style="width:' + w3 + 'px;height:' + h3 + 'px" src="' + tm.url + '" alt="Zeitverlauf">' }); } }
     if (it.bom) { var rows = S.bom(); if (rows.length) blocks.push({ rows: rows, head: 70, rh: 26, build: function (take, first) { return (first ? '<h3 class="hl3">Stückliste</h3>' : '<h3 class="hl3">Stückliste (Fortsetzung)</h3>') + '<table class="tt bom"><thead><tr><th>Bauteil</th><th>Wert</th><th>Anzahl</th><th>Bezeichnungen</th></tr></thead><tbody>' + take.map(function (r) { return '<tr><td class="l">' + esc(r.label) + '</td><td class="l">' + esc(r.value) + '</td><td>' + r.count + '</td><td class="l">' + esc(r.ids.join(', ')) + '</td></tr>'; }).join('') + '</tbody></table>'; } }); }
     if (blocks.length) paginate(blocks, ch - headH - 6).forEach(function (pg) { if (pg.length) pages.push({ headRight: 'zur Schaltung auf Blatt 1', html: pg.map(function (b) { return b.html; }).join(''), info: 'folge' }); });
+    var foll = ch - headH - 6;
+    pages.forEach(function (p) { if (p.info === 'folge') p.html = fillPage(p.html, Wn, cw, foll); });
     var N = pages.length, title = esc(fields.titel);
     var out = pages.map(function (p, i) {
       var fr = frame ? '<svg class="pgframe" xmlns="http://www.w3.org/2000/svg" width="' + f.w + '" height="' + f.h + '" viewBox="0 0 ' + f.w + ' ' + f.h + '">' + S.frameSVG(fmt, fields, i + 1, N) + '</svg>' : '';
@@ -5926,7 +5947,7 @@ body.beamer .dr text { font-size: inherit; }
   S.exportSheetSVG = function (opts) {
     var fmt = S.sheetOn() ? S.sheet().format : S.printOptions.format, f = F[fmt], fields = S.sheetFields(), ns = 'http://www.w3.org/2000/svg';
     var r = S.exportSVG(Object.assign({}, opts, { frame: false, region: S.sheetContent() })), cw = f.w - 2 * M.contentLeft, ch = f.h - M.contentLeft - M.contentBottom, headH = 44, para = wrapText(fields.text, 60), paraH = para.length ? para.length * 19 + 14 : 0, availH = ch - headH - paraH - 10;
-    var sc = Math.min(1, (cw - 2) / r.w, availH / r.h), iw = r.w * sc, ih = r.h * sc, xs = M.contentLeft + (cw - iw) / 2, ys = M.contentLeft + headH + (availH - ih) / 2;
+    var sc = Math.min((cw - 2) * 0.95 / r.w, availH * 0.95 / r.h), iw = r.w * sc, ih = r.h * sc, xs = M.contentLeft + (cw - iw) / 2, ys = M.contentLeft + headH + (availH - ih) / 2;
     var doc = new DOMParser().parseFromString(r.svg, 'image/svg+xml').documentElement, vb = doc.getAttribute('viewBox'), inner = Array.prototype.map.call(doc.childNodes, function (n) { return new XMLSerializer().serializeToString(n); }).join('');
     var title = S.textSVG({ x: M.contentLeft, y: M.contentLeft, text: fields.titel, size: 19, color: '#000', bold: true });
     var svg = '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="' + ns + '" width="' + f.w + '" height="' + f.h + '" viewBox="0 0 ' + f.w + ' ' + f.h + '"><title>' + esc(S.name) + '</title><rect width="' + f.w + '" height="' + f.h + '" fill="#fff"/>' + S.frameSVG(fmt, fields, 1, 1) + title +
