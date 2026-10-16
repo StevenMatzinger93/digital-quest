@@ -227,3 +227,24 @@ Benannt wie im Portal («Beamer»); der **Vorführ-Modus** des Spiels ist etwas 
 | `AV` und `A` in Inspektor und Datenblatt: Analysetabelle Eingänge \| AV \| A, Ansteuertabelle AV \| A \| Eingänge | nach Stevens Unterlagen. Pin-Beschriftung am Bauteil bleibt Q und Q̄ (Schaltzeichen) |
 | Zähler-Tabellen im Inspektor behalten ihre Köpfe (Z, Q0 … Q3, Z⁺ …) | Stevens Schreibweise ist für Flipflops belegt, nicht für Zählertabellen; Aufträge nennen sie nicht. Offen für Rückmeldung |
 | Der Druck enthält keine Flipflop-Tabellen (nur Wahrheitstabelle reiner Logik), daher dort nichts umzustellen; der Zeitverlauf hat keine Tabellenköpfe | geprüft in `druck.js` und `timing.js` |
+
+### Lernpfad (Block 2 und 3)
+
+| Entscheidung | Begründung |
+|---|---|
+| Stationen und Aufgaben sind Daten in `dev/studio/pfad/st_*.js` (je Station eine Datei), Kern und Prüfmaschine in `pfad/kern.js` (ohne DOM), Oberfläche in `pfad/ui.js`, Hilfen zum Berechnen von Tabellen und Musterschaltungen in `pfad/bausteine.js` | Eine Änderung an der Darstellung trifft alle Stationen auf einmal (Auftrag Block 2). Der Kern läuft in Node, damit jede Station dort getestet werden kann |
+| Nicht nach Station A5 angehalten | Abweichung von Abschnitt 9 laut `NACHTLAUF_2.md` |
+| Zehn Prüfarten: die sieben aus dem Auftrag (`tabelle`, `ausdruck`, `schaltung`, `nand`, `ics`, `kv`, `folge`) plus `fragen`, `protokoll`, `vergleich` | Prüffragen und Laborstationen kommen im Auftrag vor (A3, A4, A12, B13, A2). `protokoll` und `vergleich` sind als «nicht von der Software geprüft» gekennzeichnet (✎ in der Liste, Hinweis in der Station) |
+| Tabellenköpfe zählen e1 links, e1 = höchste Stelle der Zeilennummer (wie im Arbeitsblatt); Minterme und Soll-Tabellen der Prüfmaschine zählen e1 = niedrigstes Bit (wie KV-Diagramm und Studio) | Beide Konventionen bestehen schon im Studio. Die Stationen rechnen alles aus Funktionen e → Wert, so dass sich die Konvention nicht einschleichen kann. Offene Frage an Steven: Welche Nummerierung gilt in seinen Minterm-Aufgaben (`FRAGEN_STUDIO.md`) |
+| Ausdrucksprüfung: gleichwertig über alle Eingangskombinationen, dann Buchstabenzahl ≤ kleinste Buchstabenzahl einer überdeckenden Summe (so zählt auch eine ausgeklammerte Form), bei Summe von Produkten zusätzlich Zahl der Glieder ≤ Minimalform | Eine ausgeklammerte Form kann weniger Buchstaben haben als jede Summe von Produkten; sie soll nicht abgelehnt werden |
+| Quine-McCluskey im Kern ist eine eigene Rechnung, unabhängig von `DQVisuals.minimize`; der Test vergleicht sie zusätzlich mit einer Brute-Force-Rechnung (alle Würfel, alle Teilmengen) über alle Funktionen mit 1 bis 3 Variablen und Zufallsfunktionen mit 4 und 5 Variablen (auch mit Don't-Care) | Auftrag: «gegen eine unabhängige Berechnung prüfen» |
+| Lösung zeigen nach zwei Fehlversuchen in Folge; die Aufgabe zählt danach erst, wenn die Lernenden sie selbst richtig lösen | «Abschluss: alle Pflichtaufgaben richtig» verlangt richtig, nicht gesehen |
+| Einmal richtig bleibt richtig, auch wenn ein späterer Versuch falsch ist | Sonst würde das Ausprobieren anderer Lösungen den Fortschritt zerstören |
+| Freischalten durch die Lehrperson ohne Anmeldung: Datei `*.freigabe.dqstudio.json` erstellen und von den Lernenden einlesen lassen | Stufe 1 hat keine Konten. Die Datei ist kein Schutz (wer sie sich selbst macht, schaltet sich selbst frei) – es geht ums Tempo, nicht um Sicherheit |
+| Fortschritt im Browserspeicher (`dqstudio_lernpfad_v1`, in try/catch) und als Datei `*.fortschritt.dqstudio.json` | Wie im Auftrag. Beim Einlesen werden unbekannte Stationen verworfen, neuere Versionen abgelehnt |
+| Während einer Lernpfad-Aufgabe wird nicht automatisch zwischengespeichert (`S.pfadAktiv`); die Schaltung der Aufgabe liegt im Lernpfad-Fortschritt | Sonst würde die Wiederherstellung die Aufgabenschaltung des Lernpfads mit einer freien Schaltung vermischen |
+| Die Bauteilleiste zeigt in einer Aufgabe nur die bis dahin freigeschalteten Bauteile (`schaltet` je Station, kumulativ); Eingänge, Anzeigen und Masse der Aufgabe sind gesperrt | Auftrag Abschnitt 5. Test: Die Bauteile jeder Musterlösung sind freigeschaltet |
+| A3 schaltet UND, NAND, NOR frei, A5 die übrigen | A3 (vor A5) zeigt schon Schaltungen mit Gattern, in denen der Fehler zu finden ist |
+| A4 ohne alte DIN-Norm | Ohne Stevens Arbeitsblatt ist nicht gesichert, welche Zeichen er verlangt; erfundene Symbole wären schlimmer als keine (`FRAGEN_STUDIO.md`) |
+| Die 18 Vereinfachungen (A8) und die 13 KV-Funktionen (A10) sind eigene Beispiele, nicht Stevens Serien | Seine Arbeitsblätter liegen nicht im Repository. Der Test stellt sicher, dass jedes Beispiel wirklich einfacher wird und die Minimalform stimmt; Steven ersetzt sie durch seine |
+| KV: Gruppen werden mit Feldnummern (Minterm) und einer kleinen Zahl in jedem Feld gewählt, nicht per Zeichnen mit der Maus | Funktioniert auf Handy und Tastatur, und die Rückmeldung kann «Feld 6» sagen |

@@ -165,8 +165,9 @@
   /* ---------- Bauteilleiste ---------- */
   var palTab = 'Logik', palBound = false;
   function buildPalette() {
-    var el = $('#palette'), g = PALETTE.filter(function (x) { return x.name === palTab; })[0] || PALETTE[0]; palTab = g.name;
-    var h = '<div class="ptabs" role="tablist">' + PALETTE.map(function (x) { return '<button type="button" role="tab" class="ptab' + (x === g ? ' on' : '') + '" data-tab="' + esc(x.name) + '" aria-selected="' + (x === g) + '">' + esc(x.name) + '</button>'; }).join('') + '</div>';
+    var el = $('#palette'), groups = PALETTE.map(function (x) { return S.palFilter ? { name: x.name, items: x.items.filter(S.palFilter) } : x; }).filter(function (x) { return x.items.length; }); // Lernpfad: nur die erlaubten Bauteile
+    var g = groups.filter(function (x) { return x.name === palTab; })[0] || groups[0] || PALETTE[0]; palTab = g.name;
+    var h = '<div class="ptabs" role="tablist">' + groups.map(function (x) { return '<button type="button" role="tab" class="ptab' + (x === g ? ' on' : '') + '" data-tab="' + esc(x.name) + '" aria-selected="' + (x === g) + '">' + esc(x.name) + '</button>'; }).join('') + '</div>';
     h += '<div class="plist" role="tabpanel" aria-label="' + esc(g.name) + '">' + g.items.map(function (t) {
       var d = E.PARTS[t] || { label: (S.DRAW_ITEMS.filter(function (x) { return x[0] === t; })[0] || [0, t])[1] };
       return '<button type="button" class="pitem' + (S.armedType && S.armedType() === t ? ' armed' : '') + '" draggable="true" data-add="' + t + '" title="' + esc(d.label) + ' – anklicken, dann auf die Zeichenfläche klicken (R dreht, Esc beendet) – oder auf die Zeichenfläche ziehen">' + (E.PARTS[t] ? Editor.icon(t) : S.drawIcon(t)) + '<span class="nm">' + esc(d.label) + '</span></button>';
@@ -215,6 +216,7 @@
     MENUS = [
       { id: 'datei', label: 'Datei', items: [{ label: 'Neu', act: function () { S.newCircuit(); } }, { sep: 1 }, { label: 'Schaltung einpassen', act: function () { ed.fit(); } }] },
       { id: 'bsp', label: 'Beispiele', items: [] },
+      { id: 'pfad', label: 'Lernpfad', items: [] },
       { id: 'bearb', label: 'Bearbeiten', items: [{ label: 'Rückgängig', key: 'Strg+Z', act: function () { S.undo(); } }, { label: 'Wiederholen', key: 'Strg+Y', act: function () { S.redo(); } }, { sep: 1 }, { label: 'Drehen', key: 'R', act: function () { core.rotateSelected('schema'); S.redraw(); } }, { label: 'Löschen', key: 'Entf', act: function () { core.removeSelected(); } }, { label: 'Auswahl aufheben', key: 'Esc', act: function () { core.cancel(); } }] },
       { id: 'sim', label: 'Simulation', items: [{ label: 'Start / Pause', key: 'Leertaste', act: function () { S.toggleRun(); } }, { label: 'Einzelschritt', act: function () { S.stepOnce(); } }, { label: 'Zurücksetzen', act: function () { S.resetSim(); } }] },
       { id: 'ansicht', label: 'Ansicht', items: [{ label: 'Beamer-Modus', key: 'F9', act: function () { S.setBeamer(!S.beamer); } }, { label: 'Schaltung einpassen', act: function () { ed.fit(); } }] },
@@ -291,7 +293,7 @@
   S.loadLayout = function (layout, opts) {
     opts = opts || {};
     sim.pause(); selId = null;
-    ed.load(layout, [], null); sim.clearTraces();
+    ed.load(layout, opts.locked || [], null); sim.clearTraces();
     sim.refresh(true); findDigitalNodes(); sim.reset();
     if (S.onLoad) S.onLoad(opts);
     if (S.onEdit) S.onEdit('load');

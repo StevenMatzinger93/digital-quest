@@ -63,7 +63,7 @@
   var KEY = 'dqstudio_autosave_v1';
   function store(fn) { try { return fn(root.localStorage); } catch (e) { return undefined; } }
   S.autosave = function () {
-    if (!ready || S.task) return false; var s = ser(); // während einer Aufgabe nicht zwischenspeichern: die verborgenen Werte stünden im Klartext im Browserspeicher
+    if (!ready || S.task || S.pfadAktiv) return false; var s = ser(); // während einer Aufgabe nicht zwischenspeichern: die verborgenen Werte stünden im Klartext im Browserspeicher
     if (s === lastSaved) return false;
     var lay = S.core.layout;
     if (!lay.parts.length) { store(function (l) { l.removeItem(KEY); }); lastSaved = s; return true; }
