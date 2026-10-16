@@ -119,6 +119,29 @@ DQ.tasks.forEach(t => {
   });
 });
 
+// Testlauf 2 (1.5): Ergebnis im Rechenweg und Sollwert müssen zusammenpassen (fängt Einheitenfehler wie value 10 bei unit 'ms' statt 0.01 s)
+DQ.tasks.forEach(t => {
+  if (!t.rechenweg || !(t.measure || []).length) return;
+  let ex = null; try { ex = E.expectedAnswers(t, t.ref); } catch (e) { return; }
+  t.measure.forEach(m => {
+    const rw = t.rechenweg[m.id]; if (!Array.isArray(rw) || !rw.length) return;
+    const last = rw[rw.length - 1], want = ex[m.id];
+    if (typeof last.value !== 'number' || last.unit !== m.unit || !isFinite(want)) return;
+    const tol = Math.max(m.tol || 0.03, 0.02) * 1.5;
+    if (Math.abs(last.value - want) > tol * Math.abs(want) + 0.005) err(t.id, 'Rechenweg „' + m.id + '“ endet bei ' + last.value + ' ' + m.unit + ', Sollwert ist ' + want + ' ' + m.unit + ' (Einheit von value prüfen: Grundeinheit, z. B. 0.01 für 10 ms)');
+  });
+});
+// Testlauf 2 (3.2): Auftrag kurz halten – Hintergrund gehört in learn/take, Geräte-Einstellungen in die Einstellungs-Box
+DQ.tasks.forEach(t => {
+  const n = String(t.brief || '').replace(/<[^>]+>/g, '').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim().length;
+  if (n > 400) warn(t.id, 'Auftrag (brief) hat ' + n + ' Zeichen – höchstens rund 400 (drei Sätze); Hintergrund nach learn/take');
+});
+// Testlauf 2 (1.8): richtige Antworten gleichmässig verteilen – mehr als 3 von 5 Fragen mit derselben Position ist eine Warnung
+DQ.theories.forEach(th => {
+  const c = {}; th.questions.forEach(q => { c[q.correct] = (c[q.correct] || 0) + 1; });
+  const mx = Math.max(...Object.values(c)); if (mx > 3) warn(th.id, mx + ' von ' + th.questions.length + ' Fragen haben die richtige Antwort an derselben Stelle – Quelldaten verteilen');
+});
+
 // Theorien
 DQ.theories.forEach(th => {
   if (th.questions.length !== 5) warn(th.id, th.questions.length + ' statt 5 Fragen');
@@ -184,9 +207,22 @@ DQ.theories.forEach(th => {
   const hrefs = new Set([...psrc.matchAll(/nav\.push\(\{\s*href:\s*'([^']+)'/g)].map(m => m[1]).concat([...psrc.matchAll(/nav\.push\(\['([^']+)'/g)].map(m => m[1])));
   hrefs.forEach(h => { if (!WW.items.some(i => i.bereich === 'portal' && i.href === h)) err('Wegweiser', 'Menüpunkt ' + h + ' ohne Eintrag in wegweiser_data.js'); });
   const tpl = fs.readFileSync(path.join(__dirname, 'src/index.template.html'), 'utf8');
-  [...tpl.matchAll(/<nav>([\s\S]*?)<\/nav>/g)].forEach(n => [...n[1].matchAll(/data-go="([a-z]+)"/g)].forEach(m => { if (!WW.items.some(i => i.bereich === 'labor' && i.go === m[1])) err('Wegweiser', 'Labor-Knopf data-go=' + m[1] + ' ohne Eintrag in wegweiser_data.js'); }));
+  const navs = [...tpl.matchAll(/<nav[^>]*>([\s\S]*?)<\/nav>/g)]; if (!navs.length) err('Wegweiser', 'Labor-Kopfzeile ohne <nav> im Template gefunden');
+  navs.forEach(n => [...n[1].matchAll(/data-go="([a-z]+)"/g)].forEach(m => { if (!WW.items.some(i => i.bereich === 'labor' && i.go === m[1])) err('Wegweiser', 'Labor-Knopf data-go=' + m[1] + ' ohne Eintrag in wegweiser_data.js'); }));
   WW.items.forEach(i => { if (!i.titel || !i.text || !i.wann || !WW.BEREICH[i.bereich]) err('Wegweiser', 'Eintrag ' + i.id + ' unvollständig'); if (/ß|ae|oe|ue/.test(i.text + i.wann) && /[^a-z](ae|oe|ue)[a-z]/.test(' ' + (i.text + ' ' + i.wann).toLowerCase())) warn('Wegweiser', 'Eintrag ' + i.id + ': Umlaute prüfen'); });
   const ids = new Set(); WW.items.forEach(i => { if (ids.has(i.id)) err('Wegweiser', 'doppelte id ' + i.id); ids.add(i.id); });
+}
+
+// Handbuch (Testlauf 2, 2.6): jede Seite ist ein Objekt mit id, title, html; ids eindeutig; Verweise data-man="…" zeigen auf vorhandene Seiten
+{
+  const pages = DQ.manual || [], mids = new Set(['wegweiser', 'datenblaetter']);
+  pages.forEach((p, i) => {
+    if (!p || typeof p !== 'object' || typeof p.id !== 'string' || !p.id || typeof p.title !== 'string' || !p.title || typeof p.html !== 'string') { err('Handbuch', 'Seite ' + (i + 1) + ' ohne id/title/html (' + String(p && p.id || p).slice(0, 60) + ') – Klammern im Seiten-Array prüfen'); return; }
+    if (mids.has(p.id)) err('Handbuch', 'doppelte id ' + p.id); mids.add(p.id);
+  });
+  const src = pages.map(p => (p && p.html) || '').join('\n') + fs.readFileSync(path.join(__dirname, 'src/app.js'), 'utf8');
+  [...src.matchAll(/data-man="([a-z0-9_-]+)"/g)].forEach(m => { if (!mids.has(m[1])) err('Handbuch', 'Verweis auf unbekannte Seite ' + m[1]); });
+  [...src.matchAll(/renderManual\('([a-z0-9_-]+)'\)/g)].forEach(m => { if (!mids.has(m[1])) err('Handbuch', 'renderManual auf unbekannte Seite ' + m[1]); });
 }
 
 warnings.forEach(w => console.log('Warnung', w));

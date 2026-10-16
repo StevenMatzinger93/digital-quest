@@ -148,7 +148,7 @@
   defTask({
     id: '2.5', ch: 2, title: 'Spannungsteiler auslegen', tags: ['elektro.spannungsteiler', 'elektro.dimensionieren'],
     story: 'Ein Sensoreingang verträgt höchstens 5 V – die Versorgung liefert aber 15 V.',
-    brief: 'Baue einen <b>Spannungsteiler</b> aus R1 (oben, am Pluspol) und R2 (unten, am Minuspol), sodass an <b>R2 genau 5 V (±2 %)</b> liegen. Beide Widerstände höchstens 100 kΩ. Miss U2.',
+    brief: 'Baue einen <b>Spannungsteiler</b> aus R1 (oben, am Pluspol) und R2 (unten, am Minuspol), sodass an <b>R2 genau 5 V (±2 %, also 4,90 … 5,10 V)</b> liegen. Beide Widerstände höchstens 100 kΩ. Miss U2 (auch dein Messwert muss auf ±2 % stimmen).',
     learn: 'Spannungsteiler: U₂ = U · R₂ / (R₁ + R₂).',
     take: 'Das Verhältnis der Widerstände bestimmt die Teilspannung – nicht ihr absoluter Wert.',
     hint: 'Für 5 V von 15 V muss R₂ ein Drittel des Gesamtwiderstands sein.',
@@ -158,7 +158,8 @@
     bench: { parts: [bB1, { id: 'R1', x: 560, y: 300, rot: 90 }, { id: 'R2', x: 720, y: 480, rot: 90 }] },
     wrong: [named('gleiche Widerstände (7,5 V)', div15(1000, 1000)), named('R1 und R2 vertauscht (10 V)', div15(1000, 2000))],
     tests: [{ name: 'Teiler', expect: [{ a: 'R2.a', b: 'R2.b', v: [4.9, 5.1] }, { noFault: true }] }],
-    measure: [{ id: 'u2', ask: 'Spannung U2 an R2', unit: 'V', mode: 'V', a: 'R2.a', b: 'R2.b', tol: 0.03 }]
+    diag: [{ same: [['B1.p', 'R2.a'], ['B1.p', 'R2.b']], text: 'R2 muss unten am Minuspol liegen – bei dir liegt R2 oben am Pluspol. Tausche die beiden Widerstände (oder ihre Werte), dann stimmt die Teilspannung an R2.' }],
+    measure: [{ id: 'u2', ask: 'Spannung U2 an R2', unit: 'V', mode: 'V', a: 'R2.a', b: 'R2.b', tol: 0.02 }]
   });
 
   /* ================= Theorie B ================= */
@@ -181,9 +182,9 @@
       '<p><b>Spannungsteiler:</b> U₂ = U · R₂ / (R₁ + R₂). Hängst du eine Last R<sub>L</sub> parallel zu R₂, wird der untere Teil kleiner (R₂ ∥ R<sub>L</sub>) – U₂ <b>sinkt</b>. Je kleiner R<sub>L</sub>, desto stärker.</p>' +
       '<p><b>Reale Quelle:</b> Jede Quelle hat einen <b>Innenwiderstand R<sub>i</sub></b>. Ohne Last misst du die Leerlaufspannung U₀, unter Last sinkt die Klemmenspannung: R<sub>i</sub> = (U₀ − U<sub>Last</sub>) / I.</p>',
     questions: [
-      { q: 'Zwei Widerstände von je 1 kΩ sind parallel geschaltet. Gesamtwiderstand?', options: ['250 Ω', '500 Ω', '1 kΩ', '2 kΩ'], correct: 1,
+      { q: 'Zwei Widerstände von je 1 kΩ sind parallel geschaltet. Gesamtwiderstand?', options: ['500 Ω', '250 Ω', '1 kΩ', '2 kΩ'], correct: 0,
         explain: 'R = 1 kΩ · 1 kΩ / 2 kΩ = 500 Ω – bei gleichen Widerständen die Hälfte.', verify: { layout: par2, mode: 'R', a: 'R1.a', b: 'R1.b' } },
-      { q: 'In einen Knoten fliessen 30 mA hinein, ein Zweig führt 10 mA ab. Wie viel fliesst im zweiten Abzweig?', options: ['10 mA', '20 mA', '30 mA', '40 mA'], correct: 1, explain: 'Knotenregel: Zufluss = Abfluss, also 30 mA − 10 mA = 20 mA.' },
+      { q: 'In einen Knoten fliessen 30 mA hinein, ein Zweig führt 10 mA ab. Wie viel fliesst im zweiten Abzweig?', options: ['10 mA', '40 mA', '30 mA', '20 mA'], correct: 3, explain: 'Knotenregel: Zufluss = Abfluss, also 30 mA − 10 mA = 20 mA.' },
       { q: '15 V, R1 = 2 kΩ oben, R2 = 1 kΩ unten. Welche Spannung liegt an R2?', options: ['3 V', '5 V', '7,5 V', '10 V'], correct: 1,
         explain: 'U₂ = 15 V · 1 kΩ / 3 kΩ = 5 V.', verify: { layout: div15(2000, 1000), mode: 'V', a: 'R2.a', b: 'R2.b' } },
       { q: 'Was passiert mit U₂, wenn eine Last parallel zu R₂ angeschlossen wird?', options: ['U₂ steigt', 'U₂ sinkt', 'U₂ bleibt gleich', 'U₂ wird negativ'], correct: 1, explain: 'R₂ ∥ R_L ist kleiner als R₂ – der untere Teil des Teilers bekommt weniger Spannung.' },

@@ -63,15 +63,7 @@ button{ font-family:inherit; }
 @media (prefers-reduced-motion: reduce){ .beam, .floor-grid, .hall-fog{ animation:none; } }
 
 /* ---------- Kopfleiste ---------- */
-.topbar{ position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:18px; padding:12px 24px;
-  background:linear-gradient(180deg, rgba(5,7,10,.92), rgba(5,7,10,.55)); backdrop-filter:blur(6px); border-bottom:1px solid rgba(255,255,255,.05); }
-.wordmark{ display:flex; align-items:center; gap:10px; color:var(--text); text-decoration:none; font-weight:800; letter-spacing:.14em; font-size:17px; }
-.wordmark b{ color:var(--scl); font-weight:800; margin-left:.3em; text-shadow:0 0 14px rgba(255,176,0,.45); }
-.wm-icon{ width:30px; height:30px; color:var(--scl); filter:drop-shadow(0 0 6px rgba(255,176,0,.5)); }
-.topnav{ display:flex; gap:4px; flex:1; }
-.topnav a{ color:var(--dim); text-decoration:none; font-size:13px; font-weight:600; padding:6px 10px; border-radius:6px; }
-.topnav a:hover, .topnav a.active{ color:var(--text); background:rgba(255,255,255,.06); }
-.topright{ display:flex; align-items:center; gap:10px; margin-left:auto; }
+/* Kopfzeile: gemeinsamer Baustein src/header.css (.dq-hdr, Testlauf 2 Phase 4) – hier nur Portal-eigene Teile (Netz-LED, Benutzermenü) */
 .net-led{ width:8px; height:8px; border-radius:50%; background:#444; box-shadow:0 0 0 2px rgba(255,255,255,.05); }
 .net-led.on{ background:var(--ok); box-shadow:0 0 8px var(--ok); }
 .net-led.off{ background:var(--bad); box-shadow:0 0 8px var(--bad); }
@@ -283,12 +275,10 @@ pre.code{ background:#05080b; border:1px solid var(--line2); border-radius:8px; 
   .kpis{ grid-template-columns:repeat(2, minmax(0,1fr)); }
 }
 @media (max-width: 640px){
-  .topbar{ padding:10px 16px; gap:10px; }
-  .wordmark span{ display:none; }
   .lb-long{ display:none; }
   .aria-eye{ width:32px; height:32px; }
   .aria-text{ font-size:13px; min-height:7.5em; }
-  .topnav{ display:none; }
+  .topbar.dq-hdr .topnav{ display:none; }   /* bewusst: auf dem Handy Navigation über die Halle (Testlauf 2, Phase 4) */
   .term-btn{ font-size:12px; padding:7px 10px; max-width:170px; }
   .hero{ padding-top:30px; }
   .gates{ grid-template-columns:1fr 1fr; gap:14px; padding:0 16px; }
@@ -613,6 +603,55 @@ body.beamer-mode main{ min-height:100vh; }
   .ww-page{ max-width:none; margin:0; padding:0; color:#000; } .ww-card{ border:1px solid #999; background:#fff; break-inside:avoid; color:#000; } .ww-body p, .ww-body .ww-wann{ color:#000; }
   .ww-cards{ grid-template-columns:1fr 1fr; gap:8px; } .ww-act{ display:none; } .ww-foot{ display:block; color:#333; margin-top:12px; } .ww-sect h2 .tag{ display:none; } .ww-wege{ border:1px solid #999; }
 }
+.xz-ok { color: var(--ok, #22c55e); } .xz-bad { color: var(--bad, #ff4d4d); } /* Testlauf 2 (2.7): Rückmeldung zum Prüfungscode */
+
+/* ==== Gemeinsame Kopfzeile (Testlauf 2, Phase 4) – EIN Baustein für Labor (header.top) und Portal (header.topbar) ====
+ * build.js hängt diese Datei an style.css (Labor, Werkstatt, Freie Werkbank, Live-Challenge, Prüfung) und an portal.css an.
+ * Die Kopfzeile ist in beiden Themes dunkel (Leitstand-Look); darum eigene Farb-Token --hdr-*, nie die Seiten-Token
+ * (--line ist im hellen Thema fast weiss – daher kamen die weissen Rahmen an Wegweiser- und Rechner-Knopf).
+ * Bewusste Unterschiede, weil sie Funktion tragen: Prüfung ohne Karte/Einstellungen und ohne Speicheranzeige (body.exam-mode),
+ * Live-Challenge ohne Navigation (body.live-mode), Portal-Beamer ohne Kopfzeile (body.beamer-mode), Portal auf dem Handy ohne
+ * Menüzeile (Navigation über die Halle). */
+.dq-hdr {
+  --hdr-h: 56px; --hdr-bg: linear-gradient(180deg, #0b0d10, #13161b); --hdr-line: #2a2f36; --hdr-line-hi: #3a414b;
+  --hdr-text: #e8e8e8; --hdr-dim: #a3a8ae; --hdr-accent: #ffb000; --hdr-hover: rgba(255, 255, 255, .06);
+  --hdr-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 14px; min-height: var(--hdr-h); padding: 0 20px; box-sizing: border-box;
+  background: var(--hdr-bg); border-bottom: 1px solid var(--hdr-line); color: var(--hdr-text); font: 400 14px/1.4 var(--hdr-font); backdrop-filter: none;
+}
+.dq-hdr .dq-brand { display: flex; align-items: center; gap: 10px; flex: none; color: var(--hdr-text); text-decoration: none; font: 800 16px/1 var(--hdr-font); letter-spacing: .16em; }
+.dq-hdr .dq-brand b { color: var(--hdr-accent); font-weight: 800; margin-left: .25em; text-shadow: 0 0 14px rgba(255, 176, 0, .45); }
+.dq-hdr .dq-brand svg { width: 28px; height: 28px; flex: none; color: var(--hdr-accent); stroke: currentColor; fill: none; filter: drop-shadow(0 0 6px rgba(255, 176, 0, .5)); }
+.dq-hdr .dq-brand:focus-visible { outline: 2px solid var(--hdr-accent); outline-offset: 4px; border-radius: 6px; }
+.dq-hdr .dq-nav { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; margin: 0; }
+.dq-hdr .dq-nav > a, .dq-hdr .dq-nav > button { display: inline-flex; align-items: center; height: 34px; padding: 0 11px; border: 1px solid transparent; border-radius: 6px; background: none;
+  color: var(--hdr-dim); font: 600 13.5px/1 var(--hdr-font); text-decoration: none; cursor: pointer; white-space: nowrap; }
+.dq-hdr .dq-nav > a:hover, .dq-hdr .dq-nav > button:hover { color: var(--hdr-text); background: var(--hdr-hover); }
+.dq-hdr .dq-nav > a.active, .dq-hdr .dq-nav > button.active { color: var(--hdr-accent); background: var(--hdr-hover); border-color: var(--hdr-line); }
+.dq-hdr .dq-tools { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
+/* runde bzw. quadratische Werkzeug-Knöpfe (Wegweiser «?», Taschenrechner) – gleicher Rahmen wie alle Knöpfe der Kopfzeile */
+.dq-hdr .dq-hbtn { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; margin: 0; flex: none; border: 1px solid var(--hdr-line-hi); border-radius: 8px; background: none;
+  color: var(--hdr-dim); font: 800 15px/1 var(--hdr-font); text-decoration: none; cursor: pointer; box-sizing: border-box; }
+.dq-hdr .dq-hbtn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.dq-hdr .dq-hbtn:hover, .dq-hdr .dq-hbtn:focus-visible, body.calc-open .dq-hdr .dq-hbtn.calc-btn { color: var(--hdr-accent); border-color: var(--hdr-accent); }
+/* Konto-Chip (Labor) und Anmelde-/Benutzer-Knopf (Portal): gleiche Höhe, Form und Schrift */
+.dq-hdr .dq-chip { display: inline-flex; align-items: center; gap: 8px; height: 34px; max-width: 200px; padding: 0 12px; box-sizing: border-box; border: 1px solid var(--hdr-line-hi); border-radius: 17px;
+  background: none; color: var(--hdr-dim); font: 600 12.5px/1 var(--hdr-font); letter-spacing: .02em; text-decoration: none; white-space: nowrap; overflow: hidden; cursor: pointer; }
+.dq-hdr .dq-chip:hover { border-color: var(--hdr-accent); color: var(--hdr-accent); }
+.dq-hdr .dq-chip.on { border-color: var(--hdr-accent); color: var(--hdr-accent); }
+.dq-hdr .dq-chip span { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 760px) {
+  .dq-hdr { --hdr-h: 52px; gap: 8px; padding: 0 10px; }
+  .dq-hdr .dq-brand span { display: none; }
+  .dq-hdr .dq-nav { gap: 2px; } .dq-hdr .dq-nav > a, .dq-hdr .dq-nav > button { padding: 0 7px; font-size: 12px; }
+  .dq-hdr .dq-tools { gap: 6px; } .dq-hdr .dq-hbtn { width: 32px; height: 32px; } .dq-hdr .dq-chip { height: 32px; max-width: 150px; padding: 0 10px; }
+  .dq-hdr .dq-nav { overflow-x: auto; scrollbar-width: none; } .dq-hdr .dq-nav::-webkit-scrollbar { display: none; }   /* nie über die Werkzeug-Knöpfe */
+}
+@media (max-width: 420px) {
+  .dq-hdr { gap: 6px; padding: 0 8px; }
+  .dq-hdr .dq-nav { gap: 0; } .dq-hdr .dq-nav > a, .dq-hdr .dq-nav > button { padding: 0 5px; font-size: 11.5px; }
+  .dq-hdr .dq-tools { gap: 4px; } .dq-hdr .dq-hbtn { width: 30px; height: 30px; } .dq-hdr .dq-chip { max-width: 120px; }
+}
 
 /* ==== Mini-Schaltung im Portal: Variablen und Stile aus dem Spiel (style.css, CIRCUIT-Blöcke) ==== */
 :root { --sym: #d8d8d8; --wire: #d9a441; --accent-lead: #ffb000; --accent-lead-dim: #8a6000; --accent-green: #39ff14; --accent-cyan: #1ec8e0; --accent-red: #ff3333; --accent-orange: #ff8c00; --bg-editor: #0c0d0a; --bg-secondary: #0d1218; --bg-tertiary: #111821; --text-dim: #8b98a6; --text-faint: #5a6774; --font-code: var(--mono); --font-ui: var(--font); }
@@ -730,17 +769,17 @@ body.beamer-mode main{ min-height:100vh; }
   <div class="vignette"></div>
 </div>
 
-<header class="topbar">
-  <a class="wordmark" href="#/" aria-label="Digital Quest – Startseite">
+<header class="topbar dq-hdr">
+  <a class="wordmark dq-brand" href="#/" aria-label="Digital Quest – Startseite">
     <svg viewBox="0 0 40 40" class="wm-icon" aria-hidden="true"><rect x="3" y="3" width="34" height="34" rx="7" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M8 20h6l3-9 6 18 3-9h6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <span>DIGITAL<b>QUEST</b></span>
   </a>
-  <nav class="topnav" id="topnav" aria-label="Hauptnavigation"></nav>
-  <div class="topright">
+  <nav class="topnav dq-nav" id="topnav" aria-label="Hauptnavigation"></nav>
+  <div class="topright dq-tools">
     <span class="net-led" id="netLed" title="Verbindung zum Leitstand"></span>
-    <button class="term-btn" id="loginBtn"><span class="led"></span> <span class="lb-long">Leitstand · </span>Anmelden</button>
+    <button class="term-btn dq-chip" id="loginBtn"><span class="led"></span> <span class="lb-long">Leitstand · </span>Anmelden</button>
     <div class="user-menu" id="userMenu" hidden>
-      <button class="term-btn on" id="userBtn" aria-haspopup="true" aria-expanded="false"><span class="led"></span> <span id="userName"></span></button>
+      <button class="term-btn dq-chip on" id="userBtn" aria-haspopup="true" aria-expanded="false"><span class="led"></span> <span id="userName"></span></button>
       <div class="user-drop" id="userDrop" hidden>
         <div class="ud-role" id="userRole"></div>
         <a href="#/konto">Mein Konto</a>
@@ -1442,12 +1481,13 @@ body.beamer-mode main{ min-height:100vh; }
     var net;
     try { net = buildNetlist(layout); } catch (e) { return { pass: false, results: [{ ok: false, text: e.message }] }; }
     /* limit: hoechstens so viele Bauteile eines Typs; Schluessel 'gates' zaehlt alle Logikgatter zusammen */
+    var real = net.parts.filter(function (p) { return !(p.props && p.props.virtual); }); // virtuell = Multimeter in der Lücke (Testlauf 2): zählt nicht als Bauteil
     Object.keys(task.limit || {}).forEach(function (type) {
-      var c = net.parts.filter(function (p) { return type === 'gates' ? GATES[p.type] : p.type === type; }).length;
+      var c = real.filter(function (p) { return type === 'gates' ? GATES[p.type] : p.type === type; }).length;
       push(c <= task.limit[type], (type === 'gates' ? 'Logikgatter' : def(type).label) + ': höchstens ' + task.limit[type], { have: c });
     });
     Object.keys(task.need || {}).forEach(function (type) {
-      var c = net.parts.filter(function (p) { return p.type === type; }).length;
+      var c = real.filter(function (p) { return p.type === type; }).length;
       push(c >= task.need[type], 'Bauteil ' + def(type).label + ': mindestens ' + task.need[type], { have: c });
     });
     /* Test = ein Zustand {set, expect} oder eine Schrittfolge {steps:[{set?, run?, dt?, expect?, name?}]} mit durchgehendem Zustand
@@ -1570,6 +1610,29 @@ body.beamer-mode main{ min-height:100vh; }
     this.dragProbe = null; // {which:'a'|'b'|'tip'|'gnd', x, y} waehrend eine Spitze gezogen wird (Raum 'bench')
   }
   Circuit.SPACES = SPACES; Circuit.GRID = SPACES.schema.grid; Circuit.W = SPACES.schema.w; Circuit.H = SPACES.schema.h;
+  /* Testlauf 2 (5.4): Arbeitsfläche je Instanz – scale 1 = wie bisher, die Freie Werkbank nutzt 1.5 (2,25-fache Fläche).
+   * Die Fläche wächst nach rechts und unten; Multimeter/Oszilloskop bleiben an ihrem Platz (reservierte Bereiche unverändert). */
+  Circuit.prototype.area = function (space) {
+    var S = SPACES[space || 'schema'], f = this.scale || 1;
+    return f === 1 ? S : Object.assign({}, S, { w: Math.round(S.w * f), h: Math.round(S.h * f) });
+  };
+  /* Testlauf 2 (5.5): Netz einer Leitung – alle Leitungen und Anschlüsse, die über Leitungen mit ihr verbunden sind */
+  Circuit.prototype.netOf = function (wi) {
+    var ws = this.layout.wires, w0 = ws[wi]; if (!w0) return { wires: [], pins: [] };
+    var pins = {}, wires = {}, todo = [w0.from, w0.to]; pins[w0.from] = pins[w0.to] = true;
+    while (todo.length) { var p = todo.pop(); ws.forEach(function (w, i) { if (wires[i] || (w.from !== p && w.to !== p)) return; wires[i] = true; [w.from, w.to].forEach(function (q) { if (!pins[q]) { pins[q] = true; todo.push(q); } }); }); }
+    return { wires: Object.keys(wires).map(Number), pins: Object.keys(pins) };
+  };
+  /* Hervorgehobenes Netz (Maus über einer Leitung): core.hiWire = Index oder null; die Ansichten zeichnen es bei jedem render() */
+  Circuit.prototype.hiNet = function () { var i = this.hiWire; return i === null || i === undefined || !this.layout.wires[i] ? null : this.netOf(i); };
+  Circuit.prototype.setHiWire = function (i) { i = i === null || i === undefined ? null : +i; if (this.hiWire === i) return; this.hiWire = i; this.redraw(); };
+  /* Testlauf 2 (5.5): wählbare Leitungsfarbe (w.color); die Engine liest nur from/to */
+  Circuit.WIRE_COLORS = { rot: '#e5484d', schwarz: '#3a3a3a', blau: '#3b82f6', gruen: '#22a559', gelb: '#e6b800', weiss: '#e8e8e8' };
+  Circuit.prototype.setWireColor = function (i, color) {
+    var w = this.layout.wires[i]; if (!w || this.opts.readonly) return;
+    if (color && Circuit.WIRE_COLORS[color]) w.color = color; else delete w.color;
+    this.changed('wirecolor');
+  };
 
   /* Werkbank-Lage ohne eigenes bench-Layout: Schema-Lage gestreckt und aufs Werkbank-Raster gesetzt */
   function autoBench(p) {
@@ -1618,18 +1681,41 @@ body.beamer-mode main{ min-height:100vh; }
   function half(type, space, rot) { var t = HALF[space], h = t[type] || t._; return (rot || 0) % 180 ? [h[1], h[0]] : h; }
   Circuit.half = half;
   Circuit.prototype._place = function (cx, cy, space, type) {
-    var S = SPACES[space], self = this, g = S.grid, cx0 = Math.round(cx / g) * g, cy0 = Math.round(cy / g) * g, x = cx0, y = cy0, ring = 0, k = 0;
+    var S = this.area(space), self = this, g = S.grid, cx0 = Math.round(cx / g) * g, cy0 = Math.round(cy / g) * g, x = cx0, y = cy0, ring = 0, k = 0;
     var me = half(type, space, 0);
     function free(x, y) { // kein Ueberlappen mit reservierten Flaechen oder anderen Bauteilen (echte Abmessungen + Abstand)
       var off = (S.reserved || []).some(function (r) { return x > r[0] - me[0] && x < r[2] + me[0] && y > r[1] - me[1] && y < r[3] + me[1]; });
       return !off && self.layout.parts.every(function (p) { var q = self.pos(p, space), o = half(p.type, space, q.rot); return Math.abs(q.x - x) > me[0] + o[0] + 12 || Math.abs(q.y - y) > me[1] + o[1] + 12; });
     }
+    function inRes(x, y) { return (S.reserved || []).some(function (r) { return x > r[0] - me[0] && x < r[2] + me[0] && y > r[1] - me[1] && y < r[3] + me[1]; }); }
     while (!free(x, y) && ring < 12) {
       k++; var ang = k * 0.9; ring = Math.floor(k / 7) + 1;
       x = Math.round((cx0 + Math.cos(ang) * S.step[0] * ring) / g) * g; y = Math.round((cy0 + Math.sin(ang) * S.step[1] * ring) / g) * g;
       x = Math.max(S.clamp, Math.min(S.w - S.clamp, x)); y = Math.max(S.clamp, Math.min(S.h - S.clamp, y));
     }
-    return [x, y];
+    if (free(x, y)) return [x, y];
+    // Testlauf 2 (2.4): Spirale ohne Treffer – ganze Fläche im Raster absuchen, nächster freier Platz; ist alles belegt, der Platz mit den
+    // wenigsten Überlappungen, aber nie im reservierten Bereich (Multimeter/Oszilloskop) und nie am Rand gestapelt
+    var best = null, bestD = Infinity, gx = Math.max(g, Math.round(me[0] / g) * g), gy = Math.max(g, Math.round(me[1] / g) * g);
+    for (var yy = S.clamp; yy <= S.h - S.clamp; yy += gy) for (var xx = S.clamp; xx <= S.w - S.clamp; xx += gx) {
+      if (!free(xx, yy)) continue; var d = (xx - cx0) * (xx - cx0) + (yy - cy0) * (yy - cy0); if (d < bestD) { bestD = d; best = [xx, yy]; }
+    }
+    if (best) return best;
+    var cnt = function (x, y) { return self.layout.parts.reduce(function (s, p) { var q = self.pos(p, space), o = half(p.type, space, q.rot), ox = me[0] + o[0] + 12 - Math.abs(q.x - x), oy = me[1] + o[1] + 12 - Math.abs(q.y - y); return s + (ox > 0 && oy > 0 ? ox * oy : 0); }, 0); }, bc = Infinity; // Überlappungsfläche
+    for (yy = S.clamp; yy <= S.h - S.clamp; yy += gy) for (xx = S.clamp; xx <= S.w - S.clamp; xx += gx) {
+      if (inRes(xx, yy)) continue; var c = cnt(xx, yy), d2 = (xx - cx0) * (xx - cx0) + (yy - cy0) * (yy - cy0); if (c < bc || (c === bc && d2 < bestD)) { bc = c; bestD = d2; best = [xx, yy]; }
+    }
+    return best || [x, y];
+  };
+  /* Testlauf 2 (2.4): Bauteile, die (fast) genau übereinander liegen – je Stapel bekommt das oberste (zuletzt gezeichnete) die Anzahl */
+  Circuit.prototype.stacks = function (space) {
+    var self = this, out = {}, ps = this.layout.parts;
+    ps.forEach(function (p, i) {
+      var q = self.pos(p, space), n = 1, top = true;
+      ps.forEach(function (o, j) { if (j === i) return; var r = self.pos(o, space); if (Math.abs(r.x - q.x) < 24 && Math.abs(r.y - q.y) < 24) { n++; if (j > i) top = false; } });
+      if (n > 1 && top) out[p.id] = n;
+    });
+    return out;
   };
   /* Neues Bauteil moeglichst nahe (cx, cy) im Raum der aufrufenden Ansicht. Auf der Werkbank bekommt es
    * zusaetzlich einen freien Platz im Schema (Mitte der vorhandenen Bauteile). */
@@ -1718,7 +1804,7 @@ body.beamer-mode main{ min-height:100vh; }
     if (this.opts.readonly) return false;
     if (Math.abs(xy[0] - d.sx) + Math.abs(xy[1] - d.sy) > 6) d.moved = true;
     if (!d.moved) return false;
-    var S = SPACES[d.space], g = S.grid;
+    var S = this.area(d.space), g = S.grid;
     var nx = Math.round((xy[0] - d.ox) / g) * g, ny = Math.round((xy[1] - d.oy) / g) * g;
     nx = Math.max(S.edge, Math.min(S.w - S.edge, nx)); ny = Math.max(S.edge, Math.min(S.h - S.edge, ny));
     var q = this.pos(p, d.space);
@@ -1941,13 +2027,15 @@ body.beamer-mode main{ min-height:100vh; }
   }
   /* L4 (05.10.2026): Ausschnitt setzen (begrenzt), zur Zeigerposition zoomen – dieselbe Bedienung wie die Werkbank
    * (Strg/⌘ + Rad, zwei Finger, Ziehen auf leerer Fläche); Doppeltipp auf ein Bauteil zoomt heran, auf leere Fläche passt ein. */
+  Editor.prototype.dims = function () { var a = this.core.area ? this.core.area('schema') : null; return a ? [a.w, a.h] : [W, H]; }; // Testlauf 2 (5.4): Fläche je Instanz
   Editor.prototype.setView = function (v) {
+    var D = this.dims(), W = D[0], H = D[1];
     var w = Math.max(160, Math.min(W * 1.6, v[2])), h = v[3] * w / v[2];
     var x = Math.max(-300, Math.min(W + 300 - w, v[0])), y = Math.max(-300, Math.min(H + 300 - h, v[1]));
     this.view = [x, y, w, h]; this.svg.setAttribute('viewBox', this.view.join(' ')); this.render();
   };
   Editor.prototype.zoomAt = function (f, cx, cy) {
-    var box = this.svg.getBoundingClientRect(), v = this.view; if (!box.width) return;
+    var box = this.svg.getBoundingClientRect(), v = this.view, W = this.dims()[0]; if (!box.width) return;
     var px = v[0] + (cx - box.left) / box.width * v[2], py = v[1] + (cy - box.top) / box.height * v[3];
     var w = Math.max(160, Math.min(W * 1.6, v[2] * f)), k = w / v[2];
     this.setView([px - (px - v[0]) * k, py - (py - v[1]) * k, w, v[3] * k]);
@@ -1965,6 +2053,7 @@ body.beamer-mode main{ min-height:100vh; }
   Editor.prototype.load = function (layout, lockedIds, bench) { this.core.load(layout, lockedIds, bench); this.fit(); };
   /* Ansicht auf die Bauteile einpassen (mind. 640 × 400, Rand 140) – nur beim Laden und auf Wunsch, nie waehrend des Ziehens */
   Editor.prototype.fit = function () {
+    var D = this.dims(), W = D[0], H = D[1];
     var ps = this.layout.parts, x0 = 300, y0 = 200, x1 = 700, y1 = 420;
     if (ps.length) { x0 = Math.min.apply(null, ps.map(function (p) { return p.x; })); x1 = Math.max.apply(null, ps.map(function (p) { return p.x; }));
       y0 = Math.min.apply(null, ps.map(function (p) { return p.y; })); y1 = Math.max.apply(null, ps.map(function (p) { return p.y; })); }
@@ -1983,6 +2072,7 @@ body.beamer-mode main{ min-height:100vh; }
   /* Neues Bauteil in der Mitte des sichtbaren Ausschnitts */
   Editor.prototype.addPart = function (type) {
     var v = this.view || [0, 0, W, H], p = this.core.addPart(type, v[0] + v[2] / 2, v[1] + v[3] / 2);
+    if (!p) return p;
     if (p.x - 50 < v[0] || p.x + 50 > v[0] + v[2] || p.y - 50 < v[1] || p.y + 50 > v[1] + v[3]) this.fit(); // neues Bauteil ausserhalb des Ausschnitts: einpassen
     return p;
   };
@@ -2059,7 +2149,15 @@ body.beamer-mode main{ min-height:100vh; }
         return (s1[0] === -da[0] && s1[0] !== 0 ? 1 : 0) + (s1[1] === -da[1] && s1[1] !== 0 ? 1 : 0) +
           (s2[0] === db[0] && s2[0] !== 0 ? 1 : 0) + (s2[1] === db[1] && s2[1] !== 0 ? 1 : 0);
       }
-      var hFirst = pen([sb[0], sa[1]]) <= pen([sa[0], sb[1]]);
+      // Testlauf 2 (5.5): von den zwei rechtwinkligen Wegen den nehmen, der weniger Bauteile durchquert (dann wie bisher die Richtung)
+      function hits(c) {
+        var segs = [[sa, c], [c, sb]], n = 0;
+        L.parts.forEach(function (p) { if (p.id === fa.split('.')[0] || p.id === fb.split('.')[0]) return; var x0 = p.x - 30, x1 = p.x + 30, y0 = p.y - 26, y1 = p.y + 26;
+          segs.forEach(function (s) { var ax = Math.min(s[0][0], s[1][0]), bx = Math.max(s[0][0], s[1][0]), ay = Math.min(s[0][1], s[1][1]), by = Math.max(s[0][1], s[1][1]); if (bx > x0 && ax < x1 && by > y0 && ay < y1) n++; }); });
+        return n;
+      }
+      var cH = [sb[0], sa[1]], cV = [sa[0], sb[1]], hH = hits(cH), hV = hits(cV);
+      var hFirst = hH !== hV ? hH < hV : pen(cH) <= pen(cV);
       var mid = hFirst ? 'H' + sb[0] + 'V' + sb[1] : 'V' + sb[1] + 'H' + sb[0];
       return 'M' + a[0] + ' ' + a[1] + 'L' + sa[0] + ' ' + sa[1] + mid + 'L' + b[0] + ' ' + b[1];
     }
@@ -2071,21 +2169,24 @@ body.beamer-mode main{ min-height:100vh; }
     h.push('<defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="0" cy="0" r="1" class="griddot"/></pattern>' +
       '<radialGradient id="glowAmber"><stop offset="0" stop-color="#ffcf4a" stop-opacity="0.9"/><stop offset="1" stop-color="#ffb000" stop-opacity="0"/></radialGradient>' +
       '<filter id="blur" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="6"/></filter></defs>');
-    h.push('<rect width="' + W + '" height="' + H + '" fill="url(#grid)"/>');
+    var D = self.dims(); h.push('<rect width="' + D[0] + '" height="' + D[1] + '" fill="url(#grid)"/>');
     // Leitungen
     var wi = self.showFlow && root.DQBench ? root.DQBench.wireCurrents(L, res) : [];
+    var hn = self.core.hiNet ? self.core.hiNet() : null, hw = {}, hp = {}; if (hn) { hn.wires.forEach(function (k) { hw[k] = 1; }); hn.pins.forEach(function (k) { hp[k] = 1; }); }
+    self.svg.classList.toggle('net-on', !!hn);
     L.wires.forEach(function (w, i) {
-      var col = wcol(w.from), d = route(w.from, w.to), iw = wi[i] || 0;
-      h.push('<g data-wire="' + i + '"><path class="wirehit" d="' + d + '"/><path class="wire bcore' + (self.sel === 'w:' + i ? ' selected' : '') + '" data-i="' + iw.toExponential(3) + '" d="' + d + '"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
+      var col = wcol(w.from) || (w.color && Circuit.WIRE_COLORS && Circuit.WIRE_COLORS[w.color]) || null, d = route(w.from, w.to), iw = wi[i] || 0;
+      h.push('<g data-wire="' + i + '"' + (hw[i] ? ' class="nethi"' : '') + '><path class="wirehit" d="' + d + '"/><path class="wire bcore' + (self.sel === 'w:' + i ? ' selected' : '') + '" data-i="' + iw.toExponential(3) + '" d="' + d + '"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
     });
     // Bauteile
+    var stk = self.core.stacks ? self.core.stacks('schema') : {};
     L.parts.forEach(function (p) {
       var r = res && res.parts[p.id], sel = self.sel === p.id;
       var tip = partTip(p, r);
       h.push('<g class="part' + (sel ? ' selected' : '') + (self.locked[p.id] ? ' locked' : '') + '" data-part="' + p.id + '" transform="translate(' + p.x + ' ' + p.y + ')">' +
         '<title>' + esc(tip) + '</title><rect class="hit" x="-44" y="-34" width="88" height="68"/>' +
         '<g transform="rotate(' + (p.rot || 0) + ')">' + symbol(p, r) + '</g>' +
-        labels(p) + '</g>');
+        labels(p) + (stk[p.id] ? '<g class="stackbadge" transform="translate(34 -30)"><title>' + stk[p.id] + ' Bauteile liegen übereinander – wegziehen zum Trennen</title><circle r="11"/><text y="4">' + stk[p.id] + '</text></g>' : '') + '</g>');
     });
     if (self.showFlow) h.push('<g class="bflow" pointer-events="none"></g>');
     // Anschluesse
@@ -2093,7 +2194,7 @@ body.beamer-mode main{ min-height:100vh; }
       Object.keys(GEO[p.type]).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = pinPos(p, pin), col = wcol(pid);
         var cls = 'pin' + (self.wireStart === pid ? ' active' : '') + (pinWireCount[pid] ? ' used' : '') + (pinWireCount[pid] > 1 ? ' junction' : '');
-        h.push('<g data-pin="' + pid + '"><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (11 * hit).toFixed(1) + '"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');
+        h.push('<g data-pin="' + pid + '"' + (hp[pid] ? ' class="nethi"' : '') + '><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (11 * hit).toFixed(1) + '"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');
         if (self.showVolt && res && pinNode && pinNode[pid] !== undefined && pin !== 'g')
           h.push('<text class="vlabel" x="' + (xy[0] + 6) + '" y="' + (xy[1] - 6) + '">' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + '</text>');
         if (self.refMark === pid) h.push('<text class="refmark" x="' + (xy[0] - 8) + '" y="' + (xy[1] + 18) + '">⏚ 0 V<title>Bezugspunkt 0 V – ohne schwarze Spitze misst das Oszilloskop hiergegen</title></text>'); // G1
@@ -2720,7 +2821,8 @@ body.beamer-mode main{ min-height:100vh; }
   };
   /* Ausschnitt setzen (Bildschirm-Koordinaten der Szene), in sinnvollen Grenzen */
   Bench.prototype.setView = function (v) {
-    var w = Math.max(360, Math.min(2600, v[2])), h = v[3] * w / v[2];
+    var A = this.core.area ? this.core.area('bench') : { w: W, h: H }, W = A.w, H = A.h; // Testlauf 2 (5.4): Fläche je Instanz
+    var w = Math.max(360, Math.min(2600 * (W / S.w), v[2])), h = v[3] * w / v[2];
     var x = Math.max(-600, Math.min(W + 600 - w, v[0])), y = Math.max(-500, Math.min(H * K + 300 - h, v[1]));
     this.view = [x, y, w, h];
     this.svg.setAttribute('viewBox', this.view.join(' '));
@@ -2730,7 +2832,7 @@ body.beamer-mode main{ min-height:100vh; }
   Bench.prototype.zoomAt = function (f, cx, cy) {
     var box = this.svg.getBoundingClientRect(), v = this.view; if (!box.width) return;
     var px = v[0] + (cx - box.left) / box.width * v[2], py = v[1] + (cy - box.top) / box.height * v[3];
-    var w = Math.max(360, Math.min(2600, v[2] * f)), k = w / v[2];
+    var w = Math.max(360, Math.min(2600 * ((this.core.area ? this.core.area('bench').w : W) / S.w), v[2] * f)), k = w / v[2];
     this.setView([px - (px - v[0]) * k, py - (py - v[1]) * k, w, v[3] * k]);
   };
 
@@ -2738,6 +2840,7 @@ body.beamer-mode main{ min-height:100vh; }
     if (this._hidden()) { this.dirty = true; return; }
     this.dirty = false;
     var self = this, core = this.core, L = core.layout, res = this.sim && this.sim.res, pinNode = this.sim && this.sim.pinNode;
+    var A = core.area ? core.area('bench') : { w: W, h: H }, W = A.w, H = A.h; // Testlauf 2 (5.4): Matte so gross wie die Fläche der Instanz
     var vmax = 0; if (res) Object.keys(res.nodeV).forEach(function (n) { vmax = Math.max(vmax, res.nodeV[n]); });
     var hot = {}; ((res && res.faults) || []).forEach(function (f) { if (f.part && /SHORT|OVERLOAD/.test(f.code)) hot[f.part] = f.code; if (f.code === 'OUTPUT_CLASH') f.parts.forEach(function (id) { hot[id] = f.code; }); });
     function nodeV(pid) { return res && pinNode && pinNode[pid] !== undefined ? res.nodeV[pinNode[pid]] || 0 : undefined; }
@@ -2762,6 +2865,7 @@ body.beamer-mode main{ min-height:100vh; }
       '<text class="bmatprint" x="24" y="' + (H - 22) + '">DIGITAL QUEST · LABOR · ESD</text>' +
       '<g transform="translate(' + (W - 30) + ' ' + (H - 28) + ')"><circle r="9" fill="url(#bMetal)" stroke="rgba(0,0,0,.5)"/><circle r="4" fill="#8a8f93"/></g>');
     // Bausteine
+    var stk = core.stacks ? core.stacks('bench') : {};
     L.parts.forEach(function (p) {
       var q = core.pos(p, 'bench'), r = res && res.parts[p.id], sel = core.sel === p.id, sz = size(p.type), rot = q.rot || 0;
       var hw = (rot % 180 ? sz[1] : sz[0]) / 2, hh = (rot % 180 ? sz[0] : sz[1]) / 2, vt = Ed.valueText(p);
@@ -2772,13 +2876,16 @@ body.beamer-mode main{ min-height:100vh; }
         '<g filter="url(#bShadow)" transform="rotate(' + rot + ')">' + illus(p, r, hot[p.id]) + '</g>' +
         (hot[p.id] ? '<g class="bsmoke" transform="scale(1 ' + (1 / K) + ')"><path d="M-8 ' + (-hh * K) + 'c-8-14 8-22 0-36s8-22 0-34"/><path d="M8 ' + (-hh * K) + 'c8-12-6-20 2-32s-6-18 2-28"/></g>' : '') +
         (sel ? '<rect class="bsel" x="' + (-hw - 7) + '" y="' + (-hh - 7) + '" width="' + (2 * hw + 14) + '" height="' + (2 * hh + 14) + '" rx="12"/>' : '') +
-        '<g transform="scale(1 ' + (1 / K) + ')"><text class="blbl" y="' + ((-hh - 9) * K) + '">' + esc(p.id) + (vt ? ' · ' + esc(vt) : '') + '</text></g>' +
+        '<g transform="scale(1 ' + (1 / K) + ')"><text class="blbl" y="' + ((-hh - 9) * K) + '">' + esc(p.id) + (vt ? ' · ' + esc(vt) : '') + '</text>' +
+        (stk[p.id] ? '<g class="stackbadge" transform="translate(' + (hw - 4) + ' ' + ((-hh + 4) * K) + ')"><title>' + stk[p.id] + ' Bauteile liegen übereinander – wegziehen zum Trennen</title><circle r="13"/><text y="5">' + stk[p.id] + '</text></g>' : '') + '</g>' +
         '</g>');
     });
     // Laborkabel
+    var hn = core.hiNet ? core.hiNet() : null, hw = {}, hp = {}; if (hn) { hn.wires.forEach(function (k) { hw[k] = 1; }); hn.pins.forEach(function (k) { hp[k] = 1; }); }
+    self.svg.classList.toggle('net-on', !!hn);
     L.wires.forEach(function (w, i) {
-      var a = pp(w.from), b = pp(w.to), d = cablePath(a, b), col = wcol(w.from) || cableColor(w, i, byId), sel = core.sel === 'w:' + i, iw = wi[i] || 0;
-      h.push('<g data-wire="' + i + '" class="bwire' + (sel ? ' selected' : '') + '"><path class="bwirehit" d="' + d + '"/>' +
+      var a = pp(w.from), b = pp(w.to), d = cablePath(a, b), col = wcol(w.from) || (w.color && Circuit.WIRE_COLORS && Circuit.WIRE_COLORS[w.color]) || cableColor(w, i, byId), sel = core.sel === 'w:' + i, iw = wi[i] || 0;
+      h.push('<g data-wire="' + i + '" class="bwire' + (sel ? ' selected' : '') + (hw[i] ? ' nethi' : '') + '"><path class="bwirehit" d="' + d + '"/>' +
         '<g filter="url(#bCable)">' + (sel ? '<path d="' + d + '" fill="none" stroke="#ffb000" stroke-width="14" stroke-linecap="round" opacity=".8"/>' : '') +
         '<path d="' + d + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="8" stroke-linecap="round"/>' +
         '<path class="bcore" data-i="' + iw.toExponential(3) + '" d="' + d + '" fill="none" stroke="' + col + '" stroke-width="5.5" stroke-linecap="round"/>' +
@@ -2799,7 +2906,7 @@ body.beamer-mode main{ min-height:100vh; }
     L.parts.forEach(function (p) {
       Object.keys(GEO[p.type]).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = self.pinPos(p, pin), v = nodeV(pid), col = wcol(pid);
-        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (14 * HIT).toFixed(1) + '"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen ' + ((self.sim && self.sim.ref) || 'den Bezugspunkt') : '') + (self.refMark === pid ? ' – Bezugspunkt 0 V (Oszilloskop ohne Erdungsclip misst hiergegen)' : '') + '</title></circle>' +
+        h.push('<g data-pin="' + pid + '"' + (hp[pid] ? ' class="nethi"' : '') + '><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (14 * HIT).toFixed(1) + '"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen ' + ((self.sim && self.sim.ref) || 'den Bezugspunkt') : '') + (self.refMark === pid ? ' – Bezugspunkt 0 V (Oszilloskop ohne Erdungsclip misst hiergegen)' : '') + '</title></circle>' +
           '<circle class="bpin' + (core.wireStart === pid ? ' active' : '') + (used[pid] ? ' used' : '') + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="12"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
         if (col && pin !== 'g' && used[pid]) h.push('<g transform="translate(' + (xy[0] + 12) + ' ' + (xy[1] - 14) + ') scale(1 ' + (1 / K) + ')"><text class="bvlabel">' + E.fmt(v, 'V') + '</text></g>');
         if (self.refMark === pid) h.push('<g class="brefmark" transform="translate(' + (xy[0] - 14) + ' ' + (xy[1] + 22) + ') scale(1 ' + (1 / K) + ')" pointer-events="none"><text>⏚ 0 V</text></g>'); // G1: Bezugspunkt sichtbar, solange ohne Erdungsclip gemessen wird
@@ -5106,7 +5213,7 @@ function view(){
   const list = b => WW.items.filter(i => i.bereich === b && (WW.sees(i, r) || (r === 'gast' && generic(i))) && match(i));
   const wege = WW.wege.filter(w => WW.sees(w, r));
   const sect = (b, lead) => { const l = list(b); return '<section class="ww-sect" data-bereich="' + b + '"><h2>' + esc(WW.BEREICH[b]) + ' <span class="tag">' + l.length + '</span></h2>' + (lead ? '<p class="muted small">' + lead + '</p>' : '') + (l.length ? '<div class="ww-cards">' + l.map(i => card(i, r)).join('') + '</div>' : '<p class="empty">Kein Treffer.</p>') + '</section>'; };
-  v.innerHTML = '<div class="console ww-page"><div class="crumbs"><a href="#/">HALLE</a> / WEGWEISER</div><h1>Wegweiser</h1><p class="lead">Wo finde ich was? Jeder Menüpunkt in einem Satz – für ' + ({ gast: 'Besucherinnen und Besucher ohne Konto', student: 'Lernende', teacher: 'Dozentinnen und Dozenten', admin: 'den Admin' })[r] + '.' +
+  v.innerHTML = '<div class="console ww-page"><div class="crumbs"><a href="#/">HALLE</a> / WEGWEISER</div><h1>Wegweiser</h1><p class="lead">Hier findest du alle Bereiche von DigitalQuest und wofür du sie brauchst.' +
       (r === 'gast' ? ' Nach dem Anmelden siehst du hier die Punkte deiner Rolle.' : '') + '</p>' +
     '<div class="ww-tools row"><label class="grow"><span class="sr-only">Suchen</span><input class="inp" id="wwSearch" type="search" placeholder="Suchen … z. B. Zertifikat, Passwort, Oszilloskop" value="' + esc(Q) + '" aria-label="Wegweiser durchsuchen"></label>' +
       '<button type="button" class="btn pri" id="wwTourPortal">▶ Rundgang Portal</button><a class="btn" id="wwTourLabor" href="' + esc(GAME + '#/handbuch/wegweiser') + '">▶ Rundgang Labor</a><button type="button" class="btn" id="wwPrint" title="Übersicht drucken">🖨 Drucken</button></div>' +
@@ -5177,12 +5284,24 @@ async function overview(m){
   const qs = ['dq'];
   v.innerHTML = '<div class="console xz"><div class="crumbs"><a href="#/">HALLE</a> / ZERTIFIKATE</div><h1>Zertifikate</h1>'
     + '<p class="lead">Lege eine echte Prüfung ab – Grundstufe (Kapitel 1–10) und Profi-Stufe (Kapitel 11–15). Bestanden gibt es ein Zertifikat mit Prüfcode und QR-Code, dessen Echtheit jeder online prüfen kann.</p>'
-    + (P.user.role === 'student' || P.user.role === 'teacher' ? '<div class="panel"><h2>Prüfung unter Aufsicht beitreten</h2><form class="row" id="xzJoin"><input class="inp" id="xzCode" maxlength="6" placeholder="Code, z.B. K7QX2M" autocomplete="off" style="width:190px;text-transform:uppercase"><button class="btn pri">Beitreten</button><span class="muted small">Den 6-stelligen Code nennt deine Lehrperson.</span></form></div>' : '')
+    + (P.user.role === 'student' || P.user.role === 'teacher' ? '<div class="panel"><h2>Prüfung unter Aufsicht beitreten</h2><form class="row" id="xzJoin"><input class="inp" id="xzCode" maxlength="6" placeholder="Code, z.B. K7QX2M" autocomplete="off" style="width:190px;text-transform:uppercase"><button class="btn pri">Beitreten</button><span class="muted small" id="xzCodeMsg" aria-live="polite">Den 6-stelligen Code nennt deine Lehrperson.</span></form></div>' : '')
     + '<div id="xzQuests"><div class="panel muted">Lade …</div></div>'
     + '<div class="panel"><h2>Meine Zertifikate</h2><div id="xzMine" class="cert-list"><div class="muted">Lade …</div></div></div></div>';
+  // Testlauf 2 (2.7): Code sofort prüfen, sobald 6 Zeichen da sind – nicht erst beim Beitreten
+  let codeOk = null, codeSeq = 0;
+  const checkCode = async () => {
+    const code = $('xzCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, ''), msg = $('xzCodeMsg'), seq = ++codeSeq;
+    codeOk = null; msg.className = 'muted small';
+    if(code.length < 6){ msg.textContent = 'Den 6-stelligen Code nennt deine Lehrperson.'; return null; }
+    msg.textContent = 'Prüfe Code …';
+    try{ const r = await P.api('POST', 'exam-sessions/check', { code }); if(seq !== codeSeq) return null; codeOk = r; msg.textContent = r.text; msg.className = 'small ' + (r.ok ? 'xz-ok' : 'xz-bad'); return r; }
+    catch(err){ if(seq !== codeSeq) return null; codeOk = { ok: false }; msg.textContent = err.message; msg.className = 'small xz-bad'; return codeOk; }
+  };
+  if($('xzCode')) $('xzCode').oninput = () => { if($('xzCode').value.replace(/[^A-Za-z0-9]/g, '').length >= 6) checkCode(); else { codeSeq++; codeOk = null; $('xzCodeMsg').textContent = 'Den 6-stelligen Code nennt deine Lehrperson.'; $('xzCodeMsg').className = 'muted small'; } };
   if($('xzJoin')) $('xzJoin').onsubmit = async e => {
     e.preventDefault();
     const code = $('xzCode').value.trim().toUpperCase(); if(!code) return;
+    const chk = codeOk || await checkCode(); if(chk && !chk.ok){ P.toast($('xzCodeMsg').textContent, true); return; }
     if(!await confirmStart(null, null, true)) return;
     try{ const r = await P.api('POST', 'exams', { sessionCode: code }); location.href = P.GAME + '?exam=' + r.exam.id; }
     catch(err){ P.toast(err.message, true); }

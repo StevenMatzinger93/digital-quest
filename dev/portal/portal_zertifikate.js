@@ -21,12 +21,24 @@ async function overview(m){
   const qs = ['dq'];
   v.innerHTML = '<div class="console xz"><div class="crumbs"><a href="#/">HALLE</a> / ZERTIFIKATE</div><h1>Zertifikate</h1>'
     + '<p class="lead">Lege eine echte Prüfung ab – Grundstufe (Kapitel 1–10) und Profi-Stufe (Kapitel 11–15). Bestanden gibt es ein Zertifikat mit Prüfcode und QR-Code, dessen Echtheit jeder online prüfen kann.</p>'
-    + (P.user.role === 'student' || P.user.role === 'teacher' ? '<div class="panel"><h2>Prüfung unter Aufsicht beitreten</h2><form class="row" id="xzJoin"><input class="inp" id="xzCode" maxlength="6" placeholder="Code, z.B. K7QX2M" autocomplete="off" style="width:190px;text-transform:uppercase"><button class="btn pri">Beitreten</button><span class="muted small">Den 6-stelligen Code nennt deine Lehrperson.</span></form></div>' : '')
+    + (P.user.role === 'student' || P.user.role === 'teacher' ? '<div class="panel"><h2>Prüfung unter Aufsicht beitreten</h2><form class="row" id="xzJoin"><input class="inp" id="xzCode" maxlength="6" placeholder="Code, z.B. K7QX2M" autocomplete="off" style="width:190px;text-transform:uppercase"><button class="btn pri">Beitreten</button><span class="muted small" id="xzCodeMsg" aria-live="polite">Den 6-stelligen Code nennt deine Lehrperson.</span></form></div>' : '')
     + '<div id="xzQuests"><div class="panel muted">Lade …</div></div>'
     + '<div class="panel"><h2>Meine Zertifikate</h2><div id="xzMine" class="cert-list"><div class="muted">Lade …</div></div></div></div>';
+  // Testlauf 2 (2.7): Code sofort prüfen, sobald 6 Zeichen da sind – nicht erst beim Beitreten
+  let codeOk = null, codeSeq = 0;
+  const checkCode = async () => {
+    const code = $('xzCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, ''), msg = $('xzCodeMsg'), seq = ++codeSeq;
+    codeOk = null; msg.className = 'muted small';
+    if(code.length < 6){ msg.textContent = 'Den 6-stelligen Code nennt deine Lehrperson.'; return null; }
+    msg.textContent = 'Prüfe Code …';
+    try{ const r = await P.api('POST', 'exam-sessions/check', { code }); if(seq !== codeSeq) return null; codeOk = r; msg.textContent = r.text; msg.className = 'small ' + (r.ok ? 'xz-ok' : 'xz-bad'); return r; }
+    catch(err){ if(seq !== codeSeq) return null; codeOk = { ok: false }; msg.textContent = err.message; msg.className = 'small xz-bad'; return codeOk; }
+  };
+  if($('xzCode')) $('xzCode').oninput = () => { if($('xzCode').value.replace(/[^A-Za-z0-9]/g, '').length >= 6) checkCode(); else { codeSeq++; codeOk = null; $('xzCodeMsg').textContent = 'Den 6-stelligen Code nennt deine Lehrperson.'; $('xzCodeMsg').className = 'muted small'; } };
   if($('xzJoin')) $('xzJoin').onsubmit = async e => {
     e.preventDefault();
     const code = $('xzCode').value.trim().toUpperCase(); if(!code) return;
+    const chk = codeOk || await checkCode(); if(chk && !chk.ok){ P.toast($('xzCodeMsg').textContent, true); return; }
     if(!await confirmStart(null, null, true)) return;
     try{ const r = await P.api('POST', 'exams', { sessionCode: code }); location.href = P.GAME + '?exam=' + r.exam.id; }
     catch(err){ P.toast(err.message, true); }

@@ -114,6 +114,20 @@ Der Punkt "Klassen und Personen" (oben) und die bewusste Zurueckstellung der Pla
 - **Festo-LX-Übersicht**: verworfen (Steven).
 - **T16C hat 6 Fragen** (Grenzfall unteres Skalenende), 80 % = 5 von 6; Impressum/Datenschutz bleiben Vorlagen bis Steven die Betreiberangaben liefert.
 
+## Feedback Testlauf 2 (16.10.2026) – Entscheide
+- **Multimeter in der Lücke ist der Regelfall** (Steven): gewertet über einen virtuellen Strommesser in einer *Kopie* des Layouts (`gradeLayout`), nicht durch Ändern des Entwurfs. A1 nur Pflicht, wo der Auftrag es verlangt (4.3).
+- **«Lösung angesehen» gilt pro Station dauerhaft** (Steven): eigenes Feld `S.marks`, das «Neu» nicht löscht. Eine Rücksetz-Funktion für Lehrpersonen gibt es noch nicht (offen).
+- **Fehlversuch = echter Fehler**: nur scheiternde Tests oder ein eingetragener falscher Wert; fehlende Werte zählen nicht. Grund für «1 von 3» war die Zählweise, kein Sync-Verlust.
+- **Toleranz nicht pauschal erhöht** (Steven): 2.5 nutzt in Test und Protokoll ±2 % und nennt es im Auftrag; vertauschte Namen werden über `diag` konkret gemeldet.
+- **Fragen gemischt + Quelldaten verteilt** (Steven): Mischen allein hätte die alte B-Lastigkeit in Statistiken und Exporten gelassen.
+- **Begriffe: Deutsch zuerst** (Steven): Regel in CLAUDE.md, Glossar im Handbuch. NAND/NOR/XOR/XNOR bleiben als Kurzzeichen (so stehen sie auf Chips und Datenblättern), mit deutscher Bedeutung beim ersten Vorkommen.
+- **T3C als Leiter statt Raute**: Ring aus vier Dioden + Generator + Last ist ein K4 – mit Generator *und* Last ausserhalb der Raute kreuzt sich zwangsläufig eine Leitung. Die Leiter-Form (Generator zwischen den Zweigen, Last rechts) ist kreuzungsfrei und in Lehrbüchern ebenfalls üblich.
+- **Kopfzeile in beiden Themes dunkel**, eigene Farb-Token `--hdr-*` in einem Baustein `src/header.css` für Labor und Portal; bewusste Unterschiede nur dort, wo sie Funktion tragen (Prüfung/Live ohne Teile der Navigation, Portal-Handy ohne Menüzeile, Beamer ohne Kopfzeile).
+- **Freie Werkbank 2,25-fache Fläche** (Faktor 1,5 je Seite) statt «unendlich»: Messgeräte bleiben an ihrem Platz, die Platzsuche bleibt schnell; Zoom/Verschieben wie bisher plus Knöpfe ＋/－.
+- **Rückgängig als Schnappschüsse** des Layouts (JSON, höchstens 100) statt einzelner Befehle: einfach, deckt jede Änderung ab; Prüfung/Live: Verlauf beginnt nach jeder Abgabe neu.
+- **Aufbauten im Spielstand** (synchronisiert), Grenze 30 Aufbauten / rund 150 KB, darüber Export als Datei. Kein eigener Server-Speicher nötig.
+- **Leitungen mit Zwischenpunkten** und **geführte Übungsaufbauten**: nur Vorschlag mit Aufwand (`docs/VORSCHLAG_GEFUEHRTE_AUFBAUTEN.md`), Entscheid Steven.
+
 ## Technik
 - Offline-Einzeldatei + PWA, keine externen Bibliotheken noetig (Google Fonts optional).
 - Leitfarbe Bernstein `#ffb000`, Token-Namen wie SCL Quest.

@@ -132,8 +132,12 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await t.goto(SITE + '/#/leitstand'); await t.waitForSelector('#xpNew'); await t.selectOption('#xpLevel', 'profi');
     await t.click('#xpNew button.pri'); await t.waitForSelector('.xp-code');
     const scode = (await t.textContent('.xp-code')).trim(); if (!/^[A-Z0-9]{6}$/.test(scode)) errors.push('Aufsicht: Code fehlt');
+    // Testlauf 2 (2.7): falscher Code wird sofort gemeldet, «Beitreten» startet dann nichts; richtiger Code zeigt Stufe und Klasse
+    await p.fill('#xzCode', 'ZZZZZZ'); await p.waitForFunction(() => /unbekannt/.test(document.getElementById('xzCodeMsg').textContent), null, { timeout: 4000 }).catch(() => errors.push('Prüfungscode: falscher Code nicht sofort gemeldet'));
+    await p.click('#xzJoin button'); await p.waitForTimeout(300); if (await p.$('#xsConfirm')) errors.push('Prüfungscode: falscher Code öffnet trotzdem den Start');
+    await p.fill('#xzCode', scode); await p.waitForFunction(() => /Code gültig: Profi-Stufe/.test(document.getElementById('xzCodeMsg').textContent), null, { timeout: 4000 }).catch(async () => errors.push('Prüfungscode: richtiger Code nicht bestätigt: ' + await p.textContent('#xzCodeMsg')));
     // Lernende tritt mit Code bei (Grundstufe ist bestanden)
-    await p.fill('#xzCode', scode); await p.click('#xzJoin button'); await p.waitForSelector('#xsConfirm'); await p.check('#xsConfirm');
+    await p.click('#xzJoin button'); await p.waitForSelector('#xsConfirm'); await p.check('#xsConfirm');
     await Promise.all([p.waitForURL(/labor\/\?exam=\d+/), p.click('#dlgActions .pri')]);
     await p.waitForSelector('#examBar'); if (!/unter Aufsicht/.test(await p.textContent('#examBar')) || !/Profi-Stufe/.test(await p.textContent('#examBar'))) errors.push('Aufsicht: Leiste zeigt die Prüfung nicht richtig');
     await t.waitForFunction(() => /blitz/.test(document.querySelector('#xpBody').textContent), null, { timeout: 9000 }).catch(() => errors.push('Aufsicht: Teilnehmende erscheint nicht'));
@@ -164,6 +168,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     if (!await p.$('#dqTourAsk')) errors.push('Wegweiser: erste Frage erscheint nicht');
     else { await p.click('#dqtAskNo'); await p.goto(SITE + '/#/anleitung'); await p.waitForTimeout(200); await p.goto(SITE + '/#/'); await p.waitForTimeout(900); if (await p.$('#dqTourAsk')) errors.push('Wegweiser: Frage erscheint nach «Nein danke» erneut'); }
     await p.goto(SITE + '/#/wegweiser'); await p.waitForSelector('.ww-page'); await p.screenshot({ path: shots + '/p11_wegweiser_gast.png', fullPage: true });
+    if (!/^Hier findest du alle Bereiche von DigitalQuest und wofür du sie brauchst\./.test((await p.textContent('.ww-page .lead')).trim())) errors.push('Wegweiser: Untertitel nicht nach Testlauf 2 (3.5): ' + await p.textContent('.ww-page .lead'));
     let c = await cards();
     if (!has(c, 'anmelden') || !has(c, 'halle') || !has(c, 'tor-labor') || !has(c, 'karte') || !has(c, 'oszilloskop')) errors.push('Wegweiser Gast: Karten fehlen: ' + c.join(','));
     if (has(c, 'leitstand') || has(c, 'admin') || has(c, 'live')) errors.push('Wegweiser Gast: Dozenten-/Admin-/Lernenden-Karten sichtbar');

@@ -633,12 +633,13 @@
     var net;
     try { net = buildNetlist(layout); } catch (e) { return { pass: false, results: [{ ok: false, text: e.message }] }; }
     /* limit: hoechstens so viele Bauteile eines Typs; Schluessel 'gates' zaehlt alle Logikgatter zusammen */
+    var real = net.parts.filter(function (p) { return !(p.props && p.props.virtual); }); // virtuell = Multimeter in der Lücke (Testlauf 2): zählt nicht als Bauteil
     Object.keys(task.limit || {}).forEach(function (type) {
-      var c = net.parts.filter(function (p) { return type === 'gates' ? GATES[p.type] : p.type === type; }).length;
+      var c = real.filter(function (p) { return type === 'gates' ? GATES[p.type] : p.type === type; }).length;
       push(c <= task.limit[type], (type === 'gates' ? 'Logikgatter' : def(type).label) + ': höchstens ' + task.limit[type], { have: c });
     });
     Object.keys(task.need || {}).forEach(function (type) {
-      var c = net.parts.filter(function (p) { return p.type === type; }).length;
+      var c = real.filter(function (p) { return p.type === type; }).length;
       push(c >= task.need[type], 'Bauteil ' + def(type).label + ': mindestens ' + task.need[type], { have: c });
     });
     /* Test = ein Zustand {set, expect} oder eine Schrittfolge {steps:[{set?, run?, dt?, expect?, name?}]} mit durchgehendem Zustand

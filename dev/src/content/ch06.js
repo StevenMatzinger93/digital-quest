@@ -36,7 +36,7 @@
       '<p><b>Postulate:</b> 1 ∧ e = e · 0 ∧ e = 0 · e ∧ e = e · e ∧ ē = 0 · 1 ∨ e = 1 · 0 ∨ e = e · e ∨ ē = 1.</p>' +
       '<p><b>Beschaltungsregeln:</b> Keine offenen Eingänge (undefinierter Pegel) – unbenutzte Eingänge fest auf 0 oder 1 legen. Und <b>nie Ausgang gegen Ausgang</b>: Treiben zwei Ausgänge verschiedene Pegel auf dieselbe Leitung, fliesst ein grosser Ausgleichsstrom und die Bausteine gehen kaputt.</p>',
     questions: [
-      { q: 'Wann liefert ein UND-Gatter mit zwei Eingängen eine 1?', options: ['Wenn ein Eingang 1 ist', 'Wenn beide Eingänge 1 sind', 'Wenn beide 0 sind', 'Wenn die Eingänge verschieden sind'], correct: 1, explain: 'UND: alle Eingänge müssen 1 sein.' },
+      { q: 'Wann liefert ein UND-Gatter mit zwei Eingängen eine 1?', options: ['Wenn beide Eingänge 1 sind', 'Wenn ein Eingang 1 ist', 'Wenn beide 0 sind', 'Wenn die Eingänge verschieden sind'], correct: 0, explain: 'UND: alle Eingänge müssen 1 sein.' },
       { q: 'Welches Symbol steht im DIN-Kasten des ODER-Gatters?', options: ['&', '≥1', '=1', '1'], correct: 1, explain: '≥1: mindestens ein Eingang muss 1 sein.' },
       { q: 'Was ergibt e ∧ ē?', options: ['e', 'ē', '0', '1'], correct: 2, explain: 'Etwas kann nicht gleichzeitig 1 und 0 sein – das UND ist immer 0.' },
       { q: 'Was ergibt 0 ∨ e?', options: ['0', '1', 'e', 'ē'], correct: 2, explain: 'Eine 0 am ODER ändert nichts – der Ausgang folgt e.' },

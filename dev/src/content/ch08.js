@@ -36,7 +36,7 @@
       '<p>Beispiel Förderband (A = 1 bei 01, 10, 11): DNF = ē2·e1 ∨ e2·ē1 ∨ e2·e1, KNF = (e1 ∨ e2). Beide vereinfachen sich zu <b>A = e1 ∨ e2</b>.</p>' +
       '<p>Die Zeilen werden dezimal nummeriert: E1 ist die niederwertigste Stelle. Eine Funktion schreibt man kurz als <b>Σm(…)</b> – die Liste der Zeilen mit A = 1.</p>',
     questions: [
-      { q: 'Welche Zeilen der Wahrheitstabelle verwendet die DNF?', options: ['Alle', 'Die mit A = 1', 'Die mit A = 0', 'Nur die erste'], correct: 1, explain: 'DNF: jede 1-Zeile wird ein Minterm.' },
+      { q: 'Welche Zeilen der Wahrheitstabelle verwendet die DNF?', options: ['Die mit A = 1', 'Alle', 'Die mit A = 0', 'Nur die erste'], correct: 0, explain: 'DNF: jede 1-Zeile wird ein Minterm.' },
       { q: 'Wie lautet der Minterm für die Zeile E2 = 1, E1 = 0?', options: ['e2 · e1', 'e2 · ē1', 'ē2 · e1', 'e2 ∨ ē1'], correct: 1, explain: 'Verunden, Eingang 0 wird negiert.' },
       { q: 'Wie viele Zeilen hat die Wahrheitstabelle mit 3 Eingängen?', options: ['3', '6', '8', '9'], correct: 2, explain: '2³ = 8 Kombinationen.' },
       { q: 'Welche Zeilennummer hat E3 = 1, E2 = 0, E1 = 1?', options: ['3', '5', '6', '101'], correct: 1, explain: '4 + 1 = 5.' },
@@ -102,9 +102,9 @@
       '<p>Ein Päckchen aus 2 Feldern spart 1 Variable, aus 4 Feldern 2, aus 8 Feldern 3. <b>X</b> (don\'t care) sind Kombinationen, die nie vorkommen – sie dürfen mit ins Päckchen, wenn es dadurch grösser wird.</p>' +
       '<p>Beispiel Σm3(1, 3, 5, 7): alle Einsen haben e1 = 1 → ein Päckchen aus 4 Feldern → <b>A = e1</b>.</p>',
     questions: [
-      { q: 'Wie unterscheiden sich benachbarte Felder im KV-Diagramm?', options: ['In allen Variablen', 'In genau einer Variablen', 'In zwei Variablen', 'Gar nicht'], correct: 1, explain: 'Deshalb kann man sie zusammenfassen: Die eine Variable fällt weg.' },
-      { q: 'Wie viele Felder darf ein Päckchen haben?', options: ['Beliebig viele', '1, 2, 4, 8 …', '3, 6, 9 …', 'Nur 2'], correct: 1, explain: 'Nur Zweierpotenzen – rechteckig angeordnet.' },
-      { q: 'Wie viele Variablen fallen bei einem Päckchen aus 4 Feldern weg?', options: ['1', '2', '3', '4'], correct: 1, explain: '4 = 2² → zwei Variablen fallen weg.' },
+      { q: 'Wie unterscheiden sich benachbarte Felder im KV-Diagramm?', options: ['In genau einer Variablen', 'In allen Variablen', 'In zwei Variablen', 'Gar nicht'], correct: 0, explain: 'Deshalb kann man sie zusammenfassen: Die eine Variable fällt weg.' },
+      { q: 'Wie viele Felder darf ein Päckchen haben?', options: ['Beliebig viele', '3, 6, 9 …', '1, 2, 4, 8 …', 'Nur 2'], correct: 2, explain: 'Nur Zweierpotenzen – rechteckig angeordnet.' },
+      { q: 'Wie viele Variablen fallen bei einem Päckchen aus 4 Feldern weg?', options: ['1', '4', '3', '2'], correct: 3, explain: '4 = 2² → zwei Variablen fallen weg.' },
       { q: 'Was bedeutet ein X im KV-Diagramm?', options: ['Fehler', 'Die Kombination kommt nie vor – beliebig nutzbar', 'Immer 1', 'Immer 0'], correct: 1, explain: 'Don\'t care: darf als 0 oder 1 verwendet werden, wenn es das Päckchen vergrössert.' },
       { q: 'Die Einsen liegen bei Σm3(0, 2, 4, 6). Ergebnis?', options: ['A = e1', 'A = ē1', 'A = e3', 'A = ē2'], correct: 1, explain: 'In allen vier Feldern ist e1 = 0 → A = ē1.' }
     ]

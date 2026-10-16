@@ -29,6 +29,29 @@
     this.dragProbe = null; // {which:'a'|'b'|'tip'|'gnd', x, y} waehrend eine Spitze gezogen wird (Raum 'bench')
   }
   Circuit.SPACES = SPACES; Circuit.GRID = SPACES.schema.grid; Circuit.W = SPACES.schema.w; Circuit.H = SPACES.schema.h;
+  /* Testlauf 2 (5.4): Arbeitsfläche je Instanz – scale 1 = wie bisher, die Freie Werkbank nutzt 1.5 (2,25-fache Fläche).
+   * Die Fläche wächst nach rechts und unten; Multimeter/Oszilloskop bleiben an ihrem Platz (reservierte Bereiche unverändert). */
+  Circuit.prototype.area = function (space) {
+    var S = SPACES[space || 'schema'], f = this.scale || 1;
+    return f === 1 ? S : Object.assign({}, S, { w: Math.round(S.w * f), h: Math.round(S.h * f) });
+  };
+  /* Testlauf 2 (5.5): Netz einer Leitung – alle Leitungen und Anschlüsse, die über Leitungen mit ihr verbunden sind */
+  Circuit.prototype.netOf = function (wi) {
+    var ws = this.layout.wires, w0 = ws[wi]; if (!w0) return { wires: [], pins: [] };
+    var pins = {}, wires = {}, todo = [w0.from, w0.to]; pins[w0.from] = pins[w0.to] = true;
+    while (todo.length) { var p = todo.pop(); ws.forEach(function (w, i) { if (wires[i] || (w.from !== p && w.to !== p)) return; wires[i] = true; [w.from, w.to].forEach(function (q) { if (!pins[q]) { pins[q] = true; todo.push(q); } }); }); }
+    return { wires: Object.keys(wires).map(Number), pins: Object.keys(pins) };
+  };
+  /* Hervorgehobenes Netz (Maus über einer Leitung): core.hiWire = Index oder null; die Ansichten zeichnen es bei jedem render() */
+  Circuit.prototype.hiNet = function () { var i = this.hiWire; return i === null || i === undefined || !this.layout.wires[i] ? null : this.netOf(i); };
+  Circuit.prototype.setHiWire = function (i) { i = i === null || i === undefined ? null : +i; if (this.hiWire === i) return; this.hiWire = i; this.redraw(); };
+  /* Testlauf 2 (5.5): wählbare Leitungsfarbe (w.color); die Engine liest nur from/to */
+  Circuit.WIRE_COLORS = { rot: '#e5484d', schwarz: '#3a3a3a', blau: '#3b82f6', gruen: '#22a559', gelb: '#e6b800', weiss: '#e8e8e8' };
+  Circuit.prototype.setWireColor = function (i, color) {
+    var w = this.layout.wires[i]; if (!w || this.opts.readonly) return;
+    if (color && Circuit.WIRE_COLORS[color]) w.color = color; else delete w.color;
+    this.changed('wirecolor');
+  };
 
   /* Werkbank-Lage ohne eigenes bench-Layout: Schema-Lage gestreckt und aufs Werkbank-Raster gesetzt */
   function autoBench(p) {
@@ -77,18 +100,41 @@
   function half(type, space, rot) { var t = HALF[space], h = t[type] || t._; return (rot || 0) % 180 ? [h[1], h[0]] : h; }
   Circuit.half = half;
   Circuit.prototype._place = function (cx, cy, space, type) {
-    var S = SPACES[space], self = this, g = S.grid, cx0 = Math.round(cx / g) * g, cy0 = Math.round(cy / g) * g, x = cx0, y = cy0, ring = 0, k = 0;
+    var S = this.area(space), self = this, g = S.grid, cx0 = Math.round(cx / g) * g, cy0 = Math.round(cy / g) * g, x = cx0, y = cy0, ring = 0, k = 0;
     var me = half(type, space, 0);
     function free(x, y) { // kein Ueberlappen mit reservierten Flaechen oder anderen Bauteilen (echte Abmessungen + Abstand)
       var off = (S.reserved || []).some(function (r) { return x > r[0] - me[0] && x < r[2] + me[0] && y > r[1] - me[1] && y < r[3] + me[1]; });
       return !off && self.layout.parts.every(function (p) { var q = self.pos(p, space), o = half(p.type, space, q.rot); return Math.abs(q.x - x) > me[0] + o[0] + 12 || Math.abs(q.y - y) > me[1] + o[1] + 12; });
     }
+    function inRes(x, y) { return (S.reserved || []).some(function (r) { return x > r[0] - me[0] && x < r[2] + me[0] && y > r[1] - me[1] && y < r[3] + me[1]; }); }
     while (!free(x, y) && ring < 12) {
       k++; var ang = k * 0.9; ring = Math.floor(k / 7) + 1;
       x = Math.round((cx0 + Math.cos(ang) * S.step[0] * ring) / g) * g; y = Math.round((cy0 + Math.sin(ang) * S.step[1] * ring) / g) * g;
       x = Math.max(S.clamp, Math.min(S.w - S.clamp, x)); y = Math.max(S.clamp, Math.min(S.h - S.clamp, y));
     }
-    return [x, y];
+    if (free(x, y)) return [x, y];
+    // Testlauf 2 (2.4): Spirale ohne Treffer – ganze Fläche im Raster absuchen, nächster freier Platz; ist alles belegt, der Platz mit den
+    // wenigsten Überlappungen, aber nie im reservierten Bereich (Multimeter/Oszilloskop) und nie am Rand gestapelt
+    var best = null, bestD = Infinity, gx = Math.max(g, Math.round(me[0] / g) * g), gy = Math.max(g, Math.round(me[1] / g) * g);
+    for (var yy = S.clamp; yy <= S.h - S.clamp; yy += gy) for (var xx = S.clamp; xx <= S.w - S.clamp; xx += gx) {
+      if (!free(xx, yy)) continue; var d = (xx - cx0) * (xx - cx0) + (yy - cy0) * (yy - cy0); if (d < bestD) { bestD = d; best = [xx, yy]; }
+    }
+    if (best) return best;
+    var cnt = function (x, y) { return self.layout.parts.reduce(function (s, p) { var q = self.pos(p, space), o = half(p.type, space, q.rot), ox = me[0] + o[0] + 12 - Math.abs(q.x - x), oy = me[1] + o[1] + 12 - Math.abs(q.y - y); return s + (ox > 0 && oy > 0 ? ox * oy : 0); }, 0); }, bc = Infinity; // Überlappungsfläche
+    for (yy = S.clamp; yy <= S.h - S.clamp; yy += gy) for (xx = S.clamp; xx <= S.w - S.clamp; xx += gx) {
+      if (inRes(xx, yy)) continue; var c = cnt(xx, yy), d2 = (xx - cx0) * (xx - cx0) + (yy - cy0) * (yy - cy0); if (c < bc || (c === bc && d2 < bestD)) { bc = c; bestD = d2; best = [xx, yy]; }
+    }
+    return best || [x, y];
+  };
+  /* Testlauf 2 (2.4): Bauteile, die (fast) genau übereinander liegen – je Stapel bekommt das oberste (zuletzt gezeichnete) die Anzahl */
+  Circuit.prototype.stacks = function (space) {
+    var self = this, out = {}, ps = this.layout.parts;
+    ps.forEach(function (p, i) {
+      var q = self.pos(p, space), n = 1, top = true;
+      ps.forEach(function (o, j) { if (j === i) return; var r = self.pos(o, space); if (Math.abs(r.x - q.x) < 24 && Math.abs(r.y - q.y) < 24) { n++; if (j > i) top = false; } });
+      if (n > 1 && top) out[p.id] = n;
+    });
+    return out;
   };
   /* Neues Bauteil moeglichst nahe (cx, cy) im Raum der aufrufenden Ansicht. Auf der Werkbank bekommt es
    * zusaetzlich einen freien Platz im Schema (Mitte der vorhandenen Bauteile). */
@@ -177,7 +223,7 @@
     if (this.opts.readonly) return false;
     if (Math.abs(xy[0] - d.sx) + Math.abs(xy[1] - d.sy) > 6) d.moved = true;
     if (!d.moved) return false;
-    var S = SPACES[d.space], g = S.grid;
+    var S = this.area(d.space), g = S.grid;
     var nx = Math.round((xy[0] - d.ox) / g) * g, ny = Math.round((xy[1] - d.oy) / g) * g;
     nx = Math.max(S.edge, Math.min(S.w - S.edge, nx)); ny = Math.max(S.edge, Math.min(S.h - S.edge, ny));
     var q = this.pos(p, d.space);

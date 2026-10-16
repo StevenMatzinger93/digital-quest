@@ -154,7 +154,7 @@
   defTask({
     id: '16.1', ch: 16, title: 'Datenblatt und Systemfehler', tags: ['messen.genauigkeit', 'messen.systemfehler', 'elektro.ohm'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Ein Heizwiderstand von 10 Ω hängt an 230 V. Die Werkmeisterin will wissen, was das Multimeter misst – und wie genau.',
-    brief: 'Miss die Spannung an R1 mit dem Multimeter (<b>Bereich 600 V</b> von Hand wählen). Berechne aus Datenblattwerten: Strom I = U/R und Leistung P = U·I. Bestimme den grössten Fehler eines <b>digitalen</b> Voltmeters mit ±(0,5 % + 1 Digit) im 600-V-Bereich (Auflösung 0,1 V) und eines <b>analogen</b> Voltmeters der Klasse 1,5 mit Skalenendwert 300 V. Warum darfst du den Strom hier nicht mit dem 10-A-Bereich messen?',
+    brief: 'Miss die Spannung an R1 und berechne daraus Strom I = U/R und Leistung P = U·I. Bestimme den grössten Fehler eines <b>digitalen</b> Voltmeters (±(0,5 % + 1 Digit) im 600-V-Bereich, Auflösung 0,1 V) und eines <b>analogen</b> Voltmeters (Klasse 1,5, Skalenendwert 300 V). Warum darfst du den Strom hier nicht im 10-A-Bereich messen?',
     learn: 'Datenblattwerte rechnen: Prozent vom Anzeigewert + Digit (digital) gegen Prozent vom Skalenendwert (analog).',
     take: 'Digital: 0,5 % von 230 V + 0,1 V = 1,25 V. Analog Klasse 1,5 bei 300 V Endwert: 4,5 V – unabhängig vom Anzeigewert. Und: 23 A sprengen den 10-A-Bereich (Sicherung!).',
     hint: 'Rote Spitze auf R1.a, schwarze auf R1.b ziehen, V⎓ und Bereich 600V. Ein zu kleiner Bereich zeigt OL.',
@@ -177,7 +177,7 @@
   defTask({
     id: '16.2', ch: 16, title: 'Spannungs- und Strommessfehler', tags: ['messen.systemfehler', 'messen.spannung', 'messen.strom'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Zwei Schaltungen, ein Multimeter: ein kleiner Widerstand (10 Ω) und ein hochohmiger Spannungsteiler (2 × 10 MΩ). Wo fälscht das Messgerät, und wie stark?',
-    brief: 'Schliesse <b>S1</b> (Zweig mit R1 = 10 Ω): miss die Spannung an R1 und den Strom durch R1 (Leitung auftrennen, Amperemeter in Reihe, Bereich 10 A). Öffne S1, schliesse <b>S2</b> (Teiler R3–R2, je 10 MΩ): miss die Spannung an R2. Berechne für beide Zweige die Werte <b>ohne</b> Messfehler (an R2 liegt rechnerisch die Hälfte von 9 V) und die Abweichung in Prozent bei R2.',
+    brief: 'Mit <b>S1</b> geschlossen (R1 = 10 Ω): miss Spannung an R1 und Strom durch R1. Mit <b>S2</b> geschlossen und S1 offen (Teiler R3–R2, je 10 MΩ): miss die Spannung an R2. Berechne die Werte <b>ohne</b> Messfehler (an R2 rechnerisch die Hälfte von 9 V) und die Abweichung bei R2 in Prozent.',
     learn: 'Das Voltmeter (10 MΩ) belastet hochohmige Schaltungen, der Amperemeter-Shunt (0,1 Ω) stört niederohmige.',
     take: 'Bei 10 Ω stimmt die Spannung, der Shunt kostet 1 % Strom. Im 10-MΩ-Teiler zeigt das Voltmeter statt 4,5 V nur 3 V – 33 % Fehler, weil es selbst 10 MΩ hat. Spannungsrichtig für kleine, stromrichtig für grosse Widerstände.',
     hint: 'Schalter auf der Werkbank anklicken. Spitzen an R1.a/R1.b bzw. R2.a/R2.b ziehen, Bereich 20 V.',
@@ -206,7 +206,7 @@
   defTask({
     id: '16.3', ch: 16, title: 'Kurvenformen im Instrumentenvergleich', tags: ['messen.trms', 'elektro.effektivwert', 'messen.oszilloskop'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Dieselbe Spannung, drei Geräte, drei Kurvenformen: Füll die Vergleichstabelle aus dem Lehrgang – mit echten Messungen.',
-    brief: 'Der Generator liefert Û = 10 V, 50 Hz. Miss an R1 für <b>Sinus, Rechteck und Dreieck</b> (Kurvenform im Eigenschaften-Panel umstellen): die Anzeige eines <b>AVG-Multimeters</b> (V~, Verfahren AVG), eines <b>TRMS-Multimeters</b> (V~, TRMS) und den <b>Scheitelwert</b> mit dem Oszilloskop (Tastkopf an R1). Bereich 20 V.',
+    brief: 'Der Generator liefert Û = 10 V, 50 Hz. Miss an R1 für <b>Sinus, Rechteck und Dreieck</b> (Kurvenform im Eigenschaften-Panel umstellen) die Anzeige <b>V~ AVG</b>, die Anzeige <b>V~ TRMS</b> und den <b>Scheitelwert</b> am Oszilloskop.',
     learn: 'AVG stimmt nur beim Sinus; TRMS und Oszilloskop zeigen bei jeder Kurvenform das Richtige.',
     take: 'Rechteck: AVG 11,1 V statt 10 V (+11 %). Dreieck: AVG 5,55 V statt 5,77 V (−4 %). Sinus: beide 7,07 V.',
     hint: 'V~ wählen, unter dem Panel zwischen „Mittelwert (AVG)“ und „Echt-Effektivwert (TRMS)“ umschalten. Für Û den Tastkopf ziehen und RUN drücken.',
@@ -249,7 +249,7 @@
       '<p>Unser Werkbank-Multimeter trägt „600 V CAT III“: gut für die Gebäudeinstallation bis 600 V, nicht für den Hausanschluss (CAT IV). Für die Batterie- und Generatorversuche im Labor (CAT I) ist es mehr als ausreichend. Wichtig ist neben der Kategorie immer die <b>Spannung</b>: Ein CAT-III-300-V-Gerät darf nicht an 400 V zwischen zwei Aussenleitern.</p>' +
       '{{visual:2}}',
     questions: [
-      { q: 'Ein Zeigerinstrument trägt die Zahl 1,5 auf dem Skalenfeld. Was bedeutet sie?', options: ['1,5 kV Prüfspannung', 'Genauigkeitsklasse: ±1,5 % vom Skalenendwert', '1,5 A Nennstrom', 'Innenwiderstand 1,5 kΩ'], correct: 1, explain: 'Die Klasse gibt den Fehler in Prozent vom Endwert an – über die ganze Skala gleich gross.' },
+      { q: 'Ein Zeigerinstrument trägt die Zahl 1,5 auf dem Skalenfeld. Was bedeutet sie?', options: ['1,5 kV Prüfspannung', '1,5 A Nennstrom', 'Genauigkeitsklasse: ±1,5 % vom Skalenendwert', 'Innenwiderstand 1,5 kΩ'], correct: 2, explain: 'Die Klasse gibt den Fehler in Prozent vom Endwert an – über die ganze Skala gleich gross.' },
       { q: 'Was sagt der Stern mit der Zahl 2?', options: ['Klasse 2', '2 kV Prüfspannung der Isolation', '2 Messwerke', 'Gebrauchslage 2 (schräg)'], correct: 1, explain: 'Der Stern steht für die Prüfspannung in Kilovolt.' },
       { q: 'Wo misst du in Messkategorie CAT IV?', options: ['An einer Batterie', 'An einem Haushaltsgerät am Stecker', 'An der Steckdose', 'Am Hausanschluss oder Zähler'], correct: 3, explain: 'CAT IV ist die Quelle der Niederspannungsinstallation: Hausanschluss, Zähler, Freileitung.' },
       { q: 'Welcher Kategorie gehören die Laborversuche mit Batterie und Funktionsgenerator an?', options: ['CAT I', 'CAT II', 'CAT III', 'CAT IV'], correct: 0, explain: 'Stromkreise ohne direkte Netzverbindung sind CAT I.' },
@@ -263,7 +263,7 @@
   defTask({
     id: '16.4', ch: 16, title: 'Wechselgrösse mit Gleichanteil', tags: ['messen.trms', 'elektro.mittelwert', 'elektro.effektivwert'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Aus einem Sensorverstärker kommt ein Sinus, der auf einem Gleichanteil reitet. Welches Gerät zeigt hier was?',
-    brief: 'Der Generator liefert Û = 5 V mit <b>3 V Gleichanteil</b>. Miss an R1 mit <b>V⎓</b> (zeigt den Gleichanteil), <b>V~ AVG</b> und <b>V~ TRMS</b> (Wechselanteil) und lies am Oszilloskop den <b>höchsten Wert</b> ab. Berechne den <b>gesamten Effektivwert</b> √(U<sub>DC</sub>² + U<sub>AC</sub>²) – das zeigt nur ein TRMS-Gerät mit AC+DC-Kopplung. Stell danach auf <b>Rechteck</b> um und miss den TRMS-Wechselanteil erneut.',
+    brief: 'Der Generator liefert Û = 5 V mit <b>3 V Gleichanteil</b>. Miss an R1 <b>V⎓</b>, <b>V~ AVG</b>, <b>V~ TRMS</b> und am Oszilloskop den <b>höchsten Wert</b>, berechne dann den <b>gesamten Effektivwert</b> √(U<sub>DC</sub>² + U<sub>AC</sub>²). Stell zum Schluss auf <b>Rechteck</b> um und miss V~ TRMS erneut.',
     learn: 'V~ ist AC-gekoppelt: Der Gleichanteil fällt weg. Nur TRMS mit AC+DC zeigt den wahren Effektivwert einer Mischgrösse.',
     take: 'Sinus + 3 V: U_DC = 3 V, U_AC = 3,54 V → U_ges = 4,64 V. AVG und TRMS stimmen beim Sinus noch überein; beim Rechteck zeigt AVG wieder zu viel.',
     hint: 'V⎓ mit Bereich 20 V zeigt bei schneller Wechselspannung den Mittelwert. Für Û den Tastkopf ziehen und RUN.',
@@ -284,7 +284,7 @@
   defTask({
     id: '16.5', ch: 16, title: 'Frequenz erhöhen', tags: ['elektro.frequenz', 'elektro.filter', 'messen.oszilloskop'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Wie weit kannst du die Frequenz drehen, bis die Geräte nichts Sinnvolles mehr zeigen?',
-    brief: 'Am RC-Glied (R1 = 10 kΩ, C1 = 100 nF, f<sub>g</sub> ≈ 159 Hz) miss die Ausgangsspannung an C1 mit <b>V~ TRMS</b> bei <b>50 Hz, 159 Hz, 1 kHz und 10 kHz</b> (Frequenz am Generator umstellen). Lies bei 1 kHz zusätzlich den <b>Scheitelwert</b> am Oszilloskop ab (Zeitbasis 5 ms). Was zeigt <b>V⎓</b> bei jeder Frequenz?',
+    brief: 'Am RC-Glied (R1 = 10 kΩ, C1 = 100 nF, f<sub>g</sub> ≈ 159 Hz) miss die Spannung an C1 mit <b>V~ TRMS</b> bei <b>50 Hz, 159 Hz, 1 kHz und 10 kHz</b> (Frequenz am Generator umstellen). Lies bei 1 kHz zusätzlich den <b>Scheitelwert</b> am Oszilloskop ab. Was zeigt <b>V⎓</b> bei jeder Frequenz?',
     learn: 'Ein Multimeter mittelt über viele Perioden – der Gleichanteil bleibt 0, der Wechselanteil folgt dem Frequenzgang. Das Oszilloskop zeigt den Verlauf bis in den MHz-Bereich.',
     take: 'Mit steigender Frequenz sinkt U_a am Tiefpass: 50 Hz ≈ 6,7 V, f_g ≈ 5 V, 1 kHz ≈ 1,1 V, 10 kHz ≈ 0,11 V. Reale Multimeter sind meist nur bis 1 kHz (AVG) bzw. einige kHz (TRMS) spezifiziert – darüber hilft nur das Oszilloskop.',
     hint: 'Frequenz im Eigenschaften-Panel von G1 eintippen (z. B. 1k). Spitzen an C1.a und C1.b, Bereich 20 V; bei 10 kHz auf 2 V wechseln.',
@@ -358,8 +358,8 @@
       '{{visual:3}}',
     questions: [
       { q: 'Analoges Voltmeter, Klasse 1,5, Endwert 300 V, Zeiger bei 230 V. Grösster Fehler?', options: ['±1,15 V', '±3,45 V', '±4,5 V', '±15 V'], correct: 2, explain: '1,5 % vom Endwert 300 V = 4,5 V – unabhängig vom Anzeigewert.' },
-      { q: 'Digitales Voltmeter, Anzeige 230,0 V, ±(0,5 % + 1 Digit). Grösster Fehler?', options: ['±1,15 V', '±1,25 V', '±2,3 V', '±0,1 V'], correct: 1, explain: '0,5 % von 230 V = 1,15 V, dazu 1 Digit = 0,1 V → 1,25 V.' },
-      { q: 'Warum soll der Zeiger eines analogen Instruments im oberen Drittel stehen?', options: ['Weil die Skala dort feiner ist', 'Weil der Klassenfehler absolut gleich bleibt und relativ kleiner wird', 'Weil das Messwerk sonst zu warm wird', 'Weil unten der Gleichrichter nicht arbeitet'], correct: 1, explain: '±0,1 V sind bei 15 V nur 0,67 %, bei 2 V aber 5 %.' },
+      { q: 'Digitales Voltmeter, Anzeige 230,0 V, ±(0,5 % + 1 Digit). Grösster Fehler?', options: ['±1,25 V', '±1,15 V', '±2,3 V', '±0,1 V'], correct: 0, explain: '0,5 % von 230 V = 1,15 V, dazu 1 Digit = 0,1 V → 1,25 V.' },
+      { q: 'Warum soll der Zeiger eines analogen Instruments im oberen Drittel stehen?', options: ['Weil die Skala dort feiner ist', 'Weil unten der Gleichrichter nicht arbeitet', 'Weil das Messwerk sonst zu warm wird', 'Weil der Klassenfehler absolut gleich bleibt und relativ kleiner wird'], correct: 3, explain: '±0,1 V sind bei 15 V nur 0,67 %, bei 2 V aber 5 %.' },
       { q: 'Welche Rolle spielt der Messbereich beim Digit-Fehler?', options: ['Keine', 'Im kleineren Bereich ist 1 Digit weniger wert – der Fehler sinkt', 'Im kleineren Bereich ist der Fehler grösser', 'Der Digit-Fehler gilt nur bei AUTO'], correct: 1, explain: '20-V-Bereich: 1 Digit = 0,01 V; 600-V-Bereich: 1 Digit = 0,1 V.' },
       { q: 'Analoges Amperemeter, Klasse 2,5, Endwert 100 mA, Zeiger bei 4 mA. Wie gross ist der relative Fehler der Ablesung?', options: ['±2,5 %', '±6,25 %', '±62,5 %', '±0,1 %'], correct: 2, explain: 'Absoluter Fehler 2,5 % · 100 mA = ±2,5 mA, bezogen auf 4 mA sind das ±62,5 %. Am unteren Skalenende ist ein analoges Instrument fast unbrauchbar – Bereich wechseln.' },
       { q: 'Spannungsrichtige Leistungsmessung an 10 MΩ mit einem 10-MΩ-Voltmeter: Was misst das Amperemeter?', options: ['Nur den Verbraucherstrom', 'Den doppelten Verbraucherstrom (Voltmeterstrom kommt dazu)', 'Nichts', 'Den Strom des Shunts'], correct: 1, explain: 'Voltmeter und Verbraucher sind gleich gross – beide Ströme sind gleich, das Amperemeter zeigt das Doppelte.' }
@@ -372,7 +372,7 @@
   defTask({
     id: '16.6', ch: 16, title: 'Einweggleichrichter – Instrumentenvergleich', tags: ['elektro.gleichrichter', 'messen.trms', 'elektro.mittelwert'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Die Gleichrichterschaltung aus Kapitel 3 – jetzt mit der Frage: Welches Gerät zeigt hier was, und was ist der wahre Effektivwert?',
-    brief: 'Miss an R1 (Einweggleichrichter, Û = 10 V): <b>V⎓</b> (Gleichanteil), <b>V~ AVG</b> und <b>V~ TRMS</b> (Wechselanteil) sowie den <b>Scheitelwert</b> mit dem Oszilloskop. Berechne den <b>gesamten Effektivwert</b> √(U<sub>DC</sub>² + U<sub>AC</sub>²). Bereich 20 V.',
+    brief: 'Miss an R1 (Einweggleichrichter, Û = 10 V) <b>V⎓</b>, <b>V~ AVG</b>, <b>V~ TRMS</b> und den <b>Scheitelwert</b> am Oszilloskop. Berechne den <b>gesamten Effektivwert</b> √(U<sub>DC</sub>² + U<sub>AC</sub>²).',
     learn: 'Eine gleichgerichtete Spannung ist eine Mischgrösse: Gleichanteil plus kräftiger Wechselanteil.',
     take: 'U_DC ≈ 2,8 V, U_AC (TRMS) ≈ 3,6 V, Û ≈ 9,3 V; U_ges ≈ 4,6 V. AVG und TRMS liegen hier zufällig nahe beieinander (3,58 V zu 3,56 V) – der Formfaktor der Einweg-Halbwelle ist fast der des Sinus; beim Rechteck würde AVG daneben liegen.',
     hint: 'Alle Messungen an R1.a (rot/Tastkopf) gegen R1.b (schwarz/Erdungsclip).',
@@ -396,7 +396,7 @@
   defTask({
     id: '16.7', ch: 16, title: 'Brückengleichrichter mit und ohne Ladekondensator', tags: ['elektro.gleichrichter', 'elektro.kondensator', 'messen.trms'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Erst die nackte Brücke, dann mit Ladekondensator: Die Zahlen auf den Geräten verändern sich drastisch.',
-    brief: 'Miss an R1 <b>ohne</b> Kondensator (S1 offen) und <b>mit</b> Kondensator (S1 geschlossen): jeweils <b>V⎓</b> (Gleichanteil), <b>V~ TRMS</b> (Restwelligkeit) und den <b>Scheitelwert</b> am Oszilloskop (Zeitbasis 50 ms). Bereich 20 V.',
+    brief: 'Miss an R1 zuerst <b>ohne</b> Kondensator (S1 offen), dann <b>mit</b> Kondensator (S1 geschlossen). Jeweils: <b>V⎓</b>, <b>V~ TRMS</b> und den <b>Scheitelwert</b> am Oszilloskop.',
     learn: 'Der Ladekondensator hebt den Gleichanteil Richtung Scheitelwert und drückt die Restwelligkeit.',
     setupNote: '<b>Alternative wie am echten Labortisch – potentialfrei messen:</b> Sind Generator und Oszilloskop beide geerdet, darf der Erdungsclip nicht an R1.b (das würde eine Diode kurzschliessen). Dann: Erdungsclip an G1.–, CH1 an R1.a, CH2 an R1.b und am Gerät <b>MATH</b> einschalten. CH1 und CH2 zeigen je eine Halbwelle, MATH = CH1 − CH2 zeigt die Spannung an R1 – die Zweiweg-Kurve mit 10 ms Periode.',
     take: 'Ohne C: U_DC ≈ 5,0 V, U_AC ≈ 3,0 V, Û ≈ 8,6 V. Mit C (10 µF an 1 kΩ, τ = 10 ms): U_DC ≈ 6,7 V, U_AC nur noch ≈ 1,3 V – ein grösserer Kondensator würde den Gleichanteil weiter Richtung Û heben. Weiter mit 16.9: So wird daraus eine glatte Gleichspannung.',
@@ -415,7 +415,7 @@
   defTask({
     id: '16.8', ch: 16, title: 'Strommessung am Gleichrichter', tags: ['messen.strom', 'messen.systemfehler', 'elektro.gleichrichter'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Wie misst man den pulsierenden Strom hinter dem Gleichrichter? Mit einem Mess-Shunt – so, wie es das Amperemeter innen auch macht.',
-    brief: 'In Reihe zur Last R1 (1 kΩ) liegt der <b>Mess-Shunt R2 = 10 Ω</b>. Miss an R2 den <b>Gleichanteil</b> (V⎓) und den <b>Wechselanteil</b> (V~ TRMS) und rechne beide mit I = U / 10 Ω in Ströme um. Bestimme mit dem Oszilloskop den <b>Spitzenstrom</b>. Berechne den <b>Systemfehler</b>: Um wie viel Prozent verkleinert der Shunt den Laststrom gegenüber der Schaltung ohne Shunt?',
+    brief: 'In Reihe zur Last R1 (1 kΩ) liegt der <b>Mess-Shunt R2 = 10 Ω</b>: miss an R2 <b>V⎓</b> und <b>V~ TRMS</b> und rechne mit I = U / 10 Ω in Ströme um. Bestimme mit dem Oszilloskop den <b>Spitzenstrom</b>. Um wie viel Prozent verkleinert der Shunt den Laststrom (<b>Systemfehler</b>)?',
     learn: 'Strommessung = Spannungsmessung an einem kleinen bekannten Widerstand. Der Shunt selbst ist ein Systemfehler.',
     take: 'U_DC am Shunt ≈ 50 mV → I_DC ≈ 5,0 mA; Spitzenstrom ≈ 8,5 mA. 10 Ω zu 1 kΩ: der Strom sinkt um rund 1 % – der Eigenverbrauch des Amperemeters (0,1 Ω) wäre nur 0,01 %.',
     hint: 'Spitzen an R2.a (rot) und R2.b (schwarz), Bereich 200 mV für den Gleichanteil. Die Frage nach dem Systemfehler: Widerstand mit / ohne Shunt vergleichen.',
@@ -449,7 +449,7 @@
   defTask({
     id: '16.9', ch: 16, title: 'Glättung: Wie gross muss der Ladekondensator sein?', tags: ['elektro.gleichrichter', 'elektro.kondensator', 'messen.oszilloskop', 'elektro.zeitkonstante'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Aus den Buckeln der Brücke soll eine ruhige Gleichspannung werden. Dafür liegen drei Ladekondensatoren bereit, jeder mit eigenem Schalter – welcher reicht?',
-    brief: 'Schliesse nacheinander <b>nur einen</b> Kondensator (S1 = 10 µF, S2 = 100 µF, S3 = 470 µF) und miss an R1 jeweils den <b>Gleichanteil</b> und die <b>Welligkeit U<sub>ss</sub></b> (Spitze-Spitze am Oszilloskop, Zeitbasis 50 ms). Berechne <b>τ = R · C</b> für jeden Kondensator und die Welligkeit nach der Faustformel <b>ΔU ≈ I / (2 · f · C)</b> mit I = U<sub>DC</sub> / R und f = 50 Hz. Dann: Welcher der drei Kondensatoren hält die Welligkeit unter <b>0,5 V</b>? Zum Schluss: Schliesse mit dem 470-µF-Kondensator zusätzlich S4 (R2 parallel zu R1, Last halbiert) und miss die Welligkeit erneut.',
+    brief: 'Schliesse nacheinander <b>einen</b> der Kondensatoren S1 = 10 µF, S2 = 100 µF, S3 = 470 µF und miss an R1 Gleichanteil und <b>Welligkeit U<sub>ss</sub></b>; berechne dazu <b>τ = R · C</b> und <b>ΔU ≈ I / (2 · f · C)</b> (I = U<sub>DC</sub> / R, f = 50 Hz). Welcher Kondensator hält die Welligkeit unter <b>0,5 V</b>? Zum Schluss mit 470 µF zusätzlich S4 schliessen (Last halbiert) und die Welligkeit erneut messen.',
     learn: 'Glättung braucht τ = R · C viel grösser als der Buckelabstand von 10 ms – und je mehr Strom die Last zieht, desto grösser die Welligkeit.',
     take: 'Glättung braucht τ = R · C viel grösser als 10 ms. 10 µF: Sägezahn (U_ss ≈ 4,1 V), 100 µF: leichte Welle (≈ 0,7 V), 470 µF: fast Gleichspannung (≈ 0,16 V). Die Faustformel ΔU ≈ I / (2 · f · C) gilt erst für τ ≫ 10 ms und liegt etwas zu hoch. Mit halber Last (500 Ω) verdoppelt sich der Strom und damit ungefähr die Welligkeit.',
     hint: 'Immer nur einen Schalter schliessen (auf der Werkbank anklicken), die anderen offen lassen. Tastkopf an R1.a, Erdungsclip an R1.b, Bildbreite 50 ms. Die Welligkeit U_ss steht unter der Kurve; bei kleiner Welligkeit AC-Kopplung einschalten (Taste DC/AC), dann füllt die Welle den Schirm.',

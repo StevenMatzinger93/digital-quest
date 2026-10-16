@@ -154,11 +154,19 @@
       if (s.value !== undefined) p.value = s.value; else delete p.value;
     });
     var given = {}; it.start.parts.forEach(function (s) { given[s.id] = 1; });
-    var foreign = parts.filter(function (p) { return !given[p.id] && it.palette.indexOf(p.type) < 0; }).map(function (p) { return p.id; });
+    // Testlauf 2 (1.1): Das Multimeter A⎓/A~ in der Lücke kommt als virtueller Strommesser (props.virtual) – höchstens einer, zählt nicht als fremdes Bauteil
+    var virt = parts.filter(function (p) { return p.type === 'ammeter' && p.props && p.props.virtual === true && !given[p.id]; });
+    if (virt.length > 1) return { error: 'Ungültiges Bauteil in der Abgabe.' };
+    var foreign = parts.filter(function (p) { return !given[p.id] && virt.indexOf(p) < 0 && it.palette.indexOf(p.type) < 0; }).map(function (p) { return p.id; });
     if (foreign.length) return { error: 'Bauteile, die in dieser Aufgabe nicht erlaubt sind: ' + foreign.join(', ') + '.' };
-    // vorgegebene Leitungen bleiben
+    // vorgegebene Leitungen bleiben – ausser die Lücke wird vom Multimeter überbrückt (Anschlüsse über die Leitungen und das Messgerät verbunden)
     var has = {}; wires.forEach(function (w) { has[w.from + '|' + w.to] = has[w.to + '|' + w.from] = 1; });
     var cut = (it.start.wires || []).filter(function (w) { return !has[w.from + '|' + w.to]; });
+    if (cut.length && virt.length) {
+      var up = {}, find = function (x) { while (up[x] && up[x] !== x) x = up[x]; return x; }, join = function (a, b) { a = find(a); b = find(b); if (a !== b) up[a] = b; };
+      wires.forEach(function (w) { join(w.from, w.to); }); join(virt[0].id + '.a', virt[0].id + '.b');
+      cut = cut.filter(function (w) { return find(w.from) !== find(w.to); });
+    }
     if (cut.length && !it.rewire) return { error: 'Vorgegebene Leitungen wurden entfernt. Bitte die Aufgabe zurücksetzen.' };
     return { layout: { parts: parts, wires: wires } };
   }

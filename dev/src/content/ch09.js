@@ -35,8 +35,8 @@
       '<p>Ein <b>Codewandler</b> wird wie jede Schaltung entworfen: Tabelle Eingangscode → Ausgangscode, für jedes Ausgangsbit vereinfachen.</p>' +
       '<p><b>Parität:</b> Ein zusätzliches Bit macht die Anzahl Einsen gerade (gerade Parität). Der <b>Paritätsbitersteller</b> (PE) beim Sender ist eine XOR-Kette über alle Datenbits. Der <b>Paritätsprüfer</b> (PA) beim Empfänger rechnet das XOR über Daten und Paritätsbit: Ergebnis 1 = Fehler. Ein einzelnes gekipptes Bit wird immer erkannt, zwei gleichzeitig nicht.</p>',
     questions: [
-      { q: 'Was ist das Besondere am Gray-Code?', options: ['Er braucht weniger Bits', 'Benachbarte Zahlen unterscheiden sich in genau einem Bit', 'Er ist BCD + 3', 'Er hat ein Paritätsbit'], correct: 1, explain: 'Beim Übergang kippt nur ein Bit – keine falschen Zwischenwerte.' },
-      { q: 'Wie lautet 5 im 3-Exzess-Code?', options: ['0101', '1000', '0110', '1010'], correct: 1, explain: '5 + 3 = 8 = 1000.' },
+      { q: 'Was ist das Besondere am Gray-Code?', options: ['Benachbarte Zahlen unterscheiden sich in genau einem Bit', 'Er braucht weniger Bits', 'Er ist BCD + 3', 'Er hat ein Paritätsbit'], correct: 0, explain: 'Beim Übergang kippt nur ein Bit – keine falschen Zwischenwerte.' },
+      { q: 'Wie lautet 5 im 3-Exzess-Code?', options: ['0101', '1010', '0110', '1000'], correct: 3, explain: '5 + 3 = 8 = 1000.' },
       { q: 'Datenbits 1011, gerade Parität. Welches Paritätsbit?', options: ['0', '1'], correct: 1, explain: 'Drei Einsen – das Paritätsbit 1 macht die Anzahl gerade.' },
       { q: 'Mit welchem Gatter baut man einen Paritätsbitersteller?', options: ['UND', 'ODER', 'XOR', 'NAND'], correct: 2, explain: 'XOR ist 1 bei ungerader Anzahl Einsen.' },
       { q: 'Zwei Bits kippen bei der Übertragung. Erkennt die Paritätsprüfung den Fehler?', options: ['Ja, immer', 'Nein – die Parität stimmt wieder', 'Nur beim ersten Bit', 'Nur bei Gray-Code'], correct: 1, explain: 'Zwei Fehler heben sich in der Parität auf.' }
@@ -87,7 +87,7 @@
       '<p>Ein <b>Komparator</b> vergleicht zwei Zahlen: X (e1 > e2) = e1·ē2, Y (e1 = e2) = e1 ⊙ e2 (XNOR), Z (e1 < e2) = ē1·e2.</p>' +
       '<p><b>Halbaddierer:</b> addiert zwei Bits. Summe S = a ⊕ b, Übertrag C = a·b. <b>Volladdierer:</b> addiert zusätzlich den Übertrag c<sub>in</sub> der vorherigen Stelle: S = a ⊕ b ⊕ c<sub>in</sub>, C<sub>out</sub> = a·b ∨ c<sub>in</sub>·(a ⊕ b). Mehrere Volladdierer hintereinander ergeben ein Rechenwerk für mehrstellige Dualzahlen.</p>',
     questions: [
-      { q: 'Wie viele Dateneingänge kann ein Multiplexer mit 3 Steuerleitungen auswählen?', options: ['3', '6', '8', '9'], correct: 2, explain: '2³ = 8.' },
+      { q: 'Wie viele Dateneingänge kann ein Multiplexer mit 3 Steuerleitungen auswählen?', options: ['3', '6', '9', '8'], correct: 3, explain: '2³ = 8.' },
       { q: 'Was liefert ein Halbaddierer bei a = 1, b = 1?', options: ['S = 1, C = 0', 'S = 0, C = 1', 'S = 1, C = 1', 'S = 0, C = 0'], correct: 1, explain: '1 + 1 = 10₂: Summe 0, Übertrag 1.' },
       { q: 'Welches Gatter liefert die Summe eines Halbaddierers?', options: ['UND', 'ODER', 'XOR', 'NOR'], correct: 2, explain: 'S = a ⊕ b.' },
       { q: 'Was unterscheidet den Volladdierer vom Halbaddierer?', options: ['Er hat einen Übertragseingang', 'Er kann subtrahieren', 'Er hat keinen Übertrag', 'Er arbeitet mit Gray-Code'], correct: 0, explain: 'Der Volladdierer addiert drei Bits: a, b und den Übertrag der vorherigen Stelle.' },

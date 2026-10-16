@@ -33,7 +33,7 @@
       '<p>Wichtig beim Messen: Die Eingangsamplitude während der ganzen Messreihe kontrollieren (hier fest Û = 10 V, U<sub>e</sub> = 7,07 V effektiv).</p>',
     questions: [
       { q: 'U_a / U_e = 0,1. Wie viel dB sind das?', options: ['−1 dB', '−10 dB', '−20 dB', '−40 dB'], correct: 2, explain: '20 · log(0,1) = −20 dB.' },
-      { q: 'Was bedeutet −3 dB?', options: ['Halbe Spannung', 'Etwa 70,7 % der Spannung', 'Ein Zehntel', 'Doppelte Spannung'], correct: 1, explain: '20 · log(0,707) ≈ −3 dB – die Grenzfrequenz.' },
+      { q: 'Was bedeutet −3 dB?', options: ['Etwa 70,7 % der Spannung', 'Halbe Spannung', 'Ein Zehntel', 'Doppelte Spannung'], correct: 0, explain: '20 · log(0,707) ≈ −3 dB – die Grenzfrequenz.' },
       { q: 'Grenzfrequenz bei R = 1 kΩ, C = 1 µF?', options: ['15,9 Hz', '159 Hz', '1,59 kHz', '15,9 kHz'], correct: 1, explain: 'f_g = 1/(2π · 1000 Ω · 1 µF) ≈ 159 Hz.' },
       { q: 'Wie stark fällt ein Tiefpass 1. Ordnung oberhalb von f_g ab?', options: ['3 dB pro Dekade', '6 dB pro Dekade', '20 dB pro Dekade', '40 dB pro Dekade'], correct: 2, explain: 'Zehnfache Frequenz → ein Zehntel → −20 dB.' },
       { q: 'Welche Achse ist beim Frequenzgang logarithmisch?', options: ['Keine', 'Die Frequenzachse', 'Nur die Spannungsachse', 'Die Zeitachse'], correct: 1, explain: 'Frequenzen von 1 Hz bis 10 kHz passen nur logarithmisch sinnvoll auf ein Blatt (die Verstärkung in dB ist ebenfalls logarithmisch).' }
@@ -123,9 +123,9 @@
       '<p>RC-Glieder <b>formen Signale</b>: Ist τ viel kleiner als die Periodendauer, wirkt ein Hochpass als <b>Differenzierglied</b> – aus einem Rechteck werden Nadelimpulse an den Flanken. Ist τ viel grösser, wirkt ein Tiefpass als <b>Integrierglied</b> – aus einem Rechteck wird ein Dreieck, bei sehr grossem τ nahezu der Mittelwert (so wird aus einem Taktsignal eine Gleichspannung).</p>' +
       '<p><b>Anwendungen:</b> Störungen ausfiltern (Brumm, Schaltspitzen), Signale aufbereiten, aus PWM eine analoge Spannung gewinnen.</p>',
     questions: [
-      { q: 'Woraus besteht ein einfacher RC-Bandpass?', options: ['Zwei Tiefpässen', 'Hochpass und Tiefpass hintereinander', 'Zwei Hochpässen', 'Nur einem Kondensator'], correct: 1, explain: 'Der Hochpass nimmt die tiefen, der Tiefpass die hohen Frequenzen weg.' },
-      { q: 'Was macht ein Differenzierglied (τ ≪ T) aus einem Rechteck?', options: ['Ein Dreieck', 'Nadelimpulse an den Flanken', 'Einen Sinus', 'Gleichspannung'], correct: 1, explain: 'Nur die schnellen Flanken kommen durch den Hochpass.' },
-      { q: 'Was macht ein Integrierglied (τ ≫ T) aus einem Rechteck?', options: ['Nadelimpulse', 'Ein flaches Dreieck um den Mittelwert', 'Ein doppelt so hohes Rechteck', 'Nichts'], correct: 1, explain: 'Der Kondensator lädt und entlädt sich nur wenig – fast linear.' },
+      { q: 'Woraus besteht ein einfacher RC-Bandpass?', options: ['Hochpass und Tiefpass hintereinander', 'Zwei Tiefpässen', 'Zwei Hochpässen', 'Nur einem Kondensator'], correct: 0, explain: 'Der Hochpass nimmt die tiefen, der Tiefpass die hohen Frequenzen weg.' },
+      { q: 'Was macht ein Differenzierglied (τ ≪ T) aus einem Rechteck?', options: ['Ein Dreieck', 'Einen Sinus', 'Nadelimpulse an den Flanken', 'Gleichspannung'], correct: 2, explain: 'Nur die schnellen Flanken kommen durch den Hochpass.' },
+      { q: 'Was macht ein Integrierglied (τ ≫ T) aus einem Rechteck?', options: ['Nadelimpulse', 'Nichts', 'Ein doppelt so hohes Rechteck', 'Ein flaches Dreieck um den Mittelwert'], correct: 3, explain: 'Der Kondensator lädt und entlädt sich nur wenig – fast linear.' },
       { q: 'Wie gewinnt man aus einem Taktsignal 0 … 5 V eine Gleichspannung?', options: ['Mit einem Hochpass', 'Mit einem Tiefpass (grosses τ)', 'Mit einer Z-Diode', 'Gar nicht'], correct: 1, explain: 'Der Tiefpass mittelt – übrig bleibt ca. 2,5 V.' },
       { q: 'Welche Ordnung hat ein RC-Bandpass aus einem Hoch- und einem Tiefpass je auf einer Seite?', options: ['0', '1', '2', '4'], correct: 1, explain: 'Jede Flanke kommt von einer RC-Stufe: 20 dB pro Dekade.' }
     ]

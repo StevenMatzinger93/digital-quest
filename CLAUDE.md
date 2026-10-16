@@ -70,6 +70,8 @@ node test_avatar.js      # Avatare und Coins: Katalog, Freischaltregeln, Wirtsch
 node tests/portal.js     # Portal-Rundgang und Pruefung bis zum Zertifikat im Browser
 node tests/avatar.js     # Garderobe, Konto-Chip, Klassenliste, Beamer (Lobby, Rangliste, Podest), Spiel-Endbildschirm im Browser
 node tests/avatar_snap.js # Schnappschuesse der 8 Tiere gegen tests/baseline/avatar (--update nach bewusster Stilaenderung), 40 Avatare, Bildrate
+node tests/altstand.js    # alte Spielstaende (ohne doneInfo, revealed, solution) lokal und mit Konto (Start-Abgleich, Konflikt 409): keine Sterne verloren
+node tests/header_snap.js # Kopfzeilen aller Bereiche (Portal, Karte, Aufgabe, Werkstatt, Freie Werkbank, Live, Pruefung) gegen tests/baseline/header, beide Themes, 1440/390 px; gleiche Masse/Rahmen (--update nach bewusster Stilaenderung)
 ```
 Fertig heisst: Tests gruen, Validator 0 Fehler, Browser-Durchlauf fehlerfrei, `tests/tasks.js` gruen (Regel: **jede Aufgabe muss im Schaltplan und auf der Werkbank loesbar sein**), Handy ok, offline spielbar. Nach jedem Abschnitt `docs/STAND.md` aktualisieren.
 
@@ -110,6 +112,13 @@ Fertig heisst: Tests gruen, Validator 0 Fehler, Browser-Durchlauf fehlerfrei, `t
 - `measure: [{id, ask, unit ('V','mA','kΩ'…), tol, set?, mode:'V'|'A'|'R', a, b}]` oder mit `truth:{sel:'R1', q:'i'|'v'}` (Sollwert direkt aus der Simulation, egal wie gemessen wurde). Die lernende Person traegt ihren Messwert ins Protokoll ein.
 - `tags`: Kompetenz-Tags (`elektro.ohm`, `messen.strom`, `digital.und` …) – Pflicht fuer die spaetere questuebergreifende Auswertung.
 - Validator prueft: Referenz besteht (mit automatisch berechneten Sollwerten), Start besteht nicht, jede `wrong`-Loesung faellt durch, Referenz nutzt nur Start- oder Palettenbauteile, Theoriefragen mit `verify`/`verifyTruth` stimmen mit der Engine.
+- **Regeln aus Testlauf 2 (16.10.2026)** – verbindlich:
+  - **Begriffe:** deutscher Begriff zuerst, die englische Abkuerzung beim ersten Vorkommen in Klammern, danach durchgehend dieselbe Schreibweise («NAND-Gatter (NICHT-UND)», «UND-Gatter», «Flipflop», «Effektivwert (RMS)»). Gatter immer mit «-Gatter», wenn das Bauteil gemeint ist. Liste: Handbuch-Seite «Begriffe Deutsch/Englisch» (`manual.js`, id `begriffe`) – neue Begriffe dort nachtragen.
+  - **`brief` kurz:** hoechstens drei Saetze bzw. rund 400 Zeichen (Validator-Warnung), bei mehreren Handgriffen nummerierte Schritte (`<ol class="steps">`); Hintergrund in `learn`/`take`, Geraete-Einstellungen in die Einstellungs-Box (standardmaessig eingeklappt, je Messwert aufklappbar). Protokollzeilen (`ask`) so benennen, dass sie zu den Schritten passen.
+  - **Strommessung:** Das Multimeter A⎓/A~ in der Luecke ist der Regelfall und wird gewertet (`gradeLayout()` setzt einen virtuellen Strommesser `props.virtual` in eine Kopie des Layouts; `need`/`limit` zaehlen ihn nicht). Den Strommesser A1 nur verlangen, wenn der Auftrag es ausdruecklich sagt (`need: { ammeter: 1 }`, wie 4.3).
+  - **Messwerte:** `measure.value` immer in der Grundeinheit (0.01 fuer 10 ms); der Validator vergleicht das Ergebnis im Rechenweg mit dem Sollwert. Test und Protokoll einer Aufgabe nutzen dieselbe Toleranz, und der Auftrag nennt sie, wenn sie vom Standard abweicht. Typische Verwechslungen ueber `diag: [{ same: [[pinA, pinB], …], text }]` konkret melden.
+  - **Theoriefragen** werden in der Kontrolle gemischt; `fixed: true` behaelt die Reihenfolge (z. B. «Alle genannten» am Ende). Richtige Antworten in den Quelldaten verteilen (Validator-Warnung ab 4 von 5 an derselben Stelle).
+  - **Sterne:** Als Fehlversuch zaehlt nur ein Pruefen, bei dem ein Test scheitert oder ein eingetragener Wert falsch ist. «Loesung angesehen» und aufgedeckte Sollwerte stehen in `S.marks[id]` und gelten pro Station dauerhaft (hoechstens 1 Stern, auch nach «Neu»); zuruecksetzen soll nur die Lehrperson koennen – eine Funktion dafuer im Leitstand gibt es noch nicht (offener Punkt, siehe STAND). `normalize()` senkt nie Sterne.
 
 ## Theorie (`defTheory`)
 `id ('T1A'), ch, title, lesson (HTML), merksatz, questions:[{q, options, correct, explain, verify?:{layout,mode,a,b}, verifyTruth?:{layout,sel,q}}], tags` – 5 Fragen, 80 % zum Bestehen.

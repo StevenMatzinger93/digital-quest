@@ -155,7 +155,7 @@
       '<p><b>Horner-Schema</b> (Fremdsystem → dezimal): von links beginnen, Zwischenergebnis mal Basis plus nächste Ziffer. 110001₂: 1 → 1·2+1 = 3 → 6 → 12 → 24 → 24·2+1 = 49.</p>' +
       '<p><b>BCD-Code</b> (Binary Coded Decimal): jede Dezimalziffer einzeln mit 4 Bit. 59 → 0101 1001. Die Kombinationen 1010 … 1111 sind in BCD <b>ungültig</b> – ein BCD-Decoder zeigt dann nichts an. BCD passt direkt zu 7-Segment-Anzeigen.</p>',
     questions: [
-      { q: 'Welche Dezimalzahl ist EF₁₆?', options: ['215', '239', '254', '255'], correct: 1, explain: '14·16 + 15 = 239.' },
+      { q: 'Welche Dezimalzahl ist EF₁₆?', options: ['239', '215', '254', '255'], correct: 0, explain: '14·16 + 15 = 239.' },
       { q: 'Wie lautet 1111₂ hexadezimal?', options: ['E', 'F', '10', '15'], correct: 1, explain: '1111₂ = 15 = F.' },
       { q: 'Wie viele Bits entsprechen einer Hex-Ziffer?', options: ['2', '3', '4', '8'], correct: 2, explain: '16 = 2⁴ – eine Hex-Ziffer ist ein Nibble.' },
       { q: 'Wie wird die Dezimalzahl 59 im BCD-Code dargestellt?', options: ['0011 1011', '0101 1001', '0111 0011', '1001 0101'], correct: 1, explain: '5 → 0101, 9 → 1001.' },

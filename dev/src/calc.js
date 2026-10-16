@@ -86,6 +86,35 @@
 
   /* ---------- Oberflaeche ---------- */
   var el = null, hist = [], onLog = null;
+  /* Position des Fensters (Testlauf 2, 2.2): {x, y} links oben in px oder null = Standard (rechts unten). Ablage über posStore –
+   * das Labor legt sie in die Einstellungen, sonst localStorage (Fehler beim Speichern werden ignoriert). */
+  var posStore = {
+    get: function () { try { return JSON.parse(localStorage.getItem('dq_calc_pos') || 'null'); } catch (e) { return null; } },
+    set: function (v) { try { if (v) localStorage.setItem('dq_calc_pos', JSON.stringify(v)); else localStorage.removeItem('dq_calc_pos'); } catch (e) { /* ohne Ablage */ } }
+  };
+  function applyPos(p) {
+    var box = el && el.querySelector('.calc-box'); if (!box) return;
+    if (!p || !isFinite(p.x) || !isFinite(p.y)) { box.style.left = box.style.top = box.style.right = box.style.bottom = ''; box.classList.remove('moved'); return; }
+    var w = box.offsetWidth || 320, h = box.offsetHeight || 400, m = 8;
+    var x = Math.max(m, Math.min(innerWidth - w - m, p.x)), y = Math.max(m, Math.min(innerHeight - Math.min(h, 60) - m, p.y)); // Titelleiste bleibt immer erreichbar
+    box.style.left = x + 'px'; box.style.top = y + 'px'; box.style.right = 'auto'; box.style.bottom = 'auto'; box.classList.add('moved');
+  }
+  function bindDrag(head) {
+    var drag = null;
+    head.addEventListener('pointerdown', function (ev) {
+      if (ev.target.closest('.calc-x') || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+      var r = el.querySelector('.calc-box').getBoundingClientRect(); drag = { dx: ev.clientX - r.left, dy: ev.clientY - r.top, id: ev.pointerId };
+      try { head.setPointerCapture(ev.pointerId); } catch (e) { /* alter Browser */ }
+      ev.preventDefault();
+    });
+    head.addEventListener('pointermove', function (ev) { if (!drag || ev.pointerId !== drag.id) return; applyPos({ x: ev.clientX - drag.dx, y: ev.clientY - drag.dy }); });
+    var end = function (ev) {
+      if (!drag || ev.pointerId !== drag.id) return; drag = null;
+      var box = el.querySelector('.calc-box'); if (box.classList.contains('moved')) { posStore.set({ x: parseFloat(box.style.left), y: parseFloat(box.style.top) }); if (onLog) onLog('calc_move', {}); }
+    };
+    head.addEventListener('pointerup', end); head.addEventListener('pointercancel', end);
+    head.addEventListener('dblclick', function (ev) { if (ev.target.closest('.calc-x')) return; applyPos(null); posStore.set(null); });
+  }
   var KEYS = [['(', ')', '√', '^'], ['7', '8', '9', '÷'], ['4', '5', '6', '×'], ['1', '2', '3', '−'], ['0', ',', '%', '+'], ['π', 'x²', 'C', '⌫']];
   function build() {
     el = document.createElement('div'); el.id = 'calc'; el.hidden = true; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Taschenrechner');
@@ -107,6 +136,8 @@
       b.onclick = function () { key(b.dataset.k); };
     });
     el.querySelector('.calc-box').addEventListener('click', function (ev) { ev.stopPropagation(); });
+    var head = el.querySelector('.calc-head'); head.title = 'Ziehen verschiebt den Rechner · Doppelklick setzt ihn zurück'; bindDrag(head);
+    window.addEventListener('resize', function () { if (el && !el.hidden) applyPos(posStore.get()); });
   }
   function insert(txt) {
     var inp = el.querySelector('#calcIn'), s = inp.selectionStart || inp.value.length, e = inp.selectionEnd || s;
@@ -140,12 +171,13 @@
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function open(preset) {
     if (!el) build();
-    el.hidden = false; document.body.classList.add('calc-open');
+    el.hidden = false; document.body.classList.add('calc-open'); applyPos(posStore.get());
     var inp = el.querySelector('#calcIn'); if (preset !== undefined) inp.value = preset; inp.focus();
   }
   function close() { if (!el) return; el.hidden = true; document.body.classList.remove('calc-open'); }
   function toggle() { if (!el || el.hidden) open(); else close(); }
 
-  root.DQCalc = { evaluate: evaluate, fmt: fmt, open: open, close: close, toggle: toggle, get isOpen() { return !!el && !el.hidden; }, get history() { return hist; }, set onLog(f) { onLog = f; } };
+  root.DQCalc = { evaluate: evaluate, fmt: fmt, open: open, close: close, toggle: toggle, get isOpen() { return !!el && !el.hidden; }, get history() { return hist; }, set onLog(f) { onLog = f; },
+    set posStore(s) { if (s && s.get && s.set) posStore = s; }, get pos() { return posStore.get(); }, resetPos: function () { applyPos(null); posStore.set(null); } };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.DQCalc;
 })(typeof window !== 'undefined' ? window : globalThis);

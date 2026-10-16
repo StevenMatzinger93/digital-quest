@@ -21,7 +21,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     else { await page.click('#thRead'); await page.waitForTimeout(150); await page.click('#thRead'); if (!/Vorlesen/.test(await page.textContent('#thRead'))) errors.push('T1A: Vorlesen stoppt nicht beim zweiten Klick'); }
   }
   await page.click('#toQuiz');
-  for (const [i, j] of [[0, 1], [1, 1], [2, 2], [3, 1], [4, 1]]) await page.check(`input[name="q${i}"][value="${j}"]`);
+  { const cor = await page.evaluate(() => DQ.byId.T1A.questions.map(q => q.correct)); for (let i = 0; i < cor.length; i++) await page.check(`input[name="q${i}"][value="${cor[i]}"]`); } // Antworten werden gemischt (Testlauf 2): richtige über den Quell-Index wählen
   await page.click('#evalQuiz'); if (!/bestanden!/.test(await page.textContent('#quizRes'))) errors.push('T1A nicht bestanden');
 
   // 1.1 Lampe + Schalter
@@ -189,8 +189,15 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
   };
   const dwell = async sel => { const b = await page.locator(sel).boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.move(b.x + b.width / 2 + 2, b.y + b.height / 2 + 1); await page.waitForTimeout(1000); };
   await page.evaluate(() => { DigitalQuest.openItem('1.8'); DigitalQuest.setView('schema'); });
-  await page.hover('[data-add="resistor"]'); await page.waitForTimeout(350);
+  await page.hover('[data-add="resistor"]'); await page.waitForTimeout(200);
+  if (await page.isVisible('#dsPop')) errors.push('Testlauf 2 · Palette-Datenblatt erscheint schon nach 200 ms (soll ~400 ms)');
+  await page.waitForTimeout(400);
   await sheetOk('resistor', 'Palette', 'Höchstleistung');
+  { // Testlauf 2 (2.1): neben der Palette, verdeckt keinen Palette-Knopf und keine Arbeitsfläche, lässt die Maus durch
+    const g = await page.evaluate(() => { const e = document.getElementById('dsPop').getBoundingClientRect(), hit = (r) => !(r.right <= e.left || r.left >= e.right || r.bottom <= e.top || r.top >= e.bottom);
+      return { pe: getComputedStyle(document.getElementById('dsPop')).pointerEvents, btn: [...document.querySelectorAll('#palette .palbtn')].filter(b => hit(b.getBoundingClientRect())).map(b => b.dataset.add), board: hit(document.querySelector('#scr-task .center').getBoundingClientRect()) }; });
+    if (g.pe !== 'none' || g.btn.length || g.board) errors.push('Testlauf 2 · Palette-Datenblatt im Weg: ' + JSON.stringify(g));
+  }
   await page.mouse.move(5, 890); await page.waitForTimeout(400);
   if (await page.isVisible('#dsPop')) errors.push('Datenblatt schliesst nach dem Wegfahren nicht');
   await dwell('#board [data-part="D1"]'); await sheetOk('led', 'Schaltplan D1', 'Anode');
@@ -853,6 +860,239 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     if (mb.hidden || mb.right > mb.iw + 1 || mb.fs < 12 || mb.sw > mb.iw + 1) errors.push('Gleichrichter mobil: Warnhinweis nicht lesbar oder Querscrollen: ' + JSON.stringify(mb));
     await g.screenshot({ path: shots + '/18_gleichrichter_handy.png' });
     await g.close();
+  }
+
+  // ===== Wertung (Testlauf 2, Phase 1): Multimeter in der Lücke, Hinweise, 3.5, «Lösung angesehen bleibt», Fehlversuche, Mischen, Bereinigen =====
+  {
+    const w = await browser.newPage({ viewport: { width: 1440, height: 900 } }); w.on('pageerror', e => errors.push('Wertung: ' + e.message));
+    await w.goto(url, { waitUntil: 'domcontentloaded' }); await w.evaluate(() => { DigitalQuest.state.settings.tourAsked = true; }); await w.waitForTimeout(200); if (await w.$('#dqTourAsk')) await w.click('#dqtAskNo');
+    const pinW = id => w.click(`#board [data-pin="${id}"] .pinhit`, { force: true });
+    const won = () => w.isVisible('#modal.open .win'), closeM = () => w.evaluate(() => document.querySelector('#modal').classList.remove('open'));
+    const resW = () => w.evaluate(() => document.getElementById('results').innerText.replace(/\s+/g, ' '));
+    // 1 Multimeter in der Lücke: alle Aufgaben mit Strommessung (ausser 4.3, die den Strommesser A1 verlangt)
+    const gapTasks = await w.evaluate(() => DQ.tasks.filter(t => (t.measure || []).some(m => m.mode === 'A' || m.mode === 'AAC' || (m.truth && m.truth.q === 'i')) && t.ref && !t.ref.parts.some(p => p.type === 'ammeter')).map(t => t.id));
+    const gapFail = [];
+    for (const id of gapTasks) {
+      const cut = await w.evaluate(id => { const t = DQ.byId[id], m = t.measure.find(m => m.mode === 'A' || m.mode === 'AAC' || (m.truth && m.truth.q === 'i')), sel = m.truth ? m.truth.sel : m.a.split('.')[0];
+        const L = DigitalQuest.engine.clone(t.ref), wi = L.wires.findIndex(x => x.from.split('.')[0] === sel || x.to.split('.')[0] === sel); const c = L.wires.splice(wi, 1)[0];
+        DigitalQuest.state.drafts[id] = { layout: L, answers: {} }; DigitalQuest.openItem(id); DigitalQuest.setView('schema'); return c; }, id);
+      await w.waitForTimeout(100); await w.click('[data-mm="A"]'); await pinW(cut.from); await pinW(cut.to); await w.waitForTimeout(80);
+      const ex = await w.evaluate(id => DigitalQuest.engine.expectedAnswers(DQ.byId[id], DQ.byId[id].ref), id);
+      for (const k of Object.keys(ex)) await w.fill(`[data-ans="${k}"]`, String(ex[k]).replace('.', ','));
+      await w.click('#btnCheck'); await w.waitForTimeout(120);
+      if (!await won()) gapFail.push(id + ': ' + (await resW()).slice(0, 160)); else await closeM();
+      await w.click('[data-mm="OFF"]');
+    }
+    if (gapFail.length) errors.push('Testlauf 2 · Multimeter in der Lücke wird nicht gewertet: ' + gapFail.join(' || '));
+    if (gapTasks.length < 15) errors.push('Testlauf 2 · zu wenige Aufgaben mit Strommessung gefunden: ' + gapTasks.join(','));
+    // 1.6 ohne Messgerät in der Lücke: klare Meldung, Strommesser A1 bleibt erlaubt
+    await w.evaluate(() => { const t = DQ.byId['1.6'], L = DigitalQuest.engine.clone(t.ref); L.wires.splice(0, 1); DigitalQuest.state.drafts['1.6'] = { layout: L, answers: {} }; DigitalQuest.openItem('1.6'); DigitalQuest.setView('schema'); });
+    await w.fill('[data-ans="i"]', '21,3'); await w.click('#btnCheck'); await w.waitForTimeout(120);
+    if (!/Der Stromkreis ist offen – setze das Multimeter \(A⎓\) in die Lücke/.test(await resW())) errors.push('Testlauf 2 · 1.6 offener Kreis ohne klare Meldung: ' + (await resW()).slice(0, 200));
+    // 2.5 Namen vertauscht: konkreter Hinweis; Toleranz ±2 % steht im Text
+    await w.evaluate(() => { const b = DQ.byId['2.5'].start.parts[0]; DigitalQuest.state.drafts['2.5'] = { layout: { parts: [b, { id: 'R1', type: 'resistor', value: 1000, x: 400, y: 200 }, { id: 'R2', type: 'resistor', value: 2000, x: 400, y: 400 }], wires: [{ from: 'B1.p', to: 'R2.a' }, { from: 'R2.b', to: 'R1.a' }, { from: 'R1.b', to: 'B1.n' }] }, answers: {} }; DigitalQuest.openItem('2.5'); DigitalQuest.setView('schema'); });
+    await w.fill('[data-ans="u2"]', '5'); await w.click('#btnCheck'); await w.waitForTimeout(120);
+    if (!/R2 muss unten am Minuspol liegen – bei dir liegt R2 oben/.test(await resW())) errors.push('Testlauf 2 · 2.5 vertauschte Namen ohne Hinweis: ' + (await resW()).slice(0, 200));
+    if (!/±2 %, also 4,90 … 5,10 V/.test(await w.textContent('#taskInfo'))) errors.push('Testlauf 2 · 2.5 nennt die Toleranz nicht');
+    // 3.5 Periodendauer 10 ms wird angenommen
+    await w.evaluate(() => { DigitalQuest.state.drafts['3.5'] = { layout: DigitalQuest.engine.clone(DQ.byId['3.5'].ref), answers: {} }; DigitalQuest.openItem('3.5'); });
+    { const ex = await w.evaluate(() => DigitalQuest.engine.expectedAnswers(DQ.byId['3.5'], DQ.byId['3.5'].ref)); if (ex.tper !== 10) errors.push('Testlauf 2 · 3.5 Sollwert tper ' + ex.tper);
+      for (const k of Object.keys(ex)) await w.fill(`[data-ans="${k}"]`, k === 'tper' ? '10' : String(ex[k])); await w.click('#btnCheck'); await w.waitForTimeout(120);
+      if (!await won()) errors.push('Testlauf 2 · 3.5 mit 10 ms nicht bestanden: ' + (await resW()).slice(0, 200)); else await closeM(); }
+    // 16.8: Lösung ansehen → «Neu» → nochmals lösen: höchstens 1 Stern, Marke bleibt
+    await w.evaluate(() => { const S = DigitalQuest.state; delete S.drafts['16.8']; delete S.done['16.8']; delete S.doneInfo['16.8']; delete S.marks['16.8']; DigitalQuest.openItem('16.8'); }); await w.waitForTimeout(150);
+    await w.fill('[data-ans="udc"]', '1'); await w.click('#btnCheck'); await w.waitForTimeout(60); await w.click('#btnCheck'); await w.waitForTimeout(120);
+    if (!await w.$('#btnSol')) errors.push('Testlauf 2 · 16.8 kein Knopf «Lösung ansehen» nach zwei Fehlversuchen');
+    else {
+      await w.click('#btnSol'); await w.waitForTimeout(120);
+      const fill8 = async () => { const ex = await w.evaluate(() => DigitalQuest.engine.expectedAnswers(DQ.byId['16.8'], DQ.byId['16.8'].ref)); for (const k of Object.keys(ex)) await w.fill(`[data-ans="${k}"]`, String(ex[k])); await w.click('#btnCheck'); await w.waitForTimeout(150); };
+      await fill8(); await closeM();
+      await w.click('#btnReset'); await w.waitForTimeout(80); await w.click('#modal .btn.primary'); await w.waitForTimeout(150);
+      await fill8(); const di = await w.evaluate(() => DigitalQuest.state.doneInfo['16.8']); const why = await w.textContent('#modal .stars-why').catch(() => '');
+      if (!di || di.stars !== 1 || !di.solution) errors.push('Testlauf 2 · 16.8 nach «Neu» wieder mehr als 1 Stern: ' + JSON.stringify(di));
+      if (!/Lösung angesehen/.test(why)) errors.push('Testlauf 2 · Dialog nennt den Grund für 1 Stern nicht: ' + why);
+      await closeM();
+    }
+    // Fehlversuche: leere Felder zählen nicht (W1: erst ein Wert, dann alle → 3 Sterne)
+    await w.evaluate(() => { const S = DigitalQuest.state; delete S.drafts.W1; delete S.done.W1; delete S.doneInfo.W1; delete S.marks.W1; DigitalQuest.openItem('W1'); }); await w.waitForTimeout(120);
+    { const ex = await w.evaluate(() => DigitalQuest.engine.expectedAnswers(DQ.byId.W1, DQ.byId.W1.ref)), ks = Object.keys(ex);
+      await w.fill(`[data-ans="${ks[0]}"]`, String(ex[ks[0]])); await w.click('#btnCheck'); await w.waitForTimeout(100);
+      if (!/Fehlende Werte zählen nicht als Fehlversuch/.test(await resW())) errors.push('Testlauf 2 · Hinweis «Fehlende Werte zählen nicht» fehlt');
+      for (const k of ks) await w.fill(`[data-ans="${k}"]`, String(ex[k])); await w.click('#btnCheck'); await w.waitForTimeout(150);
+      const di = await w.evaluate(() => DigitalQuest.state.doneInfo.W1); if (!di || di.stars !== 3) errors.push('Testlauf 2 · W1 schrittweise ausgefüllt: ' + JSON.stringify(di)); await closeM();
+      // ein falscher Wert zählt als Fehlversuch
+      await w.evaluate(() => { const S = DigitalQuest.state; delete S.drafts.W1; delete S.done.W1; delete S.doneInfo.W1; DigitalQuest.openItem('W1'); }); await w.waitForTimeout(120);
+      await w.fill(`[data-ans="${ks[0]}"]`, '999'); await w.click('#btnCheck'); await w.waitForTimeout(80);
+      for (const k of ks) await w.fill(`[data-ans="${k}"]`, String(ex[k])); await w.click('#btnCheck'); await w.waitForTimeout(150);
+      const di2 = await w.evaluate(() => DigitalQuest.state.doneInfo.W1); if (!di2 || di2.stars !== 2) errors.push('Testlauf 2 · W1 mit einem falschen Wert sollte 2 Sterne geben: ' + JSON.stringify(di2)); await closeM(); }
+    // Theorie-Kontrolle gemischt, Auswertung bleibt richtig
+    const orders = new Set();
+    for (let k = 0; k < 6; k++) { await w.evaluate(() => DigitalQuest.openItem('T8B')); await w.click('#toQuiz'); orders.add(await w.$$eval('#quiz fieldset', l => l.map(f => [...f.querySelectorAll('input')].map(i => i.value).join('')).join('|'))); }
+    if (orders.size < 2) errors.push('Testlauf 2 · T8B: Antworten werden nicht gemischt');
+    { const cor = await w.evaluate(() => DQ.byId.T8B.questions.map(q => q.correct)); for (let i = 0; i < cor.length; i++) await w.check(`#quiz input[name="q${i}"][value="${cor[i]}"]`); await w.click('#evalQuiz'); if (!/bestanden!/.test(await w.textContent('#quizRes'))) errors.push('Testlauf 2 · T8B gemischt: richtige Antworten nicht als richtig gewertet'); }
+    // Entwurf mit Leitung auf ein gelöschtes Bauteil wird beim Öffnen bereinigt
+    await w.evaluate(() => { const L = DigitalQuest.engine.clone(DQ.byId['2.1'].ref); L.wires.push({ from: 'R9.a', to: 'R1.a' }); DigitalQuest.state.drafts['2.1'] = { layout: L, answers: {} }; DigitalQuest.openItem('2.1'); });
+    if (await w.evaluate(() => DigitalQuest.core.layout.wires.some(x => /R9/.test(x.from + x.to)))) errors.push('Testlauf 2 · Leitung auf gelöschtes Bauteil bleibt im Entwurf');
+    // nicht angeschlossene Bauteile werden genannt
+    await w.evaluate(() => { const L = DigitalQuest.engine.clone(DQ.byId['2.1'].ref); L.parts.push({ id: 'R5', type: 'resistor', value: 1000, x: 800, y: 500, rot: 0, props: {} }); DigitalQuest.state.drafts['2.1'] = { layout: L, answers: {} }; DigitalQuest.openItem('2.1'); });
+    await w.click('#btnCheck'); await w.waitForTimeout(120);
+    if (!/R5 ist nicht angeschlossen – löschen oder einbauen/.test(await resW())) errors.push('Testlauf 2 · nicht angeschlossenes Bauteil wird nicht genannt: ' + (await resW()).slice(0, 200));
+    await w.close();
+  }
+
+  // ===== Bedienung (Testlauf 2, Phase 2): Oszilloskop zurücksetzen, Platzsuche, Statuszeile, Handbuch, Taschenrechner =====
+  {
+    const w = await browser.newPage({ viewport: { width: 1440, height: 900 } }); w.on('pageerror', e => errors.push('Bedienung: ' + e.message));
+    await w.goto(url, { waitUntil: 'domcontentloaded' }); await w.evaluate(() => { DigitalQuest.state.settings.tourAsked = true; delete DigitalQuest.state.settings.calcPos; }); await w.waitForTimeout(200); if (await w.$('#dqTourAsk')) await w.click('#dqtAskNo');
+    // 2.3 Oszilloskop: 16.7 mit MATH, AC und Kurve → W1 im Grundzustand
+    await w.evaluate(() => { DigitalQuest.openItem('16.7'); DigitalQuest.setView('bench'); const c = DigitalQuest.core; c.scopeProbes.tip = 'R1.a'; c.scopeProbes.gnd = 'G1.n'; c.scopeProbes.tip2 = 'R1.b'; c.redraw(); }); await w.waitForTimeout(150);
+    await w.click('#btnScope'); await w.waitForTimeout(250); await w.click('#scopeCh [data-ch="3"]'); await w.click('#scopeCpl [data-cpl="1"]'); await w.click('#scopeCh [data-ch="2"]'); await w.waitForTimeout(150);
+    await w.evaluate(() => { DigitalQuest.openItem('W1'); DigitalQuest.setView('bench'); }); await w.waitForTimeout(200);
+    { const s = await w.evaluate(() => ({ info: document.getElementById('scopeInfo').textContent, cpl: document.querySelector('#scopeCpl [data-cpl="1"]').textContent, math: document.querySelector('#scopeCh [data-ch="3"]').classList.contains('on'), ch2: document.querySelector('#scopeCh [data-ch="2"]').classList.contains('on'), screen: !!(DigitalQuest.bench && DigitalQuest.bench.scope), warn: !document.getElementById('scopeWarn').hidden }));
+      if (/AC-gekoppelt|MATH|Gleichanteil/.test(s.info) || s.cpl !== 'CH1 DC' || s.math || !s.ch2 || s.screen || s.warn) errors.push('Testlauf 2 · Oszilloskop nach Aufgabenwechsel nicht zurückgesetzt: ' + JSON.stringify(s).slice(0, 300)); }
+    // 2.4 / 2.5 Freie Werkbank: Statuszeile ohne Quelle, 30 Schalter ohne Stapel, nie unter den Messgeräten
+    await w.evaluate(() => { delete DigitalQuest.state.drafts.sandbox; DigitalQuest.openItem('sandbox'); DigitalQuest.setView('bench'); }); await w.waitForTimeout(200);
+    if (/keine Störung/.test(await w.textContent('#statusbar'))) errors.push('Testlauf 2 · leere Freie Werkbank meldet «keine Störung»');
+    for (let k = 0; k < 30; k++) await w.click('[data-add="switch"]');
+    await w.waitForTimeout(150);
+    { const st = await w.textContent('#statusbar'); if (!/Keine Quelle angeschlossen/.test(st) || !/30 Bauteile ohne Verbindung/.test(st)) errors.push('Testlauf 2 · Statuszeile Freie Werkbank: ' + st.trim().slice(0, 160)); }
+    { const r = await w.evaluate(() => { const C = DigitalQuest.core, ps = C.layout.parts, res = [[1000, 90, 1180, 420], [930, 500, 1190, 710]]; const pos = ps.map(p => C.pos(p, 'bench')), keys = new Set(pos.map(q => q.x + ',' + q.y));
+        return { n: ps.length, orte: keys.size, unterGeraet: pos.filter(q => res.some(r => q.x > r[0] && q.x < r[2] && q.y > r[1] && q.y < r[3])).length, schema: new Set(ps.map(p => p.x + ',' + p.y)).size }; });
+      if (r.orte !== r.n || r.unterGeraet) errors.push('Testlauf 2 · neue Bauteile gestapelt oder unter den Messgeräten: ' + JSON.stringify(r)); }
+    // Zahlzeichen, wenn trotzdem etwas übereinander liegt (z. B. von Hand gezogen)
+    await w.evaluate(() => { const C = DigitalQuest.core, a = C.part('S1'), b = C.part('S2'); b.bench = Object.assign({}, C.pos(a, 'bench')); b.x = a.x; b.y = a.y; C.changed(); }); await w.waitForTimeout(100);
+    if (!await w.$('#bench .stackbadge') ) errors.push('Testlauf 2 · kein Zahlzeichen bei übereinanderliegenden Bauteilen (Werkbank)');
+    await w.evaluate(() => DigitalQuest.setView('schema')); await w.waitForTimeout(100);
+    if (!await w.$('#board .stackbadge')) errors.push('Testlauf 2 · kein Zahlzeichen bei übereinanderliegenden Bauteilen (Schaltplan)');
+    // 2.6 Handbuch: keine Seite «undefined»
+    await w.click('[data-go="manual"]'); await w.waitForTimeout(100);
+    { const nav = await w.$$eval('#scr-manual nav [data-man]', l => l.map(b => b.dataset.man + ':' + b.textContent)); if (nav.some(x => /undefined/.test(x))) errors.push('Testlauf 2 · Handbuch-Menü enthält «undefined»: ' + nav.join(' | '));
+      await w.click('#scr-manual nav [data-man="oszi"]'); if (!/MATH = CH1 − CH2/.test(await w.textContent('#scr-manual article'))) errors.push('Testlauf 2 · Handbuch Oszilloskop: Absätze MATH/AC fehlen'); }
+    // 2.2 Taschenrechner: ziehen, Position gemerkt, Doppelklick setzt zurück
+    for (const vp of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+      await w.setViewportSize(vp); await w.evaluate(() => { DigitalQuest.state.settings.calcPos = null; if (DQCalc.isOpen) DQCalc.close(); DQCalc.resetPos(); }); await w.click('#btnCalc'); await w.waitForTimeout(120);
+      const b0 = await w.$eval('.calc-box', e => { const r = e.getBoundingClientRect(); return [r.x, r.y]; }), hd = await w.$eval('.calc-head b', e => { const r = e.getBoundingClientRect(); return [r.x + 10, r.y + r.height / 2]; });
+      const dx = vp.width > 600 ? -300 : -10, dy = vp.width > 600 ? -200 : -150;
+      await w.mouse.move(hd[0], hd[1]); await w.mouse.down(); await w.mouse.move(hd[0] + dx, hd[1] + dy, { steps: 6 }); await w.mouse.up(); await w.waitForTimeout(80);
+      const b1 = await w.$eval('.calc-box', e => { const r = e.getBoundingClientRect(); return [r.x, r.y]; });
+      if (Math.abs(b1[1] - b0[1]) < 50) errors.push('Testlauf 2 · Taschenrechner lässt sich nicht ziehen (' + vp.width + ' px): ' + JSON.stringify([b0, b1]));
+      const pos = await w.evaluate(() => DigitalQuest.state.settings.calcPos); if (!pos || Math.abs(pos.y - b1[1]) > 2) errors.push('Testlauf 2 · Position des Taschenrechners nicht in den Einstellungen: ' + JSON.stringify(pos));
+      await w.evaluate(() => DQCalc.close()); await w.click('#btnCalc'); await w.waitForTimeout(80);
+      const b2 = await w.$eval('.calc-box', e => { const r = e.getBoundingClientRect(); return [r.x, r.y]; }); if (Math.abs(b2[1] - b1[1]) > 2) errors.push('Testlauf 2 · Taschenrechner öffnet nicht an der gemerkten Stelle');
+      await w.dblclick('.calc-head b'); await w.waitForTimeout(80);
+      const b3 = await w.$eval('.calc-box', e => { const r = e.getBoundingClientRect(); return [r.x, r.y]; }); if (Math.abs(b3[1] - b0[1]) > 2 || await w.evaluate(() => DigitalQuest.state.settings.calcPos)) errors.push('Testlauf 2 · Doppelklick setzt den Taschenrechner nicht zurück');
+      // Rechnen geht weiterhin
+      await w.fill('#calcIn', '2+3'); await w.press('#calcIn', 'Enter'); if (!/= 5/.test(await w.textContent('#calcOut'))) errors.push('Testlauf 2 · Taschenrechner rechnet nach dem Ziehen nicht');
+      await w.evaluate(() => DQCalc.close());
+    }
+    await w.close();
+  }
+
+  // ===== Texte (Testlauf 2, Phase 3): 4.7 in Schritten, Einstellungs-Box eingeklappt, Begriffe, T3C, Wegweiser =====
+  {
+    const w = await browser.newPage({ viewport: { width: 1440, height: 900 } }); w.on('pageerror', e => errors.push('Texte: ' + e.message));
+    await w.goto(url, { waitUntil: 'domcontentloaded' }); await w.evaluate(() => { DigitalQuest.state.settings.tourAsked = true; }); await w.waitForTimeout(200); if (await w.$('#dqTourAsk')) await w.click('#dqtAskNo');
+    await w.evaluate(() => DigitalQuest.openItem('4.7')); await w.waitForTimeout(100);
+    { const r = await w.evaluate(() => ({ steps: document.querySelectorAll('#taskInfo .brief ol.steps li').length, asks: [...document.querySelectorAll('#taskInfo .protocol label > span')].map(s => s.textContent.trim()) }));
+      if (r.steps !== 4 || !/A1 ohne Voltmeter/.test(r.asks[0]) || !/A1 mit Voltmeter/.test(r.asks[2])) errors.push('Testlauf 2 · 4.7 nicht in Schritten: ' + JSON.stringify(r)); }
+    await w.evaluate(() => DigitalQuest.openItem('16.7')); await w.waitForTimeout(100);
+    { const r = await w.evaluate(() => { const d = document.querySelector('#taskInfo details.setup'); return d ? { open: d.open, sum: d.querySelector('summary').textContent, rows: d.querySelectorAll('.setup-rows > li > details').length } : null; });
+      if (!r || r.open || !/^So stellst du das Gerät ein \(\d+ Werte\)$/.test(r.sum) || r.rows < 2) errors.push('Testlauf 2 · Einstellungs-Box 16.7 nicht eingeklappt bzw. nicht je Wert aufklappbar: ' + JSON.stringify(r)); }
+    await w.evaluate(() => DigitalQuest.openItem('7.7')); await w.waitForTimeout(100);
+    if (!/NAND-Gatter \(NICHT-UND\)/.test(await w.textContent('#taskInfo'))) errors.push('Testlauf 2 · 7.7: NAND ohne deutsche Bedeutung beim ersten Vorkommen');
+    await w.click('[data-go="manual"]'); await w.click('[data-man="begriffe"]');
+    if (!/NICHT-UND-Gatter/.test(await w.textContent('#scr-manual article'))) errors.push('Testlauf 2 · Handbuch-Seite «Begriffe Deutsch/Englisch» fehlt');
+    await w.click('[data-man="wegweiser"]'); if (!/Hier findest du alle Bereiche von DigitalQuest und wofür du sie brauchst\./.test(await w.textContent('#scr-manual article'))) errors.push('Testlauf 2 · Wegweiser-Untertitel im Handbuch alt');
+    await w.evaluate(() => DigitalQuest.openItem('T3C')); await w.waitForTimeout(300);
+    if (!await w.$('.hw-paths svg')) errors.push('Testlauf 2 · T3C: Bild der Halbwellen-Pfade fehlt');
+    await w.close();
+  }
+
+  // ===== Freie Werkbank (Testlauf 2, Phase 5): Drag & Drop, Rückgängig, Aufbauten, Fläche, Netz, Leitungsfarbe, Zoom =====
+  {
+    const ctx5 = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
+    const w = await ctx5.newPage(); w.on('pageerror', e => errors.push('Werkbank 5: ' + e.message));
+    await w.goto(url, { waitUntil: 'domcontentloaded' }); await w.evaluate(() => { DigitalQuest.state.settings.tourAsked = true; DQ.tasks.forEach(t => { DigitalQuest.state.done[t.id] = true; }); DigitalQuest.state.setups = []; }); await w.waitForTimeout(200); if (await w.$('#dqTourAsk')) await w.click('#dqtAskNo');
+    await w.evaluate(() => { delete DigitalQuest.state.drafts.sandbox; DigitalQuest.openItem('sandbox'); DigitalQuest.setView('schema'); }); await w.waitForTimeout(200);
+    // 5.4 Fläche: mindestens doppelt so gross wie in den Aufgaben
+    { const a = await w.evaluate(() => ({ s: DigitalQuest.core.area('schema'), b: DigitalQuest.core.area('bench') })); if (a.s.w * a.s.h < 2 * 1000 * 620 || a.b.w * a.b.h < 2 * 1200 * 760) errors.push('Testlauf 2 · Freie Werkbank: Fläche nicht mindestens doppelt: ' + JSON.stringify(a)); }
+    // 5.1 Drag & Drop mit der Maus (Schaltplan): Bauteil landet nahe der Ablagestelle
+    const dropAt = async (type, fx, fy, sel) => { const b = await w.locator(`[data-add="${type}"]`).boundingBox(), r = await w.locator(sel).boundingBox(); const tx = r.x + r.width * fx, ty = Math.min(r.y + r.height * fy, 860); // im sichtbaren Teil (die Fläche ist so hoch wie das Fenster)
+      await w.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await w.mouse.down(); await w.mouse.move(b.x + 40, b.y + 60, { steps: 4 }); await w.mouse.move(tx, ty, { steps: 8 }); await w.mouse.up(); await w.waitForTimeout(120); return [tx, ty]; };
+    { const n0 = await w.evaluate(() => DigitalQuest.core.layout.parts.length); const [tx, ty] = await dropAt('resistor', 0.25, 0.7, '#board');
+      const r = await w.evaluate(([tx, ty]) => { const ps = DigitalQuest.core.layout.parts, p = ps[ps.length - 1], m = document.getElementById('board').getScreenCTM(), pt = new DOMPoint(p.x, p.y).matrixTransform(m); return { n: ps.length, type: p.type, dx: Math.round(pt.x - tx), dy: Math.round(pt.y - ty) }; }, [tx, ty]);
+      if (r.n !== n0 + 1 || r.type !== 'resistor' || Math.hypot(r.dx, r.dy) > 120) errors.push('Testlauf 2 · Drag & Drop Schaltplan: ' + JSON.stringify(r)); }
+    // Werkbank
+    await w.evaluate(() => DigitalQuest.setView('bench')); await w.waitForTimeout(150);
+    { const n0 = await w.evaluate(() => DigitalQuest.core.layout.parts.length); await dropAt('lamp', 0.3, 0.55, '#bench');
+      const r = await w.evaluate(() => { const ps = DigitalQuest.core.layout.parts; return { n: ps.length, type: ps[ps.length - 1].type }; }); if (r.n !== n0 + 1 || r.type !== 'lamp') errors.push('Testlauf 2 · Drag & Drop Werkbank: ' + JSON.stringify(r)); }
+    // Touch: langes Drücken startet das Ziehen
+    { const n0 = await w.evaluate(() => DigitalQuest.core.layout.parts.length);
+      const b = await w.locator('[data-add="switch"]').boundingBox(), r = await w.locator('#bench').boundingBox();
+      await w.evaluate(([bx, by]) => { const el = document.querySelector('[data-add="switch"]'); el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 7, pointerType: 'touch', clientX: bx, clientY: by, isPrimary: true })); }, [b.x + b.width / 2, b.y + b.height / 2]);
+      await w.waitForTimeout(450);
+      await w.evaluate(([x, y]) => { window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 7, pointerType: 'touch', clientX: x, clientY: y })); window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 7, pointerType: 'touch', clientX: x, clientY: y })); }, [r.x + r.width * 0.45, Math.min(r.y + r.height * 0.4, 860)]);
+      await w.waitForTimeout(150);
+      const n1 = await w.evaluate(() => DigitalQuest.core.layout.parts.length); if (n1 !== n0 + 1) errors.push('Testlauf 2 · Touch: langes Drücken + Ziehen legt kein Bauteil ab (' + n0 + ' → ' + n1 + ')'); }
+    // Klick bleibt als zweiter Weg
+    { const n0 = await w.evaluate(() => DigitalQuest.core.layout.parts.length); await w.click('[data-add="battery"]'); const n1 = await w.evaluate(() => DigitalQuest.core.layout.parts.length); if (n1 !== n0 + 1) errors.push('Testlauf 2 · Klick auf die Palette fügt nicht mehr hinzu'); }
+    // 5.2 Rückgängig/Wiederholen: 55 Schritte zurück und wieder vor, Strg+Z / Strg+Y
+    { const start = await w.evaluate(() => JSON.stringify(DigitalQuest.core.layout));
+      await w.evaluate(() => { const C = DigitalQuest.core; C.sel = C.layout.parts[0].id; for (let k = 0; k < 55; k++) C.rotateSelected('bench'); });
+      for (let k = 0; k < 55; k++) await w.click('#btnUndo');
+      const back = await w.evaluate(() => JSON.stringify(DigitalQuest.core.layout));
+      if (back !== start) errors.push('Testlauf 2 · Rückgängig: nach 55 Schritten nicht beim Stand vor den Drehungen');
+      // weiter zurück bis zum Öffnen (leere Freie Werkbank), dann ist der Knopf aus; danach alles wieder vor
+      let k = 0; while (!(await w.isDisabled('#btnUndo')) && k < 20) { await w.click('#btnUndo'); k++; }
+      const empty = await w.evaluate(() => DigitalQuest.core.layout.parts.length);
+      for (let j = 0; j < k; j++) await w.click('#btnRedo');
+      if (empty !== 0 || JSON.stringify(await w.evaluate(() => DigitalQuest.core.layout)) !== back) errors.push('Testlauf 2 · Rückgängig bis zum Öffnen / Wiederholen: ' + empty + ' Bauteile nach ' + k + ' weiteren Schritten');
+      await w.keyboard.press('Control+y'); await w.keyboard.press('Control+y');
+      const r2 = await w.evaluate(() => DigitalQuest.core.layout.parts[0].bench ? DigitalQuest.core.layout.parts[0].bench.rot : DigitalQuest.core.layout.parts[0].rot);
+      await w.keyboard.press('Control+z'); const r1 = await w.evaluate(() => DigitalQuest.core.layout.parts[0].bench ? DigitalQuest.core.layout.parts[0].bench.rot : DigitalQuest.core.layout.parts[0].rot);
+      if (r2 !== 180 || r1 !== 90) errors.push('Testlauf 2 · Strg+Y / Strg+Z: Drehung ' + r2 + ' / ' + r1 + ' statt 180 / 90');
+      // Löschen rückgängig machen
+      const n0 = await w.evaluate(() => DigitalQuest.core.layout.parts.length); await w.evaluate(() => { const C = DigitalQuest.core; C.sel = C.layout.parts[1].id; C.removeSelected(); }); await w.keyboard.press('Control+z');
+      if (await w.evaluate(() => DigitalQuest.core.layout.parts.length) !== n0) errors.push('Testlauf 2 · Löschen lässt sich nicht rückgängig machen'); }
+    // 5.5 Leitung: Netz hervorheben und Farbe wählen
+    { const ty = await w.evaluate(() => DigitalQuest.core.layout.parts.map(p => p.id + ':' + p.type).join(' ')); if (!/battery/.test(ty) || !/resistor/.test(ty) || !/lamp/.test(ty)) errors.push('Testlauf 2 · Bauteile fehlen vor dem Netz-Test: ' + ty); }
+    await w.evaluate(() => { const C = DigitalQuest.core, B = C.layout.parts.find(p => p.type === 'battery'), Rr = C.layout.parts.find(p => p.type === 'resistor'), Lp = C.layout.parts.find(p => p.type === 'lamp');
+      C.layout.wires.push({ from: B.id + '.p', to: Rr.id + '.a' }, { from: Rr.id + '.a', to: Lp.id + '.a' }, { from: Lp.id + '.b', to: B.id + '.n' }); C.changed('wire'); DigitalQuest.setView('schema'); });
+    await w.waitForTimeout(150);
+    const onWire = sel => w.evaluate(s => { const p = document.querySelector(s); p.scrollIntoView({ block: 'center' }); const L = p.getTotalLength(), q = p.getPointAtLength(L * 0.5), m = p.getScreenCTM(), r = new DOMPoint(q.x, q.y).matrixTransform(m); return [r.x, r.y]; }, sel);
+    { const xy = await onWire('#board [data-wire="0"] path.wire'); await w.mouse.move(xy[0], xy[1]); await w.waitForTimeout(300);
+      const h = await w.evaluate(() => ({ wires: document.querySelectorAll('#board [data-wire].nethi').length, pins: document.querySelectorAll('#board [data-pin].nethi').length, on: document.getElementById('board').classList.contains('net-on') }));
+      if (h.wires !== 2 || h.pins < 3 || !h.on) errors.push('Testlauf 2 · Netz beim Darüberfahren nicht hervorgehoben: ' + JSON.stringify(h)); }
+    { const xy = await onWire('#board [data-wire="2"] path.wire'); await w.mouse.click(xy[0], xy[1]); await w.waitForTimeout(80); }
+    if (!await w.$('#inspector [data-wc="rot"]')) errors.push('Testlauf 2 · Leitung gewählt: keine Farbauswahl im Eigenschaften-Panel');
+    else { await w.click('#inspector [data-wc="blau"]'); const c = await w.evaluate(() => ({ c: DigitalQuest.core.layout.wires[2].color, s: document.querySelector('#board [data-wire="2"] path.wire').getAttribute('style') || '' }));
+      if (c.c !== 'blau' || !/#3b82f6/i.test(c.s)) errors.push('Testlauf 2 · Leitungsfarbe wird nicht übernommen: ' + JSON.stringify(c)); }
+    // Zoom-Knöpfe
+    { const v0 = await w.evaluate(() => DigitalQuest.editor.view[2]); await w.click('#btnZoomIn'); const v1 = await w.evaluate(() => DigitalQuest.editor.view[2]); await w.click('#btnZoomOut'); await w.click('#btnZoomOut'); const v2 = await w.evaluate(() => DigitalQuest.editor.view[2]);
+      if (!(v1 < v0 && v2 > v1)) errors.push('Testlauf 2 · Zoom-Knöpfe ohne Wirkung: ' + [v0, v1, v2].join(' / ')); }
+    // 5.3 Aufbauten: speichern (mit Schalterstellung und Messgerät), verändern, laden, exportieren, importieren, löschen
+    await w.evaluate(() => { const C = DigitalQuest.core, Sw = C.layout.parts.find(p => p.type === 'switch'); Sw.props = Sw.props || {}; Sw.props.closed = true; C.changed('toggle'); });
+    await w.click('[data-mm="V"]');
+    const saved = await w.evaluate(() => JSON.stringify(DigitalQuest.core.layout));
+    await w.fill('#suName', 'Testaufbau A'); await w.click('#suSave'); await w.waitForTimeout(80);
+    if (!/«Testaufbau A» gespeichert/.test(await w.textContent('#suMsg'))) errors.push('Testlauf 2 · Aufbau speichern: ' + await w.textContent('#suMsg'));
+    await w.evaluate(() => { DigitalQuest.core.layout.parts.pop(); DigitalQuest.core.changed('delete'); }); await w.click('[data-mm="OFF"]');
+    await w.click('[data-su-load="0"]'); await w.waitForTimeout(150);
+    { const r = await w.evaluate(() => ({ L: JSON.stringify(DigitalQuest.core.layout), mm: document.querySelector('[data-mm].on') && document.querySelector('[data-mm].on').dataset.mm }));
+      if (r.L !== saved || r.mm !== 'V') errors.push('Testlauf 2 · Aufbau laden: Layout ' + (r.L === saved) + ', Messart ' + r.mm); }
+    const [dl] = await Promise.all([w.waitForEvent('download'), w.click('#suExport')]);
+    const fpath = await dl.path(), exp = JSON.parse(require('fs').readFileSync(fpath, 'utf8'));
+    if (exp.digitalquest !== 'aufbau' || !Array.isArray(exp.setups) || exp.setups.length < 2 || !exp.setups[1].layout) errors.push('Testlauf 2 · Export: ' + JSON.stringify(exp).slice(0, 160));
+    { const imp = path.join(shots, 'import_test.json'); require('fs').writeFileSync(imp, JSON.stringify({ digitalquest: 'aufbau', version: 1, setups: [{ name: 'Importiert', layout: { parts: [{ id: 'B1', type: 'battery', value: 9, x: 300, y: 300, rot: 0 }, { id: 'R1', type: 'resistor', value: 470, x: 500, y: 300, rot: 0 }], wires: [{ from: 'B1.p', to: 'R1.a' }, { from: 'R1.b', to: 'B1.n' }] }, meter: { mode: 'A' } }] }));
+      await w.setInputFiles('#suImport', imp); await w.waitForTimeout(200);
+      const r = await w.evaluate(() => ({ n: DigitalQuest.core.layout.parts.length, r: DigitalQuest.core.layout.parts.find(p => p.id === 'R1').value, msg: document.getElementById('suMsg').textContent, mm: document.querySelector('[data-mm].on').dataset.mm }));
+      if (r.n !== 2 || r.r !== 470 || r.mm !== 'A' || !/«Importiert» geladen/.test(r.msg)) errors.push('Testlauf 2 · Import: ' + JSON.stringify(r));
+      require('fs').writeFileSync(imp, '{ kaputt'); await w.setInputFiles('#suImport', imp); await w.waitForTimeout(150);
+      if (!/Keine gültige Aufbau-Datei/.test(await w.textContent('#suMsg'))) errors.push('Testlauf 2 · Import einer kaputten Datei ohne Meldung'); require('fs').unlinkSync(imp); }
+    await w.click('[data-su-del="0"]'); await w.click('#modal .btn.primary'); await w.waitForTimeout(80);
+    if (await w.evaluate(() => DigitalQuest.state.setups.length) !== 0) errors.push('Testlauf 2 · Aufbau löschen wirkt nicht');
+    await w.screenshot({ path: shots + '/t2_freie_werkbank.png' });
+    await ctx5.close();
   }
 
   // ===== Glättung (Auftrag 06.10.2026, K5.4): 16.9 je Kondensator, AC-Kopplung, Vorführen, T3C-Regler, Handy =====

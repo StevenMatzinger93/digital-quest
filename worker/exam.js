@@ -35,6 +35,7 @@ export async function examRoutes(C, p, m, H){
   if((mm = p.match(/^\/api\/exams\/(\d+)\/submit$/)) && m === 'POST') return submit(C, +mm[1]);
   if((mm = p.match(/^\/api\/exams\/(\d+)\/void$/)) && m === 'POST') return voidExam(C, H, +mm[1]);
   // Dozent: Prüfung unter Aufsicht
+  if(p === '/api/exam-sessions/check' && m === 'POST') return checkCode(C, H);   // Testlauf 2 (2.7): Code sofort prüfen, ohne zu starten
   if(p === '/api/exam-sessions' && m === 'POST') return createSession(C, H);
   if(p === '/api/exam-sessions' && m === 'GET') return listSessions(C, H);
   if((mm = p.match(/^\/api\/exam-sessions\/(\d+)$/)) && m === 'GET') return sessionView(C, H, +mm[1]);
@@ -81,6 +82,23 @@ async function eligibilityRoute(C){
   const running = await C.db.prepare("SELECT id, level, deadline FROM exams WHERE user_id = ? AND quest = ? AND state = 'running' ORDER BY id DESC").bind(C.user.id, quest).first();
   return json({ quest, rules: Exam.RULES, levels: await eligibility(C, C.user, quest, false), running: running && running.deadline + GRACE > now() ? running : null,
     fee: C.env.CERT_FEE === '1' });
+}
+
+/* ---------- Prüfungscode prüfen (Testlauf 2, 2.7) ----------
+   Schlank: nur Code → Stufe, Klasse, Fenster. Fehlversuche zählen wie beim Login (je Konto 5, je Adresse 40 in 15 Minuten),
+   danach 429. Startet nichts und verrät nichts über fremde Klassen ausser «andere Klasse». */
+async function checkCode(C, H){
+  const code = String((C.body && C.body.code) || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const uKey = 'xc:' + C.user.id, ipKey = 'xcip:' + H.ipOf(C.req);
+  await H.checkLock(C, uKey); await H.checkLock(C, ipKey);
+  if(code.length !== 6) fail(400, 'Der Prüfungscode hat 6 Zeichen.');
+  const s = await C.db.prepare('SELECT s.quest, s.level, s.class_id, s.opens_at, s.closes_at, c.name AS class_name FROM exam_sessions s LEFT JOIN classes c ON c.id = s.class_id WHERE s.code = ?').bind(code).first();
+  if(!s){ await H.noteFail(C, uKey, H.LOCK.user); await H.noteFail(C, ipKey, H.LOCK.ip); fail(404, 'Prüfungscode unbekannt – bitte nochmals mit der Lehrperson vergleichen.'); }
+  await C.db.prepare('DELETE FROM attempts WHERE k = ?').bind(uKey).run();
+  const t = now(), other = !!(s.class_id && C.user.class_id !== s.class_id);
+  const state = other ? 'other' : t < s.opens_at ? 'notyet' : t > s.closes_at ? 'closed' : 'open';
+  const text = { open: 'Code gültig: ' + LEVEL_NAME[s.level] + (s.class_name ? ', Klasse ' + s.class_name : '') + '.', notyet: 'Code gültig, die Prüfung ist aber noch nicht geöffnet.', closed: 'Code gültig, das Prüfungsfenster ist aber geschlossen.', other: 'Dieser Code gehört zu einer anderen Klasse.' }[state];
+  return json({ ok: state === 'open', state, text, level: s.level, levelName: LEVEL_NAME[s.level], className: other ? null : s.class_name || null, opensAt: s.opens_at, closesAt: s.closes_at });
 }
 
 /* ---------- Prüfung starten ---------- */

@@ -113,7 +113,13 @@ const imp = f => import(pathToFileURL(path.join(__dirname, '../worker/' + f)));
   r = await teacher('POST', '/api/exam-sessions', { quest: 'dq', level: 'profi', classId: cid, minutes: 60 });
   ok(r.status === 201 && /^[A-Z0-9]{6}$/.test(r.data.code), 'Prüfung unter Aufsicht angelegt', r.data);
   const sess = r.data;
+  const nExams0 = R.prepare('SELECT COUNT(*) AS n FROM exams').get().n;
   ok((await stud('POST', '/api/exams', { sessionCode: 'XXXXXX' })).status === 404, 'falscher Prüfungscode');
+  // Testlauf 2 (2.7): Code sofort prüfen, ohne zu starten
+  r = await stud('POST', '/api/exam-sessions/check', { code: 'XXXXXX' }); ok(r.status === 404 && /unbekannt/.test(r.data.error || r.data.message || JSON.stringify(r.data)), 'Code-Prüfung: unbekannter Code sofort gemeldet', r);
+  r = await stud('POST', '/api/exam-sessions/check', { code: 'K7' }); ok(r.status === 400, 'Code-Prüfung: zu kurz');
+  r = await stud('POST', '/api/exam-sessions/check', { code: sess.code.toLowerCase() }); ok(r.status === 200 && r.data.ok && r.data.state === 'open' && r.data.level === 'profi' && /Profi-Stufe/.test(r.data.text), 'Code-Prüfung: gültiger Code mit Stufe und Klasse', r.data);
+  ok(R.prepare('SELECT COUNT(*) AS n FROM exams').get().n === nExams0, 'Code-Prüfung startet keine Prüfung');
   ok((await stud2('POST', '/api/exams', { sessionCode: sess.code })).status === 403, 'ohne Zertifikat der Grundstufe keine Profi-Prüfung (auch unter Aufsicht)');
   r = await stud('POST', '/api/exams', { sessionCode: sess.code.toLowerCase() });
   ok(r.status === 201 && r.data.exam.level === 'profi' && r.data.exam.proctored && /K\. Keller, BBZ, EL 1a/.test(r.data.exam.proctor) && r.data.tasks.length === Exam.RULES.profi.tasks, 'Beitritt mit Code: Voraussetzungen aus dem Spiel entfallen', r.data.exam);
@@ -129,6 +135,9 @@ const imp = f => import(pathToFileURL(path.join(__dirname, '../worker/' + f)));
   ok((await stud('POST', '/api/certificates', { examId: id2, holderName: 'Bea Blitz', consent: true })).status === 409, 'nicht bestanden: kein Zertifikat');
   ok((await teacher('DELETE', '/api/exam-sessions/' + sess.id)).status === 200 && (await stud2('POST', '/api/exams', { sessionCode: sess.code })).status === 403, 'Fenster geschlossen');
   r = await teacher('GET', '/api/exam-sessions'); ok(r.data.sessions.length === 1 && r.data.sessions[0].participants === 1, 'Liste der Sitzungen');
+  R.prepare('UPDATE exam_sessions SET closes_at = ? WHERE id = ?').run(Date.now() - 1000, sess.id); // Schliessen setzt closes_at = jetzt; im selben ms wäre es noch offen
+  r = await stud2('POST', '/api/exam-sessions/check', { code: sess.code }); ok(r.status === 200 && !r.data.ok && r.data.state === 'closed', 'Code-Prüfung: Fenster geschlossen', r.data);
+  { let st = []; for (let k = 0; k < 6; k++) st.push((await stud2('POST', '/api/exam-sessions/check', { code: 'ZZZZZ' + k })).status); ok(st.slice(0, 5).every(x => x === 404) && st[5] === 429, 'Code-Prüfung: Sperre nach 5 Fehlversuchen wie beim Login', st); }
 
   /* ===== 5 Annullieren, widerrufen, zurueckziehen, Konto loeschen ===== */
   ok((await teacher('POST', '/api/exams/' + id + '/void', {})).status === 400, 'Annullieren braucht eine Begründung');
@@ -156,6 +165,23 @@ const imp = f => import(pathToFileURL(path.join(__dirname, '../worker/' + f)));
   const many = client('10.2.9.9'); let lim = 0;
   for (let i = 0; i < 64; i++) if ((await many('GET', '/api/certificates/DQ-AAAA-AAAA')).status === 429) lim++;
   ok(lim > 0 && lim < 10, 'mehr als 60 Abfragen pro Minute: 429', lim);
+
+  /* ===== 7 Testlauf 2 (1.1): Multimeter A⎓ in der Lücke wird auch bei der Prüfung gewertet ===== */
+  { let n = 0, bad = [];
+    for (const lv of Exam.LEVELS) for (const d of Exam.pool(lv).tasks) {
+      const it = Exam.instantiate(d, Exam.pickParams(d, Exam.rng('gap:' + d.id))), cur = (it.measure || []).find(m => m.truth && m.truth.q === 'i');
+      if (!cur || it.ref.parts.some(p => p.type === 'ammeter')) continue;
+      const a = Exam.refAnswer(it), L = JSON.parse(JSON.stringify(a.layout)), wi = L.wires.findIndex(w => w.from.split('.')[0] === cur.truth.sel || w.to.split('.')[0] === cur.truth.sel);
+      if (wi < 0) continue; n++;
+      const w = L.wires.splice(wi, 1)[0];
+      const open = Exam.gradeFor(it, { layout: JSON.parse(JSON.stringify(L)), answers: a.answers });   // ohne Messgerät: Kreis offen → nicht bestanden
+      L.parts.push({ id: 'MM', type: 'ammeter', x: -9999, y: -9999, rot: 0, props: { virtual: true } }); L.wires.push({ from: w.from, to: 'MM.a' }, { from: 'MM.b', to: w.to });
+      const g = Exam.gradeFor(it, { layout: L, answers: a.answers });
+      if (!g.ok || g.error || open.ok) bad.push(d.id + ': ' + (g.error || 'Punkte ' + g.points) + (open.ok ? ' (offen bestanden?)' : ''));
+      const two = JSON.parse(JSON.stringify(L)); two.parts.push({ id: 'MN', type: 'ammeter', x: 0, y: 0, rot: 0, props: { virtual: true } });
+      if (!Exam.gradeFor(it, { layout: two, answers: a.answers }).error) bad.push(d.id + ': zwei virtuelle Strommesser angenommen');
+    }
+    ok(n >= 3 && !bad.length, 'Prüfung: Multimeter in der Lücke (virtueller Strommesser) wird bei ' + n + ' Vorlagen mit Strommessung gewertet', bad); }
 
   console.log(`Prüfungs-Tests: ${pass} ok, ${failN} Fehler`);
   process.exit(failN ? 1 : 0);

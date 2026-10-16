@@ -139,7 +139,12 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
         if (!isFinite(base)) { fail(m.id + ': Anzeige „' + lcd + '“ nicht ablesbar'); return NaN; }
         return Math.abs(base);
       };
-      for (const m of t.measure) {
+      // Testlauf 2: auf der Werkbank kommen Strommessungen zuletzt, und die letzte bleibt beim Prüfen in der Lücke stecken
+      // (Multimeter A⎓ in Reihe ist der Regelfall); im Schaltplan wird wie bisher wieder angeschlossen – so sind beide Fälle abgedeckt
+      const isCur = m => m.truth && m.truth.q === 'i' && !(m.set || m.value !== undefined || m.mode);
+      const order = view === 'bench' ? t.measure.filter(m => !isCur(m)).concat(t.measure.filter(isCur)) : t.measure, lastCur = view === 'bench' ? order.filter(isCur).pop() : null;
+      let gapOpen = null;
+      for (const m of order) {
         let v = t.expected[m.id], base = NaN;
         if (m.set || m.value !== undefined || m.mode === 'AC') { /* veraenderter Zustand, Rechenwert oder Oszilloskop-Ablesung: Sollwert */ }
         else if (m.mode && m.a) {
@@ -166,7 +171,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
               }
               for (const o of plan.other.slice(1)) { await pin(plan.other[0]); await pin(o); } // Gegenseiten bleiben verbunden
               base = await readMeter(m, 'A', plan.pid, plan.other[0]);
-              await pin(plan.pid); await pin(plan.other[0]);
+              if (m !== lastCur) { await pin(plan.pid); await pin(plan.other[0]); } else { gapOpen = m.id; await dial('A'); } // Lücke bleibt offen, das Multimeter misst beim Prüfen in Reihe
             }
           }
         }
@@ -176,7 +181,7 @@ function lcdValue(txt) { // "4.008 mA" -> 0.004008 (Basiseinheit)
       // 5. Pruefen
       await page.click('#btnCheck', { force: true }); await page.waitForTimeout(120);
       if (await page.isVisible('#modal.open .win')) await page.click('#modal .modal-btns button:first-child');
-      else fail('nicht bestanden: ' + (await page.textContent('#results')).replace(/\s+/g, ' ').slice(0, 300));
+      else fail('nicht bestanden' + (gapOpen ? ' (Multimeter A⎓ in der Lücke bei ' + gapOpen + ')' : '') + ': ' + (await page.textContent('#results')).replace(/\s+/g, ' ').slice(0, 300));
     } catch (e) { fail('Bedienung gescheitert: ' + e.message.split('\n')[0]); await page.screenshot({ path: path.join(__dirname, 'shots', 'fehler_' + t.id + '_' + view + '.png') }); }
   }
   // ===== Bauteilkatalog in beiden Ansichten (Freie Werkbank mit ?alle) =====

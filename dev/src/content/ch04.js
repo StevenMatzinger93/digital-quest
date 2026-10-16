@@ -156,7 +156,7 @@
       '<p><b>Eigenverbrauch:</b> Ein Voltmeter hat 10 MΩ Innenwiderstand – an einer hochohmigen Schaltung belastet es den Messpunkt merklich. Ein Amperemeter hat einen kleinen Innenwiderstand, an dem Spannung abfällt.</p>' +
       '<p><b>Spannungsrichtige Messung:</b> Voltmeter direkt am Verbraucher, Amperemeter davor – das Amperemeter misst den Voltmeterstrom mit (schlecht bei <i>grossen</i> Widerständen). <b>Stromrichtige Messung:</b> Voltmeter über Amperemeter und Verbraucher – es misst die Spannung am Amperemeter mit (schlecht bei <i>kleinen</i> Widerständen).</p>',
     questions: [
-      { q: 'Analoges Gerät, Bereich 20 V, Genauigkeit 0,5 %. Wie gross ist der mögliche Fehler?', options: ['±0,01 V', '±0,075 V', '±0,1 V', '±1 V'], correct: 2, explain: '0,5 % vom Endwert 20 V = 0,1 V.' },
+      { q: 'Analoges Gerät, Bereich 20 V, Genauigkeit 0,5 %. Wie gross ist der mögliche Fehler?', options: ['±0,1 V', '±0,075 V', '±0,01 V', '±1 V'], correct: 0, explain: '0,5 % vom Endwert 20 V = 0,1 V.' },
       { q: 'Digital, Anzeige 15,0 V, ±(0,5 % + 1 Digit). Maximaler Fehler?', options: ['±0,075 V', '±0,1 V', '±0,175 V', '±0,5 V'], correct: 2, explain: '0,5 % von 15,0 V = 0,075 V, 1 Digit = 0,1 V → zusammen 0,175 V.' },
       { q: '10 V an zwei Widerständen von je 10 MΩ. Was zeigt das Multimeter (10 MΩ) an R2?', options: ['5,00 V', '4,50 V', '3,33 V', '0 V'], correct: 2,
         explain: 'R2 ∥ 10 MΩ = 5 MΩ → U = 10 V · 5 / 15 ≈ 3,33 V. Das Messgerät belastet den Teiler.', verify: { layout: divider(10, 10e6, 10e6), mode: 'V', a: 'R2.a', b: 'R2.b' } },
@@ -187,8 +187,8 @@
   defTask({
     id: '4.7', ch: 4, title: 'Spannungsrichtig gemessen', tags: ['messen.systemfehler', 'messen.strom'],
     story: 'Der Strommesser A1 zeigt den Strom durch den 10-MΩ-Widerstand. Sobald jemand die Spannung misst, springt die Anzeige.',
-    brief: 'Lies A1 ab (Tooltip oder Anzeige auf der Werkbank). Miss dann mit dem Multimeter die Spannung an <b>R1</b> und lies A1 <b>während</b> dieser Messung erneut ab.',
-    learn: 'Spannungsrichtige Schaltung: Das Amperemeter misst den Voltmeterstrom mit.',
+    brief: '<b>Ziel:</b> Zeigen, wie das Voltmeter die Strommessung verändert.<ol class="steps"><li><b>A1 ablesen</b> (Anzeige auf der Werkbank oder Maus über A1) – noch ohne Multimeter.</li><li><b>Multimeter V⎓ an R1 anlegen</b>: rote Spitze an R1.a, schwarze an R1.b.</li><li><b>A1 erneut ablesen</b>, während das Multimeter misst.</li><li><b>Alle drei Werte eintragen</b>: A1 ohne Voltmeter, Spannung an R1, A1 mit Voltmeter.</li></ol>',
+    learn: 'Spannungsrichtige Schaltung: Das Voltmeter liegt hinter dem Strommesser – A1 misst den Strom durch das Voltmeter mit.',
     take: 'An 10 MΩ fliesst genau so viel Strom durch das Voltmeter wie durch R1 – der Strommesser zeigt das Doppelte.',
     hint: 'Ohne Voltmeter: I = 10 V / 10 MΩ = 1 µA.',
     hint2: 'Mit Voltmeter parallel zu R1: R1 ∥ 10 MΩ = 5 MΩ → 2 µA.',
@@ -196,9 +196,9 @@
     bench: { parts: [bB1, { id: 'A1', x: 520, y: 290, rot: 0 }, { id: 'R1', x: 780, y: 440, rot: 90 }] },
     tests: [{ name: 'Anlage', expect: [{ sel: 'A1', i: [0.95e-6, 1.05e-6] }] }],
     measure: [
-      { id: 'i0', ask: 'Anzeige A1 ohne Voltmeter', unit: 'µA', value: 1e-6, tol: 0.05 },
-      { id: 'u', ask: 'Spannung an R1', unit: 'V', mode: 'V', a: 'R1.a', b: 'R1.b', tol: 0.03 },
-      { id: 'i1', ask: 'Anzeige A1 während der Spannungsmessung', unit: 'µA', value: 2e-6, tol: 0.05 }
+      { id: 'i0', ask: '1. A1 ohne Voltmeter', unit: 'µA', value: 1e-6, tol: 0.05 },
+      { id: 'u', ask: '2. Spannung an R1', unit: 'V', mode: 'V', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'i1', ask: '3. A1 mit Voltmeter', unit: 'µA', value: 2e-6, tol: 0.05 }
     ]
   });
 

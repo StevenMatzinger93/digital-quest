@@ -17,15 +17,21 @@
   }
   function fresh() {
     return { version: 1, created: Date.now(), profile: { id: uuid(), vorname: '', nachname: '', pseudonym: '' },
-      done: {}, doneInfo: {}, drafts: {}, theory: {}, events: [], settings: { theme: 'dark', zoom: 1 } };
+      done: {}, doneInfo: {}, drafts: {}, theory: {}, marks: {}, events: [], settings: { theme: 'dark', zoom: 1 } };
   }
   /* Sterne: 3 = ohne Fehlversuch und ohne Tipp, 2 = hoechstens 2 Fehlversuche und 1 Tipp, sonst 1 */
+  /* Testlauf 2 (1.8): Reihenfolge der Antworten bei jedem Öffnen der Kontrolle neu mischen (Fisher-Yates); value bleibt der Index in der Quelle,
+   * die Auswertung vergleicht also weiter mit q.correct. fixed: true behält die Quell-Reihenfolge (Zahlenreihen, «Alle»/«Keine»). */
+  function quizOrder(q) { var o = q.options.map(function (x, j) { return j; }); if (q.fixed) return o; for (var k = o.length - 1; k > 0; k--) { var r = Math.floor(Math.random() * (k + 1)), tmp = o[k]; o[k] = o[r]; o[r] = tmp; } return o; }
   function starsFor(tries, hints) { return tries <= 1 && !hints ? 3 : tries <= 3 && hints <= 1 ? 2 : 1; }
   /* Spielstand auf den heutigen Aufbau bringen: fehlende Felder ergaenzen, doneInfo aus den Ereignissen nachfuellen */
   function normalize(d) {
     var f = fresh(), s = Object.assign(f, d && typeof d === 'object' ? d : {});
-    ['done', 'doneInfo', 'drafts', 'theory'].forEach(function (k) { if (!s[k] || typeof s[k] !== 'object') s[k] = {}; });
+    ['done', 'doneInfo', 'drafts', 'theory', 'marks'].forEach(function (k) { if (!s[k] || typeof s[k] !== 'object') s[k] = {}; });
+    // Testlauf 2 (1.6): «Lösung angesehen» bzw. «Wert aufgedeckt» hängt an der Station, nicht am Entwurf – aus doneInfo übernehmen
+    Object.keys(s.doneInfo).forEach(function (id) { var di = s.doneInfo[id]; if (di && (di.solution || di.revealed)) { var mk = s.marks[id] = s.marks[id] || {}; if (di.solution) mk.solution = true; if (di.revealed) mk.revealed = Math.max(mk.revealed || 0, di.revealed); } });
     if (!Array.isArray(s.events)) s.events = [];
+    if (!Array.isArray(s.setups)) s.setups = [];   // Testlauf 2 (5.3): benannte Aufbauten der Freien Werkbank
     s.settings = Object.assign({ theme: 'dark', zoom: 1 }, s.settings || {}); delete s.settings.teacher;
     if (!s.profile || !s.profile.id) s.profile = fresh().profile;
     ['vorname', 'nachname', 'pseudonym'].forEach(function (k) { if (typeof s.profile[k] !== 'string') s.profile[k] = ''; });
@@ -313,10 +319,10 @@
     opt = opt || {};
     show('task');
     if (demo) { demoPause(); demo = null; } // laufende Vorführung verwerfen (der neue Entwurf wird frisch geladen)
-    current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0; current.live = opt.live || null; current.exam = opt.exam || null;
+    current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0; current.miss = 0; current.live = opt.live || null; current.exam = opt.exam || null;
     syncHash('task');
     var draft = opt.live || opt.exam ? (opt.layout ? { layout: E.clone(opt.layout), answers: opt.answers || {} } : null) : S.drafts[t.id];
-    var layout = draft && draft.layout ? draft.layout : t.start;
+    var layout = draft && draft.layout ? cleanLayout(draft.layout) : t.start;
     var lockedIds = t.start.parts.map(function (p) { return p.id; });
     closeReplay(true);
     live.state = E.newState();
@@ -325,7 +331,7 @@
     renderTaskPanels(t, draft);
     if (!ed) {
       core = new Circuit({
-        onChange: function () { persistDraft(); rebuild(); renderInspector(); },
+        onChange: function () { persistDraft(); rebuild(); renderInspector(); histRecord(); },
         onSelect: function () { renderInspector(); },
         onProbe: setProbe,
         onScopeProbe: function () { bench.scope = null; tick(0); if (bench) bench.render(); },
@@ -333,15 +339,17 @@
       });
       ed = new Editor($('#board'), { core: core });
       bench = new Bench($('#bench'), { core: core, onDial: function (m) { setMeterMode(m); }, onRange: function (r) { setMeterRange(r); }, onScope: function (k) { if (/^cpl[123]$/.test(k)) { toggleCoupling(+k.slice(3)); return; } if (k === 'ch1' || k === 'ch2' || k === 'math') toggleChannel(k === 'math' ? 3 : +k.slice(2)); else scope(); } });
-      bindSheetHover($('#board')); bindSheetHover($('#bench'));
+      bindSheetHover($('#board')); bindSheetHover($('#bench')); bindNetHover($('#board')); bindNetHover($('#bench'));
     }
+    core.scale = t.sandbox ? 1.5 : 1;   // Testlauf 2 (5.4): Freie Werkbank mit 2,25-facher Fläche
+    document.body.classList.toggle('sandbox-mode', !!t.sandbox);   // Arbeitsfläche so hoch wie das Fenster
     setView(t.sandbox ? 'bench' : preferredView(), t.sandbox);
-    bench.dragUX = dragUX(); bench.scope = null;
+    bench.dragUX = dragUX(); resetScope();
     ed.showVolt = bench.showVolt = false; $('#btnVolt').classList.remove('on');
     ed.showFlow = bench.showFlow = !!S.settings.flow; $('#btnFlow').classList.toggle('on', ed.showFlow);
     ed.load(layout, lockedIds, t.bench); bench.fit();
     setMeterMode('OFF');
-    rebuild(); renderInspector();
+    rebuild(); renderInspector(); histReset();
     if (!current.exam) log(t.sandbox ? 'sandbox_open' : current.live ? 'live_open' : 'task_open', { id: t.id });
   }
 
@@ -350,9 +358,9 @@
     if (t.sandbox) {
       $('#taskInfo').innerHTML = '<div class="crumb">Labor · Sandbox</div><h2>' + esc(t.title) + '</h2><div class="brief">' + t.brief + '</div>' +
         '<div class="learn"><b>Ideen</b> Miss die Spannung an einer LED mit verschiedenen Vorwiderständen. Vergleiche V~ mit AVG und TRMS an Rechteck und Sinus. Schau dir mit der Zeitlupe an, wie eine Rückkopplung einrastet.</div>' +
-        '<button class="btn" id="toMap">Zur Karte</button>';
+        setupsHtml() + '<button class="btn" id="toMap">Zur Karte</button>';
       $('#toMap').onclick = function () { renderMap(); show('map'); };
-      renderPalette(t); return;
+      bindSetups(); renderPalette(t); return;
     }
     if (current.exam) { renderExamPanels(t, draft); return; }
     var lv = current.live;
@@ -412,6 +420,7 @@
   }
   /* Sollwerte wie der Validator: aus der Referenzschaltung; wenn die eigene Schaltung alle Tests besteht, aus dieser (Messwerte hängen davon ab) */
   function sollOf(t, layout) {
+    if (layout) layout = gradeLayout(layout);
     var lay = t.ref; if (layout) { try { var r = E.runTask(t, layout, {}); if (r.results.filter(function (x) { return !(x.info && x.info.mid); }).every(function (x) { return x.ok; })) lay = layout; } catch (e) { /* Referenz */ } }
     try { return E.expectedAnswers(t, lay); } catch (e) { try { return E.expectedAnswers(t, t.ref); } catch (e2) { return {}; } }
   }
@@ -429,7 +438,7 @@
   function revealHtml(t, m) { var soll = sollOf(t, ed && ed.layout)[m.id]; return '<div class="rv-box"><b>Aufgedeckt – Sollwert ' + fmtSoll(soll, m.unit) + '</b>' + rechenwegHtml(t, m, soll) + '</div>'; }
   function revealValue(t, mid) {
     var d = draftOf(t), s = d.meas[mid] = d.meas[mid] || { tries: 0 }; if (s.ok || s.revealed) return;
-    s.revealed = true; save(); log('value_reveal', { id: t.id, mid: mid, tries: s.tries || 0 });
+    s.revealed = true; markLow(t.id, 'revealed'); save(); log('value_reveal', { id: t.id, mid: mid, tries: s.tries || 0 });
     var inp = $('[data-ans="' + mid + '"]'); if (inp) { inp.disabled = true; var sv = sollOf(t, ed && ed.layout)[mid]; if (sv !== undefined && !isNaN(sv)) inp.value = String(+(+sv).toPrecision(4)); }
     renderMeasState(t);
     if (measState(t, d).done) toast('Alle Werte erledigt – jetzt „Prüfen“ drücken.');
@@ -445,7 +454,7 @@
   var solMini = null;
   function showSolution(t) {
     var d = draftOf(t), v = $('#solView'); if (!v) return;
-    if (!d.sol) { d.sol = true; save(); log('solution_view', { id: t.id, fails: d.fails || 0, tries: current.tries }); }
+    if (!d.sol) { d.sol = true; markLow(t.id, 'solution'); save(); log('solution_view', { id: t.id, fails: d.fails || 0, tries: current.tries }); }
     var soll = sollOf(t, null), rows = (t.measure || []).map(function (m) { return '<tr><td>' + esc(m.ask) + '</td><td class="mono num">' + fmtSoll(soll[m.id], m.unit) + '</td></tr>'; }).join('');
     v.hidden = false;
     v.innerHTML = '<h3>Lösung</h3><p class="dim small">Referenzschaltung (' + (viewMode === 'bench' ? 'Werkbank' : 'Schaltplan') + ') – zum Vergleich, nicht zum Übernehmen:</p><div id="solCircuit"></div>' +
@@ -468,9 +477,10 @@
   }
   function tbLabel(v) { var o = $$('#tb option').filter(function (o) { return +o.value === v; })[0]; return o ? o.textContent : E.fmt(v, 's'); }
   function setupHtml(t) {
-    if (typeof t.setup === 'string') return '<details class="setup" open><summary>So stellst du das Gerät ein</summary>' + t.setup + '</details>';
+    // Testlauf 2 (3.2): standardmässig eingeklappt, eine Zeile mit der Anzahl Werte; je Messwert einzeln aufklappbar
+    if (typeof t.setup === 'string') return '<details class="setup"><summary>So stellst du das Gerät ein</summary>' + t.setup + '</details>';
     var soll = sollOf(t, null), manual = t.rangeUX === 'manual', refL = refOf(t.ref).label, rows = t.measure.map(function (m) {
-      if (t.setup && t.setup[m.id]) return '<li><b>' + esc(m.ask) + ':</b> ' + t.setup[m.id] + '</li>';
+      if (t.setup && t.setup[m.id]) return '<li><details><summary>' + esc(m.ask) + '</summary>' + t.setup[m.id] + '</details></li>';
       var parts = [], setTxt = m.set ? Object.keys(m.set).map(function (k) { return k.indexOf('@') === 0 ? '' : k + ' ' + (m.set[k].closed ? 'zu' : 'offen'); }).filter(Boolean).join(', ') : '';
       if (setTxt) parts.push('Schalter: ' + setTxt);
       if (m.value !== undefined) parts.push('Rechenwert – kein Messgerät, Ergebnis in ' + (m.unit || 'der angegebenen Einheit') + ' eintragen');
@@ -482,9 +492,9 @@
         if (m.mode !== 'A' && m.mode !== 'AAC') parts.push('rote Spitze an ' + m.a + ', schwarze an ' + (m.b || refL + ' (Bezugspunkt)'));
         if (manual && soll[m.id] !== undefined) { var sc = E.UNIT_SCALE[m.unit] || 1, rg = suggestRange(u, soll[m.id] * sc); parts.push('Bereich ' + E.rangeLabel(rg, u)); }
       }
-      return '<li><b>' + esc(m.ask) + ':</b> ' + parts.join(' · ') + '</li>';
+      return '<li><details><summary>' + esc(m.ask) + '</summary>' + parts.join(' · ') + '</details></li>';
     });
-    return '<details class="setup"' + (t.ch === 16 || t.ch === 'W' ? ' open' : '') + '><summary>So stellst du das Gerät ein</summary><ol>' + rows.join('') + '</ol>' +
+    return '<details class="setup"><summary>So stellst du das Gerät ein (' + rows.length + (rows.length === 1 ? ' Wert' : ' Werte') + ')</summary><ol class="setup-rows">' + rows.join('') + '</ol>' +
       (t.setupNote ? '<p class="small setup-note">' + t.setupNote + '</p>' : '') +
       '<p class="dim small">Spitzen und Tastkopf auf der Werkbank ziehen, im Schaltplan auf die Anschlüsse klicken. OL heisst nur: Bereich zu klein.</p></details>';
   }
@@ -511,7 +521,7 @@
     $('#taskInfo').innerHTML = h;
     $$('[data-ans]').forEach(function (inp) { inp.oninput = persistDraft; });
     $('#btnCheck').onclick = check;
-    $('#btnSend').onclick = function () { if (EXAM) EXAM.send(); };
+    $('#btnSend').onclick = function () { if (EXAM) { EXAM.send(); histReset(); } }; // Testlauf 2 (5.2): nicht hinter die Abgabe zurück
     renderPalette(t);
   }
   function renderPalette(t) {
@@ -521,10 +531,11 @@
     });
     $('#palette').innerHTML = pal || '<span class="dim small">Keine neuen Bauteile – nur messen.</span>';
     $$('[data-add]').forEach(function (b) {
-      b.onclick = function () { hideSheet(true); view().addPart(b.dataset.add); renderInspector(); };
-      // Palette: Maus drueber → sofort das volle Datenblatt (noch keine Messwerte, die im Weg stehen)
-      b.onpointerenter = function (ev) { if (ev.pointerType === 'mouse') sheetSoon(function () { showSheet(b.dataset.add, null, b.getBoundingClientRect(), { from: 'palette' }); }, 120); };
-      b.onpointerleave = function () { sheetLeave(); };
+      b.onclick = function () { if (palDrag.used) { palDrag.used = false; return; } hideSheet(true); view().addPart(b.dataset.add); renderInspector(); };
+      b.addEventListener('pointerdown', function (ev) { palDown(ev, b); });
+      // Palette: Maus verweilt ~0,4 s → Datenblatt neben der Palette, durchlässig für die Maus (Testlauf 2, 2.1: verdeckte Nachbarknöpfe und Arbeitsfläche)
+      b.onpointerenter = function (ev) { if (ev.pointerType === 'mouse') sheetSoon(function () { showSheet(b.dataset.add, null, b.getBoundingClientRect(), { from: 'palette' }); }, 400); };
+      b.onpointerleave = function () { if (sheet.pinned) sheetLeave(); else hideSheet(); }; // Palette: sofort weg beim Verlassen
     });
   }
 
@@ -574,9 +585,15 @@
       log('datasheet', { type: type, from: opt.from || '' });
     }
     sheet.key = key; sheet.pinned = !!opt.pinned; el.hidden = false; el.dataset.type = type;
+    var passive = opt.from === 'palette'; el.classList.toggle('ds-passive', passive); el.style.width = '';
     var vw = innerWidth, vh = innerHeight, w = el.offsetWidth, h = el.offsetHeight, m = 10;
     if (vw < 700) { el.style.left = ''; el.style.top = ''; el.classList.add('sheet-bottom'); return; } // Handy: als Blatt von unten
     el.classList.remove('sheet-bottom');
+    if (passive) { // über dem Auftrag links neben der Arbeitsfläche (schmaler, falls nötig) – Palette und Fläche bleiben frei; reicht der Platz nicht, unter der Werkzeugleiste
+      var tb = ($('#scr-task .toolbar') || $('#palette')).getBoundingClientRect(), cr = ($('#scr-task .center') || $('#palette')).getBoundingClientRect(), room = cr.left - 2 * m;
+      if (room >= 280) { if (room < w) { el.style.width = room + 'px'; w = room; h = el.offsetHeight; } el.style.left = (cr.left - w - m) + 'px'; el.style.top = Math.max(m, Math.min(vh - h - m, tb.top)) + 'px'; return; }
+      el.style.left = Math.max(m, Math.min(vw - w - m, anchor.left)) + 'px'; el.style.top = Math.max(m, Math.min(vh - h - m, tb.bottom + m)) + 'px'; return;
+    }
     var left = anchor.right + m; if (left + w > vw - m) left = anchor.left - w - m; if (left < m) left = Math.max(m, Math.min(vw - w - m, anchor.left));
     var top = Math.max(m, Math.min(vh - h - m, anchor.top + anchor.height / 2 - h / 2));
     el.style.left = left + 'px'; el.style.top = top + 'px';
@@ -788,7 +805,19 @@
   function status(items) {
     var el = $('#statusbar'); if (!el) return;
     el.innerHTML = items && items.length ? items.map(function (i) { return '<div class="st ' + i.cls + '">' + esc(i.text) + '</div>'; }).join('')
-      : '<div class="st ok">Schaltung läuft – keine Störung.</div>';
+      : (idleText() || '<div class="st ok">Schaltung läuft – keine Störung.</div>');
+  }
+  /* Testlauf 2 (2.5): «keine Störung» nur, wenn wirklich etwas läuft – ohne angeschlossene Quelle oder mit losen Bauteilen sagt die Statuszeile das */
+  var SOURCES = { battery: 1, acsource: 1, clock: 1, logicin: 1 };
+  function idleText() {
+    var L = ed && ed.layout; if (!L || !L.parts) return '';
+    var real = L.parts.filter(function (p) { return p.type !== 'ground' && !(p.props && p.props.virtual); }); if (!real.length) return '<div class="st info">Leere Arbeitsfläche – wähle ein Bauteil in der Palette.</div>';
+    var used = {}; L.wires.forEach(function (w) { used[w.from.split('.')[0]] = true; used[w.to.split('.')[0]] = true; });
+    var loose = real.filter(function (p) { return !used[p.id]; }).length, src = real.some(function (p) { return SOURCES[p.type] && used[p.id]; });
+    var out = [];
+    if (!src) out.push('Keine Quelle angeschlossen – ohne Batterie, Generator oder Taktgeber fliesst kein Strom.');
+    if (loose) out.push(loose === 1 ? '1 Bauteil ohne Verbindung.' : loose + ' Bauteile ohne Verbindung.');
+    return out.length ? '<div class="st info">' + esc(out.join(' ')) + '</div>' : '';
   }
 
   /* ---------- Multimeter ---------- */
@@ -843,16 +872,6 @@
       var key = JSON.stringify(layout) + '|' + m.a + '|' + m.b;
       if (m.acKey !== key) { m.acKey = key; m.ac = E.acMeasure(layout, { a: m.a, b: m.b }); }
       return m.ac;
-    }
-    function acA() { // Wechselstrom über den Shunt (A~ und Hinweis bei A⎓): wie ac(), aber mit eingesetztem Amperemeter
-      var key = JSON.stringify(layout) + '|A|' + m.a + '|' + m.b;
-      if (m.acAKey !== key) { m.acAKey = key; m.acA = mn ? E.acMeasure(layout, { a: m.a, b: m.b }, { meter: { mode: 'A', a: mn.a, b: mn.b } }) : { ok: false }; }
-      return m.acA;
-    }
-    function acA() { // Wechselstrom über den Shunt (A~ und Hinweis bei A⎓): wie ac(), aber mit eingesetztem Amperemeter
-      var key = JSON.stringify(layout) + '|A|' + m.a + '|' + m.b;
-      if (m.acAKey !== key) { m.acAKey = key; m.acA = mn ? E.acMeasure(layout, { a: m.a, b: m.b }, { meter: { mode: 'A', a: mn.a, b: mn.b } }) : { ok: false }; }
-      return m.acA;
     }
     function acA() { // Wechselstrom über den Shunt (A~ und Hinweis bei A⎓): wie ac(), aber mit eingesetztem Amperemeter
       var key = JSON.stringify(layout) + '|A|' + m.a + '|' + m.b;
@@ -993,7 +1012,15 @@
   function renderInspector() {
     var el = $('#inspector'); if (!ed) return;
     var p = ed.sel && ed.sel.indexOf('w:') !== 0 ? ed.part(ed.sel) : null;
-    if (!p) { el.innerHTML = '<p class="dim small">Bauteil anklicken, um Werte zu ändern. <kbd>R</kbd> dreht, <kbd>Entf</kbd> löscht.</p>'; return; }
+    if (!p && ed.sel && ed.sel.indexOf('w:') === 0 && ed.layout.wires[+ed.sel.slice(2)]) { // Testlauf 2 (5.5): Leitung gewählt → Farbe wählen
+      var wi = +ed.sel.slice(2), wv = ed.layout.wires[wi], WC = Circuit.WIRE_COLORS || {};
+      el.innerHTML = '<div class="insp-head"><b>Leitung</b> ' + esc(wv.from) + ' – ' + esc(wv.to) + '</div><p class="small">Farbe</p><div class="wire-colors">' +
+        '<button class="wc' + (!wv.color ? ' on' : '') + '" data-wc="" title="Standard">Std</button>' + Object.keys(WC).map(function (c) { return '<button class="wc' + (wv.color === c ? ' on' : '') + '" data-wc="' + c + '" title="' + c + '" style="--wc:' + WC[c] + '"></button>'; }).join('') +
+        '</div><p class="dim tiny">Fährst du mit der Maus über eine Leitung, leuchtet ihr ganzes Netz auf. <kbd>Entf</kbd> löscht die Leitung.</p>';
+      $$('[data-wc]', el).forEach(function (b) { b.onclick = function () { core.setWireColor(wi, b.dataset.wc); core.sel = 'w:' + wi; renderInspector(); }; });
+      return;
+    }
+    if (!p) { el.innerHTML = '<p class="dim small">Bauteil anklicken, um Werte zu ändern. <kbd>R</kbd> dreht, <kbd>Entf</kbd> löscht. Leitung anklicken: Farbe wählen.</p>'; return; }
     var d = E.PARTS[p.type], q = p.props || (p.props = {}), lock = ed.locked[p.id] && p.type !== 'acsource' && p.type !== 'clock', val = p.value !== undefined ? p.value : (q.value !== undefined ? q.value : d.props.value);
     var r = live.res && live.res.parts[p.id];
     var h = '<div class="insp-head"><b>' + esc(p.id) + '</b> ' + esc(d.label) + (lock ? ' <span class="tag">Aufgabe</span>' : '') + '<button class="btn small ds-btn" id="dsBtn" title="Datenblatt: Funktion, Anschlüsse, Grenzen">ⓘ Datenblatt</button></div>';
@@ -1031,11 +1058,11 @@
         if (k === 'offset') { var o = parseFloat(String(v).replace(',', '.')); if (!isFinite(o)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; q.offset = o; }
         else if (k === 'value' || k === 'freq' || k === 'vz' || k === 'beta') { var n = parseVal(v); if (!(n > 0)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; v = n; if (k === 'value') { p.value = n; delete q.value; } else q[k] = n; }
         else if (k === 'pos') q.pos = +v; else q[k] = v;
-        persistDraft(); rebuild(); core.redraw(); if (k !== 'pos') renderInspector();
+        persistDraft(); rebuild(); core.redraw(); if (k !== 'pos') renderInspector(); if (ev.type === 'change') histRecord();
       };
     });
     $('#dsBtn').onclick = function () { showSheet(p.type, p, this.getBoundingClientRect(), { pinned: true, from: 'inspector' }); };
-    var tg = $('#tgl'); if (tg) tg.onclick = function () { q.closed = !q.closed; persistDraft(); rebuild(); renderInspector(); };
+    var tg = $('#tgl'); if (tg) tg.onclick = function () { q.closed = !q.closed; persistDraft(); rebuild(); renderInspector(); histRecord(); };
   }
 
   /* ---------- Oszilloskop ----------
@@ -1050,6 +1077,17 @@
    * beide Kurven auf gemeinsamer Skala, Kennwerte je Kanal, Phasenverschiebung CH2 gegen CH1 aus den steigenden Nulldurchgängen. */
   var scopeCh = { 1: true, 2: true, 3: false };   // 3 = MATH (CH1 − CH2), standardmässig aus
   var scopeCoup = { 1: false, 2: false, 3: false };   // Kopplung je Kanal: false = DC (Standard), true = AC (K3)
+  /* Testlauf 2 (2.3): beim Aufgabenwechsel steht das Oszilloskop wieder im Grundzustand – Kanäle CH1/CH2 an, MATH aus, alle DC,
+   * keine Kurve, kein Kennwerttext, kein Bezugspunkt-Hinweis (die Bildbreite setzt openTask passend zur Aufgabe, die Tastköpfe der neue Entwurf). */
+  function resetScope() {
+    scopeCh[1] = true; scopeCh[2] = true; scopeCh[3] = false; scopeCoup[1] = scopeCoup[2] = scopeCoup[3] = false; lastScope = null;
+    $$('#scopeCh [data-ch]').forEach(function (b) { b.classList.toggle('on', scopeCh[+b.dataset.ch]); });
+    $$('#scopeCpl [data-cpl]').forEach(function (b) { b.classList.remove('on'); b.textContent = (+b.dataset.cpl === 3 ? 'MATH ' : 'CH' + b.dataset.cpl + ' ') + 'DC'; if (+b.dataset.cpl > 1) b.hidden = true; });
+    var info = $('#scopeInfo'); if (info) info.textContent = 'Kanal 1 = Messspitzen des Multimeters (neue Messtechnik-Aufgaben: eigener Tastkopf auf der Werkbank). Aufnahme mit „Aufnahme“ bzw. RUN.';
+    var box = $('#scopeWarn'); if (box) { box.hidden = true; box.textContent = ''; }
+    var cv = $('#scope'); if (cv && cv.getContext) { var ctx = cv.getContext('2d'); ctx.clearRect(0, 0, cv.width, cv.height); }
+    if (bench) { bench.scope = null; bench.refMark = null; } if (ed) ed.refMark = null;
+  }
   function toggleCoupling(n) {
     scopeCoup[n] = !scopeCoup[n];
     $$('#scopeCpl [data-cpl]').forEach(function (b) { var on = scopeCoup[+b.dataset.cpl]; b.classList.toggle('on', on); b.textContent = (+b.dataset.cpl === 3 ? 'MATH ' : 'CH' + b.dataset.cpl + ' ') + (on ? 'AC' : 'DC'); });
@@ -1257,15 +1295,52 @@
   }
 
   /* ---------- Pruefen ---------- */
+  /* Testlauf 2 (Phase 1.1): Steckt das Multimeter im Strombereich (A⎓ / A~) mit beiden Spitzen in einer Lücke, gehört es zum Stromkreis –
+   * gewertet wird eine Kopie des Entwurfs mit einem virtuellen Strommesser zwischen den Spitzen (Innenwiderstand wie A1). Der Entwurf bleibt unverändert. */
+  function gradeLayout(layout) {
+    if (!layout || !(meter.mode === 'A' || meter.mode === 'AAC') || !meter.a || !meter.b || meter.a === meter.b) return layout;
+    var ids = {}; layout.parts.forEach(function (p) { ids[p.id] = true; });
+    if (!ids[meter.a.split('.')[0]] || !ids[meter.b.split('.')[0]]) return layout;
+    var L = E.clone(layout);
+    L.parts.push({ id: 'MM', type: 'ammeter', x: -9999, y: -9999, rot: 0, props: { virtual: true } });
+    L.wires.push({ from: meter.a, to: 'MM.a' }, { from: 'MM.b', to: meter.b });
+    return L;
+  }
+  /* Entwurf bereinigen (Testlauf 2, Phase 1.3): Leitungen auf Anschlüsse, die es nicht (mehr) gibt, fallen weg – auch in älteren Spielständen */
+  function cleanLayout(L) {
+    if (!L || !Array.isArray(L.parts) || !Array.isArray(L.wires)) return L;
+    var ok = {}; L.parts.forEach(function (p) { var d = E.PARTS[p.type]; if (d) d.pins.forEach(function (pin) { ok[p.id + '.' + pin] = true; }); });
+    var n = L.wires.length; L.wires = L.wires.filter(function (w) { return ok[w.from] && ok[w.to] && w.from !== w.to; });
+    if (L.wires.length !== n) log('draft_clean', { removed: n - L.wires.length });
+    return L;
+  }
+  /* «Lösung angesehen» / «Wert aufgedeckt» bleibt an der Station (höchstens 1 Stern, auch nach «Neu») */
+  function markLow(id, kind) { var mk = S.marks[id] = S.marks[id] || {}; if (kind === 'solution') mk.solution = true; else mk.revealed = (mk.revealed || 0) + 1; }
+  /* Klartext-Hinweise nach dem Prüfen: offener Kreis bei Strommessung, nicht angeschlossene Bauteile, aufgabeneigene Hinweise (diag) */
+  function checkNotes(t, gl, testsOk) {
+    var notes = [], net; try { net = E.buildNetlist(E.clone(gl)); } catch (e) { return notes; }
+    if (!testsOk) {
+      var used = {}; gl.wires.forEach(function (w) { used[w.from.split('.')[0]] = true; used[w.to.split('.')[0]] = true; });
+      var loose = gl.parts.filter(function (p) { return !used[p.id] && p.type !== 'ground' && !(p.props && p.props.virtual); }).map(function (p) { return p.id; });
+      if (loose.length) notes.push((loose.length === 1 ? loose[0] + ' ist nicht angeschlossen' : loose.join(', ') + ' sind nicht angeschlossen') + ' – löschen oder einbauen.' + (loose.length > 2 ? ' Liegen Bauteile übereinander? «Einpassen» zeigt alle.' : ''));
+      var cur = (t.measure || []).filter(function (m) { return m.mode === 'A' || m.mode === 'AAC' || (m.truth && m.truth.q === 'i'); })[0];
+      if (cur && gl === ed.layout) {
+        var sel = cur.truth ? cur.truth.sel : null, an = null; try { an = E.analyze(gl); } catch (e) { an = null; }
+        if (sel && an && an.parts[sel] && Math.abs(an.parts[sel].i || 0) < 1e-6) notes.push('Der Stromkreis ist offen – setze das Multimeter (A⎓) in die Lücke oder schliesse die Leitung wieder.');
+      }
+      (t.diag || []).forEach(function (dg) { if ((dg.same || []).some(function (pr) { return net.pinNode[pr[0]] !== undefined && net.pinNode[pr[0]] === net.pinNode[pr[1]]; })) notes.push(dg.text); });
+    }
+    return notes;
+  }
   function check() {
     var t = current.task; current.tries++;
-    var ans = answers(), r = E.runTask(t, ed.layout, ans);
+    var gl = gradeLayout(ed.layout), ans = answers(), r = E.runTask(t, gl, ans);
     var h = '<ul class="res">' + r.results.map(function (x) {
       var extra = '';
       if (!x.ok && x.info && typeof x.info.got === 'number') extra = ' <span class="dim">(ist: ' + E.fmt(Math.abs(x.info.got), '') + ')</span>';
       return '<li class="' + (x.ok ? 'ok' : 'bad') + '">' + (x.ok ? '✔' : '✘') + ' ' + esc(x.text) + extra + '</li>';
     }).join('') + '</ul>';
-    var an = E.analyze(ed.layout); if (an.faults.length) h += diagnose(an.faults).map(function (d) { return '<div class="st err">' + esc(d.text) + '</div>'; }).join('');
+    var an = E.analyze(gl); if (an.faults.length) h += diagnose(an.faults).map(function (d) { return '<div class="st err">' + esc(d.text) + '</div>'; }).join('');
     $('#results').innerHTML = h;
     if (current.exam) { // nur die sichtbaren Tests; Messwerte und verdeckte Tests prueft der Server bei der Abgabe
       $('#results').innerHTML = '<p class="dim small">Sichtbare Tests im Browser' + (t.protocol.length ? ' – die Messwerte prüft der Server bei der Abgabe' : '') + ':</p>' + h;
@@ -1274,6 +1349,7 @@
     if (current.live) {
       log(r.pass ? 'live_done' : 'live_try', { id: t.id, tries: current.tries, hints: current.hints });
       if (LIVE) LIVE.attempt(r.pass, { layout: ed.layout, answers: ans });
+      histReset();   // Testlauf 2 (5.2): Rückgängig nie hinter die Abgabe zurück
       if (r.pass) modal('<h2 class="win">Gelöst!</h2><p>' + t.take + '</p><p class="dim" id="livePts">Punkte werden berechnet …</p>', [{ label: 'Rangliste', primary: true, action: function () { if (LIVE) LIVE.board(); } }]);
       return;
     }
@@ -1286,7 +1362,10 @@
     });
     var testsOk = r.results.filter(function (x) { return !(x.info && x.info.mid); }).every(function (x) { return x.ok; });
     var ms = measState(t, d), pass = testsOk && ms.done;
-    if (!pass) d.fails = (d.fails || 0) + 1;
+    // Testlauf 2 (1.7): ein Fehlversuch ist nur, wenn ein Test scheitert oder ein eingetragener Wert falsch ist – leere Felder zählen nicht
+    var wrongEntry = measRes.some(function (x) { return !x.ok && !(x.info && x.info.empty) && !(d.meas[x.info.mid] && d.meas[x.info.mid].revealed); });
+    if (!pass && (!testsOk || wrongEntry)) { current.miss++; d.fails = (d.fails || 0) + 1; }
+    var notes = checkNotes(t, gl, testsOk);
     save();
     $('#results').innerHTML = '<ul class="res">' + r.results.map(function (x) {
       var mid = x.info && x.info.mid, s = mid ? d.meas[mid] : null, extra = '';
@@ -1294,20 +1373,24 @@
       if (!x.ok && x.info && typeof x.info.got === 'number') extra = ' <span class="dim">(ist: ' + E.fmt(Math.abs(x.info.got), '') + ')</span>';
       return '<li class="' + (x.ok ? 'ok' : 'bad') + '">' + (x.ok ? '✔' : '✘') + ' ' + esc(x.text) + extra + '</li>';
     }).join('') + '</ul>' + (an.faults.length ? diagnose(an.faults).map(function (dg) { return '<div class="st err">' + esc(dg.text) + '</div>'; }).join('') : '') +
-      (!pass && ms.n && !ms.done ? '<p class="dim small">' + ms.ok + ' von ' + ms.n + ' Werten richtig – richtige Werte bleiben stehen, nur die offenen musst du noch korrigieren.</p>' : '');
+      notes.map(function (n) { return '<div class="st warn">' + esc(n) + '</div>'; }).join('') +
+      (!pass && ms.n && !ms.done ? '<p class="dim small">' + ms.ok + ' von ' + ms.n + ' Werten richtig – richtige Werte bleiben stehen, nur die offenen musst du noch korrigieren.' + (testsOk && !wrongEntry ? ' Fehlende Werte zählen nicht als Fehlversuch.' : '') + '</p>' : '');
     renderMeasState(t);
     log(pass ? 'task_done' : 'task_try', { id: t.id, tries: current.tries, hints: current.hints, dur: Math.round((Date.now() - current.started) / 1000), tags: t.tags, revealed: ms.revealed, sol: !!d.sol });
     if (pass) {
-      var low = !!d.sol || ms.revealed > 0;
-      var first = !S.done[t.id], st = low ? 1 : starsFor(current.tries, current.hints), di = S.doneInfo[t.id];
+      var mk = S.marks[t.id] || {}, di = S.doneInfo[t.id];
+      var low = !!d.sol || ms.revealed > 0 || !!mk.solution || !!mk.revealed || !!(di && (di.solution || di.revealed)); // Testlauf 2 (1.6): bleibt nach «Neu»
+      var first = !S.done[t.id], st = low ? 1 : starsFor(current.miss + 1, current.hints);
+      var sol = !!(d.sol || mk.solution || (di && di.solution)), rvN = Math.max(ms.revealed || 0, mk.revealed || 0, (di && di.revealed) || 0);
       S.done[t.id] = true;
-      if (!di || st > (di.stars || 0)) S.doneInfo[t.id] = { at: di && di.at ? di.at : Date.now(), tries: current.tries, hints: current.hints, stars: st, revealed: ms.revealed || undefined, solution: d.sol || undefined };
-      else if (di) { if (d.sol) di.solution = true; if (ms.revealed) di.revealed = Math.max(di.revealed || 0, ms.revealed); }
+      if (!di || st > (di.stars || 0)) S.doneInfo[t.id] = { at: di && di.at ? di.at : Date.now(), tries: current.miss + 1, hints: current.hints, stars: st, revealed: rvN || undefined, solution: sol || undefined };
+      else if (di) { if (sol) di.solution = true; if (rvN) di.revealed = rvN; }
+      var why = low ? 'Höchstens 1 Stern: ' + (sol ? 'Lösung angesehen' : 'Wert aufgedeckt') + ' – das gilt für diese Station dauerhaft.' : st === 3 ? 'Ohne Fehlversuch und ohne Tipp.' : 'Fehlversuche: ' + current.miss + ', Tipps: ' + current.hints + ' – 3 Sterne gibt es ohne Fehlversuch und Tipp, 2 Sterne mit höchstens 2 Fehlversuchen und 1 Tipp.';
       save();
       var nx = nextOf(t.id), aw = null;
       Object.keys(DQ.awards || {}).forEach(function (k) { if (DQ.awards[k].boss === t.id) aw = DQ.awards[k]; });
       if (aw && first) log('award', { id: aw.id, tags: t.tags });
-      modal('<h2 class="win">Geschafft!</h2><p class="stars-win" title="' + st + ' von 3 Sternen">' + starRow(st) + '</p><p>' + t.take + '</p>' + (first ? '' : '<p class="dim">(bereits gelöst)</p>') +
+      modal('<h2 class="win">Geschafft!</h2><p class="stars-win" title="' + st + ' von 3 Sternen">' + starRow(st) + '</p><p class="dim small stars-why">' + esc(why) + '</p><p>' + t.take + '</p>' + (first ? '' : '<p class="dim">(bereits gelöst)</p>') +
         (aw ? '<div class="award-note">' + medal(aw, 64) + '<p><b>' + esc(aw.title) + '</b><br>Du hast die ' + esc(DQ.stages[aw.id]) + ' abgeschlossen. Dein ' + esc(aw.kind) + ' kannst du anzeigen und drucken.</p></div>' : ''),
         [{ label: 'Zur Karte', action: function () { renderMap(); show('map'); } }]
           .concat(aw ? [{ label: aw.kind + ' anzeigen', primary: !nx, action: function () { openAward(aw.id); } }] : [])
@@ -1356,7 +1439,7 @@
     var h = '<h3>Check – ' + Math.round(th.pass * 100) + ' % zum Bestehen</h3>';
     th.questions.forEach(function (q, i) {
       h += '<fieldset class="q" data-q="' + i + '"><legend>' + (i + 1) + '. ' + q.q + '</legend>' +
-        q.options.map(function (o, j) { return '<label><input type="radio" name="q' + i + '" value="' + j + '"> ' + o + '</label>'; }).join('') + '<div class="expl"></div></fieldset>';
+        quizOrder(q).map(function (j) { var o = q.options[j]; return '<label><input type="radio" name="q' + i + '" value="' + j + '"> ' + o + '</label>'; }).join('') + '<div class="expl"></div></fieldset>';
     });
     h += '<button class="btn primary" id="evalQuiz">Auswerten</button><div id="quizRes"></div>';
     $('#quiz').innerHTML = h;
@@ -1469,6 +1552,135 @@
     tut.bench.render();
   }
 
+  /* ================= Testlauf 2 (5.2): Rückgängig / Wiederholen =================
+   * Verlauf je geöffneter Aufgabe: Schnappschüsse des Layouts (JSON) nach jeder Änderung – Bauteil setzen, verschieben, drehen, löschen,
+   * Leitung ziehen/löschen/färben, Wert oder Schalter ändern. Höchstens 100 Schritte. Beim Öffnen und nach jeder Abgabe in Prüfung bzw.
+   * Live-Challenge beginnt der Verlauf neu (nie hinter die Abgabe zurück). */
+  var HIST = { past: [], future: [], cur: null };
+  function histBtns() { var u = $('#btnUndo'), r = $('#btnRedo'); if (u) u.disabled = !HIST.past.length; if (r) r.disabled = !HIST.future.length; }
+  function histReset() { HIST.past = []; HIST.future = []; HIST.cur = core ? JSON.stringify(core.layout) : null; histBtns(); }
+  function histRecord() {
+    if (!core) return; var s = JSON.stringify(core.layout); if (s === HIST.cur) return;
+    if (HIST.cur !== null) { HIST.past.push(HIST.cur); if (HIST.past.length > 100) HIST.past.shift(); }
+    HIST.cur = s; HIST.future = []; histBtns();
+  }
+  function histGo(dir) {
+    if (!core || current.screen !== 'task') return;
+    var from = dir < 0 ? HIST.past : HIST.future, to = dir < 0 ? HIST.future : HIST.past; if (!from.length) return;
+    to.push(HIST.cur); HIST.cur = from.pop();
+    core.layout = JSON.parse(HIST.cur); core.sel = null; core.wireStart = null; core.hiWire = null;
+    var has = function (pin) { return pin && core.part(String(pin).split('.')[0]); };
+    ['a', 'b'].forEach(function (k) { if (meter[k] && !has(meter[k])) meter[k] = null; if (core.probes[k] && !has(core.probes[k])) core.probes[k] = null; });
+    ['tip', 'gnd', 'tip2'].forEach(function (k) { if (core.scopeProbes[k] && !has(core.scopeProbes[k])) core.scopeProbes[k] = null; });
+    persistDraft(); rebuild(); core.redraw(); renderInspector(); histBtns();
+    log(dir < 0 ? 'undo' : 'redo', { id: current.task && current.task.id, n: HIST.past.length });
+  }
+
+  /* ================= Testlauf 2 (5.1): Bauteil aus der Palette auf die Arbeitsfläche ziehen =================
+   * Maus: ab 6 px Bewegung wird gezogen; Loslassen über Schaltplan bzw. Werkbank legt das Bauteil an dieser Stelle ab (nächster freier Platz).
+   * Touch: langes Drücken (0,35 s) startet das Ziehen, sonst bleibt Tippen = hinzufügen. Klick bleibt der zweite Weg (Tastatur, Handy). */
+  var palDrag = { used: false };
+  function palDown(ev, b) {
+    palDrag.used = false; if (ev.button > 0 || (current.exam && !EXAM)) return;
+    var type = b.dataset.add, st = { x: ev.clientX, y: ev.clientY, on: false, ghost: null, timer: 0, id: ev.pointerId, touch: ev.pointerType !== 'mouse' };
+    var noScroll = function (e) { if (st.on) e.preventDefault(); };
+    function begin() {
+      st.on = true; hideSheet(true);
+      var g = document.createElement('div'); g.className = 'pal-ghost'; g.innerHTML = b.querySelector('svg').outerHTML + '<span>' + esc(E.PARTS[type].label) + '</span>'; document.body.appendChild(g); st.ghost = g; place(st.x, st.y);
+      document.body.classList.add('pal-dragging');
+    }
+    function target(x, y) { var el = document.elementFromPoint(x, y); return el && el.closest && el.closest(viewMode === 'bench' ? '#bench' : '#board'); }
+    function place(x, y) { if (!st.ghost) return; st.ghost.style.left = x + 'px'; st.ghost.style.top = y + 'px'; st.ghost.classList.toggle('ok', !!target(x, y)); }
+    function move(e) {
+      if (e.pointerId !== st.id) return;
+      var d = Math.hypot(e.clientX - st.x, e.clientY - st.y);
+      if (!st.on) { if (st.touch) { if (d > 10) end(null); return; } if (d > 6) begin(); else return; }
+      place(e.clientX, e.clientY);
+    }
+    function end(e) {
+      clearTimeout(st.timer); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cancel); document.removeEventListener('touchmove', noScroll);
+      if (st.ghost) st.ghost.remove(); document.body.classList.remove('pal-dragging');
+      if (!st.on || !e) return;
+      palDrag.used = true;   // unterdrückt nur den Klick, den dieses Loslassen auf dem Knopf selbst auslöst; der nächste Druck setzt zurück
+      if (!target(e.clientX, e.clientY)) return;
+      var v = view(), xy = v._pt(e), p;
+      p = viewMode === 'bench' ? core.addPart(type, xy[0], xy[1], 'bench') : core.addPart(type, xy[0], xy[1], 'schema');
+      if (p) { renderInspector(); log('palette_drop', { id: current.task && current.task.id, type: type, view: viewMode }); }
+    }
+    function up(e) { if (e.pointerId === st.id) end(e); }
+    function cancel(e) { if (e.pointerId === st.id) end(null); }
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cancel);
+    document.addEventListener('touchmove', noScroll, { passive: false });
+    if (st.touch) st.timer = setTimeout(begin, 350);
+  }
+
+  /* ================= Testlauf 2 (5.5): Leitung beim Darüberfahren samt Netz hervorheben ================= */
+  function bindNetHover(svg) { // der Kern merkt sich die Leitung (core.hiWire), die Ansichten zeichnen das Netz bei jedem Neuzeichnen hervor
+    svg.addEventListener('pointerover', function (ev) { var g = ev.target.closest && ev.target.closest('[data-wire]'); if (!core || ev.buttons) return; core.setHiWire(g ? g.getAttribute('data-wire') : null); });
+    svg.addEventListener('pointerleave', function () { if (core) core.setHiWire(null); });
+  }
+
+  /* ================= Testlauf 2 (5.3): benannte Aufbauten der Freien Werkbank =================
+   * Gespeichert im Spielstand (S.setups – lokal und mit Konto im Konto), höchstens 30 Aufbauten und rund 150 KB, sonst Hinweis
+   * «als Datei exportieren». Ein Aufbau enthält das Layout samt Schalterstellungen sowie die Messgeräte-Einstellungen
+   * (Messart, Bereich, AVG/TRMS, Spitzen, Tastköpfe, Bildbreite). Export/Import als JSON-Datei. */
+  var SETUP_MAX = 30, SETUP_BYTES = 150 * 1024;
+  function setupsHtml() {
+    var list = S.setups || [];
+    return '<div class="setups"><h3>Meine Aufbauten</h3><div class="row"><input id="suName" maxlength="40" placeholder="Name, z. B. LED mit 220 Ω" aria-label="Name des Aufbaus"><button class="btn small" id="suSave">Speichern</button></div>' +
+      (list.length ? '<ul class="su-list">' + list.map(function (x, i) { return '<li><span title="' + esc(new Date(x.t).toLocaleString('de-CH')) + '">' + esc(x.name) + '</span><button class="btn small" data-su-load="' + i + '">Laden</button><button class="btn small" data-su-del="' + i + '" title="Löschen" aria-label="' + esc(x.name) + ' löschen">✕</button></li>'; }).join('') + '</ul>' : '<p class="dim small">Noch nichts gespeichert. Gespeichert wird der ganze Aufbau mit Schalterstellungen und Messgeräten.</p>') +
+      '<div class="row"><button class="btn small" id="suExport">Als Datei exportieren</button><label class="btn small su-imp">Datei importieren<input type="file" id="suImport" accept=".json,application/json" hidden></label></div><p class="small" id="suMsg" aria-live="polite"></p></div>';
+  }
+  function setupNow(name) {
+    return { v: 1, name: name, t: Date.now(), layout: E.clone(core.layout),
+      meter: { mode: meter.mode, range: meter.range, a: meter.a, b: meter.b, type: S.settings.meterType || 'trms' },
+      scope: { tip: core.scopeProbes.tip, gnd: core.scopeProbes.gnd, tip2: core.scopeProbes.tip2, tb: $('#tb') ? $('#tb').value : null } };
+  }
+  function setupValid(x) { return x && typeof x.name === 'string' && x.layout && Array.isArray(x.layout.parts) && Array.isArray(x.layout.wires) && x.layout.parts.every(function (p) { return p && typeof p.id === 'string' && E.PARTS[p.type]; }) && x.layout.wires.every(function (w) { return w && typeof w.from === 'string' && typeof w.to === 'string'; }); }
+  function setupApply(x) {
+    S.drafts.sandbox = { layout: E.clone(x.layout), answers: {}, t: Date.now() }; save();
+    openTask(sandboxTask());
+    var m = x.meter || {}, sc = x.scope || {}, has = function (pin) { return pin && core.part(String(pin).split('.')[0]); };
+    if (m.type) S.settings.meterType = m.type;
+    if (m.mode) setMeterMode(m.mode);
+    if (m.range && m.range !== 'AUTO') setMeterRange(m.range);
+    ['a', 'b'].forEach(function (k) { if (has(m[k])) { meter[k] = m[k]; core.probes[k] = m[k]; } });
+    ['tip', 'gnd', 'tip2'].forEach(function (k) { if (has(sc[k])) core.scopeProbes[k] = sc[k]; });
+    if (sc.tb && $('#tb')) $('#tb').value = sc.tb;
+    core.redraw(); tick(0); histReset();
+  }
+  function bindSetups() {
+    var msg = function (t, bad) { var el = $('#suMsg'); if (el) { el.textContent = t; el.className = 'small ' + (bad ? 'err' : 'ok'); } };
+    var sv = $('#suSave'); if (!sv) return;
+    sv.onclick = function () {
+      if (!core) return; var name = ($('#suName').value || '').trim() || 'Aufbau ' + new Date().toLocaleString('de-CH');
+      var x = setupNow(name.slice(0, 40)), list = (S.setups || []).filter(function (y) { return y.name !== x.name; }).concat([x]);
+      if (list.length > SETUP_MAX) { msg('Höchstens ' + SETUP_MAX + ' Aufbauten – lösche alte oder exportiere sie als Datei.', true); return; }
+      if (JSON.stringify(list).length > SETUP_BYTES) { msg('Der Speicher für Aufbauten ist voll – lösche alte oder exportiere sie als Datei.', true); return; }
+      S.setups = list; save(); log('setup_save', { n: list.length, parts: x.layout.parts.length });
+      renderTaskPanels(current.task, null); msg('«' + x.name + '» gespeichert.');
+    };
+    $$('[data-su-load]').forEach(function (b) { b.onclick = function () { var x = S.setups[+b.dataset.suLoad]; if (x) { setupApply(x); log('setup_load', {}); msg('«' + x.name + '» geladen.'); } }; });
+    $$('[data-su-del]').forEach(function (b) { b.onclick = function () { var x = S.setups[+b.dataset.suDel]; if (!x) return; modal('<h2>Aufbau löschen?</h2><p>«' + esc(x.name) + '» wird gelöscht.</p>', [{ label: 'Abbrechen' }, { label: 'Löschen', primary: true, action: function () { S.setups = S.setups.filter(function (y) { return y !== x; }); save(); renderTaskPanels(current.task, null); } }]); }; });
+    $('#suExport').onclick = function () {
+      if (!core) return; var x = setupNow(($('#suName').value || '').trim() || 'Aufbau'), blob = new Blob([JSON.stringify({ digitalquest: 'aufbau', version: 1, setups: [x].concat(S.setups || []) }, null, 1)], { type: 'application/json' });
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'DigitalQuest-Aufbauten.json'; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+      log('setup_export', {}); msg('Datei «DigitalQuest-Aufbauten.json» erstellt (aktueller Aufbau zuerst, dann die gespeicherten).');
+    };
+    $('#suImport').onchange = function () {
+      var f = this.files && this.files[0]; if (!f) return; if (f.size > 2 * 1024 * 1024) { msg('Datei zu gross.', true); return; }
+      var rd = new FileReader(); rd.onload = function () {
+        var data; try { data = JSON.parse(rd.result); } catch (e) { msg('Keine gültige Aufbau-Datei (JSON).', true); return; }
+        var list = (data && Array.isArray(data.setups) ? data.setups : setupValid(data) ? [data] : []).filter(setupValid);
+        if (!list.length) { msg('In der Datei ist kein gültiger Aufbau.', true); return; }
+        setupApply(list[0]); var add = list.slice(1).filter(function (x) { return !(S.setups || []).some(function (y) { return y.name === x.name; }); });
+        var merged = (S.setups || []).concat(add); if (merged.length <= SETUP_MAX && JSON.stringify(merged).length <= SETUP_BYTES) S.setups = merged; save();
+        renderTaskPanels(current.task, null); msg('«' + list[0].name + '» geladen' + (add.length ? ', ' + add.length + ' weitere Aufbauten übernommen.' : '.'));
+        log('setup_import', { n: list.length });
+      }; rd.readAsText(f);
+    };
+  }
+
   /* ================= Handbuch ================= */
   function renderManual(pageId) {
     var pages = [{ id: 'wegweiser', title: 'Wegweiser', html: '' }].concat(DQ.manual || [], [{ id: 'datenblaetter', title: 'Datenblätter', html: '' }]), p = pages.filter(function (x) { return x.id === pageId; })[0] || pages[0];
@@ -1486,7 +1698,7 @@
       return '<div class="ww-card" data-id="' + i.id + '"><div class="ww-ic" aria-hidden="true">' + i.icon + '</div><div class="ww-body"><b>' + esc(i.titel) + '</b><p>' + esc(i.text) + '</p><p class="ww-wann"><span>Wann?</span> ' + esc(i.wann) + '</p></div><div class="ww-act">' + open + '</div></div>';
     };
     var labor = WW.items.filter(function (i) { return i.bereich === 'labor' && (!i.portalOnly || root.DQ_PORTAL); }), aufgabe = WW.items.filter(function (i) { return i.bereich === 'aufgabe'; });
-    return '<p class="lead">Wo finde ich was? Jeder Punkt der Kopfzeile und jedes Element einer Aufgabe in einem Satz.</p>' +
+    return '<p class="lead">Hier findest du alle Bereiche von DigitalQuest und wofür du sie brauchst.</p>' +
       '<div class="ww-tools"><button class="btn primary" id="wwTour">▶ Rundgang durch das Labor</button>' + (root.DQ_PORTAL ? '<a class="btn" href="../#/wegweiser">Wegweiser des Portals</a>' : '') + '</div>' +
       '<h3>Labor</h3><div class="ww-cards">' + labor.map(card).join('') + '</div>' +
       '<h3>In einer Aufgabe</h3><p class="dim small">Die Bedienung der Messgeräte zeigt dir das Werkbank-Tutorial Schritt für Schritt.</p><div class="ww-cards">' + aufgabe.map(card).join('') + '</div>';
@@ -1564,7 +1776,7 @@
   function init() {
     applyTheme(); applyMode();
     root.DQ_PREFS = { get: function (k) { return S.settings[k]; }, set: function (k, v) { S.settings[k] = v; save(); } }; // Tempo der Theorie-Animationen u. a.
-    if (ACCT) ACCT.init({ state: function () { return S; }, fresh: fresh, modal: modal, esc: esc, toast: toast, summary: summary, refresh: refreshView,
+    if (ACCT) ACCT.init({ state: function () { return S; }, fresh: fresh, normalize: normalize, modal: modal, esc: esc, toast: toast, summary: summary, refresh: refreshView,
       setState: function (n) { S = normalize(n); clearTimeout(saveTimer); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { indicator('Nicht gespeichert!', 'err'); } } });
     root.DQ_REPORT_CONTEXT = function () {
       var c = current.screen === 'task' && current.task ? (current.task.sandbox ? 'Freie Werkbank' : 'Aufgabe ' + current.task.id) + ' (' + (viewMode === 'bench' ? 'Werkbank' : 'Schaltplan') + ')' :
@@ -1595,6 +1807,7 @@
     });
     if (root.DQCalc) {
       root.DQCalc.onLog = log;
+      root.DQCalc.posStore = { get: function () { return S.settings.calcPos || null; }, set: function (v) { if (v) S.settings.calcPos = v; else delete S.settings.calcPos; save(); } }; // Testlauf 2 (2.2): Position in den Einstellungen
       var calcHist = function () { if (root.DQCalc.isOpen) { try { history.pushState({ dq: 'calc' }, '', location.href); } catch (e) { /* file:// ohne History */ } } };
       $('#btnCalc').onclick = function () { root.DQCalc.toggle(); calcHist(); };
       document.addEventListener('click', function (ev) { var b = ev.target.closest && ev.target.closest('[data-calc]'); if (b) { ev.preventDefault(); root.DQCalc.open(); calcHist(); } });
@@ -1602,6 +1815,9 @@
     }
     $('#btnRot').onclick = function () { view().rotateSelected(); };
     $('#btnFit').onclick = function () { view().fit(); };
+    $('#btnUndo').onclick = function () { histGo(-1); }; $('#btnRedo').onclick = function () { histGo(1); };
+    var zoomBtn = function (f) { var v = view(), r = v.svg.getBoundingClientRect(); v.zoomAt(f, r.left + r.width / 2, r.top + r.height / 2); };
+    $('#btnZoomIn').onclick = function () { zoomBtn(0.8); }; $('#btnZoomOut').onclick = function () { zoomBtn(1.25); };
     window.addEventListener('resize', function () { if (ed && current.screen === 'task') view().fit(); if (tut && current.screen === 'tutorial') tut.bench.fit(); });
     $('#btnDel').onclick = function () { ed.removeSelected(); renderInspector(); };
     $('#btnView').onclick = function () { setView(viewMode === 'bench' ? 'schema' : 'bench'); log('view', { id: current.task && current.task.id, view: viewMode }); };
@@ -1631,6 +1847,7 @@
       if (root.DQCalc && root.DQCalc.isOpen) return;
       if (current.screen !== 'task' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
       if (live.replay) { if (ev.key === 'ArrowLeft') showStep(live.replay.i - 1); else if (ev.key === 'ArrowRight') showStep(live.replay.i + 1); else if (ev.key === 'Escape') closeReplay(); return; }
+      if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && /^[zZyY]$/.test(ev.key)) { ev.preventDefault(); histGo(/[yY]/.test(ev.key) || (ev.shiftKey && /[zZ]/.test(ev.key)) ? 1 : -1); return; } // Testlauf 2 (5.2)
       ed && ed.key(ev); renderInspector();
     });
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
@@ -1644,7 +1861,7 @@
       open: function (t, o) { openTask(t, o); }, closeModal: function () { $('#modal').classList.remove('open'); } }) : null;
     if (LIVE && !LIVE.id) LIVE = null;
     EXAM = root.DQExamUI && !LIVE ? root.DQExamUI.create({ modal: modal, esc: esc, show: show, open: function (t, o) { openTask(t, o); },
-      layout: function () { return ed ? E.clone(ed.layout) : null; }, answers: answers }) : null;
+      layout: function () { return ed ? E.clone(gradeLayout(ed.layout)) : null; }, answers: answers }) : null;
     if (EXAM && !EXAM.id) EXAM = null;
     if (EXAM) { var bk = document.createElement('button'); bk.textContent = 'Zur Prüfung'; bk.className = 'exam-back'; bk.onclick = function () { EXAM.back(); }; $('.top nav').appendChild(bk); }
     if (LIVE || EXAM) { /* Einstieg uebernimmt die Challenge bzw. die Pruefung */ }

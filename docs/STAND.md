@@ -363,6 +363,84 @@ Engine direkt (Brücke aus 3.5, `E.simulate`, 2 Perioden): R1.a–R1.b 0 → 8,5
 | Impressum / Datenschutz | bekannt | Platzhalter seit Auftrag 6 | **Steven** (Betreiberangaben) |
 | Übrige (4.7, 7.7, 16.7 Text, T3C, Wegweiser, Kopfzeilen, Rahmen, Freie Werkbank-Wünsche, 12.1) | Text / Wunsch | siehe Phasen 3–5 | Phasen 3–5 |
 
+### Phase 1 – Wertung (umgesetzt)
+- **1.1 Multimeter in der Lücke:** `app.js gradeLayout()` setzt bei Modus A⎓/A~ mit beiden Spitzen auf verschiedenen Punkten einen virtuellen Strommesser `MM` (`props.virtual`) in eine **Kopie** des Layouts; `check()`, `sollOf()` und die Prüfung (`layout()`) werten diese Kopie. `engine.js runTask`: `need`/`limit` zählen virtuelle Bauteile nicht. Ohne Messgerät in der Lücke meldet die Prüfung: «Der Stromkreis ist offen – setze das Multimeter (A⎓) in die Lücke oder schliesse die Leitung wieder.»
+- **1.1 Prüfung:** Abgaben laufen auf dem Server durch `exam_core.cleanLayout`: Der virtuelle Strommesser (höchstens einer, `props.virtual`) zählt nicht als fremdes Bauteil, und eine vorgegebene Leitung, die er überbrückt, gilt nicht als entfernt (in der QA gefunden – ohne diese Änderung wären Abgaben mit A⎓ in der Lücke abgelehnt worden). Test in `test_exam_api.js` über alle Prüfungsvorlagen mit Strommessung.
+- **1.2** A1 ist nur in 4.3 Pflicht (dort verlangt). Smoke prüft alle Aufgaben mit Strommessung ohne A1 in der Referenz mit dem Multimeter in der Lücke.
+- **1.3** `cleanLayout()` entfernt beim Öffnen eines Entwurfs Leitungen zu nicht mehr vorhandenen Bauteilen/Anschlüssen (Ereignis `draft_clean`). Nicht angeschlossene Bauteile nennt die Prüfung ausdrücklich: «R5 ist nicht angeschlossen – löschen oder einbauen.»
+- **1.4 (2.5)** Hinweis bei vertauschten Namen über `diag` (gleiche Knoten), Toleranz von Test und Protokoll beide ±2 % und im Auftrag genannt («±2 %, also 4,90 … 5,10 V»).
+- **1.5 (3.5)** `tper.value = 0.01` (Grundeinheit s). Neue Validator-Regel: letzter Rechenweg-Schritt und Sollwert müssen zusammenpassen.
+- **1.6** Neues Feld `S.marks[id]` (`solution`, `revealed`) bleibt bei «Neu» erhalten; `normalize()` übernimmt bestehende Marken aus `doneInfo`. Mit Marke höchstens 1 Stern. Zurücksetzen nur durch Lehrperson (Fortschritt zurücksetzen).
+- **1.7** Nur echte Fehlversuche zählen (ein Test scheitert oder ein **eingetragener** Wert ist falsch); fehlende Werte: «Fehlende Werte zählen nicht als Fehlversuch». Der Erfolgsdialog nennt den Grund für die Sterne (`.stars-why`). `normalize()` senkt nie Sterne. Sync war nicht die Ursache (siehe Befund).
+- **1.8** Theorie-Kontrolle mischt die Antworten (`quizOrder`, Fisher-Yates; `fixed: true` behält die Reihenfolge; Wert der Auswahl bleibt der Quell-Index). Quelldaten verteilt (37 Fragen getauscht): A 32, B 66, C 50, D 23 statt A 15, B 101, C 46, D 9. Validator-Warnung, wenn mehr als 3 von 5 Fragen dieselbe Position haben.
+- Tests: Smoke-Abschnitt «Wertung (Testlauf 2, Phase 1)» (Lücke für alle Strom-Aufgaben, offener Kreis, 2.5, 3.5, 16.8 nach «Neu» 1 Stern, W1 schrittweise 3 Sterne / mit falschem Wert 2 Sterne, T8B gemischt und richtig gewertet, Entwurf bereinigt, loses Bauteil genannt). T1A im Smoke wählt die richtigen Antworten über `correct`.
+
+### Phase 2 – Bedienung (umgesetzt)
+- **2.1 Palette-Datenblatt:** erscheint erst nach ~400 ms (vorher 120 ms), steht über dem Auftrag links neben der Arbeitsfläche (bei Bedarf schmaler, mind. 280 px; reicht der Platz nicht, unter der Werkzeugleiste) und ist für die Maus durchlässig (`.ds-passive`, `pointer-events: none`, ohne ×). Das Datenblatt beim Verweilen auf einem Bauteil der Arbeitsfläche ist unverändert.
+- **2.2 Taschenrechner:** an der Titelleiste ziehbar (Zeiger-Ereignisse: Maus und Touch, Titelleiste bleibt im Bild), Position in den Einstellungen (`settings.calcPos`, im Portal `localStorage`), Doppelklick auf die Titelleiste setzt zurück. Rechnen unverändert.
+- **2.3 Oszilloskop:** `resetScope()` beim Öffnen einer Aufgabe – CH1/CH2 an, MATH aus, alle Kanäle DC, keine Kurve, Grundtext, kein Bezugspunkt-Hinweis; Bildbreite wie bisher passend zur Aufgabe, Tastköpfe aus dem Entwurf.
+- **2.4 Platzsuche:** `circuit-ui.js _place`: findet die Spirale nichts, wird die ganze Fläche im Raster abgesucht (nächster freier Platz), sonst der Platz mit der kleinsten Überlappungsfläche – nie im Bereich von Multimeter/Oszilloskop. 30 Schalter auf der Freien Werkbank: 30 verschiedene Plätze, keiner unter den Geräten (vorher 45 von 63 auf 1110,630). Liegen Bauteile trotzdem übereinander (von Hand gezogen), zeigt das oberste ein Zahlzeichen (`.stackbadge`) in Schaltplan und Werkbank.
+- **2.5 Statuszeile:** ohne Störung nicht mehr pauschal «läuft – keine Störung», sondern «Leere Arbeitsfläche …», «Keine Quelle angeschlossen …» bzw. «N Bauteile ohne Verbindung.» (gilt in allen Aufgaben).
+- **2.6 Handbuch:** Klammerfehler im Abschnitt «Oszilloskop» behoben (Seite «undefined» weg, Absätze Bezugspunkt/AC/MATH wieder auf der Oszilloskop-Seite). Neue Validator-Regel: jede Handbuch-Seite hat `id`, `title`, `html`, ids eindeutig, `data-man`/`renderManual('…')` zeigen auf vorhandene Seiten (geprüft: fängt den alten Fehler). Sterne-Absatz im Handbuch an Phase 1 angepasst.
+- **2.7 Prüfungscode:** neuer Endpunkt `POST /api/exam-sessions/check {code}` → Stufe, Klasse, Zustand (offen / noch nicht offen / geschlossen / andere Klasse), startet nichts. Fehlversuche wie beim Login (je Konto 5, je Adresse 40 in 15 min, dann 429). Portal prüft den Code, sobald 6 Zeichen eingegeben sind, und zeigt das Ergebnis neben dem Feld; «Beitreten» mit ungültigem Code startet nichts. 6 neue Tests in `test_exam_api.js`.
+- Tests: Smoke-Abschnitt «Bedienung (Testlauf 2, Phase 2)» (Oszilloskop nach 16.7 → W1, Statuszeile, 30 Schalter ohne Stapel, Zahlzeichen, Handbuch-Menü, Taschenrechner ziehen/merken/zurücksetzen bei 1440 und 390 px) und Palette-Datenblatt (Verzögerung, kein verdeckter Knopf, keine verdeckte Arbeitsfläche, durchlässig).
+
+### Phase 3 – Texte und Begriffe (umgesetzt)
+- **3.1 (4.7):** Ziel in einem Satz, vier nummerierte Schritte (`<ol class="steps">`), Hintergrund im Lernziel; Protokollzeilen «1. A1 ohne Voltmeter», «2. Spannung an R1», «3. A1 mit Voltmeter».
+- **3.2 Kapitel 16:** Aufträge 16.1–16.9 auf höchstens drei Sätze gekürzt (Bereich und Zeitbasis stehen in der Einstellungs-Box, Hintergrund war schon in `learn`/`take`); Länge vorher → nachher (ohne Tags): 16.1 392 → 316, 16.2 349 → 266, 16.3 290 → 204, 16.4 346 → 235, 16.5 277 → 252, 16.6 206 → 150, 16.7 197 → 143, 16.8 338 → 246, 16.9 529 → 357. Einstellungs-Box überall **eingeklappt**, Zeile «So stellst du das Gerät ein (N Werte)», jeder Messwert einzeln aufklappbar. Validator-Warnung ab 400 Zeichen Auftrag.
+- **3.3 Begriffe:** Kapitel 6–12 und Werkstatt durchsucht (UND/AND, ODER/OR, NICHT/NOT, NAND, NOR, XOR/Antivalenz, XNOR/Äquivalenz, Flipflop). Befund: Englisch nur in Kapitel 6 als Klammer nach dem deutschen Begriff und in Code-Kommentaren; «Flipflop» überall gleich geschrieben. Geändert (Kapitel 7, Gatter-Kürzel ohne deutsche Bedeutung, gemischt «NAND / UND»):
+  - 7.3 «Kein NAND-Chip mehr …» → «Kein NAND-Chip (NICHT-UND) mehr im Lager. …»
+  - 7.4 «Jetzt fehlt der NOR-Chip. Im Lager: UND und NICHT.» → «Jetzt fehlt der NOR-Chip (NICHT-ODER). Im Lager gibt es nur UND- und NICHT-Gatter.»
+  - 7.6 «… noch ein NAND frei. Gebraucht wird ein Inverter.» → «… noch ein NAND-Gatter (NICHT-UND) frei. Gebraucht wird ein Inverter (NICHT-Gatter).»; Auftrag «… aus einem NAND-Gatter»
+  - 7.7 «Nur NAND im Lager – gebraucht wird ein UND.» → «Im Lager gibt es nur NAND-Gatter (NICHT-UND). Gebraucht wird ein UND-Gatter.»
+  - 7.8 «… ein ODER. Wieder nur NAND.» → «… ein ODER-Gatter. Wieder gibt es nur NAND-Gatter (NICHT-UND).»
+  - 7.9 «„Ein XOR. Nur NAND. Höchstens vier.“» → «„Ein XOR-Gatter (Exklusiv-ODER). Nur NAND-Gatter, höchstens vier.“»
+  - 7.10 «… nur NOR.» → «… nur NOR-Gatter (NICHT-ODER).»
+  - 12.x (zustandsgesteuertes RS-Flipflop) «je ein UND» → «je ein UND-Gatter»
+  - Neue Handbuch-Seite **«Begriffe Deutsch/Englisch»** (id `begriffe`, 18 Begriffe von UND bis OL). Regel in `CLAUDE.md` («Regeln aus Testlauf 2»).
+- **3.4 T3C:** Beide Mini-Schaltungen (Brücke in Zeitlupe, Glättung) neu angeordnet: zwei Diodenzweige (Anode unten), Plus-Schiene oben, Minus-Schiene unten, Generator **zwischen** den Zweigen, Last (und Ladekondensator) rechts – **0 Kreuzungen, 0 Überlagerungen** (vorher 1 + 10 bzw. 2 + 13; gemessen mit `tests/testlauf2_t3c.js` aus den Leitungspfaden). Eine «Raute» mit Generator *und* Last ausserhalb geht ohne Kreuzung nicht (Dioden-Ring + Generator + Last = vollständiger Graph K4, eine Verbindung muss innen liegen) – darum die Leiter-Form, die in Lehrbüchern ebenfalls üblich ist. Neues Bild in der Lektion: Strompfade der beiden Halbwellen (rot durchgezogen V1/V4, blau gestrichelt V2/V3, Pfeile, Legende). Aufgabe 3.5 unverändert. Screenshots vorher/nachher in `tests/shots/testlauf2/t3c_*` (dunkel/hell, 1440 und 390 px).
+- **3.5 Wegweiser:** Untertitel im Portal und im Labor-Handbuch: «Hier findest du alle Bereiche von DigitalQuest und wofür du sie brauchst.»
+- Tests: Smoke-Abschnitt «Texte (Testlauf 2, Phase 3)», `tests/portal.js` prüft den Wegweiser-Untertitel.
+
+### Phase 4 – Einheitliches Erscheinungsbild (umgesetzt)
+- **4.1 Kopfzeilen:** ein Baustein `src/header.css` (Klasse `.dq-hdr` mit `.dq-brand`, `.dq-nav`, `.dq-tools`, `.dq-hbtn`, `.dq-chip`), `build.js` hängt ihn an die Stile von Labor **und** Portal. Gleich: Höhe 56 px (Handy 52 px), Hintergrund, Trennlinie, Schrift (Inter), Logo (gerahmtes Zeichen wie im Portal) und Schriftzug an derselben Stelle, Navigation (13,5 px, 600, aktive in Bernstein), Werkzeug-Knöpfe 34 × 34 px, Benutzer-Chip 34 px hoch. Alte Kopien in `style.css` (`.top`, `.brand`, `.top nav`, `.ww-link`, `.calc-btn`, `.acct-chip`) und `portal.css` (`.topbar`, `.wordmark`, `.topnav a`, `.topright`) entfernt. Bewusste Unterschiede (im Baustein kommentiert): Prüfung ohne Karte/Einstellungen/Speicheranzeige, Live-Challenge ohne Navigation, Portal-Beamer ohne Kopfzeile, Portal auf dem Handy ohne Menüzeile (Navigation über die Halle). Werkstatt und Freie Werkbank nutzen die Labor-Kopfzeile.
+- **4.2 Rahmen:** Ursache der weissen Rahmen an Wegweiser- und Rechner-Knopf: Die Labor-Kopfzeile ist auch im hellen Thema dunkel, die Knöpfe nahmen aber `var(--line)` (im hellen Thema #d4d6cc). Jetzt eigene Token `--hdr-line`/`--hdr-line-hi`, gleich wie alle Knöpfe der Kopfzeile, in beiden Themes.
+- **4.3 Tests:** `tests/header_snap.js` – 7 Bereiche × 2 Themes × 2 Breiten (1440/390 px) gegen `tests/baseline/header/*.png`, dazu Gleichheit von Höhe, Hintergrund, Trennlinie, Schrift, Logo-Lage, Navigation, Knöpfen und Chip über alle Bereiche und Rahmenfarbe Wegweiser = Rechner, nie hell (114 Prüfungen). Bei 390 px überlappte «Einstellungen» zuerst den «?»-Knopf – behoben (engere Abstände, Navigation scrollt notfalls waagrecht).
+
+### Phase 5 – Freie Werkbank (umgesetzt)
+- **5.1 Drag & Drop:** Bauteil aus der Palette auf Schaltplan oder Werkbank ziehen (Maus ab 6 px, Touch nach 0,35 s langem Drücken); abgelegt am nächsten freien Platz bei der Ablagestelle (`_place`). Klick bleibt der zweite Weg. Gilt in allen Aufgaben.
+- **5.2 Rückgängig/Wiederholen:** Knöpfe ↶ ↷ und Strg+Z / Strg+Y (Strg+Umschalt+Z), bis 100 Schritte (Schnappschüsse des Layouts): Bauteil setzen, verschieben, drehen, löschen, Leitung ziehen/löschen/färben, Wert/Schalter ändern. Verlauf beginnt beim Öffnen einer Aufgabe und nach jeder Abgabe in Prüfung und Live-Challenge neu. Messspitzen auf entfernte Bauteile werden beim Zurückgehen gelöst.
+- **5.3 Aufbauten:** «Meine Aufbauten» in der Freien Werkbank: speichern (Name), laden, löschen (mit Rückfrage); gespeichert in `S.setups` (lokal und mit Konto im Spielstand), höchstens 30 bzw. rund 150 KB, sonst Hinweis auf Export. Inhalt: Layout samt Schalterstellungen, Messart, Bereich, AVG/TRMS, Spitzen, Tastköpfe, Bildbreite. Export/Import als JSON-Datei (`DigitalQuest-Aufbauten.json`, aktueller Aufbau zuerst), kaputte Dateien werden gemeldet.
+- **5.4 Grössere Fläche:** Freie Werkbank mit Faktor 1,5 je Seite (Schaltplan 1500 × 930, Werkbank-Matte 1800 × 1140 = 2,25-fache Fläche), `core.area()` je Instanz; Arbeitsfläche mindestens so hoch wie das Fenster; Zoom mit Strg+Rad, zwei Fingern und neu Knöpfen ＋/－, «Einpassen» zeigt alles.
+- **5.5 Leitungen:** Darüberfahren hebt das ganze Netz hervor (alle verbundenen Leitungen und Anschlüsse, in Schaltplan und Werkbank, bleibt beim laufenden Neuzeichnen erhalten); Leitungsfarbe wählbar (Std, rot, schwarz, blau, grün, gelb, weiss) im Eigenschaften-Panel; im Schaltplan nimmt die rechtwinklige Führung den Weg, der weniger Bauteile durchquert. **Zwischenpunkte**: nur Vorschlag mit Aufwand (2,5–3 Tage) in `docs/VORSCHLAG_GEFUEHRTE_AUFBAUTEN.md`.
+- Tests: Smoke-Abschnitt «Freie Werkbank (Testlauf 2, Phase 5)» (Fläche, Drag & Drop Schaltplan/Werkbank/Touch, Klick, 55 Schritte zurück und bis zum Öffnen, Strg+Y/Z, Löschen rückgängig, Netz, Leitungsfarbe, Zoom-Knöpfe, Aufbau speichern/laden/exportieren/importieren/kaputte Datei/löschen).
+
+### Prüfung vor dem Zusammenführen: alte Spielstände (Auftrag Steven 16.10.2026) – `tests/altstand.js`
+Spielstände in der Form vor Testlauf 2 (ohne `marks`/`setups`), lokal und mit Konto. Ergebnis: **30 von 30 Prüfungen bestanden** – niemand verliert Sterne, ausser durch die neue Regel «Lösung angesehen».
+
+| Fall | Station (alte Form) | Sterne vorher | nachher |
+|---|---|---|---|
+| lokal | 1.1 gelöst, **ohne `doneInfo`**, Ereignis `task_done` (1 Versuch) | 3 | 3 |
+| lokal | 1.2 ohne `doneInfo`, Ereignis mit 3 Versuchen, 1 Tipp | 2 | 2 |
+| lokal | 1.3 ★3; danach «Neu» und erneut gelöst | 3 | 3 |
+| lokal | 1.5 mit `revealed: 1` | 1 | 1 (Marke übernommen) |
+| lokal | 1.6 ★2, aufgedeckter Wert nur im alten Entwurf; danach sauber gelöst | 2 | 2, nach dem Lösen 3 |
+| lokal | 1.7 mit `solution: true`; danach sauber gelöst | 1 | 1 (neue Regel) |
+| Konto, Abgleich beim Start | Server 1.1 (ohne doneInfo) ★3, 1.2 ★2, 1.3 ★3, 1.5 ★1 · Gerät offline: 1.2 ★3, 1.4 ★3 | – | 1.1 ★3, 1.2 **★3**, 1.3 ★3, 1.4 **★3**, 1.5 ★1 (Gerät und Server) |
+| Konto, **Konflikt 409** | Gerät 2 löst 1.6 ★3, Gerät 1 mit altem Stand löst 1.7 | – | alle 7 Stationen mit den besten Sternen auf beiden Seiten |
+
+**Dabei gefunden und behoben (nicht durch Testlauf 2 verursacht):** Der Abgleich ersetzte bei Konflikt bzw. beim Start nach Offline-Spiel den **ganzen** Stand durch den mit mehr gelösten Stationen. Im Test gingen so 1.4 (★3) und die Verbesserung 1.2 ★2 → ★3 verloren, beim 409 zusätzlich 1.6 des anderen Geräts. Neu führt `account.js merge()` die Stände **je Station** zusammen: gelöst bleibt gelöst, je Station der Eintrag mit mehr Sternen (bei Gleichstand der neuere), Theorie bestes Ergebnis, Marken vereinigt, Entwürfe/Einstellungen vom eigenen Gerät, Aufbauten und Ereignisse vereinigt. Die ausdrückliche Wahl beim ersten Anmelden mit fremdem Browser-Stand («Welcher Spielstand soll gelten?») bleibt unverändert.
+
+**Multimeter in der Lücke – betroffene Aufgaben** (vor der Korrektur nicht lösbar, jetzt in `tests/tasks.js` auf der Werkbank mit dem Multimeter beim Prüfen in der Lücke): 1.5, 1.6, 1.7, 2.1, 2.2, 2.6, 2.7, 4.3 (dort zusätzlich A1 verlangt), 13.1, 13.4, 13.8, 13.9, 15.1, 15.2, 15.5, 16.2. **Prüfungsvorlagen** mit Strommessung, die `test_exam_api.js` mit dem virtuellen Strommesser abdeckt: G01 «LED an 9 V», G02 «Spannungsteiler auf 4 V», G05 «Messen in der gemischten Schaltung», P09 «Antrieb mit Freigabe und Not-Halt» (G03 «Gesamtstrom 10 mA» enthält A1 in der Musterlösung und ist ausgenommen).
+
+### Phase 6 – Geführte Übungsaufbauten
+- **Vorschlag** in `docs/VORSCHLAG_GEFUEHRTE_AUFBAUTEN.md` (Ablauf, Datenformat, 5 Beispiele, Aufwand rund 4,5–5 Tage, 4 Fragen). **Kein Code – wartet auf Stevens OK.**
+
+### Offene Punkte (Testlauf 2)
+- **Rücksetzen einer Station durch Lehrpersonen** (Entscheid §4, Auftrag Steven 16.10.2026): wird nach dem Zusammenführen als eigener Schritt auf `wip/leitstand-reset` gebaut (Knopf «Station zurücksetzen» in der Detailansicht, Ereignis `station_reset`). Zu beachten: Der neue Abgleich je Station darf eine zurückgesetzte Station nicht vom Gerät zurückholen.
+- T3C als Leiter-Form: von Steven bestätigt (16.10.2026).
+- **Steven:** Impressum/Datenschutz (Betreiberangaben), Leitstand-Screenshots, Meldungen im Portal als erledigt markieren.
+
 ## Hosting (Stand 29.09.2026)
 GitHub-Repo: github.com/StevenMatzinger93/digital-quest (Branch `main`). Cloudflare Worker `digital-quest` (`wrangler.jsonc`: `main` = `worker/index.js`, Assets aus `web/`, D1 `digitalquest` als Binding `DB`, Worker zuerst fuer `/api/*` und `/z/*`) per GitHub verbunden – jeder Push nach `main` deployt automatisch. Secrets `ADMIN_USER`/`ADMIN_PASSWORD`.
 

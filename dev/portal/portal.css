@@ -51,15 +51,7 @@ button{ font-family:inherit; }
 @media (prefers-reduced-motion: reduce){ .beam, .floor-grid, .hall-fog{ animation:none; } }
 
 /* ---------- Kopfleiste ---------- */
-.topbar{ position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:18px; padding:12px 24px;
-  background:linear-gradient(180deg, rgba(5,7,10,.92), rgba(5,7,10,.55)); backdrop-filter:blur(6px); border-bottom:1px solid rgba(255,255,255,.05); }
-.wordmark{ display:flex; align-items:center; gap:10px; color:var(--text); text-decoration:none; font-weight:800; letter-spacing:.14em; font-size:17px; }
-.wordmark b{ color:var(--scl); font-weight:800; margin-left:.3em; text-shadow:0 0 14px rgba(255,176,0,.45); }
-.wm-icon{ width:30px; height:30px; color:var(--scl); filter:drop-shadow(0 0 6px rgba(255,176,0,.5)); }
-.topnav{ display:flex; gap:4px; flex:1; }
-.topnav a{ color:var(--dim); text-decoration:none; font-size:13px; font-weight:600; padding:6px 10px; border-radius:6px; }
-.topnav a:hover, .topnav a.active{ color:var(--text); background:rgba(255,255,255,.06); }
-.topright{ display:flex; align-items:center; gap:10px; margin-left:auto; }
+/* Kopfzeile: gemeinsamer Baustein src/header.css (.dq-hdr, Testlauf 2 Phase 4) – hier nur Portal-eigene Teile (Netz-LED, Benutzermenü) */
 .net-led{ width:8px; height:8px; border-radius:50%; background:#444; box-shadow:0 0 0 2px rgba(255,255,255,.05); }
 .net-led.on{ background:var(--ok); box-shadow:0 0 8px var(--ok); }
 .net-led.off{ background:var(--bad); box-shadow:0 0 8px var(--bad); }
@@ -271,12 +263,10 @@ pre.code{ background:#05080b; border:1px solid var(--line2); border-radius:8px; 
   .kpis{ grid-template-columns:repeat(2, minmax(0,1fr)); }
 }
 @media (max-width: 640px){
-  .topbar{ padding:10px 16px; gap:10px; }
-  .wordmark span{ display:none; }
   .lb-long{ display:none; }
   .aria-eye{ width:32px; height:32px; }
   .aria-text{ font-size:13px; min-height:7.5em; }
-  .topnav{ display:none; }
+  .topbar.dq-hdr .topnav{ display:none; }   /* bewusst: auf dem Handy Navigation über die Halle (Testlauf 2, Phase 4) */
   .term-btn{ font-size:12px; padding:7px 10px; max-width:170px; }
   .hero{ padding-top:30px; }
   .gates{ grid-template-columns:1fr 1fr; gap:14px; padding:0 16px; }
@@ -601,3 +591,4 @@ body.beamer-mode main{ min-height:100vh; }
   .ww-page{ max-width:none; margin:0; padding:0; color:#000; } .ww-card{ border:1px solid #999; background:#fff; break-inside:avoid; color:#000; } .ww-body p, .ww-body .ww-wann{ color:#000; }
   .ww-cards{ grid-template-columns:1fr 1fr; gap:8px; } .ww-act{ display:none; } .ww-foot{ display:block; color:#333; margin-top:12px; } .ww-sect h2 .tag{ display:none; } .ww-wege{ border:1px solid #999; }
 }
+.xz-ok { color: var(--ok, #22c55e); } .xz-bad { color: var(--bad, #ff4d4d); } /* Testlauf 2 (2.7): Rückmeldung zum Prüfungscode */

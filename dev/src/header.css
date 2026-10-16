@@ -1,0 +1,47 @@
+/* ==== Gemeinsame Kopfzeile (Testlauf 2, Phase 4) – EIN Baustein für Labor (header.top) und Portal (header.topbar) ====
+ * build.js hängt diese Datei an style.css (Labor, Werkstatt, Freie Werkbank, Live-Challenge, Prüfung) und an portal.css an.
+ * Die Kopfzeile ist in beiden Themes dunkel (Leitstand-Look); darum eigene Farb-Token --hdr-*, nie die Seiten-Token
+ * (--line ist im hellen Thema fast weiss – daher kamen die weissen Rahmen an Wegweiser- und Rechner-Knopf).
+ * Bewusste Unterschiede, weil sie Funktion tragen: Prüfung ohne Karte/Einstellungen und ohne Speicheranzeige (body.exam-mode),
+ * Live-Challenge ohne Navigation (body.live-mode), Portal-Beamer ohne Kopfzeile (body.beamer-mode), Portal auf dem Handy ohne
+ * Menüzeile (Navigation über die Halle). */
+.dq-hdr {
+  --hdr-h: 56px; --hdr-bg: linear-gradient(180deg, #0b0d10, #13161b); --hdr-line: #2a2f36; --hdr-line-hi: #3a414b;
+  --hdr-text: #e8e8e8; --hdr-dim: #a3a8ae; --hdr-accent: #ffb000; --hdr-hover: rgba(255, 255, 255, .06);
+  --hdr-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 14px; min-height: var(--hdr-h); padding: 0 20px; box-sizing: border-box;
+  background: var(--hdr-bg); border-bottom: 1px solid var(--hdr-line); color: var(--hdr-text); font: 400 14px/1.4 var(--hdr-font); backdrop-filter: none;
+}
+.dq-hdr .dq-brand { display: flex; align-items: center; gap: 10px; flex: none; color: var(--hdr-text); text-decoration: none; font: 800 16px/1 var(--hdr-font); letter-spacing: .16em; }
+.dq-hdr .dq-brand b { color: var(--hdr-accent); font-weight: 800; margin-left: .25em; text-shadow: 0 0 14px rgba(255, 176, 0, .45); }
+.dq-hdr .dq-brand svg { width: 28px; height: 28px; flex: none; color: var(--hdr-accent); stroke: currentColor; fill: none; filter: drop-shadow(0 0 6px rgba(255, 176, 0, .5)); }
+.dq-hdr .dq-brand:focus-visible { outline: 2px solid var(--hdr-accent); outline-offset: 4px; border-radius: 6px; }
+.dq-hdr .dq-nav { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; margin: 0; }
+.dq-hdr .dq-nav > a, .dq-hdr .dq-nav > button { display: inline-flex; align-items: center; height: 34px; padding: 0 11px; border: 1px solid transparent; border-radius: 6px; background: none;
+  color: var(--hdr-dim); font: 600 13.5px/1 var(--hdr-font); text-decoration: none; cursor: pointer; white-space: nowrap; }
+.dq-hdr .dq-nav > a:hover, .dq-hdr .dq-nav > button:hover { color: var(--hdr-text); background: var(--hdr-hover); }
+.dq-hdr .dq-nav > a.active, .dq-hdr .dq-nav > button.active { color: var(--hdr-accent); background: var(--hdr-hover); border-color: var(--hdr-line); }
+.dq-hdr .dq-tools { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
+/* runde bzw. quadratische Werkzeug-Knöpfe (Wegweiser «?», Taschenrechner) – gleicher Rahmen wie alle Knöpfe der Kopfzeile */
+.dq-hdr .dq-hbtn { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; margin: 0; flex: none; border: 1px solid var(--hdr-line-hi); border-radius: 8px; background: none;
+  color: var(--hdr-dim); font: 800 15px/1 var(--hdr-font); text-decoration: none; cursor: pointer; box-sizing: border-box; }
+.dq-hdr .dq-hbtn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.dq-hdr .dq-hbtn:hover, .dq-hdr .dq-hbtn:focus-visible, body.calc-open .dq-hdr .dq-hbtn.calc-btn { color: var(--hdr-accent); border-color: var(--hdr-accent); }
+/* Konto-Chip (Labor) und Anmelde-/Benutzer-Knopf (Portal): gleiche Höhe, Form und Schrift */
+.dq-hdr .dq-chip { display: inline-flex; align-items: center; gap: 8px; height: 34px; max-width: 200px; padding: 0 12px; box-sizing: border-box; border: 1px solid var(--hdr-line-hi); border-radius: 17px;
+  background: none; color: var(--hdr-dim); font: 600 12.5px/1 var(--hdr-font); letter-spacing: .02em; text-decoration: none; white-space: nowrap; overflow: hidden; cursor: pointer; }
+.dq-hdr .dq-chip:hover { border-color: var(--hdr-accent); color: var(--hdr-accent); }
+.dq-hdr .dq-chip.on { border-color: var(--hdr-accent); color: var(--hdr-accent); }
+.dq-hdr .dq-chip span { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 760px) {
+  .dq-hdr { --hdr-h: 52px; gap: 8px; padding: 0 10px; }
+  .dq-hdr .dq-brand span { display: none; }
+  .dq-hdr .dq-nav { gap: 2px; } .dq-hdr .dq-nav > a, .dq-hdr .dq-nav > button { padding: 0 7px; font-size: 12px; }
+  .dq-hdr .dq-tools { gap: 6px; } .dq-hdr .dq-hbtn { width: 32px; height: 32px; } .dq-hdr .dq-chip { height: 32px; max-width: 150px; padding: 0 10px; }
+  .dq-hdr .dq-nav { overflow-x: auto; scrollbar-width: none; } .dq-hdr .dq-nav::-webkit-scrollbar { display: none; }   /* nie über die Werkzeug-Knöpfe */
+}
+@media (max-width: 420px) {
+  .dq-hdr { gap: 6px; padding: 0 8px; }
+  .dq-hdr .dq-nav { gap: 0; } .dq-hdr .dq-nav > a, .dq-hdr .dq-nav > button { padding: 0 5px; font-size: 11.5px; }
+  .dq-hdr .dq-tools { gap: 4px; } .dq-hdr .dq-hbtn { width: 30px; height: 30px; } .dq-hdr .dq-chip { max-width: 120px; }
+}

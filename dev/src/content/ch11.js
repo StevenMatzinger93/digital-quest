@@ -141,8 +141,8 @@
       '<p>Bei f<sub>g</sub> ist die Ausgangsspannung auf 70,7 % gesunken (−3 dB).</p>' +
       '<p><b>Taktgeber</b> liefern Rechteckspannung mit Frequenz f und Periodendauer T = 1/f. Mit einem Inverter erhält man das Gegentaktsignal – zwei LEDs blinken abwechselnd.</p>',
     questions: [
-      { q: 'Nach welcher Zeit schaltet ein Logikeingang hinter einem RC-Glied (τ = 1 s) auf 1?', options: ['0,1 s', '0,69 s', '1 s', '5 s'], correct: 1, explain: 'Die Schwelle 2,5 V ist bei 50 % erreicht: t = τ · ln 2 ≈ 0,69 s.' },
-      { q: 'Wie verkleinert man die Brummspannung eines Gleichrichters?', options: ['Kleineren Ladekondensator', 'Grösseren Ladekondensator', 'Kleineren Lastwiderstand', 'Gar nicht'], correct: 1, explain: 'Ein grösserer Kondensator verliert zwischen den Spitzen weniger Spannung.' },
+      { q: 'Nach welcher Zeit schaltet ein Logikeingang hinter einem RC-Glied (τ = 1 s) auf 1?', options: ['0,69 s', '0,1 s', '1 s', '5 s'], correct: 0, explain: 'Die Schwelle 2,5 V ist bei 50 % erreicht: t = τ · ln 2 ≈ 0,69 s.' },
+      { q: 'Wie verkleinert man die Brummspannung eines Gleichrichters?', options: ['Kleineren Ladekondensator', 'Gar nicht', 'Kleineren Lastwiderstand', 'Grösseren Ladekondensator'], correct: 3, explain: 'Ein grösserer Kondensator verliert zwischen den Spitzen weniger Spannung.' },
       { q: 'Grenzfrequenz bei R = 1 kΩ, C = 10 µF?', options: ['1,6 Hz', '15,9 Hz', '159 Hz', '1,59 kHz'], correct: 1, explain: 'f_g = 1 / (2π · 1000 · 0,00001) ≈ 15,9 Hz.' },
       { q: 'Welches Filter lässt tiefe Frequenzen durch?', options: ['Hochpass', 'Tiefpass', 'Bandsperre', 'Keines'], correct: 1, explain: 'Tiefpass: tiefe Frequenzen passieren.' },
       { q: 'Auf wie viel Prozent ist die Ausgangsspannung bei der Grenzfrequenz gesunken?', options: ['50 %', '63 %', '70,7 %', '90 %'], correct: 2, explain: '1/√2 ≈ 0,707 – das sind −3 dB.' }

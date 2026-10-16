@@ -37,7 +37,7 @@
       '<p><b>Vereinfachen</b> heisst: dieselbe Wahrheitstabelle mit weniger Gattern. Beispiel: e1·e2 ∨ e1·ē2 = e1·(e2 ∨ ē2) = e1·1 = e1 – kein einziges Gatter nötig.</p>' +
       '<p>Assoziativ bedeutet praktisch: Ein UND mit drei Eingängen baust du aus zwei UND mit je zwei Eingängen.</p>',
     questions: [
-      { q: 'Was ist nach der Bindungsregel mit e1 ∨ e2·e3 gemeint?', options: ['(e1 ∨ e2)·e3', 'e1 ∨ (e2·e3)', 'e1·e2 ∨ e3', 'Das ist nicht eindeutig'], correct: 1, explain: 'UND bindet stärker – zuerst e2·e3, dann ODER.' },
+      { q: 'Was ist nach der Bindungsregel mit e1 ∨ e2·e3 gemeint?', options: ['(e1 ∨ e2)·e3', 'Das ist nicht eindeutig', 'e1·e2 ∨ e3', 'e1 ∨ (e2·e3)'], correct: 3, explain: 'UND bindet stärker – zuerst e2·e3, dann ODER.' },
       { q: 'Vereinfache e1·e2 ∨ e1·e3.', options: ['e1 ∨ e2·e3', 'e1·(e2 ∨ e3)', 'e2·e3', 'e1'], correct: 1, explain: 'e1 ausklammern (Distributivgesetz).' },
       { q: 'Was ergibt e1 ∨ e1·e2 (Absorption)?', options: ['e1', 'e2', 'e1·e2', '1'], correct: 0, explain: 'Ist e1 = 1, ist alles 1; ist e1 = 0, ist auch e1·e2 = 0 – also bleibt e1.' },
       { q: 'Vereinfache e1·e2 ∨ e1·ē2.', options: ['e2', 'e1', '1', 'e1·e2'], correct: 1, explain: 'e1·(e2 ∨ ē2) = e1·1 = e1.' },
@@ -60,7 +60,7 @@
     palette: ['and', 'or'], gates: [['U1', 'or', ['E2', 'E3']], ['U2', 'and', ['E1', 'U1']]] });
 
   algTask({ id: '7.3', n: 2, title: 'De Morgan I', tags: ['digital.demorgan', 'digital.boolesche_algebra'], f: function (b) { return 1 - (b[0] & b[1]); },
-    story: 'Kein NAND-Chip mehr im Lager. Es gibt nur ODER- und NICHT-Gatter.',
+    story: 'Kein NAND-Chip (NICHT-UND) mehr im Lager. Es gibt nur ODER- und NICHT-Gatter.',
     brief: 'Baue <b>A = ¬(E1 · E2)</b> nur mit <b>ODER und NICHT</b>.', limit: { gates: 3 }, only: 'ODER und NICHT',
     learn: 'De Morgan: ¬(e1·e2) = ē1 ∨ ē2.', take: 'Negation über den ganzen Term: UND wird zu ODER, jede Variable wird negiert.',
     hint: 'Beide Eingänge einzeln invertieren, dann verodern.', hint2: 'U1 = ¬E1, U2 = ¬E2, U3 = U1 ∨ U2.',
@@ -68,7 +68,7 @@
     wrong: [['nur ein Eingang invertiert', [['U1', 'not', ['E1']], ['U3', 'or', ['U1', 'E2']]]]] });
 
   algTask({ id: '7.4', n: 2, title: 'De Morgan II', tags: ['digital.demorgan', 'digital.boolesche_algebra'], f: function (b) { return 1 - (b[0] | b[1]); },
-    story: 'Jetzt fehlt der NOR-Chip. Im Lager: UND und NICHT.',
+    story: 'Jetzt fehlt der NOR-Chip (NICHT-ODER). Im Lager gibt es nur UND- und NICHT-Gatter.',
     brief: 'Baue <b>A = ¬(E1 ∨ E2)</b> nur mit <b>UND und NICHT</b>.', limit: { gates: 3 }, only: 'UND und NICHT',
     learn: 'De Morgan: ¬(e1 ∨ e2) = ē1 · ē2.', take: 'Auch umgekehrt: ODER wird zu UND, jede Variable wird negiert.',
     hint: 'Beide Eingänge invertieren, dann verunden.', hint2: 'U1 = ¬E1, U2 = ¬E2, U3 = U1 · U2.',
@@ -96,8 +96,8 @@
       '<li><b>ODER aus NOR:</b> NOR und dahinter ein NOR als Inverter.</li></ul>' +
       '<p>Ein <b>XOR aus vier NAND</b>: N1 = ¬(e1·e2), dann N2 = ¬(e1·N1), N3 = ¬(e2·N1), a = ¬(N2·N3).</p>',
     questions: [
-      { q: 'Was ist ¬(e1 ∨ e2) nach De Morgan?', options: ['ē1 ∨ ē2', 'ē1 · ē2', 'e1 · e2', '¬e1 ∨ e2'], correct: 1, explain: 'ODER wird zu UND, jede Variable negiert.' },
-      { q: 'Wie wird ein NAND zum Inverter?', options: ['Einen Eingang auf 0 legen', 'Beide Eingänge verbinden', 'Den Ausgang auf 1 legen', 'Geht nicht'], correct: 1, explain: '¬(e·e) = ē.' },
+      { q: 'Was ist ¬(e1 ∨ e2) nach De Morgan?', options: ['ē1 · ē2', 'ē1 ∨ ē2', 'e1 · e2', '¬e1 ∨ e2'], correct: 0, explain: 'ODER wird zu UND, jede Variable negiert.' },
+      { q: 'Wie wird ein NAND zum Inverter?', options: ['Einen Eingang auf 0 legen', 'Geht nicht', 'Den Ausgang auf 1 legen', 'Beide Eingänge verbinden'], correct: 3, explain: '¬(e·e) = ē.' },
       { q: 'Wie viele NAND braucht ein ODER?', options: ['1', '2', '3', '4'], correct: 2, explain: 'Zwei als Inverter für die Eingänge, eines für die Verknüpfung.' },
       { q: 'Wie viele NAND braucht ein UND?', options: ['1', '2', '3', '4'], correct: 1, explain: 'NAND plus NAND als Inverter.' },
       { q: 'Warum baut man Schaltungen nur aus NAND?', options: ['NAND ist schneller als alle anderen', 'Ein einziger Chiptyp genügt für jede Funktion', 'NAND braucht keine Versorgung', 'Weil UND verboten ist'], correct: 1, explain: 'NAND ist ein Universalgatter – weniger Lagerhaltung, einheitliche Technik.' }
@@ -106,31 +106,31 @@
 
   var nandOnly = { limit: { gates: 1 } };
   algTask({ id: '7.6', n: 1, title: 'NICHT aus NAND', tags: ['digital.nand', 'digital.normiert'], f: function (b) { return 1 - b[0]; },
-    story: 'Auf der Platine ist noch ein NAND frei. Gebraucht wird ein Inverter.',
-    brief: 'Baue einen <b>Inverter nur aus einem NAND</b>.', limit: nandOnly.limit, only: 'NAND',
+    story: 'Auf der Platine ist noch ein NAND-Gatter (NICHT-UND) frei. Gebraucht wird ein Inverter (NICHT-Gatter).',
+    brief: 'Baue einen <b>Inverter nur aus einem NAND-Gatter</b>.', limit: nandOnly.limit, only: 'NAND',
     learn: '¬(e·e) = ē.', take: 'Beide Eingänge an dasselbe Signal – das NAND invertiert.',
     hint: 'Verbinde E1 mit beiden Eingängen.', hint2: 'E1 → U1.in1 und E1 → U1.in2.',
     palette: ['nand'], gates: [['U1', 'nand', ['E1', 'E1']]] });
   algTask({ id: '7.7', n: 2, title: 'UND aus NAND', tags: ['digital.nand', 'digital.normiert'], f: function (b) { return b[0] & b[1]; },
-    story: 'Nur NAND im Lager – gebraucht wird ein UND.',
+    story: 'Im Lager gibt es nur NAND-Gatter (NICHT-UND). Gebraucht wird ein UND-Gatter.',
     brief: 'Baue <b>A = E1 · E2</b> nur aus NAND-Gattern.', limit: { gates: 2 }, only: 'NAND',
     learn: 'UND = NAND + Inverter.', take: 'Das zweite NAND hebt die Negation des ersten wieder auf.',
     hint: 'Ein NAND verknüpft, ein zweites invertiert.', hint2: 'U1 = NAND(E1, E2), U2 = NAND(U1, U1).',
     palette: ['nand'], gates: [['U1', 'nand', ['E1', 'E2']], ['U2', 'nand', ['U1', 'U1']]], wrong: [['nur ein NAND', [['U1', 'nand', ['E1', 'E2']]]]] });
   algTask({ id: '7.8', n: 2, title: 'ODER aus NAND', tags: ['digital.nand', 'digital.normiert', 'digital.demorgan'], f: function (b) { return b[0] | b[1]; },
-    story: 'Die nächste Bestellung: ein ODER. Wieder nur NAND.',
+    story: 'Die nächste Bestellung: ein ODER-Gatter. Wieder gibt es nur NAND-Gatter (NICHT-UND).',
     brief: 'Baue <b>A = E1 ∨ E2</b> nur aus NAND-Gattern.', limit: { gates: 3 }, only: 'NAND',
     learn: 'De Morgan: e1 ∨ e2 = ¬(ē1 · ē2).', take: 'Eingänge invertieren und NAND – das ist ein ODER.',
     hint: 'Zwei NAND als Inverter für E1 und E2, dann ein NAND.', hint2: 'U1 = NAND(E1,E1), U2 = NAND(E2,E2), U3 = NAND(U1,U2).',
     palette: ['nand'], gates: [['U1', 'nand', ['E1', 'E1']], ['U2', 'nand', ['E2', 'E2']], ['U3', 'nand', ['U1', 'U2']]] });
   algTask({ id: '7.9', n: 2, title: 'XOR aus vier NAND', tags: ['digital.nand', 'digital.normiert', 'digital.xor'], f: function (b) { return b[0] ^ b[1]; },
-    story: 'Die Profiaufgabe der Werkmeisterin: „Ein XOR. Nur NAND. Höchstens vier.“',
+    story: 'Die Profiaufgabe der Werkmeisterin: „Ein XOR-Gatter (Exklusiv-ODER). Nur NAND-Gatter, höchstens vier.“',
     brief: 'Baue <b>A = E1 ⊕ E2</b> aus höchstens vier NAND-Gattern.', limit: { gates: 4 }, only: 'NAND',
     learn: 'Das klassische XOR aus vier NAND.', take: 'N1 = ¬(e1·e2); dann ¬(e1·N1) und ¬(e2·N1); zum Schluss NAND beider.',
     hint: 'Das erste NAND verknüpft E1 und E2; sein Ausgang geht in zwei weitere NAND.', hint2: 'U1 = NAND(E1,E2), U2 = NAND(E1,U1), U3 = NAND(E2,U1), U4 = NAND(U2,U3).',
     palette: ['nand'], gates: [['U1', 'nand', ['E1', 'E2']], ['U2', 'nand', ['E1', 'U1']], ['U3', 'nand', ['E2', 'U1']], ['U4', 'nand', ['U2', 'U3']]] });
   algTask({ id: '7.10', n: 2, title: 'ODER aus NOR', tags: ['digital.nor', 'digital.normiert'], f: function (b) { return b[0] | b[1]; },
-    story: 'Ein anderes Lager, ein anderer Chip: nur NOR.',
+    story: 'Ein anderes Lager, ein anderer Chip: nur NOR-Gatter (NICHT-ODER).',
     brief: 'Baue <b>A = E1 ∨ E2</b> nur aus NOR-Gattern.', limit: { gates: 2 }, only: 'NOR',
     learn: 'ODER = NOR + Inverter.', take: 'Ein NOR mit verbundenen Eingängen ist ein Inverter.',
     hint: 'NOR verknüpft, zweites NOR invertiert.', hint2: 'U1 = NOR(E1,E2), U2 = NOR(U1,U1).',

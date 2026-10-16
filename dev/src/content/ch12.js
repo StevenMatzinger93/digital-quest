@@ -112,7 +112,7 @@
   defTask({
     id: '12.5', ch: 12, title: 'Das getaktete RS-Flipflop', tags: ['digital.flipflop', 'digital.steuerungsart'],
     story: 'S und R dürfen nur wirken, solange die Freigabe C aktiv ist – sonst stören kurze Spitzen den Speicher.',
-    brief: 'Baue ein <b>zustandsgesteuertes RS-Flipflop</b>: Vor das NOR-Flipflop je ein UND, das S (E1) bzw. R (E2) mit der Freigabe C (E3) verknüpft. L1 = Q.',
+    brief: 'Baue ein <b>zustandsgesteuertes RS-Flipflop</b>: Vor das NOR-Flipflop je ein UND-Gatter, das S (E1) bzw. R (E2) mit der Freigabe C (E3) verknüpft. L1 = Q.',
     learn: 'Zustandsgesteuert: Die Eingänge wirken, solange C = 1.', take: 'Mit C = 0 ist das Flipflop gegen S und R gesperrt.',
     hint: 'U3 = S·C setzt, U4 = R·C setzt zurück; dahinter das NOR-Flipflop aus 12.1.', hint2: 'U4.out → U1.in1, U2.out → U1.in2, U3.out → U2.in2, U1.out → U2.in1, U1.out → L1.',
     palette: ['nor', 'and', 'or', 'not', 'nand'], need: { nor: 2, and: 2 }, start: gStart, ref: gRef,
@@ -141,7 +141,7 @@
       '<p><b>Johnson-Zähler:</b> Schieberegister, dessen invertierter letzter Ausgang auf den Eingang zurückgeführt ist. 2 Stufen: 00 → 10 → 11 → 01 → 00 – pro Takt ändert sich genau ein Bit.</p>',
     questions: [
       { q: 'Bis zu welcher Zahl zählt ein 3-Bit-Dualzähler?', options: ['3', '6', '7', '8'], correct: 2, explain: '2³ − 1 = 7, dann wieder 0.' },
-      { q: 'Woher bekommt beim asynchronen Aufwärtszähler das zweite Flipflop seinen Takt?', options: ['Vom gemeinsamen Takt', 'Vom Q̄-Ausgang der ersten Stufe', 'Von J', 'Gar nicht'], correct: 1, explain: 'Die Stufen takten sich nacheinander – daher „asynchron“.' },
+      { q: 'Woher bekommt beim asynchronen Aufwärtszähler das zweite Flipflop seinen Takt?', options: ['Vom Q̄-Ausgang der ersten Stufe', 'Vom gemeinsamen Takt', 'Von J', 'Gar nicht'], correct: 0, explain: 'Die Stufen takten sich nacheinander – daher „asynchron“.' },
       { q: 'Was ist der Vorteil des synchronen Zählers?', options: ['Weniger Flipflops', 'Alle Stufen schalten gleichzeitig', 'Er braucht keinen Takt', 'Er zählt rückwärts'], correct: 1, explain: 'Kein Durchlaufen der Stufen – keine falschen Zwischenwerte.' },
       { q: 'Wann kippt beim synchronen 2-Bit-Zähler das zweite JK-Flipflop?', options: ['Bei jedem Takt', 'Wenn Q1 = 1', 'Wenn Q1 = 0', 'Nie'], correct: 1, explain: 'J2 = K2 = Q1.' },
       { q: 'Wie viele Zustände durchläuft ein 2-stufiger Johnson-Zähler?', options: ['2', '3', '4', '8'], correct: 2, explain: '00, 10, 11, 01 – vier Zustände (2·n).' }

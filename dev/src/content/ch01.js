@@ -33,8 +33,8 @@
       '<p>Zwei Schalter <b>in Reihe</b>: Die Lampe leuchtet nur, wenn <i>beide</i> geschlossen sind (UND). Zwei Schalter <b>parallel</b>: Es genügt <i>einer</i> (ODER).</p>' +
       '<p><b>Messen:</b> Das Voltmeter kommt <i>parallel</i> an die zwei Punkte, zwischen denen du die Spannung wissen willst. Das Amperemeter kommt <i>in Reihe</i> – dazu wird der Kreis aufgetrennt und das Messgerät in die Lücke gesetzt.</p>',
     questions: [
-      { q: 'Was braucht ein Stromkreis mindestens?', options: ['Eine Quelle und einen Schalter', 'Eine Quelle, einen Verbraucher und einen geschlossenen Leiterweg', 'Einen Verbraucher und ein Messgerät', 'Zwei Leitungen und einen Schalter'], correct: 1, explain: 'Ohne Quelle kein Antrieb, ohne Verbraucher nichts, das die Energie nutzt, ohne geschlossenen Weg kein Strom.' },
-      { q: 'Zwei Schalter liegen in Reihe mit einer Lampe. Wann leuchtet die Lampe?', options: ['Wenn mindestens ein Schalter zu ist', 'Nur wenn beide Schalter zu sind', 'Immer', 'Nur wenn beide offen sind'], correct: 1, explain: 'In Reihe muss der Strom durch beide Schalter – jeder offene Schalter unterbricht den Kreis (UND-Funktion).' },
+      { q: 'Was braucht ein Stromkreis mindestens?', options: ['Eine Quelle, einen Verbraucher und einen geschlossenen Leiterweg', 'Eine Quelle und einen Schalter', 'Einen Verbraucher und ein Messgerät', 'Zwei Leitungen und einen Schalter'], correct: 0, explain: 'Ohne Quelle kein Antrieb, ohne Verbraucher nichts, das die Energie nutzt, ohne geschlossenen Weg kein Strom.' },
+      { q: 'Zwei Schalter liegen in Reihe mit einer Lampe. Wann leuchtet die Lampe?', options: ['Wenn mindestens ein Schalter zu ist', 'Nur wenn beide offen sind', 'Immer', 'Nur wenn beide Schalter zu sind'], correct: 3, explain: 'In Reihe muss der Strom durch beide Schalter – jeder offene Schalter unterbricht den Kreis (UND-Funktion).' },
       { q: 'Batterie 9 V, Schalter offen, Lampe. Welche Spannung misst du über dem offenen Schalter?', options: ['0 V', '4,5 V', '9 V', '18 V'], correct: 2,
         explain: 'Es fliesst kein Strom, an der Lampe fällt nichts ab – die ganze Quellenspannung liegt über der Unterbrechung.', verify: { layout: lampCircuit(false), mode: 'V', a: 'S1.a', b: 'S1.b' } },
       { q: 'Wie schliesst du ein Amperemeter an?', options: ['Parallel zum Verbraucher', 'In Reihe: Kreis auftrennen, Messgerät in die Lücke', 'Direkt an die Batteriepole', 'Gar nicht – Strom kann man nur rechnen'], correct: 1, explain: 'Der Strom muss durch das Messgerät fliessen. Direkt an die Batterie wäre ein Kurzschluss.' },
@@ -172,9 +172,9 @@
       '<div class="formula">R<sub>V</sub> = (U<sub>B</sub> − U<sub>F</sub>) / I<sub>LED</sub></div>' +
       '<p>Üblich sind 10–20 mA. Die LED hat eine Richtung: Strom nur von der <b>Anode</b> (+, langes Bein) zur <b>Kathode</b> (−, abgeflachte Seite).</p>',
     questions: [
-      { q: 'An 10 V liegt ein Widerstand von 470 Ω. Welcher Strom fliesst?', options: ['2,13 mA', '21,3 mA', '47 mA', '4,7 A'], correct: 1,
+      { q: 'An 10 V liegt ein Widerstand von 470 Ω. Welcher Strom fliesst?', options: ['21,3 mA', '2,13 mA', '47 mA', '4,7 A'], correct: 0,
         explain: 'I = 10 V / 470 Ω ≈ 0,0213 A = 21,3 mA.', verifyTruth: { layout: ohm(10, 470), sel: 'R1', q: 'i' } },
-      { q: 'Bei 10 V sollen genau 10 mA fliessen. Wie gross muss R sein?', options: ['100 Ω', '1 kΩ', '10 kΩ', '0,1 Ω'], correct: 1, explain: 'R = U / I = 10 V / 0,01 A = 1000 Ω.' },
+      { q: 'Bei 10 V sollen genau 10 mA fliessen. Wie gross muss R sein?', options: ['100 Ω', '0,1 Ω', '10 kΩ', '1 kΩ'], correct: 3, explain: 'R = U / I = 10 V / 0,01 A = 1000 Ω.' },
       { q: 'Rote LED (U_F = 1,8 V) an 9 V, gewünscht 20 mA. Welcher Vorwiderstand?', options: ['90 Ω', '360 Ω', '450 Ω', '1,8 kΩ'], correct: 1, explain: 'R = (9 V − 1,8 V) / 0,02 A = 360 Ω.' },
       { q: 'Was passiert, wenn du eine LED ohne Vorwiderstand direkt an 9 V anschliesst?', options: ['Sie leuchtet besonders schön', 'Nichts, sie sperrt', 'Der Strom wird sehr gross – sie brennt durch', 'Die Batterie lädt sich auf'], correct: 2, explain: 'Oberhalb von U_F begrenzt fast nur der kleine Bahnwiderstand den Strom.' },
       { q: 'Welche Leistung setzt ein 1-kΩ-Widerstand an 10 V um?', options: ['0,01 W', '0,1 W', '1 W', '10 W'], correct: 1, explain: 'P = U² / R = 100 V² / 1000 Ω = 0,1 W.' }

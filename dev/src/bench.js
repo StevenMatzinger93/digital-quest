@@ -598,7 +598,8 @@
   };
   /* Ausschnitt setzen (Bildschirm-Koordinaten der Szene), in sinnvollen Grenzen */
   Bench.prototype.setView = function (v) {
-    var w = Math.max(360, Math.min(2600, v[2])), h = v[3] * w / v[2];
+    var A = this.core.area ? this.core.area('bench') : { w: W, h: H }, W = A.w, H = A.h; // Testlauf 2 (5.4): Fläche je Instanz
+    var w = Math.max(360, Math.min(2600 * (W / S.w), v[2])), h = v[3] * w / v[2];
     var x = Math.max(-600, Math.min(W + 600 - w, v[0])), y = Math.max(-500, Math.min(H * K + 300 - h, v[1]));
     this.view = [x, y, w, h];
     this.svg.setAttribute('viewBox', this.view.join(' '));
@@ -608,7 +609,7 @@
   Bench.prototype.zoomAt = function (f, cx, cy) {
     var box = this.svg.getBoundingClientRect(), v = this.view; if (!box.width) return;
     var px = v[0] + (cx - box.left) / box.width * v[2], py = v[1] + (cy - box.top) / box.height * v[3];
-    var w = Math.max(360, Math.min(2600, v[2] * f)), k = w / v[2];
+    var w = Math.max(360, Math.min(2600 * ((this.core.area ? this.core.area('bench').w : W) / S.w), v[2] * f)), k = w / v[2];
     this.setView([px - (px - v[0]) * k, py - (py - v[1]) * k, w, v[3] * k]);
   };
 
@@ -616,6 +617,7 @@
     if (this._hidden()) { this.dirty = true; return; }
     this.dirty = false;
     var self = this, core = this.core, L = core.layout, res = this.sim && this.sim.res, pinNode = this.sim && this.sim.pinNode;
+    var A = core.area ? core.area('bench') : { w: W, h: H }, W = A.w, H = A.h; // Testlauf 2 (5.4): Matte so gross wie die Fläche der Instanz
     var vmax = 0; if (res) Object.keys(res.nodeV).forEach(function (n) { vmax = Math.max(vmax, res.nodeV[n]); });
     var hot = {}; ((res && res.faults) || []).forEach(function (f) { if (f.part && /SHORT|OVERLOAD/.test(f.code)) hot[f.part] = f.code; if (f.code === 'OUTPUT_CLASH') f.parts.forEach(function (id) { hot[id] = f.code; }); });
     function nodeV(pid) { return res && pinNode && pinNode[pid] !== undefined ? res.nodeV[pinNode[pid]] || 0 : undefined; }
@@ -640,6 +642,7 @@
       '<text class="bmatprint" x="24" y="' + (H - 22) + '">DIGITAL QUEST · LABOR · ESD</text>' +
       '<g transform="translate(' + (W - 30) + ' ' + (H - 28) + ')"><circle r="9" fill="url(#bMetal)" stroke="rgba(0,0,0,.5)"/><circle r="4" fill="#8a8f93"/></g>');
     // Bausteine
+    var stk = core.stacks ? core.stacks('bench') : {};
     L.parts.forEach(function (p) {
       var q = core.pos(p, 'bench'), r = res && res.parts[p.id], sel = core.sel === p.id, sz = size(p.type), rot = q.rot || 0;
       var hw = (rot % 180 ? sz[1] : sz[0]) / 2, hh = (rot % 180 ? sz[0] : sz[1]) / 2, vt = Ed.valueText(p);
@@ -650,13 +653,16 @@
         '<g filter="url(#bShadow)" transform="rotate(' + rot + ')">' + illus(p, r, hot[p.id]) + '</g>' +
         (hot[p.id] ? '<g class="bsmoke" transform="scale(1 ' + (1 / K) + ')"><path d="M-8 ' + (-hh * K) + 'c-8-14 8-22 0-36s8-22 0-34"/><path d="M8 ' + (-hh * K) + 'c8-12-6-20 2-32s-6-18 2-28"/></g>' : '') +
         (sel ? '<rect class="bsel" x="' + (-hw - 7) + '" y="' + (-hh - 7) + '" width="' + (2 * hw + 14) + '" height="' + (2 * hh + 14) + '" rx="12"/>' : '') +
-        '<g transform="scale(1 ' + (1 / K) + ')"><text class="blbl" y="' + ((-hh - 9) * K) + '">' + esc(p.id) + (vt ? ' · ' + esc(vt) : '') + '</text></g>' +
+        '<g transform="scale(1 ' + (1 / K) + ')"><text class="blbl" y="' + ((-hh - 9) * K) + '">' + esc(p.id) + (vt ? ' · ' + esc(vt) : '') + '</text>' +
+        (stk[p.id] ? '<g class="stackbadge" transform="translate(' + (hw - 4) + ' ' + ((-hh + 4) * K) + ')"><title>' + stk[p.id] + ' Bauteile liegen übereinander – wegziehen zum Trennen</title><circle r="13"/><text y="5">' + stk[p.id] + '</text></g>' : '') + '</g>' +
         '</g>');
     });
     // Laborkabel
+    var hn = core.hiNet ? core.hiNet() : null, hw = {}, hp = {}; if (hn) { hn.wires.forEach(function (k) { hw[k] = 1; }); hn.pins.forEach(function (k) { hp[k] = 1; }); }
+    self.svg.classList.toggle('net-on', !!hn);
     L.wires.forEach(function (w, i) {
-      var a = pp(w.from), b = pp(w.to), d = cablePath(a, b), col = wcol(w.from) || cableColor(w, i, byId), sel = core.sel === 'w:' + i, iw = wi[i] || 0;
-      h.push('<g data-wire="' + i + '" class="bwire' + (sel ? ' selected' : '') + '"><path class="bwirehit" d="' + d + '"/>' +
+      var a = pp(w.from), b = pp(w.to), d = cablePath(a, b), col = wcol(w.from) || (w.color && Circuit.WIRE_COLORS && Circuit.WIRE_COLORS[w.color]) || cableColor(w, i, byId), sel = core.sel === 'w:' + i, iw = wi[i] || 0;
+      h.push('<g data-wire="' + i + '" class="bwire' + (sel ? ' selected' : '') + (hw[i] ? ' nethi' : '') + '"><path class="bwirehit" d="' + d + '"/>' +
         '<g filter="url(#bCable)">' + (sel ? '<path d="' + d + '" fill="none" stroke="#ffb000" stroke-width="14" stroke-linecap="round" opacity=".8"/>' : '') +
         '<path d="' + d + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="8" stroke-linecap="round"/>' +
         '<path class="bcore" data-i="' + iw.toExponential(3) + '" d="' + d + '" fill="none" stroke="' + col + '" stroke-width="5.5" stroke-linecap="round"/>' +
@@ -677,7 +683,7 @@
     L.parts.forEach(function (p) {
       Object.keys(GEO[p.type]).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = self.pinPos(p, pin), v = nodeV(pid), col = wcol(pid);
-        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (14 * HIT).toFixed(1) + '"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen ' + ((self.sim && self.sim.ref) || 'den Bezugspunkt') : '') + (self.refMark === pid ? ' – Bezugspunkt 0 V (Oszilloskop ohne Erdungsclip misst hiergegen)' : '') + '</title></circle>' +
+        h.push('<g data-pin="' + pid + '"' + (hp[pid] ? ' class="nethi"' : '') + '><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (14 * HIT).toFixed(1) + '"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen ' + ((self.sim && self.sim.ref) || 'den Bezugspunkt') : '') + (self.refMark === pid ? ' – Bezugspunkt 0 V (Oszilloskop ohne Erdungsclip misst hiergegen)' : '') + '</title></circle>' +
           '<circle class="bpin' + (core.wireStart === pid ? ' active' : '') + (used[pid] ? ' used' : '') + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="12"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
         if (col && pin !== 'g' && used[pid]) h.push('<g transform="translate(' + (xy[0] + 12) + ' ' + (xy[1] - 14) + ') scale(1 ' + (1 / K) + ')"><text class="bvlabel">' + E.fmt(v, 'V') + '</text></g>');
         if (self.refMark === pid) h.push('<g class="brefmark" transform="translate(' + (xy[0] - 14) + ' ' + (xy[1] + 22) + ') scale(1 ' + (1 / K) + ')" pointer-events="none"><text>⏚ 0 V</text></g>'); // G1: Bezugspunkt sichtbar, solange ohne Erdungsclip gemessen wird

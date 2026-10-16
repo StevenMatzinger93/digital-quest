@@ -28,9 +28,9 @@
       '<p><b>Stabilisierung:</b> R<sub>V</sub> muss so klein sein, dass bei kleinster Eingangsspannung und grösster Last noch ein Z-Strom fliesst: R<sub>V</sub> ≤ (U<sub>e,min</sub> − U<sub>Z</sub>) / (I<sub>L,max</sub> + I<sub>Z,min</sub>). Und so gross, dass bei höchster Spannung die Z-Diode nicht überlastet wird.</p>' +
       '<p>Nachteile der einfachen Z-Stabilisierung: höhere Speisespannung nötig, nur Standardwerte für U<sub>Z</sub>, geringe Belastbarkeit, nicht ganz ideal (U<sub>Z</sub> steigt leicht mit dem Strom).</p>',
     questions: [
-      { q: 'Wie gross ist die Schleusenspannung einer Siliziumdiode?', options: ['0,3 V', '0,7 V', '1,8 V', '5,1 V'], correct: 1, explain: 'Silizium ca. 0,7 V.' },
-      { q: 'Woran erkennt man die Kathode einer Diode?', options: ['Am längeren Bein', 'Am Ring auf dem Gehäuse', 'An der Farbe', 'Gar nicht'], correct: 1, explain: 'Der Ring markiert die Kathode.' },
-      { q: 'In welcher Richtung wird eine Z-Diode zur Stabilisierung betrieben?', options: ['Durchlassrichtung', 'Sperrrichtung', 'Egal', 'Wechselnd'], correct: 1, explain: 'Im Durchbruch in Sperrrichtung hält sie U_Z.' },
+      { q: 'Wie gross ist die Schleusenspannung einer Siliziumdiode?', options: ['0,7 V', '0,3 V', '1,8 V', '5,1 V'], correct: 0, explain: 'Silizium ca. 0,7 V.' },
+      { q: 'Woran erkennt man die Kathode einer Diode?', options: ['Am längeren Bein', 'An der Farbe', 'Am Ring auf dem Gehäuse', 'Gar nicht'], correct: 2, explain: 'Der Ring markiert die Kathode.' },
+      { q: 'In welcher Richtung wird eine Z-Diode zur Stabilisierung betrieben?', options: ['Durchlassrichtung', 'Wechselnd', 'Egal', 'Sperrrichtung'], correct: 3, explain: 'Im Durchbruch in Sperrrichtung hält sie U_Z.' },
       { q: 'Warum braucht eine Z-Diode einen Vorwiderstand?', options: ['Damit sie leuchtet', 'Damit der Strom begrenzt wird', 'Damit sie sperrt', 'Braucht sie nicht'], correct: 1, explain: 'Ohne R_V würde der Strom im Durchbruch unbegrenzt steigen.' },
       { q: '12 V, R_V = 470 Ω, U_Z = 5,1 V, keine Last. Wie gross ist I_Z (ungefähr)?', options: ['5 mA', '15 mA', '25 mA', '50 mA'], correct: 1, explain: 'I = (12 V − 5,1 V) / 470 Ω ≈ 14,7 mA.' }
     ]
@@ -132,7 +132,7 @@
       '<div class="formula">R<sub>B</sub> ≤ (U<sub>st</sub> − 0,7 V) / (ü · I<sub>C</sub> / β)</div>' +
       '<p>Emitter und Logik-Masse müssen verbunden sein – sonst hat die Steuerspannung keinen Bezug. So schaltet ein Logikausgang (wenige mA) eine Lampe, einen Motor oder ein Relais.</p>',
     questions: [
-      { q: 'Wie heissen die Anschlüsse eines Bipolartransistors?', options: ['Anode, Kathode, Gate', 'Basis, Kollektor, Emitter', 'Source, Drain, Gate', 'Plus, Minus, Mitte'], correct: 1, explain: 'B, C, E.' },
+      { q: 'Wie heissen die Anschlüsse eines Bipolartransistors?', options: ['Anode, Kathode, Gate', 'Plus, Minus, Mitte', 'Source, Drain, Gate', 'Basis, Kollektor, Emitter'], correct: 3, explain: 'B, C, E.' },
       { q: 'β = 100, I_B = 0,1 mA, aktiver Bereich. I_C = ?', options: ['0,1 mA', '1 mA', '10 mA', '100 mA'], correct: 2, explain: 'I_C = β · I_B = 100 · 0,1 mA = 10 mA.' },
       { q: 'Wie gross ist U_CE in der Sättigung?', options: ['ca. 0,2 V', 'ca. 0,7 V', 'halbe Speisung', 'volle Speisung'], correct: 0, explain: 'Voll durchgeschaltet bleibt nur die Sättigungsspannung.' },
       { q: 'Warum steuert man einen Schalttransistor mit mehr Basisstrom als nötig an?', options: ['Damit er schneller altert', 'Damit er sicher in Sättigung geht', 'Damit er sperrt', 'Damit β steigt'], correct: 1, explain: 'Übersteuern sichert den voll durchgeschalteten Zustand trotz Exemplarstreuung.' },

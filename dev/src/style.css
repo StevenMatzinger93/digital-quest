@@ -23,15 +23,7 @@ code, kbd, .lcd, .mono { font-family: var(--font-code); }
 kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 12px; }
 .dim { color: var(--text-dim); } .small { font-size: 13px; } .tiny { font-size: 11px; }
 
-/* Kopfzeile */
-.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 16px; padding: 10px 18px; background: linear-gradient(#0a0a0a, #141414); border-bottom: 1px solid #2a2a2a; }
-:root[data-theme="light"] .top { background: #1b1d17; }
-.brand { font-weight: 800; letter-spacing: 3px; color: #eee; display: flex; align-items: center; gap: 10px; }
-.brand b { color: var(--accent-lead); font-weight: 800; }
-.brand svg { width: 26px; height: 26px; stroke: var(--accent-lead); fill: none; stroke-width: 2; filter: drop-shadow(0 0 6px rgba(255,176,0,.6)); }
-.top nav { display: flex; gap: 4px; margin-left: auto; }
-.top nav button { background: none; border: 1px solid transparent; color: #bbb; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
-.top nav button.active, .top nav button:hover { border-color: #333; color: var(--accent-lead); background: #1c1c1c; }
+/* Kopfzeile: gemeinsamer Baustein src/header.css (.dq-hdr, Testlauf 2 Phase 4) – hier nur Labor-eigene Teile */
 #saveInd { font-size: 12px; color: #777; min-width: 90px; text-align: right; } #saveInd.ok { color: var(--accent-green); } #saveInd.err { color: var(--accent-red); }
 
 .screen { display: none; } .screen.active { display: block; }
@@ -247,7 +239,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 @media (max-width: 1100px) { #scr-task.active { grid-template-columns: 1fr 280px; } #taskInfo { grid-column: 1 / -1; } }
 @media (max-width: 760px) {
   #scr-task.active { grid-template-columns: 1fr; padding: 8px; } .boardwrap { min-height: 300px; aspect-ratio: 1000 / 620; flex: none; }
-  .top { padding: 8px 10px; gap: 6px; } .brand span { display: none; } .top nav { gap: 2px; } .top nav button { padding: 6px 6px; font-size: 12px; } .top nav .long { display: none; } #saveInd { display: none; }
+  .top nav .long { display: none; } #saveInd { display: none; }
   .manual { grid-template-columns: 1fr; } .progress .bar { width: 140px; }
 }
 
@@ -462,7 +454,6 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
 /* Fusszeile im Labor, Zurueck-Knopf, Toleranz-Hinweis */
 .lab-foot { display: flex; gap: 18px; justify-content: center; padding: 18px 16px 24px; font-size: 12px; color: var(--text-faint); } .lab-foot a { color: var(--text-dim); }
-.brand { text-decoration: none; } .brand:focus-visible { outline: 2px solid var(--accent-lead); outline-offset: 4px; border-radius: 6px; }
 .crumb .back { margin-right: 10px; vertical-align: middle; font-family: var(--font-ui); letter-spacing: 0; }
 .protocol .tol { display: block; flex-basis: 100%; color: var(--text-faint); font-size: 11px; margin-top: -2px; } .proto-note { margin: 0 0 8px; }
 /* Oszilloskop gross */
@@ -550,8 +541,6 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .bb-dash { stroke: var(--accent-green); stroke-dasharray: 3 3; }
 
 /* ---- Taschenrechner (Overlay ueber dem aktuellen Bildschirm) ---- */
-.calc-btn { background: none; border: 1px solid var(--line); border-radius: 8px; width: 34px; height: 30px; display: inline-grid; place-items: center; color: var(--text-dim); cursor: pointer; margin-left: 6px; }
-.calc-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; } .calc-btn:hover, body.calc-open .calc-btn { color: var(--accent-lead); border-color: var(--accent-lead); }
 .calc-ctx { float: right; margin-top: -4px; font-weight: 400; }
 #calc { position: fixed; inset: 0; z-index: 600; } #calc[hidden] { display: none; }
 .calc-back { position: absolute; inset: 0; background: rgba(0,0,0,.25); }
@@ -586,14 +575,10 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .tut-link { margin: 10px 0 0; font-size: 13px; color: var(--text-dim); } .tut-link a { color: var(--accent-cyan); }
 @media (max-width: 900px) { .tutorial { grid-template-columns: 1fr; } }
 /* ---- Konto-Chip, Sterne, Meldung (Portal-Version) ---- */
-.acct-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 190px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 20px; color: var(--text-dim); text-decoration: none; font-size: 13px; white-space: nowrap; overflow: hidden; }
 .acct-chip[hidden] { display: none; }
 .acct-chip span { overflow: hidden; text-overflow: ellipsis; }
 .acct-chip svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.acct-chip.on { border-color: var(--accent-green); color: var(--accent-green); }
 /* Wegweiser (Paket W): ?-Link in der Kopfzeile, Handbuch-Seite mit Karten */
-.ww-link { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); color: var(--text-dim); font-weight: 800; text-decoration: none; flex: none; }
-.ww-link:hover, .ww-link:focus-visible { border-color: var(--accent-lead); color: var(--accent-lead); }
 .manual .ww-tools { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 14px; } .manual .ww-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; margin-bottom: 12px; }
 .manual .ww-card { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-tertiary); }
 .manual .ww-ic { font-size: 24px; text-align: center; } .manual .ww-body p { margin: 3px 0 0; font-size: 13px; } .manual .ww-wann { color: var(--text-dim); } .manual .ww-wann span { font-family: var(--font-code); font-size: 11px; text-transform: uppercase; color: var(--accent-lead); }
@@ -601,7 +586,6 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .acct-chip .acct-av { display: inline-flex; width: 20px; height: 20px; margin: -3px 0; border-radius: 50%; overflow: hidden; flex: none; } .acct-chip .acct-av svg { width: 100%; height: 100%; stroke: none; }
 .live-av { display: inline-block; width: 96px; height: 115px; margin: 4px auto 2px; } .live-av svg { width: 100%; height: 100%; } .pod.p1 .live-av { width: 120px; height: 144px; }
 @media (max-width: 640px) { .live-av { width: 64px; height: 77px; } .pod.p1 .live-av { width: 80px; height: 96px; } }
-.acct-chip:hover { border-color: var(--accent-lead); color: var(--accent-lead); }
 .teacher-bar a { color: var(--accent-cyan); }
 .star { color: var(--text-faint); } .star.on { color: var(--accent-lead); text-shadow: 0 0 8px rgba(255,176,0,.5); }
 .stars-win { font-size: 30px; letter-spacing: 6px; margin: 0 0 6px; }
@@ -659,3 +643,32 @@ body.has-exam-bar .top { padding-top: 50px; }
 .exam-table .sub th { font-weight: 400; color: var(--text-dim); padding-left: 16px; } .exam-table .sub td { font-weight: 400; color: var(--text-dim); }
 .exam-theory .q { margin-bottom: 14px; }
 @media (max-width: 640px) { .exam-bar { border-radius: 14px; gap: 6px; padding: 6px 8px; } .eb-mode { display: none; } body.has-exam-bar .top { padding-top: 92px; } }
+
+/* Testlauf 2 (2.4): Zahlzeichen auf übereinanderliegenden Bauteilen */
+.stackbadge circle { fill: var(--warn, #f59e0b); stroke: rgba(0,0,0,.45); stroke-width: 1.5; }
+.stackbadge text { fill: #111; font: 700 13px system-ui, sans-serif; text-anchor: middle; pointer-events: none; }
+.ds-pop.ds-passive { pointer-events: none; } /* Testlauf 2 (2.1): Palette-Datenblatt fängt keine Maus ab */
+.ds-pop.ds-passive .ds-x { display: none; }
+.calc-head { cursor: move; touch-action: none; user-select: none; } .calc-head .calc-x { cursor: pointer; } /* Testlauf 2 (2.2): Rechner an der Titelleiste ziehen */
+.brief ol.steps { margin: 6px 0 0; padding-left: 22px; } .brief ol.steps li { margin: 4px 0; } /* Testlauf 2 (3.1): Auftrag als nummerierte Schritte */
+.setup-rows > li > details > summary { cursor: pointer; font-weight: 600; } .setup-rows > li > details[open] > summary { margin-bottom: 2px; } /* Testlauf 2 (3.2): je Messwert aufklappbar */
+.hw-paths { margin: 10px 0; } .hw-paths figcaption { font-size: 13px; color: var(--text-dim); margin-top: 4px; } /* Testlauf 2 (3.4): Halbwellen-Pfade im Brückengleichrichter */
+/* Testlauf 2 (Phase 5): Ziehen aus der Palette, Netz hervorheben, Leitungsfarbe, Aufbauten */
+.pal-ghost { position: fixed; z-index: 90; transform: translate(-50%, -50%); pointer-events: none; display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border: 1px dashed var(--accent-lead); border-radius: 8px; background: var(--bg-panel); opacity: .9; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.pal-ghost svg { width: 34px; height: 34px; } .pal-ghost.ok { border-style: solid; }
+body.pal-dragging, body.pal-dragging * { cursor: grabbing !important; user-select: none; }
+.palbtn { touch-action: manipulation; }
+svg.net-on [data-wire]:not(.nethi) { opacity: .4; }
+[data-wire].nethi path.wire, [data-wire].nethi path.bcore { stroke: #ffd24a !important; stroke-width: 4; filter: drop-shadow(0 0 4px rgba(255,210,74,.8)); }
+.bwire.nethi { filter: drop-shadow(0 0 6px rgba(255,210,74,.95)); }
+[data-pin].nethi circle:not(.pinhit):not(.bpinhit) { stroke: #ffd24a; stroke-width: 3; }
+.wire-colors { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.wire-colors .wc { width: 30px; height: 26px; border-radius: 6px; border: 1px solid var(--line); background: var(--wc, var(--bg-tertiary)); cursor: pointer; font-size: 11px; color: var(--text-dim); }
+.wire-colors .wc.on { outline: 2px solid var(--accent-lead); outline-offset: 1px; }
+.setups { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-tertiary); }
+.setups h3 { margin: 0 0 8px; font-size: 14px; } .setups .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
+.setups input { flex: 1; min-width: 140px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg-secondary); }
+.su-list { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 4px; } .su-list li { display: flex; gap: 6px; align-items: center; } .su-list li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.su-imp { cursor: pointer; } #suMsg.err { color: var(--accent-red); } #suMsg.ok { color: var(--accent-green); }
+.tb:disabled { opacity: .4; cursor: default; }
+@media (min-width: 761px) { body.sandbox-mode .boardwrap { min-height: calc(100vh - 120px); } } /* Testlauf 2 (5.4): Freie Werkbank füllt die Fensterhöhe */

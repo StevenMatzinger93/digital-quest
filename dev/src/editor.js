@@ -191,13 +191,15 @@
   }
   /* L4 (05.10.2026): Ausschnitt setzen (begrenzt), zur Zeigerposition zoomen – dieselbe Bedienung wie die Werkbank
    * (Strg/⌘ + Rad, zwei Finger, Ziehen auf leerer Fläche); Doppeltipp auf ein Bauteil zoomt heran, auf leere Fläche passt ein. */
+  Editor.prototype.dims = function () { var a = this.core.area ? this.core.area('schema') : null; return a ? [a.w, a.h] : [W, H]; }; // Testlauf 2 (5.4): Fläche je Instanz
   Editor.prototype.setView = function (v) {
+    var D = this.dims(), W = D[0], H = D[1];
     var w = Math.max(160, Math.min(W * 1.6, v[2])), h = v[3] * w / v[2];
     var x = Math.max(-300, Math.min(W + 300 - w, v[0])), y = Math.max(-300, Math.min(H + 300 - h, v[1]));
     this.view = [x, y, w, h]; this.svg.setAttribute('viewBox', this.view.join(' ')); this.render();
   };
   Editor.prototype.zoomAt = function (f, cx, cy) {
-    var box = this.svg.getBoundingClientRect(), v = this.view; if (!box.width) return;
+    var box = this.svg.getBoundingClientRect(), v = this.view, W = this.dims()[0]; if (!box.width) return;
     var px = v[0] + (cx - box.left) / box.width * v[2], py = v[1] + (cy - box.top) / box.height * v[3];
     var w = Math.max(160, Math.min(W * 1.6, v[2] * f)), k = w / v[2];
     this.setView([px - (px - v[0]) * k, py - (py - v[1]) * k, w, v[3] * k]);
@@ -215,6 +217,7 @@
   Editor.prototype.load = function (layout, lockedIds, bench) { this.core.load(layout, lockedIds, bench); this.fit(); };
   /* Ansicht auf die Bauteile einpassen (mind. 640 × 400, Rand 140) – nur beim Laden und auf Wunsch, nie waehrend des Ziehens */
   Editor.prototype.fit = function () {
+    var D = this.dims(), W = D[0], H = D[1];
     var ps = this.layout.parts, x0 = 300, y0 = 200, x1 = 700, y1 = 420;
     if (ps.length) { x0 = Math.min.apply(null, ps.map(function (p) { return p.x; })); x1 = Math.max.apply(null, ps.map(function (p) { return p.x; }));
       y0 = Math.min.apply(null, ps.map(function (p) { return p.y; })); y1 = Math.max.apply(null, ps.map(function (p) { return p.y; })); }
@@ -233,6 +236,7 @@
   /* Neues Bauteil in der Mitte des sichtbaren Ausschnitts */
   Editor.prototype.addPart = function (type) {
     var v = this.view || [0, 0, W, H], p = this.core.addPart(type, v[0] + v[2] / 2, v[1] + v[3] / 2);
+    if (!p) return p;
     if (p.x - 50 < v[0] || p.x + 50 > v[0] + v[2] || p.y - 50 < v[1] || p.y + 50 > v[1] + v[3]) this.fit(); // neues Bauteil ausserhalb des Ausschnitts: einpassen
     return p;
   };
@@ -309,7 +313,15 @@
         return (s1[0] === -da[0] && s1[0] !== 0 ? 1 : 0) + (s1[1] === -da[1] && s1[1] !== 0 ? 1 : 0) +
           (s2[0] === db[0] && s2[0] !== 0 ? 1 : 0) + (s2[1] === db[1] && s2[1] !== 0 ? 1 : 0);
       }
-      var hFirst = pen([sb[0], sa[1]]) <= pen([sa[0], sb[1]]);
+      // Testlauf 2 (5.5): von den zwei rechtwinkligen Wegen den nehmen, der weniger Bauteile durchquert (dann wie bisher die Richtung)
+      function hits(c) {
+        var segs = [[sa, c], [c, sb]], n = 0;
+        L.parts.forEach(function (p) { if (p.id === fa.split('.')[0] || p.id === fb.split('.')[0]) return; var x0 = p.x - 30, x1 = p.x + 30, y0 = p.y - 26, y1 = p.y + 26;
+          segs.forEach(function (s) { var ax = Math.min(s[0][0], s[1][0]), bx = Math.max(s[0][0], s[1][0]), ay = Math.min(s[0][1], s[1][1]), by = Math.max(s[0][1], s[1][1]); if (bx > x0 && ax < x1 && by > y0 && ay < y1) n++; }); });
+        return n;
+      }
+      var cH = [sb[0], sa[1]], cV = [sa[0], sb[1]], hH = hits(cH), hV = hits(cV);
+      var hFirst = hH !== hV ? hH < hV : pen(cH) <= pen(cV);
       var mid = hFirst ? 'H' + sb[0] + 'V' + sb[1] : 'V' + sb[1] + 'H' + sb[0];
       return 'M' + a[0] + ' ' + a[1] + 'L' + sa[0] + ' ' + sa[1] + mid + 'L' + b[0] + ' ' + b[1];
     }
@@ -321,21 +333,24 @@
     h.push('<defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="0" cy="0" r="1" class="griddot"/></pattern>' +
       '<radialGradient id="glowAmber"><stop offset="0" stop-color="#ffcf4a" stop-opacity="0.9"/><stop offset="1" stop-color="#ffb000" stop-opacity="0"/></radialGradient>' +
       '<filter id="blur" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="6"/></filter></defs>');
-    h.push('<rect width="' + W + '" height="' + H + '" fill="url(#grid)"/>');
+    var D = self.dims(); h.push('<rect width="' + D[0] + '" height="' + D[1] + '" fill="url(#grid)"/>');
     // Leitungen
     var wi = self.showFlow && root.DQBench ? root.DQBench.wireCurrents(L, res) : [];
+    var hn = self.core.hiNet ? self.core.hiNet() : null, hw = {}, hp = {}; if (hn) { hn.wires.forEach(function (k) { hw[k] = 1; }); hn.pins.forEach(function (k) { hp[k] = 1; }); }
+    self.svg.classList.toggle('net-on', !!hn);
     L.wires.forEach(function (w, i) {
-      var col = wcol(w.from), d = route(w.from, w.to), iw = wi[i] || 0;
-      h.push('<g data-wire="' + i + '"><path class="wirehit" d="' + d + '"/><path class="wire bcore' + (self.sel === 'w:' + i ? ' selected' : '') + '" data-i="' + iw.toExponential(3) + '" d="' + d + '"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
+      var col = wcol(w.from) || (w.color && Circuit.WIRE_COLORS && Circuit.WIRE_COLORS[w.color]) || null, d = route(w.from, w.to), iw = wi[i] || 0;
+      h.push('<g data-wire="' + i + '"' + (hw[i] ? ' class="nethi"' : '') + '><path class="wirehit" d="' + d + '"/><path class="wire bcore' + (self.sel === 'w:' + i ? ' selected' : '') + '" data-i="' + iw.toExponential(3) + '" d="' + d + '"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
     });
     // Bauteile
+    var stk = self.core.stacks ? self.core.stacks('schema') : {};
     L.parts.forEach(function (p) {
       var r = res && res.parts[p.id], sel = self.sel === p.id;
       var tip = partTip(p, r);
       h.push('<g class="part' + (sel ? ' selected' : '') + (self.locked[p.id] ? ' locked' : '') + '" data-part="' + p.id + '" transform="translate(' + p.x + ' ' + p.y + ')">' +
         '<title>' + esc(tip) + '</title><rect class="hit" x="-44" y="-34" width="88" height="68"/>' +
         '<g transform="rotate(' + (p.rot || 0) + ')">' + symbol(p, r) + '</g>' +
-        labels(p) + '</g>');
+        labels(p) + (stk[p.id] ? '<g class="stackbadge" transform="translate(34 -30)"><title>' + stk[p.id] + ' Bauteile liegen übereinander – wegziehen zum Trennen</title><circle r="11"/><text y="4">' + stk[p.id] + '</text></g>' : '') + '</g>');
     });
     if (self.showFlow) h.push('<g class="bflow" pointer-events="none"></g>');
     // Anschluesse
@@ -343,7 +358,7 @@
       Object.keys(GEO[p.type]).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = pinPos(p, pin), col = wcol(pid);
         var cls = 'pin' + (self.wireStart === pid ? ' active' : '') + (pinWireCount[pid] ? ' used' : '') + (pinWireCount[pid] > 1 ? ' junction' : '');
-        h.push('<g data-pin="' + pid + '"><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (11 * hit).toFixed(1) + '"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');
+        h.push('<g data-pin="' + pid + '"' + (hp[pid] ? ' class="nethi"' : '') + '><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (11 * hit).toFixed(1) + '"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');
         if (self.showVolt && res && pinNode && pinNode[pid] !== undefined && pin !== 'g')
           h.push('<text class="vlabel" x="' + (xy[0] + 6) + '" y="' + (xy[1] - 6) + '">' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + '</text>');
         if (self.refMark === pid) h.push('<text class="refmark" x="' + (xy[0] - 8) + '" y="' + (xy[1] + 18) + '">⏚ 0 V<title>Bezugspunkt 0 V – ohne schwarze Spitze misst das Oszilloskop hiergegen</title></text>'); // G1

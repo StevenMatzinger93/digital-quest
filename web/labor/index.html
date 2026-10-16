@@ -32,15 +32,7 @@ code, kbd, .lcd, .mono { font-family: var(--font-code); }
 kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 12px; }
 .dim { color: var(--text-dim); } .small { font-size: 13px; } .tiny { font-size: 11px; }
 
-/* Kopfzeile */
-.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 16px; padding: 10px 18px; background: linear-gradient(#0a0a0a, #141414); border-bottom: 1px solid #2a2a2a; }
-:root[data-theme="light"] .top { background: #1b1d17; }
-.brand { font-weight: 800; letter-spacing: 3px; color: #eee; display: flex; align-items: center; gap: 10px; }
-.brand b { color: var(--accent-lead); font-weight: 800; }
-.brand svg { width: 26px; height: 26px; stroke: var(--accent-lead); fill: none; stroke-width: 2; filter: drop-shadow(0 0 6px rgba(255,176,0,.6)); }
-.top nav { display: flex; gap: 4px; margin-left: auto; }
-.top nav button { background: none; border: 1px solid transparent; color: #bbb; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
-.top nav button.active, .top nav button:hover { border-color: #333; color: var(--accent-lead); background: #1c1c1c; }
+/* Kopfzeile: gemeinsamer Baustein src/header.css (.dq-hdr, Testlauf 2 Phase 4) – hier nur Labor-eigene Teile */
 #saveInd { font-size: 12px; color: #777; min-width: 90px; text-align: right; } #saveInd.ok { color: var(--accent-green); } #saveInd.err { color: var(--accent-red); }
 
 .screen { display: none; } .screen.active { display: block; }
@@ -256,7 +248,7 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-si
 @media (max-width: 1100px) { #scr-task.active { grid-template-columns: 1fr 280px; } #taskInfo { grid-column: 1 / -1; } }
 @media (max-width: 760px) {
   #scr-task.active { grid-template-columns: 1fr; padding: 8px; } .boardwrap { min-height: 300px; aspect-ratio: 1000 / 620; flex: none; }
-  .top { padding: 8px 10px; gap: 6px; } .brand span { display: none; } .top nav { gap: 2px; } .top nav button { padding: 6px 6px; font-size: 12px; } .top nav .long { display: none; } #saveInd { display: none; }
+  .top nav .long { display: none; } #saveInd { display: none; }
   .manual { grid-template-columns: 1fr; } .progress .bar { width: 140px; }
 }
 
@@ -471,7 +463,6 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 
 /* Fusszeile im Labor, Zurueck-Knopf, Toleranz-Hinweis */
 .lab-foot { display: flex; gap: 18px; justify-content: center; padding: 18px 16px 24px; font-size: 12px; color: var(--text-faint); } .lab-foot a { color: var(--text-dim); }
-.brand { text-decoration: none; } .brand:focus-visible { outline: 2px solid var(--accent-lead); outline-offset: 4px; border-radius: 6px; }
 .crumb .back { margin-right: 10px; vertical-align: middle; font-family: var(--font-ui); letter-spacing: 0; }
 .protocol .tol { display: block; flex-basis: 100%; color: var(--text-faint); font-size: 11px; margin-top: -2px; } .proto-note { margin: 0 0 8px; }
 /* Oszilloskop gross */
@@ -559,8 +550,6 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .bb-dash { stroke: var(--accent-green); stroke-dasharray: 3 3; }
 
 /* ---- Taschenrechner (Overlay ueber dem aktuellen Bildschirm) ---- */
-.calc-btn { background: none; border: 1px solid var(--line); border-radius: 8px; width: 34px; height: 30px; display: inline-grid; place-items: center; color: var(--text-dim); cursor: pointer; margin-left: 6px; }
-.calc-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; } .calc-btn:hover, body.calc-open .calc-btn { color: var(--accent-lead); border-color: var(--accent-lead); }
 .calc-ctx { float: right; margin-top: -4px; font-weight: 400; }
 #calc { position: fixed; inset: 0; z-index: 600; } #calc[hidden] { display: none; }
 .calc-back { position: absolute; inset: 0; background: rgba(0,0,0,.25); }
@@ -595,14 +584,10 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .tut-link { margin: 10px 0 0; font-size: 13px; color: var(--text-dim); } .tut-link a { color: var(--accent-cyan); }
 @media (max-width: 900px) { .tutorial { grid-template-columns: 1fr; } }
 /* ---- Konto-Chip, Sterne, Meldung (Portal-Version) ---- */
-.acct-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 190px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 20px; color: var(--text-dim); text-decoration: none; font-size: 13px; white-space: nowrap; overflow: hidden; }
 .acct-chip[hidden] { display: none; }
 .acct-chip span { overflow: hidden; text-overflow: ellipsis; }
 .acct-chip svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.acct-chip.on { border-color: var(--accent-green); color: var(--accent-green); }
 /* Wegweiser (Paket W): ?-Link in der Kopfzeile, Handbuch-Seite mit Karten */
-.ww-link { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); color: var(--text-dim); font-weight: 800; text-decoration: none; flex: none; }
-.ww-link:hover, .ww-link:focus-visible { border-color: var(--accent-lead); color: var(--accent-lead); }
 .manual .ww-tools { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 14px; } .manual .ww-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; margin-bottom: 12px; }
 .manual .ww-card { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-tertiary); }
 .manual .ww-ic { font-size: 24px; text-align: center; } .manual .ww-body p { margin: 3px 0 0; font-size: 13px; } .manual .ww-wann { color: var(--text-dim); } .manual .ww-wann span { font-family: var(--font-code); font-size: 11px; text-transform: uppercase; color: var(--accent-lead); }
@@ -610,7 +595,6 @@ p.limit { border-left: 3px solid var(--accent-orange); padding: 4px 10px; backgr
 .acct-chip .acct-av { display: inline-flex; width: 20px; height: 20px; margin: -3px 0; border-radius: 50%; overflow: hidden; flex: none; } .acct-chip .acct-av svg { width: 100%; height: 100%; stroke: none; }
 .live-av { display: inline-block; width: 96px; height: 115px; margin: 4px auto 2px; } .live-av svg { width: 100%; height: 100%; } .pod.p1 .live-av { width: 120px; height: 144px; }
 @media (max-width: 640px) { .live-av { width: 64px; height: 77px; } .pod.p1 .live-av { width: 80px; height: 96px; } }
-.acct-chip:hover { border-color: var(--accent-lead); color: var(--accent-lead); }
 .teacher-bar a { color: var(--accent-cyan); }
 .star { color: var(--text-faint); } .star.on { color: var(--accent-lead); text-shadow: 0 0 8px rgba(255,176,0,.5); }
 .stars-win { font-size: 30px; letter-spacing: 6px; margin: 0 0 6px; }
@@ -668,18 +652,97 @@ body.has-exam-bar .top { padding-top: 50px; }
 .exam-table .sub th { font-weight: 400; color: var(--text-dim); padding-left: 16px; } .exam-table .sub td { font-weight: 400; color: var(--text-dim); }
 .exam-theory .q { margin-bottom: 14px; }
 @media (max-width: 640px) { .exam-bar { border-radius: 14px; gap: 6px; padding: 6px 8px; } .eb-mode { display: none; } body.has-exam-bar .top { padding-top: 92px; } }
+
+/* Testlauf 2 (2.4): Zahlzeichen auf übereinanderliegenden Bauteilen */
+.stackbadge circle { fill: var(--warn, #f59e0b); stroke: rgba(0,0,0,.45); stroke-width: 1.5; }
+.stackbadge text { fill: #111; font: 700 13px system-ui, sans-serif; text-anchor: middle; pointer-events: none; }
+.ds-pop.ds-passive { pointer-events: none; } /* Testlauf 2 (2.1): Palette-Datenblatt fängt keine Maus ab */
+.ds-pop.ds-passive .ds-x { display: none; }
+.calc-head { cursor: move; touch-action: none; user-select: none; } .calc-head .calc-x { cursor: pointer; } /* Testlauf 2 (2.2): Rechner an der Titelleiste ziehen */
+.brief ol.steps { margin: 6px 0 0; padding-left: 22px; } .brief ol.steps li { margin: 4px 0; } /* Testlauf 2 (3.1): Auftrag als nummerierte Schritte */
+.setup-rows > li > details > summary { cursor: pointer; font-weight: 600; } .setup-rows > li > details[open] > summary { margin-bottom: 2px; } /* Testlauf 2 (3.2): je Messwert aufklappbar */
+.hw-paths { margin: 10px 0; } .hw-paths figcaption { font-size: 13px; color: var(--text-dim); margin-top: 4px; } /* Testlauf 2 (3.4): Halbwellen-Pfade im Brückengleichrichter */
+/* Testlauf 2 (Phase 5): Ziehen aus der Palette, Netz hervorheben, Leitungsfarbe, Aufbauten */
+.pal-ghost { position: fixed; z-index: 90; transform: translate(-50%, -50%); pointer-events: none; display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border: 1px dashed var(--accent-lead); border-radius: 8px; background: var(--bg-panel); opacity: .9; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.pal-ghost svg { width: 34px; height: 34px; } .pal-ghost.ok { border-style: solid; }
+body.pal-dragging, body.pal-dragging * { cursor: grabbing !important; user-select: none; }
+.palbtn { touch-action: manipulation; }
+svg.net-on [data-wire]:not(.nethi) { opacity: .4; }
+[data-wire].nethi path.wire, [data-wire].nethi path.bcore { stroke: #ffd24a !important; stroke-width: 4; filter: drop-shadow(0 0 4px rgba(255,210,74,.8)); }
+.bwire.nethi { filter: drop-shadow(0 0 6px rgba(255,210,74,.95)); }
+[data-pin].nethi circle:not(.pinhit):not(.bpinhit) { stroke: #ffd24a; stroke-width: 3; }
+.wire-colors { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.wire-colors .wc { width: 30px; height: 26px; border-radius: 6px; border: 1px solid var(--line); background: var(--wc, var(--bg-tertiary)); cursor: pointer; font-size: 11px; color: var(--text-dim); }
+.wire-colors .wc.on { outline: 2px solid var(--accent-lead); outline-offset: 1px; }
+.setups { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-tertiary); }
+.setups h3 { margin: 0 0 8px; font-size: 14px; } .setups .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
+.setups input { flex: 1; min-width: 140px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg-secondary); }
+.su-list { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 4px; } .su-list li { display: flex; gap: 6px; align-items: center; } .su-list li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.su-imp { cursor: pointer; } #suMsg.err { color: var(--accent-red); } #suMsg.ok { color: var(--accent-green); }
+.tb:disabled { opacity: .4; cursor: default; }
+@media (min-width: 761px) { body.sandbox-mode .boardwrap { min-height: calc(100vh - 120px); } } /* Testlauf 2 (5.4): Freie Werkbank füllt die Fensterhöhe */
+
+/* ==== Gemeinsame Kopfzeile (Testlauf 2, Phase 4) – EIN Baustein für Labor (header.top) und Portal (header.topbar) ====
+ * build.js hängt diese Datei an style.css (Labor, Werkstatt, Freie Werkbank, Live-Challenge, Prüfung) und an portal.css an.
+ * Die Kopfzeile ist in beiden Themes dunkel (Leitstand-Look); darum eigene Farb-Token --hdr-*, nie die Seiten-Token
+ * (--line ist im hellen Thema fast weiss – daher kamen die weissen Rahmen an Wegweiser- und Rechner-Knopf).
+ * Bewusste Unterschiede, weil sie Funktion tragen: Prüfung ohne Karte/Einstellungen und ohne Speicheranzeige (body.exam-mode),
+ * Live-Challenge ohne Navigation (body.live-mode), Portal-Beamer ohne Kopfzeile (body.beamer-mode), Portal auf dem Handy ohne
+ * Menüzeile (Navigation über die Halle). */
+.dq-hdr {
+  --hdr-h: 56px; --hdr-bg: linear-gradient(180deg, #0b0d10, #13161b); --hdr-line: #2a2f36; --hdr-line-hi: #3a414b;
+  --hdr-text: #e8e8e8; --hdr-dim: #a3a8ae; --hdr-accent: #ffb000; --hdr-hover: rgba(255, 255, 255, .06);
+  --hdr-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 14px; min-height: var(--hdr-h); padding: 0 20px; box-sizing: border-box;
+  background: var(--hdr-bg); border-bottom: 1px solid var(--hdr-line); color: var(--hdr-text); font: 400 14px/1.4 var(--hdr-font); backdrop-filter: none;
+}
+.dq-hdr .dq-brand { display: flex; align-items: center; gap: 10px; flex: none; color: var(--hdr-text); text-decoration: none; font: 800 16px/1 var(--hdr-font); letter-spacing: .16em; }
+.dq-hdr .dq-brand b { color: var(--hdr-accent); font-weight: 800; margin-left: .25em; text-shadow: 0 0 14px rgba(255, 176, 0, .45); }
+.dq-hdr .dq-brand svg { width: 28px; height: 28px; flex: none; color: var(--hdr-accent); stroke: currentColor; fill: none; filter: drop-shadow(0 0 6px rgba(255, 176, 0, .5)); }
+.dq-hdr .dq-brand:focus-visible { outline: 2px solid var(--hdr-accent); outline-offset: 4px; border-radius: 6px; }
+.dq-hdr .dq-nav { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; margin: 0; }
+.dq-hdr .dq-nav > a, .dq-hdr .dq-nav > button { display: inline-flex; align-items: center; height: 34px; padding: 0 11px; border: 1px solid transparent; border-radius: 6px; background: none;
+  color: var(--hdr-dim); font: 600 13.5px/1 var(--hdr-font); text-decoration: none; cursor: pointer; white-space: nowrap; }
+.dq-hdr .dq-nav > a:hover, .dq-hdr .dq-nav > button:hover { color: var(--hdr-text); background: var(--hdr-hover); }
+.dq-hdr .dq-nav > a.active, .dq-hdr .dq-nav > button.active { color: var(--hdr-accent); background: var(--hdr-hover); border-color: var(--hdr-line); }
+.dq-hdr .dq-tools { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
+/* runde bzw. quadratische Werkzeug-Knöpfe (Wegweiser «?», Taschenrechner) – gleicher Rahmen wie alle Knöpfe der Kopfzeile */
+.dq-hdr .dq-hbtn { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; margin: 0; flex: none; border: 1px solid var(--hdr-line-hi); border-radius: 8px; background: none;
+  color: var(--hdr-dim); font: 800 15px/1 var(--hdr-font); text-decoration: none; cursor: pointer; box-sizing: border-box; }
+.dq-hdr .dq-hbtn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.dq-hdr .dq-hbtn:hover, .dq-hdr .dq-hbtn:focus-visible, body.calc-open .dq-hdr .dq-hbtn.calc-btn { color: var(--hdr-accent); border-color: var(--hdr-accent); }
+/* Konto-Chip (Labor) und Anmelde-/Benutzer-Knopf (Portal): gleiche Höhe, Form und Schrift */
+.dq-hdr .dq-chip { display: inline-flex; align-items: center; gap: 8px; height: 34px; max-width: 200px; padding: 0 12px; box-sizing: border-box; border: 1px solid var(--hdr-line-hi); border-radius: 17px;
+  background: none; color: var(--hdr-dim); font: 600 12.5px/1 var(--hdr-font); letter-spacing: .02em; text-decoration: none; white-space: nowrap; overflow: hidden; cursor: pointer; }
+.dq-hdr .dq-chip:hover { border-color: var(--hdr-accent); color: var(--hdr-accent); }
+.dq-hdr .dq-chip.on { border-color: var(--hdr-accent); color: var(--hdr-accent); }
+.dq-hdr .dq-chip span { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 760px) {
+  .dq-hdr { --hdr-h: 52px; gap: 8px; padding: 0 10px; }
+  .dq-hdr .dq-brand span { display: none; }
+  .dq-hdr .dq-nav { gap: 2px; } .dq-hdr .dq-nav > a, .dq-hdr .dq-nav > button { padding: 0 7px; font-size: 12px; }
+  .dq-hdr .dq-tools { gap: 6px; } .dq-hdr .dq-hbtn { width: 32px; height: 32px; } .dq-hdr .dq-chip { height: 32px; max-width: 150px; padding: 0 10px; }
+  .dq-hdr .dq-nav { overflow-x: auto; scrollbar-width: none; } .dq-hdr .dq-nav::-webkit-scrollbar { display: none; }   /* nie über die Werkzeug-Knöpfe */
+}
+@media (max-width: 420px) {
+  .dq-hdr { gap: 6px; padding: 0 8px; }
+  .dq-hdr .dq-nav { gap: 0; } .dq-hdr .dq-nav > a, .dq-hdr .dq-nav > button { padding: 0 5px; font-size: 11.5px; }
+  .dq-hdr .dq-tools { gap: 4px; } .dq-hdr .dq-hbtn { width: 30px; height: 30px; } .dq-hdr .dq-chip { max-width: 120px; }
+}
 </style>
 </head>
 <body>
 <script>window.DQ_PORTAL = true;</script>
-<header class="top">
-  <a class="brand" id="brand" href="#/karte" title="Zur Startseite"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 4 12 2-6h8"/></svg><span>DIGITAL<b>QUEST</b></span></a>
+<header class="top dq-hdr">
+  <a class="brand dq-brand" id="brand" href="#/karte" title="Zur Startseite"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="3" y="3" width="34" height="34" rx="7" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M8 20h6l3-9 6 18 3-9h6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>DIGITAL<b>QUEST</b></span></a>
   <span id="modeTag" class="mode-tag" hidden title="Dozentenmodus: mit einem Dozenten-Konto angemeldet – alle Stationen offen">DOZENT</span>
-  <nav><button data-go="map">Karte</button><button data-go="manual">Handbuch</button><button data-go="tutorial" title="Bedienung der Messgeräte auf der Werkbank üben"><span class="long">Werkbank-</span>Tutorial</button><button data-go="settings">Einstellungen</button></nav>
-  <a class="ww-link" id="wwLink" href="#/handbuch/wegweiser" title="Wegweiser – wo finde ich was?" aria-label="Wegweiser: Wo finde ich was?">?</a>
-  <button class="calc-btn" id="btnCalc" title="Taschenrechner (Strg+Alt+R)" aria-label="Taschenrechner"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h2M8 16h2M12 16h2M16 16v1"/></svg></button>
-  <a id="acctChip" class="acct-chip" href="../" hidden></a>
+  <nav class="dq-nav"><button data-go="map">Karte</button><button data-go="manual">Handbuch</button><button data-go="tutorial" title="Bedienung der Messgeräte auf der Werkbank üben"><span class="long">Werkbank-</span>Tutorial</button><button data-go="settings">Einstellungen</button></nav>
+  <div class="dq-tools">
+  <a class="ww-link dq-hbtn" id="wwLink" href="#/handbuch/wegweiser" title="Wegweiser – wo finde ich was?" aria-label="Wegweiser: Wo finde ich was?">?</a>
+  <button class="calc-btn dq-hbtn" id="btnCalc" title="Taschenrechner (Strg+Alt+R)" aria-label="Taschenrechner"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h2M8 16h2M12 16h2M16 16v1"/></svg></button>
+  <a id="acctChip" class="acct-chip dq-chip" href="../" hidden></a>
   <span id="saveInd"></span>
+  </div>
 </header>
 <main>
   <section id="scr-map" class="screen"></section>
@@ -690,6 +753,10 @@ body.has-exam-bar .top { padding-top: 50px; }
         <div id="palette"></div><span class="sep"></span>
         <button class="tb" id="btnRot" title="Drehen (R)">⟳ Drehen</button>
         <button class="tb" id="btnDel" title="Löschen (Entf)">✕ Löschen</button>
+        <button class="tb" id="btnUndo" title="Rückgängig (Strg+Z)" aria-label="Rückgängig" disabled>↶</button>
+        <button class="tb" id="btnRedo" title="Wiederholen (Strg+Y)" aria-label="Wiederholen" disabled>↷</button>
+        <button class="tb" id="btnZoomIn" title="Vergrössern" aria-label="Vergrössern">＋</button>
+        <button class="tb" id="btnZoomOut" title="Verkleinern" aria-label="Verkleinern">－</button>
         <button class="tb" id="btnFit" data-tip="Werkbank: Zoom mit Strg + Mausrad, Verschieben durch Ziehen auf der leeren Tischfläche" title="Ansicht einpassen">⤢ Einpassen</button>
         <button class="tb" id="btnVolt" title="Knotenspannungen einfärben">U anzeigen</button>
         <button class="tb" id="btnFlow" title="Stromfluss zeigen: Punkte wandern in technischer Stromrichtung (+ → −), je schneller, desto mehr Strom; Stromwert an jedem Kabel">⇢ Strom</button>
@@ -1369,12 +1436,13 @@ body.has-exam-bar .top { padding-top: 50px; }
     var net;
     try { net = buildNetlist(layout); } catch (e) { return { pass: false, results: [{ ok: false, text: e.message }] }; }
     /* limit: hoechstens so viele Bauteile eines Typs; Schluessel 'gates' zaehlt alle Logikgatter zusammen */
+    var real = net.parts.filter(function (p) { return !(p.props && p.props.virtual); }); // virtuell = Multimeter in der Lücke (Testlauf 2): zählt nicht als Bauteil
     Object.keys(task.limit || {}).forEach(function (type) {
-      var c = net.parts.filter(function (p) { return type === 'gates' ? GATES[p.type] : p.type === type; }).length;
+      var c = real.filter(function (p) { return type === 'gates' ? GATES[p.type] : p.type === type; }).length;
       push(c <= task.limit[type], (type === 'gates' ? 'Logikgatter' : def(type).label) + ': höchstens ' + task.limit[type], { have: c });
     });
     Object.keys(task.need || {}).forEach(function (type) {
-      var c = net.parts.filter(function (p) { return p.type === type; }).length;
+      var c = real.filter(function (p) { return p.type === type; }).length;
       push(c >= task.need[type], 'Bauteil ' + def(type).label + ': mindestens ' + task.need[type], { have: c });
     });
     /* Test = ein Zustand {set, expect} oder eine Schrittfolge {steps:[{set?, run?, dt?, expect?, name?}]} mit durchgehendem Zustand
@@ -1670,8 +1738,8 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p>Zwei Schalter <b>in Reihe</b>: Die Lampe leuchtet nur, wenn <i>beide</i> geschlossen sind (UND). Zwei Schalter <b>parallel</b>: Es genügt <i>einer</i> (ODER).</p>' +
       '<p><b>Messen:</b> Das Voltmeter kommt <i>parallel</i> an die zwei Punkte, zwischen denen du die Spannung wissen willst. Das Amperemeter kommt <i>in Reihe</i> – dazu wird der Kreis aufgetrennt und das Messgerät in die Lücke gesetzt.</p>',
     questions: [
-      { q: 'Was braucht ein Stromkreis mindestens?', options: ['Eine Quelle und einen Schalter', 'Eine Quelle, einen Verbraucher und einen geschlossenen Leiterweg', 'Einen Verbraucher und ein Messgerät', 'Zwei Leitungen und einen Schalter'], correct: 1, explain: 'Ohne Quelle kein Antrieb, ohne Verbraucher nichts, das die Energie nutzt, ohne geschlossenen Weg kein Strom.' },
-      { q: 'Zwei Schalter liegen in Reihe mit einer Lampe. Wann leuchtet die Lampe?', options: ['Wenn mindestens ein Schalter zu ist', 'Nur wenn beide Schalter zu sind', 'Immer', 'Nur wenn beide offen sind'], correct: 1, explain: 'In Reihe muss der Strom durch beide Schalter – jeder offene Schalter unterbricht den Kreis (UND-Funktion).' },
+      { q: 'Was braucht ein Stromkreis mindestens?', options: ['Eine Quelle, einen Verbraucher und einen geschlossenen Leiterweg', 'Eine Quelle und einen Schalter', 'Einen Verbraucher und ein Messgerät', 'Zwei Leitungen und einen Schalter'], correct: 0, explain: 'Ohne Quelle kein Antrieb, ohne Verbraucher nichts, das die Energie nutzt, ohne geschlossenen Weg kein Strom.' },
+      { q: 'Zwei Schalter liegen in Reihe mit einer Lampe. Wann leuchtet die Lampe?', options: ['Wenn mindestens ein Schalter zu ist', 'Nur wenn beide offen sind', 'Immer', 'Nur wenn beide Schalter zu sind'], correct: 3, explain: 'In Reihe muss der Strom durch beide Schalter – jeder offene Schalter unterbricht den Kreis (UND-Funktion).' },
       { q: 'Batterie 9 V, Schalter offen, Lampe. Welche Spannung misst du über dem offenen Schalter?', options: ['0 V', '4,5 V', '9 V', '18 V'], correct: 2,
         explain: 'Es fliesst kein Strom, an der Lampe fällt nichts ab – die ganze Quellenspannung liegt über der Unterbrechung.', verify: { layout: lampCircuit(false), mode: 'V', a: 'S1.a', b: 'S1.b' } },
       { q: 'Wie schliesst du ein Amperemeter an?', options: ['Parallel zum Verbraucher', 'In Reihe: Kreis auftrennen, Messgerät in die Lücke', 'Direkt an die Batteriepole', 'Gar nicht – Strom kann man nur rechnen'], correct: 1, explain: 'Der Strom muss durch das Messgerät fliessen. Direkt an die Batterie wäre ein Kurzschluss.' },
@@ -1809,9 +1877,9 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<div class="formula">R<sub>V</sub> = (U<sub>B</sub> − U<sub>F</sub>) / I<sub>LED</sub></div>' +
       '<p>Üblich sind 10–20 mA. Die LED hat eine Richtung: Strom nur von der <b>Anode</b> (+, langes Bein) zur <b>Kathode</b> (−, abgeflachte Seite).</p>',
     questions: [
-      { q: 'An 10 V liegt ein Widerstand von 470 Ω. Welcher Strom fliesst?', options: ['2,13 mA', '21,3 mA', '47 mA', '4,7 A'], correct: 1,
+      { q: 'An 10 V liegt ein Widerstand von 470 Ω. Welcher Strom fliesst?', options: ['21,3 mA', '2,13 mA', '47 mA', '4,7 A'], correct: 0,
         explain: 'I = 10 V / 470 Ω ≈ 0,0213 A = 21,3 mA.', verifyTruth: { layout: ohm(10, 470), sel: 'R1', q: 'i' } },
-      { q: 'Bei 10 V sollen genau 10 mA fliessen. Wie gross muss R sein?', options: ['100 Ω', '1 kΩ', '10 kΩ', '0,1 Ω'], correct: 1, explain: 'R = U / I = 10 V / 0,01 A = 1000 Ω.' },
+      { q: 'Bei 10 V sollen genau 10 mA fliessen. Wie gross muss R sein?', options: ['100 Ω', '0,1 Ω', '10 kΩ', '1 kΩ'], correct: 3, explain: 'R = U / I = 10 V / 0,01 A = 1000 Ω.' },
       { q: 'Rote LED (U_F = 1,8 V) an 9 V, gewünscht 20 mA. Welcher Vorwiderstand?', options: ['90 Ω', '360 Ω', '450 Ω', '1,8 kΩ'], correct: 1, explain: 'R = (9 V − 1,8 V) / 0,02 A = 360 Ω.' },
       { q: 'Was passiert, wenn du eine LED ohne Vorwiderstand direkt an 9 V anschliesst?', options: ['Sie leuchtet besonders schön', 'Nichts, sie sperrt', 'Der Strom wird sehr gross – sie brennt durch', 'Die Batterie lädt sich auf'], correct: 2, explain: 'Oberhalb von U_F begrenzt fast nur der kleine Bahnwiderstand den Strom.' },
       { q: 'Welche Leistung setzt ein 1-kΩ-Widerstand an 10 V um?', options: ['0,01 W', '0,1 W', '1 W', '10 W'], correct: 1, explain: 'P = U² / R = 100 V² / 1000 Ω = 0,1 W.' }
@@ -2060,7 +2128,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   defTask({
     id: '2.5', ch: 2, title: 'Spannungsteiler auslegen', tags: ['elektro.spannungsteiler', 'elektro.dimensionieren'],
     story: 'Ein Sensoreingang verträgt höchstens 5 V – die Versorgung liefert aber 15 V.',
-    brief: 'Baue einen <b>Spannungsteiler</b> aus R1 (oben, am Pluspol) und R2 (unten, am Minuspol), sodass an <b>R2 genau 5 V (±2 %)</b> liegen. Beide Widerstände höchstens 100 kΩ. Miss U2.',
+    brief: 'Baue einen <b>Spannungsteiler</b> aus R1 (oben, am Pluspol) und R2 (unten, am Minuspol), sodass an <b>R2 genau 5 V (±2 %, also 4,90 … 5,10 V)</b> liegen. Beide Widerstände höchstens 100 kΩ. Miss U2 (auch dein Messwert muss auf ±2 % stimmen).',
     learn: 'Spannungsteiler: U₂ = U · R₂ / (R₁ + R₂).',
     take: 'Das Verhältnis der Widerstände bestimmt die Teilspannung – nicht ihr absoluter Wert.',
     hint: 'Für 5 V von 15 V muss R₂ ein Drittel des Gesamtwiderstands sein.',
@@ -2070,7 +2138,8 @@ body.has-exam-bar .top { padding-top: 50px; }
     bench: { parts: [bB1, { id: 'R1', x: 560, y: 300, rot: 90 }, { id: 'R2', x: 720, y: 480, rot: 90 }] },
     wrong: [named('gleiche Widerstände (7,5 V)', div15(1000, 1000)), named('R1 und R2 vertauscht (10 V)', div15(1000, 2000))],
     tests: [{ name: 'Teiler', expect: [{ a: 'R2.a', b: 'R2.b', v: [4.9, 5.1] }, { noFault: true }] }],
-    measure: [{ id: 'u2', ask: 'Spannung U2 an R2', unit: 'V', mode: 'V', a: 'R2.a', b: 'R2.b', tol: 0.03 }]
+    diag: [{ same: [['B1.p', 'R2.a'], ['B1.p', 'R2.b']], text: 'R2 muss unten am Minuspol liegen – bei dir liegt R2 oben am Pluspol. Tausche die beiden Widerstände (oder ihre Werte), dann stimmt die Teilspannung an R2.' }],
+    measure: [{ id: 'u2', ask: 'Spannung U2 an R2', unit: 'V', mode: 'V', a: 'R2.a', b: 'R2.b', tol: 0.02 }]
   });
 
   /* ================= Theorie B ================= */
@@ -2093,9 +2162,9 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p><b>Spannungsteiler:</b> U₂ = U · R₂ / (R₁ + R₂). Hängst du eine Last R<sub>L</sub> parallel zu R₂, wird der untere Teil kleiner (R₂ ∥ R<sub>L</sub>) – U₂ <b>sinkt</b>. Je kleiner R<sub>L</sub>, desto stärker.</p>' +
       '<p><b>Reale Quelle:</b> Jede Quelle hat einen <b>Innenwiderstand R<sub>i</sub></b>. Ohne Last misst du die Leerlaufspannung U₀, unter Last sinkt die Klemmenspannung: R<sub>i</sub> = (U₀ − U<sub>Last</sub>) / I.</p>',
     questions: [
-      { q: 'Zwei Widerstände von je 1 kΩ sind parallel geschaltet. Gesamtwiderstand?', options: ['250 Ω', '500 Ω', '1 kΩ', '2 kΩ'], correct: 1,
+      { q: 'Zwei Widerstände von je 1 kΩ sind parallel geschaltet. Gesamtwiderstand?', options: ['500 Ω', '250 Ω', '1 kΩ', '2 kΩ'], correct: 0,
         explain: 'R = 1 kΩ · 1 kΩ / 2 kΩ = 500 Ω – bei gleichen Widerständen die Hälfte.', verify: { layout: par2, mode: 'R', a: 'R1.a', b: 'R1.b' } },
-      { q: 'In einen Knoten fliessen 30 mA hinein, ein Zweig führt 10 mA ab. Wie viel fliesst im zweiten Abzweig?', options: ['10 mA', '20 mA', '30 mA', '40 mA'], correct: 1, explain: 'Knotenregel: Zufluss = Abfluss, also 30 mA − 10 mA = 20 mA.' },
+      { q: 'In einen Knoten fliessen 30 mA hinein, ein Zweig führt 10 mA ab. Wie viel fliesst im zweiten Abzweig?', options: ['10 mA', '40 mA', '30 mA', '20 mA'], correct: 3, explain: 'Knotenregel: Zufluss = Abfluss, also 30 mA − 10 mA = 20 mA.' },
       { q: '15 V, R1 = 2 kΩ oben, R2 = 1 kΩ unten. Welche Spannung liegt an R2?', options: ['3 V', '5 V', '7,5 V', '10 V'], correct: 1,
         explain: 'U₂ = 15 V · 1 kΩ / 3 kΩ = 5 V.', verify: { layout: div15(2000, 1000), mode: 'V', a: 'R2.a', b: 'R2.b' } },
       { q: 'Was passiert mit U₂, wenn eine Last parallel zu R₂ angeschlossen wird?', options: ['U₂ steigt', 'U₂ sinkt', 'U₂ bleibt gleich', 'U₂ wird negativ'], correct: 1, explain: 'R₂ ∥ R_L ist kleiner als R₂ – der untere Teil des Teilers bekommt weniger Spannung.' },
@@ -2340,12 +2409,19 @@ body.has-exam-bar .top { padding-top: 50px; }
     tests: [{ name: 'Zweiweg', expect: [{ a: 'R1.a', b: 'R1.b', ac: 'dc', range: [4.9, 5.9] }, { noFault: true }] }],
     measure: [{ id: 'udc', ask: 'Gleichanteil an R1 (V⎓)', unit: 'V', mode: 'AC', q: 'dc', a: 'R1.a', b: 'R1.b', tol: 0.04 },
       { id: 'up', ask: 'Scheitelwert an R1 (Oszilloskop)', unit: 'V', mode: 'AC', q: 'peak', a: 'R1.a', b: 'R1.b', tol: 0.03 },
-      { id: 'tper', ask: 'Periodendauer der Spannung an R1 (Oszilloskop)', unit: 'ms', value: 10, tol: 0.1 }],
+      { id: 'tper', ask: 'Periodendauer der Spannung an R1 (Oszilloskop)', unit: 'ms', value: 0.01, tol: 0.1 }],
     setup: { tper: 'Oszilloskop an R1 (Tastkopf R1.a, Erdungsclip R1.b), Bildbreite 50 ms, RUN: Abstand zweier Buckel ablesen – unter der Kurve steht die Periode des gemessenen Signals. Jede Halbwelle gibt einen Buckel, darum 10 ms statt 20 ms.' }
   });
 
   /* ================= Theorie C: Gleichrichter und Bezugspunkt (Auftrag 06.10.2026, G4; exam: false = nicht im Prüfungspool) ================= */
-  var bridgeSlow = { parts: bridge.parts.map(function (p) { return p.id === 'G1' ? gen({ freq: 1 }) : p; }), wires: bridge.wires };
+  /* Testlauf 2 (3.4): Schaltplan ohne Kreuzungen. Ring aus vier Dioden plus Generator plus Last ist ein vollständiger Graph K4 – eine der beiden
+   * Verbindungen muss innerhalb des Rings liegen. Darum die übliche Leiter-Form: zwei Diodenzweige (Anode unten, Kathode oben), oben die Plus-,
+   * unten die Minus-Schiene, der Generator zwischen den Zweigen, die Last rechts. Elektrisch identisch mit der Brücke aus Aufgabe 3.5. */
+  var gLad = function (props) { return Object.assign(gen(props), { x: 420, y: 300, rot: 270 }); };   // G1.+ links (380|300), G1.– rechts (460|300)
+  var dLad = [d('V1', 300, 220, 270), d('V3', 300, 340, 270), d('V2', 540, 220, 270), d('V4', 540, 340, 270)];   // links: V3 → L → V1, rechts: V4 → R → V2
+  var wLad = [W('G1.p', 'V3.k'), W('V3.k', 'V1.a'), W('G1.n', 'V4.k'), W('V4.k', 'V2.a'), W('V1.k', 'V2.k'), W('V3.a', 'V4.a')];
+  var bridgeSlow = { parts: [gLad({ freq: 1 }), { id: 'R1', type: 'resistor', value: 1000, x: 680, y: 220, rot: 90 }].concat(dLad),
+    wires: wLad.concat([W('V2.k', 'R1.a'), W('V4.a', 'R1.b')]) };
   defTheory({
     id: 'T3C', ch: 3, title: 'Gleichrichter: Einweg, Brücke und Bezugspunkt', tags: ['elektro.gleichrichter', 'bauteil.diode', 'messen.oszilloskop'], exam: false,
     merksatz: 'In der Brücke leiten je Halbwelle zwei Dioden: beide Halbwellen positiv, 10 ms Periode, Scheitel Û − 2·U_F. Ein Ladekondensator glättet nur, wenn τ = R · C viel grösser als 10 ms ist. Das Oszilloskop zeigt die Spannung zwischen Tastkopf und Erdungsclip – an R1 also R1.a gegen R1.b.',
@@ -2355,9 +2431,9 @@ body.has-exam-bar .top { padding-top: 50px; }
       readouts: [{ label: 'Scheitelwert an R1', a: 'R1.a', b: 'R1.b', ac: 'peak' }, { label: 'Gleichanteil an R1', a: 'R1.a', b: 'R1.b', ac: 'dc' }],
       scope: { a: 'R1.a', b: 'R1.b', span: 2, label: 'U an R1' } },
       { type: 'circuit', slow: true, flow: false, settle: 6, caption: 'Glättung zum Ausprobieren: Wähle den Ladekondensator und die Last. Mit 10 µF (τ = R · C = 10 ms) bleibt ein Sägezahn, mit 470 µF fast Gleichspannung; eine grössere Last (kleineres R) bringt mehr Welligkeit. Darunter stehen Gleichanteil, Welligkeit Uss und τ. Bei DC-Kopplung ist die geglättete Spannung fast eine gerade Linie – das ist richtig.',
-        layout: { parts: [gen(), { id: 'R1', type: 'resistor', value: 1000, x: 460, y: 300, rot: 90 }, { id: 'V1', type: 'diode', x: 280, y: 200, rot: 0 }, { id: 'V2', type: 'diode', x: 280, y: 400, rot: 0 }, { id: 'V3', type: 'diode', x: 540, y: 200, rot: 180 }, { id: 'V4', type: 'diode', x: 540, y: 400, rot: 180 },
-          { id: 'S1', type: 'switch', x: 660, y: 160, rot: 90, props: { closed: true } }, { id: 'C1', type: 'capacitor', value: 100e-6, x: 660, y: 300, rot: 90 }],
-          wires: [W('G1.p', 'V1.a'), W('V1.k', 'R1.a'), W('G1.n', 'V2.a'), W('V2.k', 'R1.a'), W('R1.b', 'V3.a'), W('V3.k', 'G1.p'), W('R1.b', 'V4.a'), W('V4.k', 'G1.n'), W('R1.a', 'S1.a'), W('S1.b', 'C1.a'), W('C1.b', 'R1.b')] },
+        layout: { parts: [gLad(), { id: 'R1', type: 'resistor', value: 1000, x: 680, y: 220, rot: 90 }].concat(dLad, [
+          { id: 'S1', type: 'switch', x: 760, y: 180, rot: 0, props: { closed: true } }, { id: 'C1', type: 'capacitor', value: 100e-6, x: 840, y: 220, rot: 90 }]),
+          wires: wLad.concat([W('V2.k', 'R1.a'), W('V4.a', 'R1.b'), W('R1.a', 'S1.a'), W('S1.b', 'C1.a'), W('C1.b', 'R1.b')]) },
         bench: { parts: [{ id: 'G1', x: 250, y: 440 }, { id: 'V1', x: 430, y: 250, rot: 0 }, { id: 'V2', x: 430, y: 640, rot: 0 }, { id: 'V3', x: 600, y: 250, rot: 180 }, { id: 'V4', x: 600, y: 640, rot: 180 }, { id: 'R1', x: 720, y: 450, rot: 90 }, { id: 'S1', x: 840, y: 250, rot: 0 }, { id: 'C1', x: 840, y: 440, rot: 90 }] },
         sliders: [{ part: 'C1', prop: 'value', label: 'Ladekondensator', choices: [{ value: 1e-9, label: 'ohne', set: { S1: { closed: false } } }, { value: 10e-6, label: '10 µF', set: { S1: { closed: true } } }, { value: 47e-6, label: '47 µF', set: { S1: { closed: true } } },
           { value: 100e-6, label: '100 µF', set: { S1: { closed: true } } }, { value: 470e-6, label: '470 µF', set: { S1: { closed: true } } }, { value: 1000e-6, label: '1000 µF', set: { S1: { closed: true } } }] },
@@ -2369,6 +2445,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '{{visual}}' +
       '<p>Der <b>Einweggleichrichter</b> (eine Diode, Aufgabe 3.4) lässt nur jede zweite Halbwelle zu R1 durch: Scheitel Û − U<sub>F</sub> ≈ 9,3 V, dazwischen 0 V, Periodendauer 20 ms. Der <b>Brückengleichrichter</b> (Grätz-Brücke, vier Dioden, Aufgabe 3.5) nutzt beide Halbwellen.</p>' +
       '<p><b>Positive Halbwelle</b> (G1.+ positiv): Strom G1.+ → V1 → R1.a → R1 → R1.b → V4 → G1.–. V2 und V3 sperren.<br><b>Negative Halbwelle</b> (G1.– positiv): Strom G1.– → V2 → R1.a → R1 → R1.b → V3 → G1.+. V1 und V4 sperren.<br>In beiden Fällen fliesst der Strom durch R1 <b>in dieselbe Richtung</b>, von R1.a nach R1.b.</p>' +
+      '<figure class="hw-paths"><svg viewBox="0 0 470 290" role="img" aria-label="Brückengleichrichter: Strompfade der beiden Halbwellen" style="width:100%;max-width:470px;height:auto"><g fill="none" stroke="currentColor" stroke-width="2" opacity=".55"><path d="M40 40H400M40 250H400M40 40V250M280 40V250M400 40V112M400 178V250M40 145H138M182 145H280"/><circle cx="160" cy="145" r="22"/><path d="M148 145q6-10 12 0t12 0"/><rect x="388" y="112" width="24" height="66" rx="3"/></g><g fill="currentColor" opacity=".8"><path d="M30 100L50 100L40 84Z"/><rect x="29" y="82" width="22" height="3"/><path d="M30 206L50 206L40 190Z"/><rect x="29" y="188" width="22" height="3"/><path d="M270 100L290 100L280 84Z"/><rect x="269" y="82" width="22" height="3"/><path d="M270 206L290 206L280 190Z"/><rect x="269" y="188" width="22" height="3"/></g><g font-size="13" fill="currentColor" font-family="system-ui,sans-serif"><text x="54" y="96">V1</text><text x="54" y="202">V3</text><text x="294" y="96">V2</text><text x="294" y="202">V4</text><text x="148" y="186">G1</text><text x="418" y="150">R1</text><text x="122" y="138">+</text><text x="190" y="138">−</text><text x="408" y="32">R1.a</text><text x="408" y="270">R1.b</text></g><path d="M134 141H36V36H396V254H284V141H186" fill="none" stroke="#e5484d" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#hwA1)"/><path d="M186 149H276V44H404V246H44V149H134" fill="none" stroke="#3b82f6" stroke-width="3.5" stroke-dasharray="9 6" stroke-linejoin="round" marker-end="url(#hwA2)"/><defs><marker id="hwA1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#e5484d"/></marker><marker id="hwA2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#3b82f6"/></marker></defs></svg><figcaption><b style="color:#e5484d">Rot, durchgezogen:</b> positive Halbwelle über V1 und V4. <b style="color:#3b82f6">Blau, gestrichelt:</b> negative Halbwelle über V2 und V3. Durch R1 fliessen beide von R1.a nach R1.b.</figcaption></figure>' +
       '<p><b>So sieht die Spannung an R1 aus:</b> beide Halbwellen nach oben geklappt (Betrag des Sinus); Scheitel <b>Û − 2·U<sub>F</sub> ≈ 8,6 V</b>, weil zwei Dioden in Reihe im Strompfad liegen; nie negativ; am Nulldurchgang eine kurze Lücke bei 0 V, solange die Eingangsspannung unter ≈ 1,4 V liegt; <b>Periodendauer 10 ms (100 Hz)</b> – jede Halbwelle ergibt einen Buckel. Gleichanteil ≈ 5,0 V, etwa doppelt so viel wie beim Einweggleichrichter (≈ 2,8 V).</p>' +
       '<p><b>Wogegen misst das Oszilloskop?</b> Immer die Spannung <i>zwischen zwei Punkten</i>: Tastkopf gegen Erdungsclip. Fehlt der Clip, nimmt das Labor den <b>Bezugspunkt</b> der Schaltung (Masse-Symbol, sonst der Minuspol der ersten Quelle) und sagt es dir im Klartext. Hängt der Clip am Minuspol des Generators und der Tastkopf an R1.a, siehst du <b>nur eine Halbwelle</b> – das ist die Spannung R1.a gegen G1.–, nicht die Spannung an R1. Für die Spannung an R1: Tastkopf an R1.a, Erdungsclip an R1.b.</p>' +
       '<p><b>Praxis:</b> Am echten Labortisch sind Generator und Oszilloskop oft beide geerdet. Der Clip an R1.b würde dann eine Diode kurzschliessen. Deshalb misst man dort mit Trenntransformator, Differenztastkopf oder mit zwei Kanälen und der Rechenfunktion <b>MATH = CH1 − CH2</b> (CH1 an R1.a, CH2 an R1.b, Clip am Generator). Im Labor von Digital Quest ist das Oszilloskop potentialfrei – der Clip an R1.b ist erlaubt, MATH gibt es trotzdem.</p>' +
@@ -2661,7 +2738,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p><b>Eigenverbrauch:</b> Ein Voltmeter hat 10 MΩ Innenwiderstand – an einer hochohmigen Schaltung belastet es den Messpunkt merklich. Ein Amperemeter hat einen kleinen Innenwiderstand, an dem Spannung abfällt.</p>' +
       '<p><b>Spannungsrichtige Messung:</b> Voltmeter direkt am Verbraucher, Amperemeter davor – das Amperemeter misst den Voltmeterstrom mit (schlecht bei <i>grossen</i> Widerständen). <b>Stromrichtige Messung:</b> Voltmeter über Amperemeter und Verbraucher – es misst die Spannung am Amperemeter mit (schlecht bei <i>kleinen</i> Widerständen).</p>',
     questions: [
-      { q: 'Analoges Gerät, Bereich 20 V, Genauigkeit 0,5 %. Wie gross ist der mögliche Fehler?', options: ['±0,01 V', '±0,075 V', '±0,1 V', '±1 V'], correct: 2, explain: '0,5 % vom Endwert 20 V = 0,1 V.' },
+      { q: 'Analoges Gerät, Bereich 20 V, Genauigkeit 0,5 %. Wie gross ist der mögliche Fehler?', options: ['±0,1 V', '±0,075 V', '±0,01 V', '±1 V'], correct: 0, explain: '0,5 % vom Endwert 20 V = 0,1 V.' },
       { q: 'Digital, Anzeige 15,0 V, ±(0,5 % + 1 Digit). Maximaler Fehler?', options: ['±0,075 V', '±0,1 V', '±0,175 V', '±0,5 V'], correct: 2, explain: '0,5 % von 15,0 V = 0,075 V, 1 Digit = 0,1 V → zusammen 0,175 V.' },
       { q: '10 V an zwei Widerständen von je 10 MΩ. Was zeigt das Multimeter (10 MΩ) an R2?', options: ['5,00 V', '4,50 V', '3,33 V', '0 V'], correct: 2,
         explain: 'R2 ∥ 10 MΩ = 5 MΩ → U = 10 V · 5 / 15 ≈ 3,33 V. Das Messgerät belastet den Teiler.', verify: { layout: divider(10, 10e6, 10e6), mode: 'V', a: 'R2.a', b: 'R2.b' } },
@@ -2692,8 +2769,8 @@ body.has-exam-bar .top { padding-top: 50px; }
   defTask({
     id: '4.7', ch: 4, title: 'Spannungsrichtig gemessen', tags: ['messen.systemfehler', 'messen.strom'],
     story: 'Der Strommesser A1 zeigt den Strom durch den 10-MΩ-Widerstand. Sobald jemand die Spannung misst, springt die Anzeige.',
-    brief: 'Lies A1 ab (Tooltip oder Anzeige auf der Werkbank). Miss dann mit dem Multimeter die Spannung an <b>R1</b> und lies A1 <b>während</b> dieser Messung erneut ab.',
-    learn: 'Spannungsrichtige Schaltung: Das Amperemeter misst den Voltmeterstrom mit.',
+    brief: '<b>Ziel:</b> Zeigen, wie das Voltmeter die Strommessung verändert.<ol class="steps"><li><b>A1 ablesen</b> (Anzeige auf der Werkbank oder Maus über A1) – noch ohne Multimeter.</li><li><b>Multimeter V⎓ an R1 anlegen</b>: rote Spitze an R1.a, schwarze an R1.b.</li><li><b>A1 erneut ablesen</b>, während das Multimeter misst.</li><li><b>Alle drei Werte eintragen</b>: A1 ohne Voltmeter, Spannung an R1, A1 mit Voltmeter.</li></ol>',
+    learn: 'Spannungsrichtige Schaltung: Das Voltmeter liegt hinter dem Strommesser – A1 misst den Strom durch das Voltmeter mit.',
     take: 'An 10 MΩ fliesst genau so viel Strom durch das Voltmeter wie durch R1 – der Strommesser zeigt das Doppelte.',
     hint: 'Ohne Voltmeter: I = 10 V / 10 MΩ = 1 µA.',
     hint2: 'Mit Voltmeter parallel zu R1: R1 ∥ 10 MΩ = 5 MΩ → 2 µA.',
@@ -2701,9 +2778,9 @@ body.has-exam-bar .top { padding-top: 50px; }
     bench: { parts: [bB1, { id: 'A1', x: 520, y: 290, rot: 0 }, { id: 'R1', x: 780, y: 440, rot: 90 }] },
     tests: [{ name: 'Anlage', expect: [{ sel: 'A1', i: [0.95e-6, 1.05e-6] }] }],
     measure: [
-      { id: 'i0', ask: 'Anzeige A1 ohne Voltmeter', unit: 'µA', value: 1e-6, tol: 0.05 },
-      { id: 'u', ask: 'Spannung an R1', unit: 'V', mode: 'V', a: 'R1.a', b: 'R1.b', tol: 0.03 },
-      { id: 'i1', ask: 'Anzeige A1 während der Spannungsmessung', unit: 'µA', value: 2e-6, tol: 0.05 }
+      { id: 'i0', ask: '1. A1 ohne Voltmeter', unit: 'µA', value: 1e-6, tol: 0.05 },
+      { id: 'u', ask: '2. Spannung an R1', unit: 'V', mode: 'V', a: 'R1.a', b: 'R1.b', tol: 0.03 },
+      { id: 'i1', ask: '3. A1 mit Voltmeter', unit: 'µA', value: 2e-6, tol: 0.05 }
     ]
   });
 
@@ -2925,7 +3002,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p><b>Horner-Schema</b> (Fremdsystem → dezimal): von links beginnen, Zwischenergebnis mal Basis plus nächste Ziffer. 110001₂: 1 → 1·2+1 = 3 → 6 → 12 → 24 → 24·2+1 = 49.</p>' +
       '<p><b>BCD-Code</b> (Binary Coded Decimal): jede Dezimalziffer einzeln mit 4 Bit. 59 → 0101 1001. Die Kombinationen 1010 … 1111 sind in BCD <b>ungültig</b> – ein BCD-Decoder zeigt dann nichts an. BCD passt direkt zu 7-Segment-Anzeigen.</p>',
     questions: [
-      { q: 'Welche Dezimalzahl ist EF₁₆?', options: ['215', '239', '254', '255'], correct: 1, explain: '14·16 + 15 = 239.' },
+      { q: 'Welche Dezimalzahl ist EF₁₆?', options: ['239', '215', '254', '255'], correct: 0, explain: '14·16 + 15 = 239.' },
       { q: 'Wie lautet 1111₂ hexadezimal?', options: ['E', 'F', '10', '15'], correct: 1, explain: '1111₂ = 15 = F.' },
       { q: 'Wie viele Bits entsprechen einer Hex-Ziffer?', options: ['2', '3', '4', '8'], correct: 2, explain: '16 = 2⁴ – eine Hex-Ziffer ist ein Nibble.' },
       { q: 'Wie wird die Dezimalzahl 59 im BCD-Code dargestellt?', options: ['0011 1011', '0101 1001', '0111 0011', '1001 0101'], correct: 1, explain: '5 → 0101, 9 → 1001.' },
@@ -3049,7 +3126,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p><b>Postulate:</b> 1 ∧ e = e · 0 ∧ e = 0 · e ∧ e = e · e ∧ ē = 0 · 1 ∨ e = 1 · 0 ∨ e = e · e ∨ ē = 1.</p>' +
       '<p><b>Beschaltungsregeln:</b> Keine offenen Eingänge (undefinierter Pegel) – unbenutzte Eingänge fest auf 0 oder 1 legen. Und <b>nie Ausgang gegen Ausgang</b>: Treiben zwei Ausgänge verschiedene Pegel auf dieselbe Leitung, fliesst ein grosser Ausgleichsstrom und die Bausteine gehen kaputt.</p>',
     questions: [
-      { q: 'Wann liefert ein UND-Gatter mit zwei Eingängen eine 1?', options: ['Wenn ein Eingang 1 ist', 'Wenn beide Eingänge 1 sind', 'Wenn beide 0 sind', 'Wenn die Eingänge verschieden sind'], correct: 1, explain: 'UND: alle Eingänge müssen 1 sein.' },
+      { q: 'Wann liefert ein UND-Gatter mit zwei Eingängen eine 1?', options: ['Wenn beide Eingänge 1 sind', 'Wenn ein Eingang 1 ist', 'Wenn beide 0 sind', 'Wenn die Eingänge verschieden sind'], correct: 0, explain: 'UND: alle Eingänge müssen 1 sein.' },
       { q: 'Welches Symbol steht im DIN-Kasten des ODER-Gatters?', options: ['&', '≥1', '=1', '1'], correct: 1, explain: '≥1: mindestens ein Eingang muss 1 sein.' },
       { q: 'Was ergibt e ∧ ē?', options: ['e', 'ē', '0', '1'], correct: 2, explain: 'Etwas kann nicht gleichzeitig 1 und 0 sein – das UND ist immer 0.' },
       { q: 'Was ergibt 0 ∨ e?', options: ['0', '1', 'e', 'ē'], correct: 2, explain: 'Eine 0 am ODER ändert nichts – der Ausgang folgt e.' },
@@ -3197,7 +3274,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p><b>Vereinfachen</b> heisst: dieselbe Wahrheitstabelle mit weniger Gattern. Beispiel: e1·e2 ∨ e1·ē2 = e1·(e2 ∨ ē2) = e1·1 = e1 – kein einziges Gatter nötig.</p>' +
       '<p>Assoziativ bedeutet praktisch: Ein UND mit drei Eingängen baust du aus zwei UND mit je zwei Eingängen.</p>',
     questions: [
-      { q: 'Was ist nach der Bindungsregel mit e1 ∨ e2·e3 gemeint?', options: ['(e1 ∨ e2)·e3', 'e1 ∨ (e2·e3)', 'e1·e2 ∨ e3', 'Das ist nicht eindeutig'], correct: 1, explain: 'UND bindet stärker – zuerst e2·e3, dann ODER.' },
+      { q: 'Was ist nach der Bindungsregel mit e1 ∨ e2·e3 gemeint?', options: ['(e1 ∨ e2)·e3', 'Das ist nicht eindeutig', 'e1·e2 ∨ e3', 'e1 ∨ (e2·e3)'], correct: 3, explain: 'UND bindet stärker – zuerst e2·e3, dann ODER.' },
       { q: 'Vereinfache e1·e2 ∨ e1·e3.', options: ['e1 ∨ e2·e3', 'e1·(e2 ∨ e3)', 'e2·e3', 'e1'], correct: 1, explain: 'e1 ausklammern (Distributivgesetz).' },
       { q: 'Was ergibt e1 ∨ e1·e2 (Absorption)?', options: ['e1', 'e2', 'e1·e2', '1'], correct: 0, explain: 'Ist e1 = 1, ist alles 1; ist e1 = 0, ist auch e1·e2 = 0 – also bleibt e1.' },
       { q: 'Vereinfache e1·e2 ∨ e1·ē2.', options: ['e2', 'e1', '1', 'e1·e2'], correct: 1, explain: 'e1·(e2 ∨ ē2) = e1·1 = e1.' },
@@ -3220,7 +3297,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     palette: ['and', 'or'], gates: [['U1', 'or', ['E2', 'E3']], ['U2', 'and', ['E1', 'U1']]] });
 
   algTask({ id: '7.3', n: 2, title: 'De Morgan I', tags: ['digital.demorgan', 'digital.boolesche_algebra'], f: function (b) { return 1 - (b[0] & b[1]); },
-    story: 'Kein NAND-Chip mehr im Lager. Es gibt nur ODER- und NICHT-Gatter.',
+    story: 'Kein NAND-Chip (NICHT-UND) mehr im Lager. Es gibt nur ODER- und NICHT-Gatter.',
     brief: 'Baue <b>A = ¬(E1 · E2)</b> nur mit <b>ODER und NICHT</b>.', limit: { gates: 3 }, only: 'ODER und NICHT',
     learn: 'De Morgan: ¬(e1·e2) = ē1 ∨ ē2.', take: 'Negation über den ganzen Term: UND wird zu ODER, jede Variable wird negiert.',
     hint: 'Beide Eingänge einzeln invertieren, dann verodern.', hint2: 'U1 = ¬E1, U2 = ¬E2, U3 = U1 ∨ U2.',
@@ -3228,7 +3305,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     wrong: [['nur ein Eingang invertiert', [['U1', 'not', ['E1']], ['U3', 'or', ['U1', 'E2']]]]] });
 
   algTask({ id: '7.4', n: 2, title: 'De Morgan II', tags: ['digital.demorgan', 'digital.boolesche_algebra'], f: function (b) { return 1 - (b[0] | b[1]); },
-    story: 'Jetzt fehlt der NOR-Chip. Im Lager: UND und NICHT.',
+    story: 'Jetzt fehlt der NOR-Chip (NICHT-ODER). Im Lager gibt es nur UND- und NICHT-Gatter.',
     brief: 'Baue <b>A = ¬(E1 ∨ E2)</b> nur mit <b>UND und NICHT</b>.', limit: { gates: 3 }, only: 'UND und NICHT',
     learn: 'De Morgan: ¬(e1 ∨ e2) = ē1 · ē2.', take: 'Auch umgekehrt: ODER wird zu UND, jede Variable wird negiert.',
     hint: 'Beide Eingänge invertieren, dann verunden.', hint2: 'U1 = ¬E1, U2 = ¬E2, U3 = U1 · U2.',
@@ -3256,8 +3333,8 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<li><b>ODER aus NOR:</b> NOR und dahinter ein NOR als Inverter.</li></ul>' +
       '<p>Ein <b>XOR aus vier NAND</b>: N1 = ¬(e1·e2), dann N2 = ¬(e1·N1), N3 = ¬(e2·N1), a = ¬(N2·N3).</p>',
     questions: [
-      { q: 'Was ist ¬(e1 ∨ e2) nach De Morgan?', options: ['ē1 ∨ ē2', 'ē1 · ē2', 'e1 · e2', '¬e1 ∨ e2'], correct: 1, explain: 'ODER wird zu UND, jede Variable negiert.' },
-      { q: 'Wie wird ein NAND zum Inverter?', options: ['Einen Eingang auf 0 legen', 'Beide Eingänge verbinden', 'Den Ausgang auf 1 legen', 'Geht nicht'], correct: 1, explain: '¬(e·e) = ē.' },
+      { q: 'Was ist ¬(e1 ∨ e2) nach De Morgan?', options: ['ē1 · ē2', 'ē1 ∨ ē2', 'e1 · e2', '¬e1 ∨ e2'], correct: 0, explain: 'ODER wird zu UND, jede Variable negiert.' },
+      { q: 'Wie wird ein NAND zum Inverter?', options: ['Einen Eingang auf 0 legen', 'Geht nicht', 'Den Ausgang auf 1 legen', 'Beide Eingänge verbinden'], correct: 3, explain: '¬(e·e) = ē.' },
       { q: 'Wie viele NAND braucht ein ODER?', options: ['1', '2', '3', '4'], correct: 2, explain: 'Zwei als Inverter für die Eingänge, eines für die Verknüpfung.' },
       { q: 'Wie viele NAND braucht ein UND?', options: ['1', '2', '3', '4'], correct: 1, explain: 'NAND plus NAND als Inverter.' },
       { q: 'Warum baut man Schaltungen nur aus NAND?', options: ['NAND ist schneller als alle anderen', 'Ein einziger Chiptyp genügt für jede Funktion', 'NAND braucht keine Versorgung', 'Weil UND verboten ist'], correct: 1, explain: 'NAND ist ein Universalgatter – weniger Lagerhaltung, einheitliche Technik.' }
@@ -3266,31 +3343,31 @@ body.has-exam-bar .top { padding-top: 50px; }
 
   var nandOnly = { limit: { gates: 1 } };
   algTask({ id: '7.6', n: 1, title: 'NICHT aus NAND', tags: ['digital.nand', 'digital.normiert'], f: function (b) { return 1 - b[0]; },
-    story: 'Auf der Platine ist noch ein NAND frei. Gebraucht wird ein Inverter.',
-    brief: 'Baue einen <b>Inverter nur aus einem NAND</b>.', limit: nandOnly.limit, only: 'NAND',
+    story: 'Auf der Platine ist noch ein NAND-Gatter (NICHT-UND) frei. Gebraucht wird ein Inverter (NICHT-Gatter).',
+    brief: 'Baue einen <b>Inverter nur aus einem NAND-Gatter</b>.', limit: nandOnly.limit, only: 'NAND',
     learn: '¬(e·e) = ē.', take: 'Beide Eingänge an dasselbe Signal – das NAND invertiert.',
     hint: 'Verbinde E1 mit beiden Eingängen.', hint2: 'E1 → U1.in1 und E1 → U1.in2.',
     palette: ['nand'], gates: [['U1', 'nand', ['E1', 'E1']]] });
   algTask({ id: '7.7', n: 2, title: 'UND aus NAND', tags: ['digital.nand', 'digital.normiert'], f: function (b) { return b[0] & b[1]; },
-    story: 'Nur NAND im Lager – gebraucht wird ein UND.',
+    story: 'Im Lager gibt es nur NAND-Gatter (NICHT-UND). Gebraucht wird ein UND-Gatter.',
     brief: 'Baue <b>A = E1 · E2</b> nur aus NAND-Gattern.', limit: { gates: 2 }, only: 'NAND',
     learn: 'UND = NAND + Inverter.', take: 'Das zweite NAND hebt die Negation des ersten wieder auf.',
     hint: 'Ein NAND verknüpft, ein zweites invertiert.', hint2: 'U1 = NAND(E1, E2), U2 = NAND(U1, U1).',
     palette: ['nand'], gates: [['U1', 'nand', ['E1', 'E2']], ['U2', 'nand', ['U1', 'U1']]], wrong: [['nur ein NAND', [['U1', 'nand', ['E1', 'E2']]]]] });
   algTask({ id: '7.8', n: 2, title: 'ODER aus NAND', tags: ['digital.nand', 'digital.normiert', 'digital.demorgan'], f: function (b) { return b[0] | b[1]; },
-    story: 'Die nächste Bestellung: ein ODER. Wieder nur NAND.',
+    story: 'Die nächste Bestellung: ein ODER-Gatter. Wieder gibt es nur NAND-Gatter (NICHT-UND).',
     brief: 'Baue <b>A = E1 ∨ E2</b> nur aus NAND-Gattern.', limit: { gates: 3 }, only: 'NAND',
     learn: 'De Morgan: e1 ∨ e2 = ¬(ē1 · ē2).', take: 'Eingänge invertieren und NAND – das ist ein ODER.',
     hint: 'Zwei NAND als Inverter für E1 und E2, dann ein NAND.', hint2: 'U1 = NAND(E1,E1), U2 = NAND(E2,E2), U3 = NAND(U1,U2).',
     palette: ['nand'], gates: [['U1', 'nand', ['E1', 'E1']], ['U2', 'nand', ['E2', 'E2']], ['U3', 'nand', ['U1', 'U2']]] });
   algTask({ id: '7.9', n: 2, title: 'XOR aus vier NAND', tags: ['digital.nand', 'digital.normiert', 'digital.xor'], f: function (b) { return b[0] ^ b[1]; },
-    story: 'Die Profiaufgabe der Werkmeisterin: „Ein XOR. Nur NAND. Höchstens vier.“',
+    story: 'Die Profiaufgabe der Werkmeisterin: „Ein XOR-Gatter (Exklusiv-ODER). Nur NAND-Gatter, höchstens vier.“',
     brief: 'Baue <b>A = E1 ⊕ E2</b> aus höchstens vier NAND-Gattern.', limit: { gates: 4 }, only: 'NAND',
     learn: 'Das klassische XOR aus vier NAND.', take: 'N1 = ¬(e1·e2); dann ¬(e1·N1) und ¬(e2·N1); zum Schluss NAND beider.',
     hint: 'Das erste NAND verknüpft E1 und E2; sein Ausgang geht in zwei weitere NAND.', hint2: 'U1 = NAND(E1,E2), U2 = NAND(E1,U1), U3 = NAND(E2,U1), U4 = NAND(U2,U3).',
     palette: ['nand'], gates: [['U1', 'nand', ['E1', 'E2']], ['U2', 'nand', ['E1', 'U1']], ['U3', 'nand', ['E2', 'U1']], ['U4', 'nand', ['U2', 'U3']]] });
   algTask({ id: '7.10', n: 2, title: 'ODER aus NOR', tags: ['digital.nor', 'digital.normiert'], f: function (b) { return b[0] | b[1]; },
-    story: 'Ein anderes Lager, ein anderer Chip: nur NOR.',
+    story: 'Ein anderes Lager, ein anderer Chip: nur NOR-Gatter (NICHT-ODER).',
     brief: 'Baue <b>A = E1 ∨ E2</b> nur aus NOR-Gattern.', limit: { gates: 2 }, only: 'NOR',
     learn: 'ODER = NOR + Inverter.', take: 'Ein NOR mit verbundenen Eingängen ist ein Inverter.',
     hint: 'NOR verknüpft, zweites NOR invertiert.', hint2: 'U1 = NOR(E1,E2), U2 = NOR(U1,U1).',
@@ -3336,7 +3413,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p>Beispiel Förderband (A = 1 bei 01, 10, 11): DNF = ē2·e1 ∨ e2·ē1 ∨ e2·e1, KNF = (e1 ∨ e2). Beide vereinfachen sich zu <b>A = e1 ∨ e2</b>.</p>' +
       '<p>Die Zeilen werden dezimal nummeriert: E1 ist die niederwertigste Stelle. Eine Funktion schreibt man kurz als <b>Σm(…)</b> – die Liste der Zeilen mit A = 1.</p>',
     questions: [
-      { q: 'Welche Zeilen der Wahrheitstabelle verwendet die DNF?', options: ['Alle', 'Die mit A = 1', 'Die mit A = 0', 'Nur die erste'], correct: 1, explain: 'DNF: jede 1-Zeile wird ein Minterm.' },
+      { q: 'Welche Zeilen der Wahrheitstabelle verwendet die DNF?', options: ['Die mit A = 1', 'Alle', 'Die mit A = 0', 'Nur die erste'], correct: 0, explain: 'DNF: jede 1-Zeile wird ein Minterm.' },
       { q: 'Wie lautet der Minterm für die Zeile E2 = 1, E1 = 0?', options: ['e2 · e1', 'e2 · ē1', 'ē2 · e1', 'e2 ∨ ē1'], correct: 1, explain: 'Verunden, Eingang 0 wird negiert.' },
       { q: 'Wie viele Zeilen hat die Wahrheitstabelle mit 3 Eingängen?', options: ['3', '6', '8', '9'], correct: 2, explain: '2³ = 8 Kombinationen.' },
       { q: 'Welche Zeilennummer hat E3 = 1, E2 = 0, E1 = 1?', options: ['3', '5', '6', '101'], correct: 1, explain: '4 + 1 = 5.' },
@@ -3402,9 +3479,9 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p>Ein Päckchen aus 2 Feldern spart 1 Variable, aus 4 Feldern 2, aus 8 Feldern 3. <b>X</b> (don\'t care) sind Kombinationen, die nie vorkommen – sie dürfen mit ins Päckchen, wenn es dadurch grösser wird.</p>' +
       '<p>Beispiel Σm3(1, 3, 5, 7): alle Einsen haben e1 = 1 → ein Päckchen aus 4 Feldern → <b>A = e1</b>.</p>',
     questions: [
-      { q: 'Wie unterscheiden sich benachbarte Felder im KV-Diagramm?', options: ['In allen Variablen', 'In genau einer Variablen', 'In zwei Variablen', 'Gar nicht'], correct: 1, explain: 'Deshalb kann man sie zusammenfassen: Die eine Variable fällt weg.' },
-      { q: 'Wie viele Felder darf ein Päckchen haben?', options: ['Beliebig viele', '1, 2, 4, 8 …', '3, 6, 9 …', 'Nur 2'], correct: 1, explain: 'Nur Zweierpotenzen – rechteckig angeordnet.' },
-      { q: 'Wie viele Variablen fallen bei einem Päckchen aus 4 Feldern weg?', options: ['1', '2', '3', '4'], correct: 1, explain: '4 = 2² → zwei Variablen fallen weg.' },
+      { q: 'Wie unterscheiden sich benachbarte Felder im KV-Diagramm?', options: ['In genau einer Variablen', 'In allen Variablen', 'In zwei Variablen', 'Gar nicht'], correct: 0, explain: 'Deshalb kann man sie zusammenfassen: Die eine Variable fällt weg.' },
+      { q: 'Wie viele Felder darf ein Päckchen haben?', options: ['Beliebig viele', '3, 6, 9 …', '1, 2, 4, 8 …', 'Nur 2'], correct: 2, explain: 'Nur Zweierpotenzen – rechteckig angeordnet.' },
+      { q: 'Wie viele Variablen fallen bei einem Päckchen aus 4 Feldern weg?', options: ['1', '4', '3', '2'], correct: 3, explain: '4 = 2² → zwei Variablen fallen weg.' },
       { q: 'Was bedeutet ein X im KV-Diagramm?', options: ['Fehler', 'Die Kombination kommt nie vor – beliebig nutzbar', 'Immer 1', 'Immer 0'], correct: 1, explain: 'Don\'t care: darf als 0 oder 1 verwendet werden, wenn es das Päckchen vergrössert.' },
       { q: 'Die Einsen liegen bei Σm3(0, 2, 4, 6). Ergebnis?', options: ['A = e1', 'A = ē1', 'A = e3', 'A = ē2'], correct: 1, explain: 'In allen vier Feldern ist e1 = 0 → A = ē1.' }
     ]
@@ -3485,8 +3562,8 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p>Ein <b>Codewandler</b> wird wie jede Schaltung entworfen: Tabelle Eingangscode → Ausgangscode, für jedes Ausgangsbit vereinfachen.</p>' +
       '<p><b>Parität:</b> Ein zusätzliches Bit macht die Anzahl Einsen gerade (gerade Parität). Der <b>Paritätsbitersteller</b> (PE) beim Sender ist eine XOR-Kette über alle Datenbits. Der <b>Paritätsprüfer</b> (PA) beim Empfänger rechnet das XOR über Daten und Paritätsbit: Ergebnis 1 = Fehler. Ein einzelnes gekipptes Bit wird immer erkannt, zwei gleichzeitig nicht.</p>',
     questions: [
-      { q: 'Was ist das Besondere am Gray-Code?', options: ['Er braucht weniger Bits', 'Benachbarte Zahlen unterscheiden sich in genau einem Bit', 'Er ist BCD + 3', 'Er hat ein Paritätsbit'], correct: 1, explain: 'Beim Übergang kippt nur ein Bit – keine falschen Zwischenwerte.' },
-      { q: 'Wie lautet 5 im 3-Exzess-Code?', options: ['0101', '1000', '0110', '1010'], correct: 1, explain: '5 + 3 = 8 = 1000.' },
+      { q: 'Was ist das Besondere am Gray-Code?', options: ['Benachbarte Zahlen unterscheiden sich in genau einem Bit', 'Er braucht weniger Bits', 'Er ist BCD + 3', 'Er hat ein Paritätsbit'], correct: 0, explain: 'Beim Übergang kippt nur ein Bit – keine falschen Zwischenwerte.' },
+      { q: 'Wie lautet 5 im 3-Exzess-Code?', options: ['0101', '1010', '0110', '1000'], correct: 3, explain: '5 + 3 = 8 = 1000.' },
       { q: 'Datenbits 1011, gerade Parität. Welches Paritätsbit?', options: ['0', '1'], correct: 1, explain: 'Drei Einsen – das Paritätsbit 1 macht die Anzahl gerade.' },
       { q: 'Mit welchem Gatter baut man einen Paritätsbitersteller?', options: ['UND', 'ODER', 'XOR', 'NAND'], correct: 2, explain: 'XOR ist 1 bei ungerader Anzahl Einsen.' },
       { q: 'Zwei Bits kippen bei der Übertragung. Erkennt die Paritätsprüfung den Fehler?', options: ['Ja, immer', 'Nein – die Parität stimmt wieder', 'Nur beim ersten Bit', 'Nur bei Gray-Code'], correct: 1, explain: 'Zwei Fehler heben sich in der Parität auf.' }
@@ -3537,7 +3614,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p>Ein <b>Komparator</b> vergleicht zwei Zahlen: X (e1 > e2) = e1·ē2, Y (e1 = e2) = e1 ⊙ e2 (XNOR), Z (e1 < e2) = ē1·e2.</p>' +
       '<p><b>Halbaddierer:</b> addiert zwei Bits. Summe S = a ⊕ b, Übertrag C = a·b. <b>Volladdierer:</b> addiert zusätzlich den Übertrag c<sub>in</sub> der vorherigen Stelle: S = a ⊕ b ⊕ c<sub>in</sub>, C<sub>out</sub> = a·b ∨ c<sub>in</sub>·(a ⊕ b). Mehrere Volladdierer hintereinander ergeben ein Rechenwerk für mehrstellige Dualzahlen.</p>',
     questions: [
-      { q: 'Wie viele Dateneingänge kann ein Multiplexer mit 3 Steuerleitungen auswählen?', options: ['3', '6', '8', '9'], correct: 2, explain: '2³ = 8.' },
+      { q: 'Wie viele Dateneingänge kann ein Multiplexer mit 3 Steuerleitungen auswählen?', options: ['3', '6', '9', '8'], correct: 3, explain: '2³ = 8.' },
       { q: 'Was liefert ein Halbaddierer bei a = 1, b = 1?', options: ['S = 1, C = 0', 'S = 0, C = 1', 'S = 1, C = 1', 'S = 0, C = 0'], correct: 1, explain: '1 + 1 = 10₂: Summe 0, Übertrag 1.' },
       { q: 'Welches Gatter liefert die Summe eines Halbaddierers?', options: ['UND', 'ODER', 'XOR', 'NOR'], correct: 2, explain: 'S = a ⊕ b.' },
       { q: 'Was unterscheidet den Volladdierer vom Halbaddierer?', options: ['Er hat einen Übertragseingang', 'Er kann subtrahieren', 'Er hat keinen Übertrag', 'Er arbeitet mit Gray-Code'], correct: 0, explain: 'Der Volladdierer addiert drei Bits: a, b und den Übertrag der vorherigen Stelle.' },
@@ -3946,8 +4023,8 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p>Bei f<sub>g</sub> ist die Ausgangsspannung auf 70,7 % gesunken (−3 dB).</p>' +
       '<p><b>Taktgeber</b> liefern Rechteckspannung mit Frequenz f und Periodendauer T = 1/f. Mit einem Inverter erhält man das Gegentaktsignal – zwei LEDs blinken abwechselnd.</p>',
     questions: [
-      { q: 'Nach welcher Zeit schaltet ein Logikeingang hinter einem RC-Glied (τ = 1 s) auf 1?', options: ['0,1 s', '0,69 s', '1 s', '5 s'], correct: 1, explain: 'Die Schwelle 2,5 V ist bei 50 % erreicht: t = τ · ln 2 ≈ 0,69 s.' },
-      { q: 'Wie verkleinert man die Brummspannung eines Gleichrichters?', options: ['Kleineren Ladekondensator', 'Grösseren Ladekondensator', 'Kleineren Lastwiderstand', 'Gar nicht'], correct: 1, explain: 'Ein grösserer Kondensator verliert zwischen den Spitzen weniger Spannung.' },
+      { q: 'Nach welcher Zeit schaltet ein Logikeingang hinter einem RC-Glied (τ = 1 s) auf 1?', options: ['0,69 s', '0,1 s', '1 s', '5 s'], correct: 0, explain: 'Die Schwelle 2,5 V ist bei 50 % erreicht: t = τ · ln 2 ≈ 0,69 s.' },
+      { q: 'Wie verkleinert man die Brummspannung eines Gleichrichters?', options: ['Kleineren Ladekondensator', 'Gar nicht', 'Kleineren Lastwiderstand', 'Grösseren Ladekondensator'], correct: 3, explain: 'Ein grösserer Kondensator verliert zwischen den Spitzen weniger Spannung.' },
       { q: 'Grenzfrequenz bei R = 1 kΩ, C = 10 µF?', options: ['1,6 Hz', '15,9 Hz', '159 Hz', '1,59 kHz'], correct: 1, explain: 'f_g = 1 / (2π · 1000 · 0,00001) ≈ 15,9 Hz.' },
       { q: 'Welches Filter lässt tiefe Frequenzen durch?', options: ['Hochpass', 'Tiefpass', 'Bandsperre', 'Keines'], correct: 1, explain: 'Tiefpass: tiefe Frequenzen passieren.' },
       { q: 'Auf wie viel Prozent ist die Ausgangsspannung bei der Grenzfrequenz gesunken?', options: ['50 %', '63 %', '70,7 %', '90 %'], correct: 2, explain: '1/√2 ≈ 0,707 – das sind −3 dB.' }
@@ -4160,7 +4237,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   defTask({
     id: '12.5', ch: 12, title: 'Das getaktete RS-Flipflop', tags: ['digital.flipflop', 'digital.steuerungsart'],
     story: 'S und R dürfen nur wirken, solange die Freigabe C aktiv ist – sonst stören kurze Spitzen den Speicher.',
-    brief: 'Baue ein <b>zustandsgesteuertes RS-Flipflop</b>: Vor das NOR-Flipflop je ein UND, das S (E1) bzw. R (E2) mit der Freigabe C (E3) verknüpft. L1 = Q.',
+    brief: 'Baue ein <b>zustandsgesteuertes RS-Flipflop</b>: Vor das NOR-Flipflop je ein UND-Gatter, das S (E1) bzw. R (E2) mit der Freigabe C (E3) verknüpft. L1 = Q.',
     learn: 'Zustandsgesteuert: Die Eingänge wirken, solange C = 1.', take: 'Mit C = 0 ist das Flipflop gegen S und R gesperrt.',
     hint: 'U3 = S·C setzt, U4 = R·C setzt zurück; dahinter das NOR-Flipflop aus 12.1.', hint2: 'U4.out → U1.in1, U2.out → U1.in2, U3.out → U2.in2, U1.out → U2.in1, U1.out → L1.',
     palette: ['nor', 'and', 'or', 'not', 'nand'], need: { nor: 2, and: 2 }, start: gStart, ref: gRef,
@@ -4189,7 +4266,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p><b>Johnson-Zähler:</b> Schieberegister, dessen invertierter letzter Ausgang auf den Eingang zurückgeführt ist. 2 Stufen: 00 → 10 → 11 → 01 → 00 – pro Takt ändert sich genau ein Bit.</p>',
     questions: [
       { q: 'Bis zu welcher Zahl zählt ein 3-Bit-Dualzähler?', options: ['3', '6', '7', '8'], correct: 2, explain: '2³ − 1 = 7, dann wieder 0.' },
-      { q: 'Woher bekommt beim asynchronen Aufwärtszähler das zweite Flipflop seinen Takt?', options: ['Vom gemeinsamen Takt', 'Vom Q̄-Ausgang der ersten Stufe', 'Von J', 'Gar nicht'], correct: 1, explain: 'Die Stufen takten sich nacheinander – daher „asynchron“.' },
+      { q: 'Woher bekommt beim asynchronen Aufwärtszähler das zweite Flipflop seinen Takt?', options: ['Vom Q̄-Ausgang der ersten Stufe', 'Vom gemeinsamen Takt', 'Von J', 'Gar nicht'], correct: 0, explain: 'Die Stufen takten sich nacheinander – daher „asynchron“.' },
       { q: 'Was ist der Vorteil des synchronen Zählers?', options: ['Weniger Flipflops', 'Alle Stufen schalten gleichzeitig', 'Er braucht keinen Takt', 'Er zählt rückwärts'], correct: 1, explain: 'Kein Durchlaufen der Stufen – keine falschen Zwischenwerte.' },
       { q: 'Wann kippt beim synchronen 2-Bit-Zähler das zweite JK-Flipflop?', options: ['Bei jedem Takt', 'Wenn Q1 = 1', 'Wenn Q1 = 0', 'Nie'], correct: 1, explain: 'J2 = K2 = Q1.' },
       { q: 'Wie viele Zustände durchläuft ein 2-stufiger Johnson-Zähler?', options: ['2', '3', '4', '8'], correct: 2, explain: '00, 10, 11, 01 – vier Zustände (2·n).' }
@@ -4313,9 +4390,9 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p><b>Stabilisierung:</b> R<sub>V</sub> muss so klein sein, dass bei kleinster Eingangsspannung und grösster Last noch ein Z-Strom fliesst: R<sub>V</sub> ≤ (U<sub>e,min</sub> − U<sub>Z</sub>) / (I<sub>L,max</sub> + I<sub>Z,min</sub>). Und so gross, dass bei höchster Spannung die Z-Diode nicht überlastet wird.</p>' +
       '<p>Nachteile der einfachen Z-Stabilisierung: höhere Speisespannung nötig, nur Standardwerte für U<sub>Z</sub>, geringe Belastbarkeit, nicht ganz ideal (U<sub>Z</sub> steigt leicht mit dem Strom).</p>',
     questions: [
-      { q: 'Wie gross ist die Schleusenspannung einer Siliziumdiode?', options: ['0,3 V', '0,7 V', '1,8 V', '5,1 V'], correct: 1, explain: 'Silizium ca. 0,7 V.' },
-      { q: 'Woran erkennt man die Kathode einer Diode?', options: ['Am längeren Bein', 'Am Ring auf dem Gehäuse', 'An der Farbe', 'Gar nicht'], correct: 1, explain: 'Der Ring markiert die Kathode.' },
-      { q: 'In welcher Richtung wird eine Z-Diode zur Stabilisierung betrieben?', options: ['Durchlassrichtung', 'Sperrrichtung', 'Egal', 'Wechselnd'], correct: 1, explain: 'Im Durchbruch in Sperrrichtung hält sie U_Z.' },
+      { q: 'Wie gross ist die Schleusenspannung einer Siliziumdiode?', options: ['0,7 V', '0,3 V', '1,8 V', '5,1 V'], correct: 0, explain: 'Silizium ca. 0,7 V.' },
+      { q: 'Woran erkennt man die Kathode einer Diode?', options: ['Am längeren Bein', 'An der Farbe', 'Am Ring auf dem Gehäuse', 'Gar nicht'], correct: 2, explain: 'Der Ring markiert die Kathode.' },
+      { q: 'In welcher Richtung wird eine Z-Diode zur Stabilisierung betrieben?', options: ['Durchlassrichtung', 'Wechselnd', 'Egal', 'Sperrrichtung'], correct: 3, explain: 'Im Durchbruch in Sperrrichtung hält sie U_Z.' },
       { q: 'Warum braucht eine Z-Diode einen Vorwiderstand?', options: ['Damit sie leuchtet', 'Damit der Strom begrenzt wird', 'Damit sie sperrt', 'Braucht sie nicht'], correct: 1, explain: 'Ohne R_V würde der Strom im Durchbruch unbegrenzt steigen.' },
       { q: '12 V, R_V = 470 Ω, U_Z = 5,1 V, keine Last. Wie gross ist I_Z (ungefähr)?', options: ['5 mA', '15 mA', '25 mA', '50 mA'], correct: 1, explain: 'I = (12 V − 5,1 V) / 470 Ω ≈ 14,7 mA.' }
     ]
@@ -4417,7 +4494,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<div class="formula">R<sub>B</sub> ≤ (U<sub>st</sub> − 0,7 V) / (ü · I<sub>C</sub> / β)</div>' +
       '<p>Emitter und Logik-Masse müssen verbunden sein – sonst hat die Steuerspannung keinen Bezug. So schaltet ein Logikausgang (wenige mA) eine Lampe, einen Motor oder ein Relais.</p>',
     questions: [
-      { q: 'Wie heissen die Anschlüsse eines Bipolartransistors?', options: ['Anode, Kathode, Gate', 'Basis, Kollektor, Emitter', 'Source, Drain, Gate', 'Plus, Minus, Mitte'], correct: 1, explain: 'B, C, E.' },
+      { q: 'Wie heissen die Anschlüsse eines Bipolartransistors?', options: ['Anode, Kathode, Gate', 'Plus, Minus, Mitte', 'Source, Drain, Gate', 'Basis, Kollektor, Emitter'], correct: 3, explain: 'B, C, E.' },
       { q: 'β = 100, I_B = 0,1 mA, aktiver Bereich. I_C = ?', options: ['0,1 mA', '1 mA', '10 mA', '100 mA'], correct: 2, explain: 'I_C = β · I_B = 100 · 0,1 mA = 10 mA.' },
       { q: 'Wie gross ist U_CE in der Sättigung?', options: ['ca. 0,2 V', 'ca. 0,7 V', 'halbe Speisung', 'volle Speisung'], correct: 0, explain: 'Voll durchgeschaltet bleibt nur die Sättigungsspannung.' },
       { q: 'Warum steuert man einen Schalttransistor mit mehr Basisstrom als nötig an?', options: ['Damit er schneller altert', 'Damit er sicher in Sättigung geht', 'Damit er sperrt', 'Damit β steigt'], correct: 1, explain: 'Übersteuern sichert den voll durchgeschalteten Zustand trotz Exemplarstreuung.' },
@@ -4549,7 +4626,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p>Wichtig beim Messen: Die Eingangsamplitude während der ganzen Messreihe kontrollieren (hier fest Û = 10 V, U<sub>e</sub> = 7,07 V effektiv).</p>',
     questions: [
       { q: 'U_a / U_e = 0,1. Wie viel dB sind das?', options: ['−1 dB', '−10 dB', '−20 dB', '−40 dB'], correct: 2, explain: '20 · log(0,1) = −20 dB.' },
-      { q: 'Was bedeutet −3 dB?', options: ['Halbe Spannung', 'Etwa 70,7 % der Spannung', 'Ein Zehntel', 'Doppelte Spannung'], correct: 1, explain: '20 · log(0,707) ≈ −3 dB – die Grenzfrequenz.' },
+      { q: 'Was bedeutet −3 dB?', options: ['Etwa 70,7 % der Spannung', 'Halbe Spannung', 'Ein Zehntel', 'Doppelte Spannung'], correct: 0, explain: '20 · log(0,707) ≈ −3 dB – die Grenzfrequenz.' },
       { q: 'Grenzfrequenz bei R = 1 kΩ, C = 1 µF?', options: ['15,9 Hz', '159 Hz', '1,59 kHz', '15,9 kHz'], correct: 1, explain: 'f_g = 1/(2π · 1000 Ω · 1 µF) ≈ 159 Hz.' },
       { q: 'Wie stark fällt ein Tiefpass 1. Ordnung oberhalb von f_g ab?', options: ['3 dB pro Dekade', '6 dB pro Dekade', '20 dB pro Dekade', '40 dB pro Dekade'], correct: 2, explain: 'Zehnfache Frequenz → ein Zehntel → −20 dB.' },
       { q: 'Welche Achse ist beim Frequenzgang logarithmisch?', options: ['Keine', 'Die Frequenzachse', 'Nur die Spannungsachse', 'Die Zeitachse'], correct: 1, explain: 'Frequenzen von 1 Hz bis 10 kHz passen nur logarithmisch sinnvoll auf ein Blatt (die Verstärkung in dB ist ebenfalls logarithmisch).' }
@@ -4639,9 +4716,9 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p>RC-Glieder <b>formen Signale</b>: Ist τ viel kleiner als die Periodendauer, wirkt ein Hochpass als <b>Differenzierglied</b> – aus einem Rechteck werden Nadelimpulse an den Flanken. Ist τ viel grösser, wirkt ein Tiefpass als <b>Integrierglied</b> – aus einem Rechteck wird ein Dreieck, bei sehr grossem τ nahezu der Mittelwert (so wird aus einem Taktsignal eine Gleichspannung).</p>' +
       '<p><b>Anwendungen:</b> Störungen ausfiltern (Brumm, Schaltspitzen), Signale aufbereiten, aus PWM eine analoge Spannung gewinnen.</p>',
     questions: [
-      { q: 'Woraus besteht ein einfacher RC-Bandpass?', options: ['Zwei Tiefpässen', 'Hochpass und Tiefpass hintereinander', 'Zwei Hochpässen', 'Nur einem Kondensator'], correct: 1, explain: 'Der Hochpass nimmt die tiefen, der Tiefpass die hohen Frequenzen weg.' },
-      { q: 'Was macht ein Differenzierglied (τ ≪ T) aus einem Rechteck?', options: ['Ein Dreieck', 'Nadelimpulse an den Flanken', 'Einen Sinus', 'Gleichspannung'], correct: 1, explain: 'Nur die schnellen Flanken kommen durch den Hochpass.' },
-      { q: 'Was macht ein Integrierglied (τ ≫ T) aus einem Rechteck?', options: ['Nadelimpulse', 'Ein flaches Dreieck um den Mittelwert', 'Ein doppelt so hohes Rechteck', 'Nichts'], correct: 1, explain: 'Der Kondensator lädt und entlädt sich nur wenig – fast linear.' },
+      { q: 'Woraus besteht ein einfacher RC-Bandpass?', options: ['Hochpass und Tiefpass hintereinander', 'Zwei Tiefpässen', 'Zwei Hochpässen', 'Nur einem Kondensator'], correct: 0, explain: 'Der Hochpass nimmt die tiefen, der Tiefpass die hohen Frequenzen weg.' },
+      { q: 'Was macht ein Differenzierglied (τ ≪ T) aus einem Rechteck?', options: ['Ein Dreieck', 'Einen Sinus', 'Nadelimpulse an den Flanken', 'Gleichspannung'], correct: 2, explain: 'Nur die schnellen Flanken kommen durch den Hochpass.' },
+      { q: 'Was macht ein Integrierglied (τ ≫ T) aus einem Rechteck?', options: ['Nadelimpulse', 'Nichts', 'Ein doppelt so hohes Rechteck', 'Ein flaches Dreieck um den Mittelwert'], correct: 3, explain: 'Der Kondensator lädt und entlädt sich nur wenig – fast linear.' },
       { q: 'Wie gewinnt man aus einem Taktsignal 0 … 5 V eine Gleichspannung?', options: ['Mit einem Hochpass', 'Mit einem Tiefpass (grosses τ)', 'Mit einer Z-Diode', 'Gar nicht'], correct: 1, explain: 'Der Tiefpass mittelt – übrig bleibt ca. 2,5 V.' },
       { q: 'Welche Ordnung hat ein RC-Bandpass aus einem Hoch- und einem Tiefpass je auf einer Seite?', options: ['0', '1', '2', '4'], correct: 1, explain: 'Jede Flanke kommt von einer RC-Stufe: 20 dB pro Dekade.' }
     ]
@@ -4776,8 +4853,8 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p>Die Motorwicklung ist eine Spule: Beim Abschalten erzeugt sie eine hohe <b>Abschaltspannung</b>, die den Transistor zerstören kann. Die <b>Freilaufdiode</b> liegt deshalb <b>parallel zum Motor, Kathode an Plus</b> – im Betrieb sperrt sie, beim Abschalten führt sie den Strom im Kreis. Falsch herum eingebaut schliesst sie die Versorgung über den Transistor kurz.</p>' +
       '<p><b>Hochlauframpe (Sanftanlauf):</b> Ein RC-Glied an der Basis lässt den Basisstrom langsam steigen – der Motor läuft sanft hoch statt mit vollem Anlaufstrom zu starten. Das schont Mechanik und Versorgung.</p>',
     questions: [
-      { q: 'Ein Motor nimmt bei 6 V einen Strom von 0,3 A auf. Wie gross ist die Leistung?', options: ['0,05 W', '1,8 W', '6,3 W', '20 W'], correct: 1, explain: 'P = U · I = 6 V · 0,3 A = 1,8 W.' },
-      { q: 'Wie kehrt man die Drehrichtung eines Gleichstrommotors um?', options: ['Höhere Spannung', 'Umpolen der Anschlüsse', 'Freilaufdiode entfernen', 'Gar nicht'], correct: 1, explain: 'Umpolen kehrt die Stromrichtung und damit die Drehrichtung um.' },
+      { q: 'Ein Motor nimmt bei 6 V einen Strom von 0,3 A auf. Wie gross ist die Leistung?', options: ['0,05 W', '6,3 W', '1,8 W', '20 W'], correct: 2, explain: 'P = U · I = 6 V · 0,3 A = 1,8 W.' },
+      { q: 'Wie kehrt man die Drehrichtung eines Gleichstrommotors um?', options: ['Höhere Spannung', 'Gar nicht', 'Freilaufdiode entfernen', 'Umpolen der Anschlüsse'], correct: 3, explain: 'Umpolen kehrt die Stromrichtung und damit die Drehrichtung um.' },
       { q: 'Wozu dient die Freilaufdiode am Motor?', options: ['Sie erhöht die Drehzahl', 'Sie schützt den Transistor vor der Abschaltspannung', 'Sie zeigt an, dass der Motor läuft', 'Sie ersetzt den Basiswiderstand'], correct: 1, explain: 'Beim Abschalten führt sie den Wicklungsstrom im Kreis – keine Spannungsspitze am Transistor.' },
       { q: 'Wie wird die Freilaufdiode eingebaut?', options: ['In Reihe zum Motor', 'Parallel zum Motor, Kathode an Plus', 'Parallel zum Motor, Anode an Plus', 'Zwischen Basis und Emitter'], correct: 1, explain: 'Im Betrieb in Sperrrichtung – sie wirkt nur beim Abschalten.' },
       { q: 'Wie gross ist die Verlustleistung am Transistor bei U_CE = 0,5 V und I_C = 0,28 A?', options: ['0,14 W', '0,5 W', '1,4 W', '2,8 W'], correct: 0, explain: 'P_V = U_CE · I_C = 0,5 V · 0,28 A = 0,14 W.' }
@@ -4904,8 +4981,8 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p><b>Drehzahlmessung:</b> Ein Impulsgeber (Lochscheibe + Lichtschranke) liefert pro Umdrehung eine feste Zahl Impulse. Ein Zähler zählt nur während der <b>Torzeit</b> (UND-Verknüpfung von Impulsen und Tor). Drehzahl = Impulse / (Torzeit · Impulse pro Umdrehung), mal 60 für 1/min.</p>' +
       '<p><b>Fehlersuche an der Anlage:</b> Den Signalweg vom Taster bis zum Motor Block für Block verfolgen und an jedem Übergang messen. Liegt an einem Bauteil die volle Spannung, aber es fliesst kein Strom, ist es unterbrochen.</p>',
     questions: [
-      { q: 'Warum ist der Stopp-Taster ein Öffner?', options: ['Weil er billiger ist', 'Drahtbruchsicher: Leitungsbruch wirkt wie Stopp', 'Damit der Motor schneller startet', 'Das ist egal'], correct: 1, explain: 'Ein Bruch der Leitung ergibt 0 = Stopp.' },
-      { q: 'Was bewirkt die Selbsthaltung?', options: ['Der Motor läuft nur, solange Start gedrückt ist', 'Der Motor läuft nach dem Loslassen von Start weiter', 'Der Motor läuft rückwärts', 'Sie ersetzt den Not-Halt'], correct: 1, explain: 'Der Ausgang hält sich über die Rückführung selbst.' },
+      { q: 'Warum ist der Stopp-Taster ein Öffner?', options: ['Drahtbruchsicher: Leitungsbruch wirkt wie Stopp', 'Weil er billiger ist', 'Damit der Motor schneller startet', 'Das ist egal'], correct: 0, explain: 'Ein Bruch der Leitung ergibt 0 = Stopp.' },
+      { q: 'Was bewirkt die Selbsthaltung?', options: ['Der Motor läuft nur, solange Start gedrückt ist', 'Der Motor läuft rückwärts', 'Der Motor läuft nach dem Loslassen von Start weiter', 'Sie ersetzt den Not-Halt'], correct: 2, explain: 'Der Ausgang hält sich über die Rückführung selbst.' },
       { q: 'Der Not-Halt wird entriegelt. Was darf NICHT passieren?', options: ['Die Anlage bleibt stehen', 'Die Anlage läuft von selbst wieder an', 'Man muss Start drücken', 'Die Betriebs-LED bleibt aus'], correct: 1, explain: 'Kein selbsttätiger Wiederanlauf – erst ein neuer Start.' },
       { q: 'Ein Impulsgeber liefert 1 Impuls pro Umdrehung. In 0,5 s Torzeit werden 5 Impulse gezählt. Drehzahl?', options: ['5 1/min', '10 1/min', '300 1/min', '600 1/min'], correct: 3, explain: '5 / 0,5 s = 10 1/s = 600 1/min.' },
       { q: 'Start und Stopp werden gleichzeitig gedrückt. Was macht Q = (Start ∨ Q) ∧ Stopp?', options: ['Motor läuft', 'Motor steht (stoppdominant)', 'Motor wechselt die Richtung', 'Unbestimmt'], correct: 1, explain: 'Gedrückter Öffner = 0, das UND sperrt.' }
@@ -5218,7 +5295,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   defTask({
     id: '16.1', ch: 16, title: 'Datenblatt und Systemfehler', tags: ['messen.genauigkeit', 'messen.systemfehler', 'elektro.ohm'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Ein Heizwiderstand von 10 Ω hängt an 230 V. Die Werkmeisterin will wissen, was das Multimeter misst – und wie genau.',
-    brief: 'Miss die Spannung an R1 mit dem Multimeter (<b>Bereich 600 V</b> von Hand wählen). Berechne aus Datenblattwerten: Strom I = U/R und Leistung P = U·I. Bestimme den grössten Fehler eines <b>digitalen</b> Voltmeters mit ±(0,5 % + 1 Digit) im 600-V-Bereich (Auflösung 0,1 V) und eines <b>analogen</b> Voltmeters der Klasse 1,5 mit Skalenendwert 300 V. Warum darfst du den Strom hier nicht mit dem 10-A-Bereich messen?',
+    brief: 'Miss die Spannung an R1 und berechne daraus Strom I = U/R und Leistung P = U·I. Bestimme den grössten Fehler eines <b>digitalen</b> Voltmeters (±(0,5 % + 1 Digit) im 600-V-Bereich, Auflösung 0,1 V) und eines <b>analogen</b> Voltmeters (Klasse 1,5, Skalenendwert 300 V). Warum darfst du den Strom hier nicht im 10-A-Bereich messen?',
     learn: 'Datenblattwerte rechnen: Prozent vom Anzeigewert + Digit (digital) gegen Prozent vom Skalenendwert (analog).',
     take: 'Digital: 0,5 % von 230 V + 0,1 V = 1,25 V. Analog Klasse 1,5 bei 300 V Endwert: 4,5 V – unabhängig vom Anzeigewert. Und: 23 A sprengen den 10-A-Bereich (Sicherung!).',
     hint: 'Rote Spitze auf R1.a, schwarze auf R1.b ziehen, V⎓ und Bereich 600V. Ein zu kleiner Bereich zeigt OL.',
@@ -5241,7 +5318,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   defTask({
     id: '16.2', ch: 16, title: 'Spannungs- und Strommessfehler', tags: ['messen.systemfehler', 'messen.spannung', 'messen.strom'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Zwei Schaltungen, ein Multimeter: ein kleiner Widerstand (10 Ω) und ein hochohmiger Spannungsteiler (2 × 10 MΩ). Wo fälscht das Messgerät, und wie stark?',
-    brief: 'Schliesse <b>S1</b> (Zweig mit R1 = 10 Ω): miss die Spannung an R1 und den Strom durch R1 (Leitung auftrennen, Amperemeter in Reihe, Bereich 10 A). Öffne S1, schliesse <b>S2</b> (Teiler R3–R2, je 10 MΩ): miss die Spannung an R2. Berechne für beide Zweige die Werte <b>ohne</b> Messfehler (an R2 liegt rechnerisch die Hälfte von 9 V) und die Abweichung in Prozent bei R2.',
+    brief: 'Mit <b>S1</b> geschlossen (R1 = 10 Ω): miss Spannung an R1 und Strom durch R1. Mit <b>S2</b> geschlossen und S1 offen (Teiler R3–R2, je 10 MΩ): miss die Spannung an R2. Berechne die Werte <b>ohne</b> Messfehler (an R2 rechnerisch die Hälfte von 9 V) und die Abweichung bei R2 in Prozent.',
     learn: 'Das Voltmeter (10 MΩ) belastet hochohmige Schaltungen, der Amperemeter-Shunt (0,1 Ω) stört niederohmige.',
     take: 'Bei 10 Ω stimmt die Spannung, der Shunt kostet 1 % Strom. Im 10-MΩ-Teiler zeigt das Voltmeter statt 4,5 V nur 3 V – 33 % Fehler, weil es selbst 10 MΩ hat. Spannungsrichtig für kleine, stromrichtig für grosse Widerstände.',
     hint: 'Schalter auf der Werkbank anklicken. Spitzen an R1.a/R1.b bzw. R2.a/R2.b ziehen, Bereich 20 V.',
@@ -5270,7 +5347,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   defTask({
     id: '16.3', ch: 16, title: 'Kurvenformen im Instrumentenvergleich', tags: ['messen.trms', 'elektro.effektivwert', 'messen.oszilloskop'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Dieselbe Spannung, drei Geräte, drei Kurvenformen: Füll die Vergleichstabelle aus dem Lehrgang – mit echten Messungen.',
-    brief: 'Der Generator liefert Û = 10 V, 50 Hz. Miss an R1 für <b>Sinus, Rechteck und Dreieck</b> (Kurvenform im Eigenschaften-Panel umstellen): die Anzeige eines <b>AVG-Multimeters</b> (V~, Verfahren AVG), eines <b>TRMS-Multimeters</b> (V~, TRMS) und den <b>Scheitelwert</b> mit dem Oszilloskop (Tastkopf an R1). Bereich 20 V.',
+    brief: 'Der Generator liefert Û = 10 V, 50 Hz. Miss an R1 für <b>Sinus, Rechteck und Dreieck</b> (Kurvenform im Eigenschaften-Panel umstellen) die Anzeige <b>V~ AVG</b>, die Anzeige <b>V~ TRMS</b> und den <b>Scheitelwert</b> am Oszilloskop.',
     learn: 'AVG stimmt nur beim Sinus; TRMS und Oszilloskop zeigen bei jeder Kurvenform das Richtige.',
     take: 'Rechteck: AVG 11,1 V statt 10 V (+11 %). Dreieck: AVG 5,55 V statt 5,77 V (−4 %). Sinus: beide 7,07 V.',
     hint: 'V~ wählen, unter dem Panel zwischen „Mittelwert (AVG)“ und „Echt-Effektivwert (TRMS)“ umschalten. Für Û den Tastkopf ziehen und RUN drücken.',
@@ -5313,7 +5390,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<p>Unser Werkbank-Multimeter trägt „600 V CAT III“: gut für die Gebäudeinstallation bis 600 V, nicht für den Hausanschluss (CAT IV). Für die Batterie- und Generatorversuche im Labor (CAT I) ist es mehr als ausreichend. Wichtig ist neben der Kategorie immer die <b>Spannung</b>: Ein CAT-III-300-V-Gerät darf nicht an 400 V zwischen zwei Aussenleitern.</p>' +
       '{{visual:2}}',
     questions: [
-      { q: 'Ein Zeigerinstrument trägt die Zahl 1,5 auf dem Skalenfeld. Was bedeutet sie?', options: ['1,5 kV Prüfspannung', 'Genauigkeitsklasse: ±1,5 % vom Skalenendwert', '1,5 A Nennstrom', 'Innenwiderstand 1,5 kΩ'], correct: 1, explain: 'Die Klasse gibt den Fehler in Prozent vom Endwert an – über die ganze Skala gleich gross.' },
+      { q: 'Ein Zeigerinstrument trägt die Zahl 1,5 auf dem Skalenfeld. Was bedeutet sie?', options: ['1,5 kV Prüfspannung', '1,5 A Nennstrom', 'Genauigkeitsklasse: ±1,5 % vom Skalenendwert', 'Innenwiderstand 1,5 kΩ'], correct: 2, explain: 'Die Klasse gibt den Fehler in Prozent vom Endwert an – über die ganze Skala gleich gross.' },
       { q: 'Was sagt der Stern mit der Zahl 2?', options: ['Klasse 2', '2 kV Prüfspannung der Isolation', '2 Messwerke', 'Gebrauchslage 2 (schräg)'], correct: 1, explain: 'Der Stern steht für die Prüfspannung in Kilovolt.' },
       { q: 'Wo misst du in Messkategorie CAT IV?', options: ['An einer Batterie', 'An einem Haushaltsgerät am Stecker', 'An der Steckdose', 'Am Hausanschluss oder Zähler'], correct: 3, explain: 'CAT IV ist die Quelle der Niederspannungsinstallation: Hausanschluss, Zähler, Freileitung.' },
       { q: 'Welcher Kategorie gehören die Laborversuche mit Batterie und Funktionsgenerator an?', options: ['CAT I', 'CAT II', 'CAT III', 'CAT IV'], correct: 0, explain: 'Stromkreise ohne direkte Netzverbindung sind CAT I.' },
@@ -5327,7 +5404,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   defTask({
     id: '16.4', ch: 16, title: 'Wechselgrösse mit Gleichanteil', tags: ['messen.trms', 'elektro.mittelwert', 'elektro.effektivwert'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Aus einem Sensorverstärker kommt ein Sinus, der auf einem Gleichanteil reitet. Welches Gerät zeigt hier was?',
-    brief: 'Der Generator liefert Û = 5 V mit <b>3 V Gleichanteil</b>. Miss an R1 mit <b>V⎓</b> (zeigt den Gleichanteil), <b>V~ AVG</b> und <b>V~ TRMS</b> (Wechselanteil) und lies am Oszilloskop den <b>höchsten Wert</b> ab. Berechne den <b>gesamten Effektivwert</b> √(U<sub>DC</sub>² + U<sub>AC</sub>²) – das zeigt nur ein TRMS-Gerät mit AC+DC-Kopplung. Stell danach auf <b>Rechteck</b> um und miss den TRMS-Wechselanteil erneut.',
+    brief: 'Der Generator liefert Û = 5 V mit <b>3 V Gleichanteil</b>. Miss an R1 <b>V⎓</b>, <b>V~ AVG</b>, <b>V~ TRMS</b> und am Oszilloskop den <b>höchsten Wert</b>, berechne dann den <b>gesamten Effektivwert</b> √(U<sub>DC</sub>² + U<sub>AC</sub>²). Stell zum Schluss auf <b>Rechteck</b> um und miss V~ TRMS erneut.',
     learn: 'V~ ist AC-gekoppelt: Der Gleichanteil fällt weg. Nur TRMS mit AC+DC zeigt den wahren Effektivwert einer Mischgrösse.',
     take: 'Sinus + 3 V: U_DC = 3 V, U_AC = 3,54 V → U_ges = 4,64 V. AVG und TRMS stimmen beim Sinus noch überein; beim Rechteck zeigt AVG wieder zu viel.',
     hint: 'V⎓ mit Bereich 20 V zeigt bei schneller Wechselspannung den Mittelwert. Für Û den Tastkopf ziehen und RUN.',
@@ -5348,7 +5425,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   defTask({
     id: '16.5', ch: 16, title: 'Frequenz erhöhen', tags: ['elektro.frequenz', 'elektro.filter', 'messen.oszilloskop'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Wie weit kannst du die Frequenz drehen, bis die Geräte nichts Sinnvolles mehr zeigen?',
-    brief: 'Am RC-Glied (R1 = 10 kΩ, C1 = 100 nF, f<sub>g</sub> ≈ 159 Hz) miss die Ausgangsspannung an C1 mit <b>V~ TRMS</b> bei <b>50 Hz, 159 Hz, 1 kHz und 10 kHz</b> (Frequenz am Generator umstellen). Lies bei 1 kHz zusätzlich den <b>Scheitelwert</b> am Oszilloskop ab (Zeitbasis 5 ms). Was zeigt <b>V⎓</b> bei jeder Frequenz?',
+    brief: 'Am RC-Glied (R1 = 10 kΩ, C1 = 100 nF, f<sub>g</sub> ≈ 159 Hz) miss die Spannung an C1 mit <b>V~ TRMS</b> bei <b>50 Hz, 159 Hz, 1 kHz und 10 kHz</b> (Frequenz am Generator umstellen). Lies bei 1 kHz zusätzlich den <b>Scheitelwert</b> am Oszilloskop ab. Was zeigt <b>V⎓</b> bei jeder Frequenz?',
     learn: 'Ein Multimeter mittelt über viele Perioden – der Gleichanteil bleibt 0, der Wechselanteil folgt dem Frequenzgang. Das Oszilloskop zeigt den Verlauf bis in den MHz-Bereich.',
     take: 'Mit steigender Frequenz sinkt U_a am Tiefpass: 50 Hz ≈ 6,7 V, f_g ≈ 5 V, 1 kHz ≈ 1,1 V, 10 kHz ≈ 0,11 V. Reale Multimeter sind meist nur bis 1 kHz (AVG) bzw. einige kHz (TRMS) spezifiziert – darüber hilft nur das Oszilloskop.',
     hint: 'Frequenz im Eigenschaften-Panel von G1 eintippen (z. B. 1k). Spitzen an C1.a und C1.b, Bereich 20 V; bei 10 kHz auf 2 V wechseln.',
@@ -5422,8 +5499,8 @@ body.has-exam-bar .top { padding-top: 50px; }
       '{{visual:3}}',
     questions: [
       { q: 'Analoges Voltmeter, Klasse 1,5, Endwert 300 V, Zeiger bei 230 V. Grösster Fehler?', options: ['±1,15 V', '±3,45 V', '±4,5 V', '±15 V'], correct: 2, explain: '1,5 % vom Endwert 300 V = 4,5 V – unabhängig vom Anzeigewert.' },
-      { q: 'Digitales Voltmeter, Anzeige 230,0 V, ±(0,5 % + 1 Digit). Grösster Fehler?', options: ['±1,15 V', '±1,25 V', '±2,3 V', '±0,1 V'], correct: 1, explain: '0,5 % von 230 V = 1,15 V, dazu 1 Digit = 0,1 V → 1,25 V.' },
-      { q: 'Warum soll der Zeiger eines analogen Instruments im oberen Drittel stehen?', options: ['Weil die Skala dort feiner ist', 'Weil der Klassenfehler absolut gleich bleibt und relativ kleiner wird', 'Weil das Messwerk sonst zu warm wird', 'Weil unten der Gleichrichter nicht arbeitet'], correct: 1, explain: '±0,1 V sind bei 15 V nur 0,67 %, bei 2 V aber 5 %.' },
+      { q: 'Digitales Voltmeter, Anzeige 230,0 V, ±(0,5 % + 1 Digit). Grösster Fehler?', options: ['±1,25 V', '±1,15 V', '±2,3 V', '±0,1 V'], correct: 0, explain: '0,5 % von 230 V = 1,15 V, dazu 1 Digit = 0,1 V → 1,25 V.' },
+      { q: 'Warum soll der Zeiger eines analogen Instruments im oberen Drittel stehen?', options: ['Weil die Skala dort feiner ist', 'Weil unten der Gleichrichter nicht arbeitet', 'Weil das Messwerk sonst zu warm wird', 'Weil der Klassenfehler absolut gleich bleibt und relativ kleiner wird'], correct: 3, explain: '±0,1 V sind bei 15 V nur 0,67 %, bei 2 V aber 5 %.' },
       { q: 'Welche Rolle spielt der Messbereich beim Digit-Fehler?', options: ['Keine', 'Im kleineren Bereich ist 1 Digit weniger wert – der Fehler sinkt', 'Im kleineren Bereich ist der Fehler grösser', 'Der Digit-Fehler gilt nur bei AUTO'], correct: 1, explain: '20-V-Bereich: 1 Digit = 0,01 V; 600-V-Bereich: 1 Digit = 0,1 V.' },
       { q: 'Analoges Amperemeter, Klasse 2,5, Endwert 100 mA, Zeiger bei 4 mA. Wie gross ist der relative Fehler der Ablesung?', options: ['±2,5 %', '±6,25 %', '±62,5 %', '±0,1 %'], correct: 2, explain: 'Absoluter Fehler 2,5 % · 100 mA = ±2,5 mA, bezogen auf 4 mA sind das ±62,5 %. Am unteren Skalenende ist ein analoges Instrument fast unbrauchbar – Bereich wechseln.' },
       { q: 'Spannungsrichtige Leistungsmessung an 10 MΩ mit einem 10-MΩ-Voltmeter: Was misst das Amperemeter?', options: ['Nur den Verbraucherstrom', 'Den doppelten Verbraucherstrom (Voltmeterstrom kommt dazu)', 'Nichts', 'Den Strom des Shunts'], correct: 1, explain: 'Voltmeter und Verbraucher sind gleich gross – beide Ströme sind gleich, das Amperemeter zeigt das Doppelte.' }
@@ -5436,7 +5513,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   defTask({
     id: '16.6', ch: 16, title: 'Einweggleichrichter – Instrumentenvergleich', tags: ['elektro.gleichrichter', 'messen.trms', 'elektro.mittelwert'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Die Gleichrichterschaltung aus Kapitel 3 – jetzt mit der Frage: Welches Gerät zeigt hier was, und was ist der wahre Effektivwert?',
-    brief: 'Miss an R1 (Einweggleichrichter, Û = 10 V): <b>V⎓</b> (Gleichanteil), <b>V~ AVG</b> und <b>V~ TRMS</b> (Wechselanteil) sowie den <b>Scheitelwert</b> mit dem Oszilloskop. Berechne den <b>gesamten Effektivwert</b> √(U<sub>DC</sub>² + U<sub>AC</sub>²). Bereich 20 V.',
+    brief: 'Miss an R1 (Einweggleichrichter, Û = 10 V) <b>V⎓</b>, <b>V~ AVG</b>, <b>V~ TRMS</b> und den <b>Scheitelwert</b> am Oszilloskop. Berechne den <b>gesamten Effektivwert</b> √(U<sub>DC</sub>² + U<sub>AC</sub>²).',
     learn: 'Eine gleichgerichtete Spannung ist eine Mischgrösse: Gleichanteil plus kräftiger Wechselanteil.',
     take: 'U_DC ≈ 2,8 V, U_AC (TRMS) ≈ 3,6 V, Û ≈ 9,3 V; U_ges ≈ 4,6 V. AVG und TRMS liegen hier zufällig nahe beieinander (3,58 V zu 3,56 V) – der Formfaktor der Einweg-Halbwelle ist fast der des Sinus; beim Rechteck würde AVG daneben liegen.',
     hint: 'Alle Messungen an R1.a (rot/Tastkopf) gegen R1.b (schwarz/Erdungsclip).',
@@ -5460,7 +5537,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   defTask({
     id: '16.7', ch: 16, title: 'Brückengleichrichter mit und ohne Ladekondensator', tags: ['elektro.gleichrichter', 'elektro.kondensator', 'messen.trms'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Erst die nackte Brücke, dann mit Ladekondensator: Die Zahlen auf den Geräten verändern sich drastisch.',
-    brief: 'Miss an R1 <b>ohne</b> Kondensator (S1 offen) und <b>mit</b> Kondensator (S1 geschlossen): jeweils <b>V⎓</b> (Gleichanteil), <b>V~ TRMS</b> (Restwelligkeit) und den <b>Scheitelwert</b> am Oszilloskop (Zeitbasis 50 ms). Bereich 20 V.',
+    brief: 'Miss an R1 zuerst <b>ohne</b> Kondensator (S1 offen), dann <b>mit</b> Kondensator (S1 geschlossen). Jeweils: <b>V⎓</b>, <b>V~ TRMS</b> und den <b>Scheitelwert</b> am Oszilloskop.',
     learn: 'Der Ladekondensator hebt den Gleichanteil Richtung Scheitelwert und drückt die Restwelligkeit.',
     setupNote: '<b>Alternative wie am echten Labortisch – potentialfrei messen:</b> Sind Generator und Oszilloskop beide geerdet, darf der Erdungsclip nicht an R1.b (das würde eine Diode kurzschliessen). Dann: Erdungsclip an G1.–, CH1 an R1.a, CH2 an R1.b und am Gerät <b>MATH</b> einschalten. CH1 und CH2 zeigen je eine Halbwelle, MATH = CH1 − CH2 zeigt die Spannung an R1 – die Zweiweg-Kurve mit 10 ms Periode.',
     take: 'Ohne C: U_DC ≈ 5,0 V, U_AC ≈ 3,0 V, Û ≈ 8,6 V. Mit C (10 µF an 1 kΩ, τ = 10 ms): U_DC ≈ 6,7 V, U_AC nur noch ≈ 1,3 V – ein grösserer Kondensator würde den Gleichanteil weiter Richtung Û heben. Weiter mit 16.9: So wird daraus eine glatte Gleichspannung.',
@@ -5479,7 +5556,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   defTask({
     id: '16.8', ch: 16, title: 'Strommessung am Gleichrichter', tags: ['messen.strom', 'messen.systemfehler', 'elektro.gleichrichter'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Wie misst man den pulsierenden Strom hinter dem Gleichrichter? Mit einem Mess-Shunt – so, wie es das Amperemeter innen auch macht.',
-    brief: 'In Reihe zur Last R1 (1 kΩ) liegt der <b>Mess-Shunt R2 = 10 Ω</b>. Miss an R2 den <b>Gleichanteil</b> (V⎓) und den <b>Wechselanteil</b> (V~ TRMS) und rechne beide mit I = U / 10 Ω in Ströme um. Bestimme mit dem Oszilloskop den <b>Spitzenstrom</b>. Berechne den <b>Systemfehler</b>: Um wie viel Prozent verkleinert der Shunt den Laststrom gegenüber der Schaltung ohne Shunt?',
+    brief: 'In Reihe zur Last R1 (1 kΩ) liegt der <b>Mess-Shunt R2 = 10 Ω</b>: miss an R2 <b>V⎓</b> und <b>V~ TRMS</b> und rechne mit I = U / 10 Ω in Ströme um. Bestimme mit dem Oszilloskop den <b>Spitzenstrom</b>. Um wie viel Prozent verkleinert der Shunt den Laststrom (<b>Systemfehler</b>)?',
     learn: 'Strommessung = Spannungsmessung an einem kleinen bekannten Widerstand. Der Shunt selbst ist ein Systemfehler.',
     take: 'U_DC am Shunt ≈ 50 mV → I_DC ≈ 5,0 mA; Spitzenstrom ≈ 8,5 mA. 10 Ω zu 1 kΩ: der Strom sinkt um rund 1 % – der Eigenverbrauch des Amperemeters (0,1 Ω) wäre nur 0,01 %.',
     hint: 'Spitzen an R2.a (rot) und R2.b (schwarz), Bereich 200 mV für den Gleichanteil. Die Frage nach dem Systemfehler: Widerstand mit / ohne Shunt vergleichen.',
@@ -5513,7 +5590,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   defTask({
     id: '16.9', ch: 16, title: 'Glättung: Wie gross muss der Ladekondensator sein?', tags: ['elektro.gleichrichter', 'elektro.kondensator', 'messen.oszilloskop', 'elektro.zeitkonstante'], measureUX: DRAG, rangeUX: 'manual',
     story: 'Aus den Buckeln der Brücke soll eine ruhige Gleichspannung werden. Dafür liegen drei Ladekondensatoren bereit, jeder mit eigenem Schalter – welcher reicht?',
-    brief: 'Schliesse nacheinander <b>nur einen</b> Kondensator (S1 = 10 µF, S2 = 100 µF, S3 = 470 µF) und miss an R1 jeweils den <b>Gleichanteil</b> und die <b>Welligkeit U<sub>ss</sub></b> (Spitze-Spitze am Oszilloskop, Zeitbasis 50 ms). Berechne <b>τ = R · C</b> für jeden Kondensator und die Welligkeit nach der Faustformel <b>ΔU ≈ I / (2 · f · C)</b> mit I = U<sub>DC</sub> / R und f = 50 Hz. Dann: Welcher der drei Kondensatoren hält die Welligkeit unter <b>0,5 V</b>? Zum Schluss: Schliesse mit dem 470-µF-Kondensator zusätzlich S4 (R2 parallel zu R1, Last halbiert) und miss die Welligkeit erneut.',
+    brief: 'Schliesse nacheinander <b>einen</b> der Kondensatoren S1 = 10 µF, S2 = 100 µF, S3 = 470 µF und miss an R1 Gleichanteil und <b>Welligkeit U<sub>ss</sub></b>; berechne dazu <b>τ = R · C</b> und <b>ΔU ≈ I / (2 · f · C)</b> (I = U<sub>DC</sub> / R, f = 50 Hz). Welcher Kondensator hält die Welligkeit unter <b>0,5 V</b>? Zum Schluss mit 470 µF zusätzlich S4 schliessen (Last halbiert) und die Welligkeit erneut messen.',
     learn: 'Glättung braucht τ = R · C viel grösser als der Buckelabstand von 10 ms – und je mehr Strom die Last zieht, desto grösser die Welligkeit.',
     take: 'Glättung braucht τ = R · C viel grösser als 10 ms. 10 µF: Sägezahn (U_ss ≈ 4,1 V), 100 µF: leichte Welle (≈ 0,7 V), 470 µF: fast Gleichspannung (≈ 0,16 V). Die Faustformel ΔU ≈ I / (2 · f · C) gilt erst für τ ≫ 10 ms und liegt etwas zu hoch. Mit halber Last (500 Ω) verdoppelt sich der Strom und damit ungefähr die Welligkeit.',
     hint: 'Immer nur einen Schalter schliessen (auf der Werkbank anklicken), die anderen offen lassen. Tastkopf an R1.a, Erdungsclip an R1.b, Bildbreite 50 ms. Die Welligkeit U_ss steht unter der Kurve; bei kleiner Welligkeit AC-Kopplung einschalten (Taste DC/AC), dann füllt die Welle den Schirm.',
@@ -6072,21 +6149,22 @@ body.has-exam-bar .top { padding-top: 50px; }
   root.DQ.manual = [
     { id: 'bedienung', title: 'Bedienung', html:
       '<p class="dim">Du suchst einen Menüpunkt? Die Seite <b>Wegweiser</b> (erste Seite dieses Handbuchs, Fragezeichen in der Kopfzeile) erklärt jeden Punkt in einem Satz.</p>' +
-      '<p><b>Bauteil hinzufügen:</b> Klick in der Palette. <b>Verschieben:</b> ziehen. <b>Drehen:</b> <kbd>R</kbd>. <b>Löschen:</b> <kbd>Entf</kbd>.</p>' +
-      '<p><b>Leitung ziehen:</b> Anschluss anklicken, dann den Ziel-Anschluss. Leitung anklicken und <kbd>Entf</kbd> entfernt sie.</p>' +
+      '<p><b>Bauteil hinzufügen:</b> Klick in der Palette – oder das Bauteil aus der Palette <b>auf die Arbeitsfläche ziehen</b> und dort loslassen (Handy: lange drücken, dann ziehen). <b>Verschieben:</b> ziehen. <b>Drehen:</b> <kbd>R</kbd>. <b>Löschen:</b> <kbd>Entf</kbd>. Liegen Bauteile übereinander, zeigt eine Zahl, wie viele es sind.</p>' +
+      '<p><b>Rückgängig / Wiederholen:</b> <kbd>Strg</kbd> + <kbd>Z</kbd> bzw. <kbd>Strg</kbd> + <kbd>Y</kbd> oder die Knöpfe ↶ ↷ in der Werkzeugleiste – mindestens 50 Schritte (Bauteil setzen, verschieben, drehen, löschen, Leitung ziehen/löschen/färben, Wert oder Schalter ändern). In Prüfung und Live-Challenge geht es nie hinter eine Abgabe zurück. <b>Zoom:</b> Knöpfe ＋ und －, «Einpassen» zeigt wieder alles.</p>' +
+      '<p><b>Leitung ziehen:</b> Anschluss anklicken, dann den Ziel-Anschluss. Leitung anklicken und <kbd>Entf</kbd> entfernt sie. Fährst du mit der Maus über eine Leitung, leuchtet ihr <b>ganzes Netz</b> auf (alle verbundenen Leitungen und Anschlüsse). Eine angeklickte Leitung kannst du im Eigenschaften-Panel <b>einfärben</b>.</p>' +
       '<p><b>Schalter</b> schaltest du per Klick, <b>Taster</b> sind nur gedrückt, solange du sie hältst.</p>' +
       '<p>Die Schaltung wird <b>laufend simuliert</b>. „U anzeigen“ färbt alle Knoten nach ihrer Spannung (blau = 0 V, rot = höchste Spannung). Fährst du über ein Bauteil, siehst du U, I und P.</p>' +
       '<p><b>Messen auf der Werkbank:</b> Messspitzen (rot = +, schwarz = COM) und den Tastkopf des Oszilloskops mit der Maus an die Buchsen <b>ziehen</b>; daneben loslassen legt sie zurück. Im Schaltplan setzt ein Klick die Spitze. In den Messtechnik-Aufgaben (Kapitel 16) wählst du zusätzlich den <b>Messbereich</b> am Gerät – zu klein zeigt OL. Jede Messaufgabe hat oben die Box „So stellst du das Gerät ein“. Zoom auf der Werkbank und im Schaltplan: <kbd>Strg</kbd> + Mausrad, Verschieben durch Ziehen auf der leeren Fläche; das Mausrad allein scrollt die Seite. Auf dem Handy: zwei Finger zoomen, ein Finger verschiebt, Doppeltipp auf ein Bauteil zoomt heran, Doppeltipp auf die leere Fläche passt wieder ein. Bilder und Mini-Schaltungen in den Lektionen zeigt der Knopf ⤢ gross.</p>' +
       '<p><b>Schaltplan oder Werkbank:</b> Der Knopf „Werkbank“ / „Schaltplan“ wechselt die Darstellung. Es ist dieselbe Schaltung – auf der Werkbank stecken die Bauteile auf Steckbausteinen und werden mit Laborkabeln verbunden. Bauen, Messen und Prüfen funktionieren in beiden Ansichten gleich. Auf der Werkbank zoomst du mit dem Mausrad (Handy: zwei Finger) und verschiebst den Tisch, indem du auf einer freien Stelle ziehst; „Einpassen“ zeigt wieder alles.</p>' +
       '<p><b>Zeitlupe:</b> zeigt Schritt für Schritt, wie die Simulation zum Ergebnis kommt – welche LED leitend wird, welches Gatter umschaltet, wie sich ein Kondensator über die Zeit lädt. Mit dem Schieberegler oder den Pfeiltasten blättern, „Live“ kehrt zurück.</p>' +
       '<p><b>Strom zeigen</b> („⇢ Strom“ in der Werkzeugleiste): Punkte wandern entlang der Leitungen in <b>technischer Stromrichtung</b> (von + nach −) – je schneller, desto mehr Strom. An jedem Kabel steht der Stromwert. So siehst du, wo sich der Strom aufteilt und wo gar keiner fliesst.</p>' +
-      '<p><b>Freie Werkbank:</b> auf der Karte. Bauen und messen ohne Auftrag, mit allen bisher freigeschalteten Bauteilen.</p>' +
+      '<p><b>Freie Werkbank:</b> auf der Karte. Bauen und messen ohne Auftrag, mit allen bisher freigeschalteten Bauteilen – auf einer grösseren Fläche (zoomen und verschieben). Unter <b>«Meine Aufbauten»</b> speicherst du einen Aufbau unter einem Namen (samt Schalterstellungen und Messgeräte-Einstellungen), lädst oder löschst ihn; mit Konto ist er auf jedem Gerät da. «Als Datei exportieren» und «Datei importieren» tauschen Aufbauten als JSON-Datei aus.</p>' +
       '<p><b>Limits:</b> Manche Aufgaben erlauben nur eine bestimmte Anzahl Gatter („Erlaubt: höchstens 3 Logikgatter“). Die Prüfung zählt mit.</p>' },
     { id: 'konto', title: 'Konto, Portal und Vorgaben', html:
       '<p>Ein <b>Konto ist freiwillig</b>. Ohne Konto spielst du ganz normal, der Fortschritt bleibt auf diesem Gerät (auch offline). Angemeldet wird im <b>Portal</b> (Startseite): mit Benutzername und Passwort oder – beim ersten Mal – mit dem <b>Klassencode</b> deiner Lehrperson. Oben rechts im Labor zeigt der <b>Konto-Knopf</b>, wer angemeldet ist; ein Klick führt ins Portal.</p>' +
       '<p>Mit Konto wird dein Spielstand im Konto gespeichert und ist auf jedem Gerät da. Warst du auf einem anderen Gerät schon weiter, gilt der weitere Stand. An einem geteilten PC werden die Stände verschiedener Konten nie gemischt. Verwende ein <b>Pseudonym</b> – dein echter Name bleibt auf dem Gerät.</p>' +
       '<p>Oben auf der Karte stehen die <b>Vorgaben vom Dozent</b>, mit Frist; ist die Frist vorbei und noch etwas offen, wird sie rot. Gesperrt wird nichts – vorgegebene Stationen sind immer offen.</p>' +
-      '<p><b>Sterne:</b> Jede gelöste Aufgabe gibt 1 bis 3 Sterne – 3 ohne Fehlversuch und ohne Tipp, 2 mit höchstens zwei Fehlversuchen und einem Tipp, 1 sobald du einen Sollwert aufgedeckt oder die Lösung angesehen hast. Wer eine Aufgabe nochmals sauber löst, verbessert seine Sterne.</p>' +
+      '<p><b>Sterne:</b> Jede gelöste Aufgabe gibt 1 bis 3 Sterne – 3 ohne Fehlversuch und ohne Tipp, 2 mit höchstens zwei Fehlversuchen und einem Tipp, 1 sobald du einen Sollwert aufgedeckt oder die Lösung angesehen hast – das bleibt an der Station, auch nach „Neu“. Als Fehlversuch zählt nur ein Prüfen, bei dem ein Test scheitert oder ein eingetragener Wert falsch ist; fehlende Werte zählen nicht. Wer eine Aufgabe nochmals sauber löst, verbessert seine Sterne (ausser nach angesehener Lösung).</p>' +
       '<p><b>Messwerte einzeln:</b> Im Messprotokoll wird jeder Wert für sich geprüft (✓ richtig, ✗ falsch, ○ offen). Richtige Werte bleiben stehen. Nach zwei falschen Eingaben an einem Wert kannst du seinen <b>Sollwert aufdecken</b> (mit Rechenweg) – er zählt dann als erledigt. Die Aufgabe ist gelöst, sobald die Schaltung alle Tests besteht und jeder Wert richtig oder aufgedeckt ist.</p>' +
       '<p><b>Vorführen:</b> In Messaufgaben zeigt der Knopf „Vorführen“ auf der Werkbank an einem Beispiel, wie gemessen wird: Messart und Bereich, die Spitzen gleiten zu den Buchsen, Anzeige, dann der Rechenweg Schritt für Schritt – mit Tempo, Pause, Einzelschritt und Abbrechen. Dein Aufbau bleibt unverändert; die Vorführung zählt wie ein Tipp. In Prüfung und Live-Challenge gibt es sie nicht.</p>' +
       '<p><b>Lösung ansehen:</b> Nach zwei gescheiterten Prüfungen erscheint der Knopf „Lösung ansehen“: Referenzschaltung, alle Sollwerte und der Rechenweg. Ansehen schaltet nichts frei – bauen und messen musst du selbst; die Station zählt dann mit höchstens 1 Stern. In Prüfung und Live-Challenge gibt es keine Lösung.</p>' +
@@ -6114,10 +6192,10 @@ body.has-exam-bar .top { padding-top: 50px; }
     { id: 'oszi', title: 'Oszilloskop', html:
       '<p>Das Oszilloskop zeichnet die Spannung zwischen den Multimeter-Spitzen (rote gegen schwarze Spitze) über die Zeit auf – ab dem Einschalten. Ideal für Lade-/Entladekurven, Taktsignale und Wechselspannungen. Auf der Werkbank startet die Taste RUN am Gerät die Aufnahme.</p>' +
       '<p>In der <b>Vertiefung Messtechnik</b> (Kapitel 16) hat das Oszilloskop einen eigenen <b>Tastkopf</b> (gelb, CH1) und einen <b>Erdungsclip</b> (schwarz), die vor dem Gerät liegen: beide an die Schaltung ziehen, dann RUN. Ohne Tastkopf bleibt der Schirm dunkel („Tastkopf anschliessen“). Multimeter und Oszilloskop können so gleichzeitig an verschiedenen Stellen messen.</p>' +
-      '<p><b>Zweiter Kanal:</b> Der blaue Tastkopf (CH2) misst gegen denselben Erdungsclip. Beide Kurven erscheinen übereinander auf einer gemeinsamen Skala (gelb = CH1, blau = CH2); die Tasten CH1/CH2 am Gerät und in der Seitenleiste schalten einen Kanal aus. Die Kennwerte stehen je Kanal, dazu die Phasenverschiebung von CH2 gegen CH1 – so siehst du am RC-Glied oder am Gleichrichter Eingang und Ausgang gleichzeitig.</p>' },
+      '<p><b>Zweiter Kanal:</b> Der blaue Tastkopf (CH2) misst gegen denselben Erdungsclip. Beide Kurven erscheinen übereinander auf einer gemeinsamen Skala (gelb = CH1, blau = CH2); die Tasten CH1/CH2 am Gerät und in der Seitenleiste schalten einen Kanal aus. Die Kennwerte stehen je Kanal, dazu die Phasenverschiebung von CH2 gegen CH1 – so siehst du am RC-Glied oder am Gleichrichter Eingang und Ausgang gleichzeitig.</p>' +
       '<p><b>Bezugspunkt und Erdungsclip:</b> Das Oszilloskop zeigt immer eine Spannung <i>zwischen zwei Punkten</i>. Ohne Erdungsclip (bzw. ohne schwarze Spitze) ist der Bezugspunkt der Minuspol der ersten Quelle oder das Masse-Symbol – die Anzeige sagt es im Klartext («R1.a gegen G1.–»), markiert den Anschluss mit ⏚ und warnt unter der Kurve. Beim Brückengleichrichter siehst du so nur eine Halbwelle; die Spannung an R1 misst du mit Tastkopf an R1.a und Clip an R1.b. Praxis: Sind Generator und Oszilloskop beide geerdet, würde der Clip an R1.b eine Diode kurzschliessen – dort misst man mit Trenntransformator, Differenztastkopf oder mit zwei Kanälen und MATH = CH1 − CH2.</p>' +
       '<p><b>Kleine Welligkeit sichtbar machen – AC-Kopplung und U<sub>ss</sub>:</b> Unter jeder Kurve stehen max, min, <b>Spitze-Spitze (U<sub>ss</sub>)</b>, Mittelwert und die Periode des gemessenen Signals. Eine fast glatte Gleichspannung (z. B. 8,4 V mit 0,16 V Welligkeit nach einem grossen Ladekondensator) erscheint bei der Standard-Kopplung <b>DC</b> als fast gerade Linie auf der Skala 0 … 10 V – das ist richtig so. Mit der Taste <b>AC</b> (am Gerät neben jedem Kanal und in der Seitenleiste unter «Kopplung») wird der Gleichanteil abgezogen und die Skala so vergrössert, dass die Welligkeit den Schirm füllt; die Anzeige sagt es im Klartext («CH1 AC-gekoppelt, Gleichanteil 8,38 V abgezogen»). Je Kanal einstellbar, Standard bleibt DC.</p>' +
-      '<p><b>MATH = CH1 − CH2:</b> Die Taste MATH (am Gerät und in der Seitenleiste) rechnet die Differenz der beiden Tastköpfe – das ist die Spannung zwischen CH1 und CH2, unabhängig vom Erdungsclip (potentialfrei). Violette Kurve mit eigenen Kennwerten (max, min, Mittelwert, Periode). Unter der Kurve stehen bei jedem Kanal Mittelwert und Periodendauer bzw. Frequenz <i>des gemessenen Signals</i> – beim Brückengleichrichter 10 ms / 100 Hz, beim Einweggleichrichter 20 ms / 50 Hz.</p>',
+      '<p><b>MATH = CH1 − CH2:</b> Die Taste MATH (am Gerät und in der Seitenleiste) rechnet die Differenz der beiden Tastköpfe – das ist die Spannung zwischen CH1 und CH2, unabhängig vom Erdungsclip (potentialfrei). Violette Kurve mit eigenen Kennwerten (max, min, Mittelwert, Periode). Unter der Kurve stehen bei jedem Kanal Mittelwert und Periodendauer bzw. Frequenz <i>des gemessenen Signals</i> – beim Brückengleichrichter 10 ms / 100 Hz, beim Einweggleichrichter 20 ms / 50 Hz.</p>' },
     { id: 'bauteile', title: 'Bauteile', html:
       '<dl><dt>Spannungsquelle</dt><dd>Ideale Quelle mit kleinem Innenwiderstand.</dd><dt>LED</dt><dd>Leuchtet ab U<sub>F</sub> (rot 1,8 V … blau 3,0 V), max. 30 mA.</dd>' +
       '<dt>Logikgatter</dt><dd>5-V-Logik, Schaltschwelle 2,5 V. Versorgung ist intern, brauchen aber eine Masse (⏚).</dd><dt>Kondensator</dt><dd>Lädt über einen Widerstand mit τ = R · C.</dd>' +
@@ -6132,7 +6210,27 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<dt>Z-Diode (Z)</dt><dd>In Sperrrichtung betrieben hält sie die Z-Spannung (einstellbar, Standard 5,1 V). Immer mit Vorwiderstand.</dd>' +
       '<dt>NPN-Transistor (Q)</dt><dd>Basis, Kollektor, Emitter. Gesperrt, aktiv (I<sub>C</sub> = β · I<sub>B</sub>, β einstellbar) oder in Sättigung (U<sub>CE</sub> klein). Als Schalter mit Basiswiderstand übersteuern.</dd>' +
       '<dt>Motor (M)</dt><dd>Gleichstrommotor, Nenndaten 6 V / 0,3 A, im Simulator als Wicklungswiderstand (Standard 20 Ω) nachgebildet: Die Drehzahl folgt dem Strom, Umpolen kehrt die Drehrichtung um.</dd>' +
-      '<dt>Verdeckte Defekte</dt><dd>In Fehlersuch-Aufgaben kann ein Widerstand, eine Lampe oder ein Motor innen unterbrochen sein – von aussen sieht man nichts. Nur Messen hilft: volle Spannung über dem Bauteil, aber kein Strom.</dd></dl>' }
+      '<dt>Verdeckte Defekte</dt><dd>In Fehlersuch-Aufgaben kann ein Widerstand, eine Lampe oder ein Motor innen unterbrochen sein – von aussen sieht man nichts. Nur Messen hilft: volle Spannung über dem Bauteil, aber kein Strom.</dd></dl>' },
+    { id: 'begriffe', title: 'Begriffe Deutsch/Englisch', html: // Testlauf 2 (3.3): deutscher Begriff zuerst, englische Abkürzung beim ersten Vorkommen in Klammern
+      '<p>In DigitalQuest steht der <b>deutsche Begriff zuerst</b>; die englische Abkürzung, die du auf Datenblättern und Chips findest, steht beim ersten Vorkommen in Klammern. Danach bleibt die Schreibweise gleich.</p>' +
+      '<table class="ds-t"><tr><th>Deutsch</th><th>Englisch / Kurzzeichen</th><th>Bedeutung</th></tr>' +
+      '<tr><td>UND-Gatter</td><td class="mono">AND, &amp;</td><td>Ausgang 1, wenn alle Eingänge 1 sind</td></tr>' +
+      '<tr><td>ODER-Gatter</td><td class="mono">OR, ≥1</td><td>Ausgang 1, wenn mindestens ein Eingang 1 ist</td></tr>' +
+      '<tr><td>NICHT-Gatter, Inverter</td><td class="mono">NOT, 1 mit Kreis</td><td>kehrt den Eingang um</td></tr>' +
+      '<tr><td>NICHT-UND-Gatter</td><td class="mono">NAND</td><td>UND mit umgekehrtem Ausgang – nur 1/1 ergibt 0</td></tr>' +
+      '<tr><td>NICHT-ODER-Gatter</td><td class="mono">NOR</td><td>ODER mit umgekehrtem Ausgang – nur 0/0 ergibt 1</td></tr>' +
+      '<tr><td>Exklusiv-ODER, Antivalenz</td><td class="mono">XOR, =1</td><td>Ausgang 1, wenn die Eingänge verschieden sind</td></tr>' +
+      '<tr><td>Äquivalenz</td><td class="mono">XNOR</td><td>Ausgang 1, wenn die Eingänge gleich sind</td></tr>' +
+      '<tr><td>Flipflop (RS, D, JK, T)</td><td class="mono">flip-flop, FF</td><td>Speicher für ein Bit; D, JK und T übernehmen bei der steigenden Taktflanke</td></tr>' +
+      '<tr><td>Takt</td><td class="mono">clock, C</td><td>Rechtecksignal, das Flipflops und Zähler weiterschaltet</td></tr>' +
+      '<tr><td>Effektivwert</td><td class="mono">RMS</td><td>Wert, der dieselbe Wärme erzeugt wie eine gleich grosse Gleichspannung</td></tr>' +
+      '<tr><td>Echt-Effektivwert-Messung</td><td class="mono">TRMS (True RMS)</td><td>misst den Effektivwert für jede Kurvenform richtig</td></tr>' +
+      '<tr><td>Gleichrichtwert-Messung</td><td class="mono">AVG (average)</td><td>misst den Gleichrichtwert und rechnet auf Sinus um – nur beim Sinus genau</td></tr>' +
+      '<tr><td>Spitze-Spitze-Wert</td><td class="mono">U<sub>ss</sub>, peak-peak (U<sub>pp</sub>)</td><td>Abstand zwischen höchstem und tiefstem Wert</td></tr>' +
+      '<tr><td>Gleichspannungs-/Wechselspannungskopplung</td><td class="mono">DC / AC</td><td>Oszilloskop: alles zeigen bzw. Gleichanteil abziehen</td></tr>' +
+      '<tr><td>Bezugspunkt, Masse</td><td class="mono">GND, ⏚</td><td>Punkt mit 0 V, gegen den gemessen wird</td></tr>' +
+      '<tr><td>Siebensegment-Anzeige</td><td class="mono">7-segment display</td><td>Ziffernanzeige aus sieben Leuchtbalken a … g</td></tr>' +
+      '<tr><td>Bereichsüberschreitung</td><td class="mono">OL (overload)</td><td>Messwert grösser als der gewählte Messbereich</td></tr></table>' }
   ];
 })(typeof window !== 'undefined' ? window : globalThis);
 
@@ -6168,6 +6266,29 @@ body.has-exam-bar .top { padding-top: 50px; }
     this.dragProbe = null; // {which:'a'|'b'|'tip'|'gnd', x, y} waehrend eine Spitze gezogen wird (Raum 'bench')
   }
   Circuit.SPACES = SPACES; Circuit.GRID = SPACES.schema.grid; Circuit.W = SPACES.schema.w; Circuit.H = SPACES.schema.h;
+  /* Testlauf 2 (5.4): Arbeitsfläche je Instanz – scale 1 = wie bisher, die Freie Werkbank nutzt 1.5 (2,25-fache Fläche).
+   * Die Fläche wächst nach rechts und unten; Multimeter/Oszilloskop bleiben an ihrem Platz (reservierte Bereiche unverändert). */
+  Circuit.prototype.area = function (space) {
+    var S = SPACES[space || 'schema'], f = this.scale || 1;
+    return f === 1 ? S : Object.assign({}, S, { w: Math.round(S.w * f), h: Math.round(S.h * f) });
+  };
+  /* Testlauf 2 (5.5): Netz einer Leitung – alle Leitungen und Anschlüsse, die über Leitungen mit ihr verbunden sind */
+  Circuit.prototype.netOf = function (wi) {
+    var ws = this.layout.wires, w0 = ws[wi]; if (!w0) return { wires: [], pins: [] };
+    var pins = {}, wires = {}, todo = [w0.from, w0.to]; pins[w0.from] = pins[w0.to] = true;
+    while (todo.length) { var p = todo.pop(); ws.forEach(function (w, i) { if (wires[i] || (w.from !== p && w.to !== p)) return; wires[i] = true; [w.from, w.to].forEach(function (q) { if (!pins[q]) { pins[q] = true; todo.push(q); } }); }); }
+    return { wires: Object.keys(wires).map(Number), pins: Object.keys(pins) };
+  };
+  /* Hervorgehobenes Netz (Maus über einer Leitung): core.hiWire = Index oder null; die Ansichten zeichnen es bei jedem render() */
+  Circuit.prototype.hiNet = function () { var i = this.hiWire; return i === null || i === undefined || !this.layout.wires[i] ? null : this.netOf(i); };
+  Circuit.prototype.setHiWire = function (i) { i = i === null || i === undefined ? null : +i; if (this.hiWire === i) return; this.hiWire = i; this.redraw(); };
+  /* Testlauf 2 (5.5): wählbare Leitungsfarbe (w.color); die Engine liest nur from/to */
+  Circuit.WIRE_COLORS = { rot: '#e5484d', schwarz: '#3a3a3a', blau: '#3b82f6', gruen: '#22a559', gelb: '#e6b800', weiss: '#e8e8e8' };
+  Circuit.prototype.setWireColor = function (i, color) {
+    var w = this.layout.wires[i]; if (!w || this.opts.readonly) return;
+    if (color && Circuit.WIRE_COLORS[color]) w.color = color; else delete w.color;
+    this.changed('wirecolor');
+  };
 
   /* Werkbank-Lage ohne eigenes bench-Layout: Schema-Lage gestreckt und aufs Werkbank-Raster gesetzt */
   function autoBench(p) {
@@ -6216,18 +6337,41 @@ body.has-exam-bar .top { padding-top: 50px; }
   function half(type, space, rot) { var t = HALF[space], h = t[type] || t._; return (rot || 0) % 180 ? [h[1], h[0]] : h; }
   Circuit.half = half;
   Circuit.prototype._place = function (cx, cy, space, type) {
-    var S = SPACES[space], self = this, g = S.grid, cx0 = Math.round(cx / g) * g, cy0 = Math.round(cy / g) * g, x = cx0, y = cy0, ring = 0, k = 0;
+    var S = this.area(space), self = this, g = S.grid, cx0 = Math.round(cx / g) * g, cy0 = Math.round(cy / g) * g, x = cx0, y = cy0, ring = 0, k = 0;
     var me = half(type, space, 0);
     function free(x, y) { // kein Ueberlappen mit reservierten Flaechen oder anderen Bauteilen (echte Abmessungen + Abstand)
       var off = (S.reserved || []).some(function (r) { return x > r[0] - me[0] && x < r[2] + me[0] && y > r[1] - me[1] && y < r[3] + me[1]; });
       return !off && self.layout.parts.every(function (p) { var q = self.pos(p, space), o = half(p.type, space, q.rot); return Math.abs(q.x - x) > me[0] + o[0] + 12 || Math.abs(q.y - y) > me[1] + o[1] + 12; });
     }
+    function inRes(x, y) { return (S.reserved || []).some(function (r) { return x > r[0] - me[0] && x < r[2] + me[0] && y > r[1] - me[1] && y < r[3] + me[1]; }); }
     while (!free(x, y) && ring < 12) {
       k++; var ang = k * 0.9; ring = Math.floor(k / 7) + 1;
       x = Math.round((cx0 + Math.cos(ang) * S.step[0] * ring) / g) * g; y = Math.round((cy0 + Math.sin(ang) * S.step[1] * ring) / g) * g;
       x = Math.max(S.clamp, Math.min(S.w - S.clamp, x)); y = Math.max(S.clamp, Math.min(S.h - S.clamp, y));
     }
-    return [x, y];
+    if (free(x, y)) return [x, y];
+    // Testlauf 2 (2.4): Spirale ohne Treffer – ganze Fläche im Raster absuchen, nächster freier Platz; ist alles belegt, der Platz mit den
+    // wenigsten Überlappungen, aber nie im reservierten Bereich (Multimeter/Oszilloskop) und nie am Rand gestapelt
+    var best = null, bestD = Infinity, gx = Math.max(g, Math.round(me[0] / g) * g), gy = Math.max(g, Math.round(me[1] / g) * g);
+    for (var yy = S.clamp; yy <= S.h - S.clamp; yy += gy) for (var xx = S.clamp; xx <= S.w - S.clamp; xx += gx) {
+      if (!free(xx, yy)) continue; var d = (xx - cx0) * (xx - cx0) + (yy - cy0) * (yy - cy0); if (d < bestD) { bestD = d; best = [xx, yy]; }
+    }
+    if (best) return best;
+    var cnt = function (x, y) { return self.layout.parts.reduce(function (s, p) { var q = self.pos(p, space), o = half(p.type, space, q.rot), ox = me[0] + o[0] + 12 - Math.abs(q.x - x), oy = me[1] + o[1] + 12 - Math.abs(q.y - y); return s + (ox > 0 && oy > 0 ? ox * oy : 0); }, 0); }, bc = Infinity; // Überlappungsfläche
+    for (yy = S.clamp; yy <= S.h - S.clamp; yy += gy) for (xx = S.clamp; xx <= S.w - S.clamp; xx += gx) {
+      if (inRes(xx, yy)) continue; var c = cnt(xx, yy), d2 = (xx - cx0) * (xx - cx0) + (yy - cy0) * (yy - cy0); if (c < bc || (c === bc && d2 < bestD)) { bc = c; bestD = d2; best = [xx, yy]; }
+    }
+    return best || [x, y];
+  };
+  /* Testlauf 2 (2.4): Bauteile, die (fast) genau übereinander liegen – je Stapel bekommt das oberste (zuletzt gezeichnete) die Anzahl */
+  Circuit.prototype.stacks = function (space) {
+    var self = this, out = {}, ps = this.layout.parts;
+    ps.forEach(function (p, i) {
+      var q = self.pos(p, space), n = 1, top = true;
+      ps.forEach(function (o, j) { if (j === i) return; var r = self.pos(o, space); if (Math.abs(r.x - q.x) < 24 && Math.abs(r.y - q.y) < 24) { n++; if (j > i) top = false; } });
+      if (n > 1 && top) out[p.id] = n;
+    });
+    return out;
   };
   /* Neues Bauteil moeglichst nahe (cx, cy) im Raum der aufrufenden Ansicht. Auf der Werkbank bekommt es
    * zusaetzlich einen freien Platz im Schema (Mitte der vorhandenen Bauteile). */
@@ -6316,7 +6460,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     if (this.opts.readonly) return false;
     if (Math.abs(xy[0] - d.sx) + Math.abs(xy[1] - d.sy) > 6) d.moved = true;
     if (!d.moved) return false;
-    var S = SPACES[d.space], g = S.grid;
+    var S = this.area(d.space), g = S.grid;
     var nx = Math.round((xy[0] - d.ox) / g) * g, ny = Math.round((xy[1] - d.oy) / g) * g;
     nx = Math.max(S.edge, Math.min(S.w - S.edge, nx)); ny = Math.max(S.edge, Math.min(S.h - S.edge, ny));
     var q = this.pos(p, d.space);
@@ -6537,13 +6681,15 @@ body.has-exam-bar .top { padding-top: 50px; }
   }
   /* L4 (05.10.2026): Ausschnitt setzen (begrenzt), zur Zeigerposition zoomen – dieselbe Bedienung wie die Werkbank
    * (Strg/⌘ + Rad, zwei Finger, Ziehen auf leerer Fläche); Doppeltipp auf ein Bauteil zoomt heran, auf leere Fläche passt ein. */
+  Editor.prototype.dims = function () { var a = this.core.area ? this.core.area('schema') : null; return a ? [a.w, a.h] : [W, H]; }; // Testlauf 2 (5.4): Fläche je Instanz
   Editor.prototype.setView = function (v) {
+    var D = this.dims(), W = D[0], H = D[1];
     var w = Math.max(160, Math.min(W * 1.6, v[2])), h = v[3] * w / v[2];
     var x = Math.max(-300, Math.min(W + 300 - w, v[0])), y = Math.max(-300, Math.min(H + 300 - h, v[1]));
     this.view = [x, y, w, h]; this.svg.setAttribute('viewBox', this.view.join(' ')); this.render();
   };
   Editor.prototype.zoomAt = function (f, cx, cy) {
-    var box = this.svg.getBoundingClientRect(), v = this.view; if (!box.width) return;
+    var box = this.svg.getBoundingClientRect(), v = this.view, W = this.dims()[0]; if (!box.width) return;
     var px = v[0] + (cx - box.left) / box.width * v[2], py = v[1] + (cy - box.top) / box.height * v[3];
     var w = Math.max(160, Math.min(W * 1.6, v[2] * f)), k = w / v[2];
     this.setView([px - (px - v[0]) * k, py - (py - v[1]) * k, w, v[3] * k]);
@@ -6561,6 +6707,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   Editor.prototype.load = function (layout, lockedIds, bench) { this.core.load(layout, lockedIds, bench); this.fit(); };
   /* Ansicht auf die Bauteile einpassen (mind. 640 × 400, Rand 140) – nur beim Laden und auf Wunsch, nie waehrend des Ziehens */
   Editor.prototype.fit = function () {
+    var D = this.dims(), W = D[0], H = D[1];
     var ps = this.layout.parts, x0 = 300, y0 = 200, x1 = 700, y1 = 420;
     if (ps.length) { x0 = Math.min.apply(null, ps.map(function (p) { return p.x; })); x1 = Math.max.apply(null, ps.map(function (p) { return p.x; }));
       y0 = Math.min.apply(null, ps.map(function (p) { return p.y; })); y1 = Math.max.apply(null, ps.map(function (p) { return p.y; })); }
@@ -6579,6 +6726,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   /* Neues Bauteil in der Mitte des sichtbaren Ausschnitts */
   Editor.prototype.addPart = function (type) {
     var v = this.view || [0, 0, W, H], p = this.core.addPart(type, v[0] + v[2] / 2, v[1] + v[3] / 2);
+    if (!p) return p;
     if (p.x - 50 < v[0] || p.x + 50 > v[0] + v[2] || p.y - 50 < v[1] || p.y + 50 > v[1] + v[3]) this.fit(); // neues Bauteil ausserhalb des Ausschnitts: einpassen
     return p;
   };
@@ -6655,7 +6803,15 @@ body.has-exam-bar .top { padding-top: 50px; }
         return (s1[0] === -da[0] && s1[0] !== 0 ? 1 : 0) + (s1[1] === -da[1] && s1[1] !== 0 ? 1 : 0) +
           (s2[0] === db[0] && s2[0] !== 0 ? 1 : 0) + (s2[1] === db[1] && s2[1] !== 0 ? 1 : 0);
       }
-      var hFirst = pen([sb[0], sa[1]]) <= pen([sa[0], sb[1]]);
+      // Testlauf 2 (5.5): von den zwei rechtwinkligen Wegen den nehmen, der weniger Bauteile durchquert (dann wie bisher die Richtung)
+      function hits(c) {
+        var segs = [[sa, c], [c, sb]], n = 0;
+        L.parts.forEach(function (p) { if (p.id === fa.split('.')[0] || p.id === fb.split('.')[0]) return; var x0 = p.x - 30, x1 = p.x + 30, y0 = p.y - 26, y1 = p.y + 26;
+          segs.forEach(function (s) { var ax = Math.min(s[0][0], s[1][0]), bx = Math.max(s[0][0], s[1][0]), ay = Math.min(s[0][1], s[1][1]), by = Math.max(s[0][1], s[1][1]); if (bx > x0 && ax < x1 && by > y0 && ay < y1) n++; }); });
+        return n;
+      }
+      var cH = [sb[0], sa[1]], cV = [sa[0], sb[1]], hH = hits(cH), hV = hits(cV);
+      var hFirst = hH !== hV ? hH < hV : pen(cH) <= pen(cV);
       var mid = hFirst ? 'H' + sb[0] + 'V' + sb[1] : 'V' + sb[1] + 'H' + sb[0];
       return 'M' + a[0] + ' ' + a[1] + 'L' + sa[0] + ' ' + sa[1] + mid + 'L' + b[0] + ' ' + b[1];
     }
@@ -6667,21 +6823,24 @@ body.has-exam-bar .top { padding-top: 50px; }
     h.push('<defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="0" cy="0" r="1" class="griddot"/></pattern>' +
       '<radialGradient id="glowAmber"><stop offset="0" stop-color="#ffcf4a" stop-opacity="0.9"/><stop offset="1" stop-color="#ffb000" stop-opacity="0"/></radialGradient>' +
       '<filter id="blur" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="6"/></filter></defs>');
-    h.push('<rect width="' + W + '" height="' + H + '" fill="url(#grid)"/>');
+    var D = self.dims(); h.push('<rect width="' + D[0] + '" height="' + D[1] + '" fill="url(#grid)"/>');
     // Leitungen
     var wi = self.showFlow && root.DQBench ? root.DQBench.wireCurrents(L, res) : [];
+    var hn = self.core.hiNet ? self.core.hiNet() : null, hw = {}, hp = {}; if (hn) { hn.wires.forEach(function (k) { hw[k] = 1; }); hn.pins.forEach(function (k) { hp[k] = 1; }); }
+    self.svg.classList.toggle('net-on', !!hn);
     L.wires.forEach(function (w, i) {
-      var col = wcol(w.from), d = route(w.from, w.to), iw = wi[i] || 0;
-      h.push('<g data-wire="' + i + '"><path class="wirehit" d="' + d + '"/><path class="wire bcore' + (self.sel === 'w:' + i ? ' selected' : '') + '" data-i="' + iw.toExponential(3) + '" d="' + d + '"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
+      var col = wcol(w.from) || (w.color && Circuit.WIRE_COLORS && Circuit.WIRE_COLORS[w.color]) || null, d = route(w.from, w.to), iw = wi[i] || 0;
+      h.push('<g data-wire="' + i + '"' + (hw[i] ? ' class="nethi"' : '') + '><path class="wirehit" d="' + d + '"/><path class="wire bcore' + (self.sel === 'w:' + i ? ' selected' : '') + '" data-i="' + iw.toExponential(3) + '" d="' + d + '"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
     });
     // Bauteile
+    var stk = self.core.stacks ? self.core.stacks('schema') : {};
     L.parts.forEach(function (p) {
       var r = res && res.parts[p.id], sel = self.sel === p.id;
       var tip = partTip(p, r);
       h.push('<g class="part' + (sel ? ' selected' : '') + (self.locked[p.id] ? ' locked' : '') + '" data-part="' + p.id + '" transform="translate(' + p.x + ' ' + p.y + ')">' +
         '<title>' + esc(tip) + '</title><rect class="hit" x="-44" y="-34" width="88" height="68"/>' +
         '<g transform="rotate(' + (p.rot || 0) + ')">' + symbol(p, r) + '</g>' +
-        labels(p) + '</g>');
+        labels(p) + (stk[p.id] ? '<g class="stackbadge" transform="translate(34 -30)"><title>' + stk[p.id] + ' Bauteile liegen übereinander – wegziehen zum Trennen</title><circle r="11"/><text y="4">' + stk[p.id] + '</text></g>' : '') + '</g>');
     });
     if (self.showFlow) h.push('<g class="bflow" pointer-events="none"></g>');
     // Anschluesse
@@ -6689,7 +6848,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       Object.keys(GEO[p.type]).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = pinPos(p, pin), col = wcol(pid);
         var cls = 'pin' + (self.wireStart === pid ? ' active' : '') + (pinWireCount[pid] ? ' used' : '') + (pinWireCount[pid] > 1 ? ' junction' : '');
-        h.push('<g data-pin="' + pid + '"><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (11 * hit).toFixed(1) + '"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');
+        h.push('<g data-pin="' + pid + '"' + (hp[pid] ? ' class="nethi"' : '') + '><circle class="pinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (11 * hit).toFixed(1) + '"/><circle class="' + cls + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (pinWireCount[pid] > 1 ? 5 : 4) + '"' + (col ? ' style="fill:' + col + '"' : '') + '><title>' + pid + (res && pinNode && pinNode[pid] !== undefined ? ' – ' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + ' gegen Masse' : '') + '</title></circle></g>');
         if (self.showVolt && res && pinNode && pinNode[pid] !== undefined && pin !== 'g')
           h.push('<text class="vlabel" x="' + (xy[0] + 6) + '" y="' + (xy[1] - 6) + '">' + E.fmt(res.nodeV[pinNode[pid]] || 0, 'V') + '</text>');
         if (self.refMark === pid) h.push('<text class="refmark" x="' + (xy[0] - 8) + '" y="' + (xy[1] + 18) + '">⏚ 0 V<title>Bezugspunkt 0 V – ohne schwarze Spitze misst das Oszilloskop hiergegen</title></text>'); // G1
@@ -7314,7 +7473,8 @@ body.has-exam-bar .top { padding-top: 50px; }
   };
   /* Ausschnitt setzen (Bildschirm-Koordinaten der Szene), in sinnvollen Grenzen */
   Bench.prototype.setView = function (v) {
-    var w = Math.max(360, Math.min(2600, v[2])), h = v[3] * w / v[2];
+    var A = this.core.area ? this.core.area('bench') : { w: W, h: H }, W = A.w, H = A.h; // Testlauf 2 (5.4): Fläche je Instanz
+    var w = Math.max(360, Math.min(2600 * (W / S.w), v[2])), h = v[3] * w / v[2];
     var x = Math.max(-600, Math.min(W + 600 - w, v[0])), y = Math.max(-500, Math.min(H * K + 300 - h, v[1]));
     this.view = [x, y, w, h];
     this.svg.setAttribute('viewBox', this.view.join(' '));
@@ -7324,7 +7484,7 @@ body.has-exam-bar .top { padding-top: 50px; }
   Bench.prototype.zoomAt = function (f, cx, cy) {
     var box = this.svg.getBoundingClientRect(), v = this.view; if (!box.width) return;
     var px = v[0] + (cx - box.left) / box.width * v[2], py = v[1] + (cy - box.top) / box.height * v[3];
-    var w = Math.max(360, Math.min(2600, v[2] * f)), k = w / v[2];
+    var w = Math.max(360, Math.min(2600 * ((this.core.area ? this.core.area('bench').w : W) / S.w), v[2] * f)), k = w / v[2];
     this.setView([px - (px - v[0]) * k, py - (py - v[1]) * k, w, v[3] * k]);
   };
 
@@ -7332,6 +7492,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     if (this._hidden()) { this.dirty = true; return; }
     this.dirty = false;
     var self = this, core = this.core, L = core.layout, res = this.sim && this.sim.res, pinNode = this.sim && this.sim.pinNode;
+    var A = core.area ? core.area('bench') : { w: W, h: H }, W = A.w, H = A.h; // Testlauf 2 (5.4): Matte so gross wie die Fläche der Instanz
     var vmax = 0; if (res) Object.keys(res.nodeV).forEach(function (n) { vmax = Math.max(vmax, res.nodeV[n]); });
     var hot = {}; ((res && res.faults) || []).forEach(function (f) { if (f.part && /SHORT|OVERLOAD/.test(f.code)) hot[f.part] = f.code; if (f.code === 'OUTPUT_CLASH') f.parts.forEach(function (id) { hot[id] = f.code; }); });
     function nodeV(pid) { return res && pinNode && pinNode[pid] !== undefined ? res.nodeV[pinNode[pid]] || 0 : undefined; }
@@ -7356,6 +7517,7 @@ body.has-exam-bar .top { padding-top: 50px; }
       '<text class="bmatprint" x="24" y="' + (H - 22) + '">DIGITAL QUEST · LABOR · ESD</text>' +
       '<g transform="translate(' + (W - 30) + ' ' + (H - 28) + ')"><circle r="9" fill="url(#bMetal)" stroke="rgba(0,0,0,.5)"/><circle r="4" fill="#8a8f93"/></g>');
     // Bausteine
+    var stk = core.stacks ? core.stacks('bench') : {};
     L.parts.forEach(function (p) {
       var q = core.pos(p, 'bench'), r = res && res.parts[p.id], sel = core.sel === p.id, sz = size(p.type), rot = q.rot || 0;
       var hw = (rot % 180 ? sz[1] : sz[0]) / 2, hh = (rot % 180 ? sz[0] : sz[1]) / 2, vt = Ed.valueText(p);
@@ -7366,13 +7528,16 @@ body.has-exam-bar .top { padding-top: 50px; }
         '<g filter="url(#bShadow)" transform="rotate(' + rot + ')">' + illus(p, r, hot[p.id]) + '</g>' +
         (hot[p.id] ? '<g class="bsmoke" transform="scale(1 ' + (1 / K) + ')"><path d="M-8 ' + (-hh * K) + 'c-8-14 8-22 0-36s8-22 0-34"/><path d="M8 ' + (-hh * K) + 'c8-12-6-20 2-32s-6-18 2-28"/></g>' : '') +
         (sel ? '<rect class="bsel" x="' + (-hw - 7) + '" y="' + (-hh - 7) + '" width="' + (2 * hw + 14) + '" height="' + (2 * hh + 14) + '" rx="12"/>' : '') +
-        '<g transform="scale(1 ' + (1 / K) + ')"><text class="blbl" y="' + ((-hh - 9) * K) + '">' + esc(p.id) + (vt ? ' · ' + esc(vt) : '') + '</text></g>' +
+        '<g transform="scale(1 ' + (1 / K) + ')"><text class="blbl" y="' + ((-hh - 9) * K) + '">' + esc(p.id) + (vt ? ' · ' + esc(vt) : '') + '</text>' +
+        (stk[p.id] ? '<g class="stackbadge" transform="translate(' + (hw - 4) + ' ' + ((-hh + 4) * K) + ')"><title>' + stk[p.id] + ' Bauteile liegen übereinander – wegziehen zum Trennen</title><circle r="13"/><text y="5">' + stk[p.id] + '</text></g>' : '') + '</g>' +
         '</g>');
     });
     // Laborkabel
+    var hn = core.hiNet ? core.hiNet() : null, hw = {}, hp = {}; if (hn) { hn.wires.forEach(function (k) { hw[k] = 1; }); hn.pins.forEach(function (k) { hp[k] = 1; }); }
+    self.svg.classList.toggle('net-on', !!hn);
     L.wires.forEach(function (w, i) {
-      var a = pp(w.from), b = pp(w.to), d = cablePath(a, b), col = wcol(w.from) || cableColor(w, i, byId), sel = core.sel === 'w:' + i, iw = wi[i] || 0;
-      h.push('<g data-wire="' + i + '" class="bwire' + (sel ? ' selected' : '') + '"><path class="bwirehit" d="' + d + '"/>' +
+      var a = pp(w.from), b = pp(w.to), d = cablePath(a, b), col = wcol(w.from) || (w.color && Circuit.WIRE_COLORS && Circuit.WIRE_COLORS[w.color]) || cableColor(w, i, byId), sel = core.sel === 'w:' + i, iw = wi[i] || 0;
+      h.push('<g data-wire="' + i + '" class="bwire' + (sel ? ' selected' : '') + (hw[i] ? ' nethi' : '') + '"><path class="bwirehit" d="' + d + '"/>' +
         '<g filter="url(#bCable)">' + (sel ? '<path d="' + d + '" fill="none" stroke="#ffb000" stroke-width="14" stroke-linecap="round" opacity=".8"/>' : '') +
         '<path d="' + d + '" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="8" stroke-linecap="round"/>' +
         '<path class="bcore" data-i="' + iw.toExponential(3) + '" d="' + d + '" fill="none" stroke="' + col + '" stroke-width="5.5" stroke-linecap="round"/>' +
@@ -7393,7 +7558,7 @@ body.has-exam-bar .top { padding-top: 50px; }
     L.parts.forEach(function (p) {
       Object.keys(GEO[p.type]).forEach(function (pin) {
         var pid = p.id + '.' + pin, xy = self.pinPos(p, pin), v = nodeV(pid), col = wcol(pid);
-        h.push('<g data-pin="' + pid + '"><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (14 * HIT).toFixed(1) + '"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen ' + ((self.sim && self.sim.ref) || 'den Bezugspunkt') : '') + (self.refMark === pid ? ' – Bezugspunkt 0 V (Oszilloskop ohne Erdungsclip misst hiergegen)' : '') + '</title></circle>' +
+        h.push('<g data-pin="' + pid + '"' + (hp[pid] ? ' class="nethi"' : '') + '><circle class="bpinhit" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + (14 * HIT).toFixed(1) + '"><title>' + pid + (v !== undefined ? ' – ' + E.fmt(v, 'V') + ' gegen ' + ((self.sim && self.sim.ref) || 'den Bezugspunkt') : '') + (self.refMark === pid ? ' – Bezugspunkt 0 V (Oszilloskop ohne Erdungsclip misst hiergegen)' : '') + '</title></circle>' +
           '<circle class="bpin' + (core.wireStart === pid ? ' active' : '') + (used[pid] ? ' used' : '') + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="12"' + (col ? ' style="stroke:' + col + '"' : '') + '/></g>');
         if (col && pin !== 'g' && used[pid]) h.push('<g transform="translate(' + (xy[0] + 12) + ' ' + (xy[1] - 14) + ') scale(1 ' + (1 / K) + ')"><text class="bvlabel">' + E.fmt(v, 'V') + '</text></g>');
         if (self.refMark === pid) h.push('<g class="brefmark" transform="translate(' + (xy[0] - 14) + ' ' + (xy[1] + 22) + ') scale(1 ' + (1 / K) + ')" pointer-events="none"><text>⏚ 0 V</text></g>'); // G1: Bezugspunkt sichtbar, solange ohne Erdungsclip gemessen wird
@@ -8472,6 +8637,35 @@ body.has-exam-bar .top { padding-top: 50px; }
 
   /* ---------- Oberflaeche ---------- */
   var el = null, hist = [], onLog = null;
+  /* Position des Fensters (Testlauf 2, 2.2): {x, y} links oben in px oder null = Standard (rechts unten). Ablage über posStore –
+   * das Labor legt sie in die Einstellungen, sonst localStorage (Fehler beim Speichern werden ignoriert). */
+  var posStore = {
+    get: function () { try { return JSON.parse(localStorage.getItem('dq_calc_pos') || 'null'); } catch (e) { return null; } },
+    set: function (v) { try { if (v) localStorage.setItem('dq_calc_pos', JSON.stringify(v)); else localStorage.removeItem('dq_calc_pos'); } catch (e) { /* ohne Ablage */ } }
+  };
+  function applyPos(p) {
+    var box = el && el.querySelector('.calc-box'); if (!box) return;
+    if (!p || !isFinite(p.x) || !isFinite(p.y)) { box.style.left = box.style.top = box.style.right = box.style.bottom = ''; box.classList.remove('moved'); return; }
+    var w = box.offsetWidth || 320, h = box.offsetHeight || 400, m = 8;
+    var x = Math.max(m, Math.min(innerWidth - w - m, p.x)), y = Math.max(m, Math.min(innerHeight - Math.min(h, 60) - m, p.y)); // Titelleiste bleibt immer erreichbar
+    box.style.left = x + 'px'; box.style.top = y + 'px'; box.style.right = 'auto'; box.style.bottom = 'auto'; box.classList.add('moved');
+  }
+  function bindDrag(head) {
+    var drag = null;
+    head.addEventListener('pointerdown', function (ev) {
+      if (ev.target.closest('.calc-x') || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+      var r = el.querySelector('.calc-box').getBoundingClientRect(); drag = { dx: ev.clientX - r.left, dy: ev.clientY - r.top, id: ev.pointerId };
+      try { head.setPointerCapture(ev.pointerId); } catch (e) { /* alter Browser */ }
+      ev.preventDefault();
+    });
+    head.addEventListener('pointermove', function (ev) { if (!drag || ev.pointerId !== drag.id) return; applyPos({ x: ev.clientX - drag.dx, y: ev.clientY - drag.dy }); });
+    var end = function (ev) {
+      if (!drag || ev.pointerId !== drag.id) return; drag = null;
+      var box = el.querySelector('.calc-box'); if (box.classList.contains('moved')) { posStore.set({ x: parseFloat(box.style.left), y: parseFloat(box.style.top) }); if (onLog) onLog('calc_move', {}); }
+    };
+    head.addEventListener('pointerup', end); head.addEventListener('pointercancel', end);
+    head.addEventListener('dblclick', function (ev) { if (ev.target.closest('.calc-x')) return; applyPos(null); posStore.set(null); });
+  }
   var KEYS = [['(', ')', '√', '^'], ['7', '8', '9', '÷'], ['4', '5', '6', '×'], ['1', '2', '3', '−'], ['0', ',', '%', '+'], ['π', 'x²', 'C', '⌫']];
   function build() {
     el = document.createElement('div'); el.id = 'calc'; el.hidden = true; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Taschenrechner');
@@ -8493,6 +8687,8 @@ body.has-exam-bar .top { padding-top: 50px; }
       b.onclick = function () { key(b.dataset.k); };
     });
     el.querySelector('.calc-box').addEventListener('click', function (ev) { ev.stopPropagation(); });
+    var head = el.querySelector('.calc-head'); head.title = 'Ziehen verschiebt den Rechner · Doppelklick setzt ihn zurück'; bindDrag(head);
+    window.addEventListener('resize', function () { if (el && !el.hidden) applyPos(posStore.get()); });
   }
   function insert(txt) {
     var inp = el.querySelector('#calcIn'), s = inp.selectionStart || inp.value.length, e = inp.selectionEnd || s;
@@ -8526,13 +8722,14 @@ body.has-exam-bar .top { padding-top: 50px; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function open(preset) {
     if (!el) build();
-    el.hidden = false; document.body.classList.add('calc-open');
+    el.hidden = false; document.body.classList.add('calc-open'); applyPos(posStore.get());
     var inp = el.querySelector('#calcIn'); if (preset !== undefined) inp.value = preset; inp.focus();
   }
   function close() { if (!el) return; el.hidden = true; document.body.classList.remove('calc-open'); }
   function toggle() { if (!el || el.hidden) open(); else close(); }
 
-  root.DQCalc = { evaluate: evaluate, fmt: fmt, open: open, close: close, toggle: toggle, get isOpen() { return !!el && !el.hidden; }, get history() { return hist; }, set onLog(f) { onLog = f; } };
+  root.DQCalc = { evaluate: evaluate, fmt: fmt, open: open, close: close, toggle: toggle, get isOpen() { return !!el && !el.hidden; }, get history() { return hist; }, set onLog(f) { onLog = f; },
+    set posStore(s) { if (s && s.get && s.set) posStore = s; }, get pos() { return posStore.get(); }, resetPos: function () { applyPos(null); posStore.set(null); } };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.DQCalc;
 })(typeof window !== 'undefined' ? window : globalThis);
 
@@ -9413,6 +9610,26 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     if (s.events && s.events.length > 1500) s.events = s.events.slice(-1500);
     return s;
   }
+  /* Testlauf 2: Zwei Stände desselben Kontos zusammenführen, ohne dass Sterne verloren gehen (vorher ersetzte der Stand mit mehr
+   * gelösten Stationen den anderen ganz). Je Station gilt der bessere Eintrag (mehr Sterne, bei Gleichstand der neuere), gelöst bleibt gelöst,
+   * Theorie: bestes Ergebnis, Marken «Lösung angesehen/aufgedeckt» vereinigt, Entwürfe/Einstellungen/Profil vom eigenen Gerät,
+   * Aufbauten nach Namen vereinigt, Ereignisse vereinigt (ohne Doppelte, nach Zeit). */
+  function merge(srv, loc) {
+    var norm = ctx.normalize || function (x) { return x; };
+    var a = norm(JSON.parse(JSON.stringify(srv || {}))), b = norm(JSON.parse(JSON.stringify(loc || {}))), m = JSON.parse(JSON.stringify(b));
+    m.done = Object.assign({}, a.done || {}); Object.keys(b.done || {}).forEach(function (id) { if (b.done[id]) m.done[id] = b.done[id]; });
+    m.doneInfo = Object.assign({}, a.doneInfo || {});
+    Object.keys(b.doneInfo || {}).forEach(function (id) { var x = m.doneInfo[id], y = b.doneInfo[id]; if (!x || (y.stars || 0) > (x.stars || 0) || ((y.stars || 0) === (x.stars || 0) && (y.at || 0) > (x.at || 0))) m.doneInfo[id] = y; });
+    m.theory = Object.assign({}, a.theory || {});
+    Object.keys(b.theory || {}).forEach(function (id) { var x = m.theory[id], y = b.theory[id]; if (!x || ((y && y.best) || 0) > ((x && x.best) || 0)) m.theory[id] = y; });
+    m.marks = Object.assign({}, a.marks || {});
+    Object.keys(b.marks || {}).forEach(function (id) { var x = m.marks[id] || {}, y = b.marks[id] || {}; m.marks[id] = { solution: !!(x.solution || y.solution), revealed: Math.max(x.revealed || 0, y.revealed || 0) }; if (!m.marks[id].solution) delete m.marks[id].solution; if (!m.marks[id].revealed) delete m.marks[id].revealed; });
+    m.drafts = Object.assign({}, a.drafts || {}, b.drafts || {});
+    var names = {}; m.setups = (b.setups || []).concat(a.setups || []).filter(function (x) { if (!x || names[x.name]) return false; names[x.name] = 1; return true; });
+    var seen = {}; m.events = (a.events || []).concat(b.events || []).filter(function (e) { var k = JSON.stringify(e); if (seen[k]) return false; seen[k] = 1; return true; }).sort(function (x, y) { return (x.t || 0) - (y.t || 0); });
+    if (m.events.length > 5000) m.events = m.events.slice(-5000);
+    return m;
+  }
   function adopt(state, updatedAt) {
     var old = S(), n = Object.assign(ctx.fresh(), state || {});
     n.settings = Object.assign({}, old.settings);
@@ -9431,9 +9648,11 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     return api('PUT', 'progress/' + Q, { state: payload(), summary: sum, base: sy.base || 0, force: !!force }).then(function (r) {
       if (r.status === 200) { setSync({ user: user.username, base: r.data.updatedAt, dirty: false, summary: sum }); chip(); return; }
       if (r.status === 409) return api('GET', 'progress/' + Q).then(function (g) {
-        if (g.status === 200 && g.data.state && count(g.data.state) > count(S())) {
-          adopt(g.data.state, g.data.updatedAt);
-          ctx.toast('Spielstand abgeglichen', 'Auf einem anderen Gerät warst du schon weiter – dieser Stand wird jetzt verwendet.');
+        if (g.status === 200 && g.data.state) {
+          adopt(merge(g.data.state, S()), g.data.updatedAt);   // Testlauf 2: je Station das Bessere, nichts geht verloren
+          setSync({ user: user.username, base: g.data.updatedAt, dirty: true });
+          ctx.toast('Spielstand abgeglichen', 'Die Stände dieses und eines anderen Geräts wurden zusammengeführt – keine Sterne gehen verloren.');
+          busy = false; return push();
         } else { busy = false; return push(true); }
       });
       if (r.status === 401) { user = null; chip(); ctx.refresh(); }
@@ -9477,7 +9696,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
         var srv = g.data.state, srvAt = g.data.updatedAt || 0, sy = getSync(), me = user.username;
         if (sy.user && sy.user.toLowerCase() === me.toLowerCase()) {
           if (srv && srvAt > (sy.base || 0)) {
-            if (sy.dirty && count(S()) > count(srv)) return push(true);
+            if (sy.dirty) { adopt(merge(srv, S()), srvAt); setSync({ user: me, base: srvAt, dirty: true }); return push(); }   // Testlauf 2: zusammenführen
             adopt(srv, srvAt);
           } else if (sy.dirty || !srv) return push();
           return;
@@ -9854,15 +10073,21 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
   }
   function fresh() {
     return { version: 1, created: Date.now(), profile: { id: uuid(), vorname: '', nachname: '', pseudonym: '' },
-      done: {}, doneInfo: {}, drafts: {}, theory: {}, events: [], settings: { theme: 'dark', zoom: 1 } };
+      done: {}, doneInfo: {}, drafts: {}, theory: {}, marks: {}, events: [], settings: { theme: 'dark', zoom: 1 } };
   }
   /* Sterne: 3 = ohne Fehlversuch und ohne Tipp, 2 = hoechstens 2 Fehlversuche und 1 Tipp, sonst 1 */
+  /* Testlauf 2 (1.8): Reihenfolge der Antworten bei jedem Öffnen der Kontrolle neu mischen (Fisher-Yates); value bleibt der Index in der Quelle,
+   * die Auswertung vergleicht also weiter mit q.correct. fixed: true behält die Quell-Reihenfolge (Zahlenreihen, «Alle»/«Keine»). */
+  function quizOrder(q) { var o = q.options.map(function (x, j) { return j; }); if (q.fixed) return o; for (var k = o.length - 1; k > 0; k--) { var r = Math.floor(Math.random() * (k + 1)), tmp = o[k]; o[k] = o[r]; o[r] = tmp; } return o; }
   function starsFor(tries, hints) { return tries <= 1 && !hints ? 3 : tries <= 3 && hints <= 1 ? 2 : 1; }
   /* Spielstand auf den heutigen Aufbau bringen: fehlende Felder ergaenzen, doneInfo aus den Ereignissen nachfuellen */
   function normalize(d) {
     var f = fresh(), s = Object.assign(f, d && typeof d === 'object' ? d : {});
-    ['done', 'doneInfo', 'drafts', 'theory'].forEach(function (k) { if (!s[k] || typeof s[k] !== 'object') s[k] = {}; });
+    ['done', 'doneInfo', 'drafts', 'theory', 'marks'].forEach(function (k) { if (!s[k] || typeof s[k] !== 'object') s[k] = {}; });
+    // Testlauf 2 (1.6): «Lösung angesehen» bzw. «Wert aufgedeckt» hängt an der Station, nicht am Entwurf – aus doneInfo übernehmen
+    Object.keys(s.doneInfo).forEach(function (id) { var di = s.doneInfo[id]; if (di && (di.solution || di.revealed)) { var mk = s.marks[id] = s.marks[id] || {}; if (di.solution) mk.solution = true; if (di.revealed) mk.revealed = Math.max(mk.revealed || 0, di.revealed); } });
     if (!Array.isArray(s.events)) s.events = [];
+    if (!Array.isArray(s.setups)) s.setups = [];   // Testlauf 2 (5.3): benannte Aufbauten der Freien Werkbank
     s.settings = Object.assign({ theme: 'dark', zoom: 1 }, s.settings || {}); delete s.settings.teacher;
     if (!s.profile || !s.profile.id) s.profile = fresh().profile;
     ['vorname', 'nachname', 'pseudonym'].forEach(function (k) { if (typeof s.profile[k] !== 'string') s.profile[k] = ''; });
@@ -10150,10 +10375,10 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     opt = opt || {};
     show('task');
     if (demo) { demoPause(); demo = null; } // laufende Vorführung verwerfen (der neue Entwurf wird frisch geladen)
-    current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0; current.live = opt.live || null; current.exam = opt.exam || null;
+    current.task = t; current.started = Date.now(); current.hints = 0; current.tries = 0; current.miss = 0; current.live = opt.live || null; current.exam = opt.exam || null;
     syncHash('task');
     var draft = opt.live || opt.exam ? (opt.layout ? { layout: E.clone(opt.layout), answers: opt.answers || {} } : null) : S.drafts[t.id];
-    var layout = draft && draft.layout ? draft.layout : t.start;
+    var layout = draft && draft.layout ? cleanLayout(draft.layout) : t.start;
     var lockedIds = t.start.parts.map(function (p) { return p.id; });
     closeReplay(true);
     live.state = E.newState();
@@ -10162,7 +10387,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     renderTaskPanels(t, draft);
     if (!ed) {
       core = new Circuit({
-        onChange: function () { persistDraft(); rebuild(); renderInspector(); },
+        onChange: function () { persistDraft(); rebuild(); renderInspector(); histRecord(); },
         onSelect: function () { renderInspector(); },
         onProbe: setProbe,
         onScopeProbe: function () { bench.scope = null; tick(0); if (bench) bench.render(); },
@@ -10170,15 +10395,17 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
       });
       ed = new Editor($('#board'), { core: core });
       bench = new Bench($('#bench'), { core: core, onDial: function (m) { setMeterMode(m); }, onRange: function (r) { setMeterRange(r); }, onScope: function (k) { if (/^cpl[123]$/.test(k)) { toggleCoupling(+k.slice(3)); return; } if (k === 'ch1' || k === 'ch2' || k === 'math') toggleChannel(k === 'math' ? 3 : +k.slice(2)); else scope(); } });
-      bindSheetHover($('#board')); bindSheetHover($('#bench'));
+      bindSheetHover($('#board')); bindSheetHover($('#bench')); bindNetHover($('#board')); bindNetHover($('#bench'));
     }
+    core.scale = t.sandbox ? 1.5 : 1;   // Testlauf 2 (5.4): Freie Werkbank mit 2,25-facher Fläche
+    document.body.classList.toggle('sandbox-mode', !!t.sandbox);   // Arbeitsfläche so hoch wie das Fenster
     setView(t.sandbox ? 'bench' : preferredView(), t.sandbox);
-    bench.dragUX = dragUX(); bench.scope = null;
+    bench.dragUX = dragUX(); resetScope();
     ed.showVolt = bench.showVolt = false; $('#btnVolt').classList.remove('on');
     ed.showFlow = bench.showFlow = !!S.settings.flow; $('#btnFlow').classList.toggle('on', ed.showFlow);
     ed.load(layout, lockedIds, t.bench); bench.fit();
     setMeterMode('OFF');
-    rebuild(); renderInspector();
+    rebuild(); renderInspector(); histReset();
     if (!current.exam) log(t.sandbox ? 'sandbox_open' : current.live ? 'live_open' : 'task_open', { id: t.id });
   }
 
@@ -10187,9 +10414,9 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     if (t.sandbox) {
       $('#taskInfo').innerHTML = '<div class="crumb">Labor · Sandbox</div><h2>' + esc(t.title) + '</h2><div class="brief">' + t.brief + '</div>' +
         '<div class="learn"><b>Ideen</b> Miss die Spannung an einer LED mit verschiedenen Vorwiderständen. Vergleiche V~ mit AVG und TRMS an Rechteck und Sinus. Schau dir mit der Zeitlupe an, wie eine Rückkopplung einrastet.</div>' +
-        '<button class="btn" id="toMap">Zur Karte</button>';
+        setupsHtml() + '<button class="btn" id="toMap">Zur Karte</button>';
       $('#toMap').onclick = function () { renderMap(); show('map'); };
-      renderPalette(t); return;
+      bindSetups(); renderPalette(t); return;
     }
     if (current.exam) { renderExamPanels(t, draft); return; }
     var lv = current.live;
@@ -10249,6 +10476,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
   }
   /* Sollwerte wie der Validator: aus der Referenzschaltung; wenn die eigene Schaltung alle Tests besteht, aus dieser (Messwerte hängen davon ab) */
   function sollOf(t, layout) {
+    if (layout) layout = gradeLayout(layout);
     var lay = t.ref; if (layout) { try { var r = E.runTask(t, layout, {}); if (r.results.filter(function (x) { return !(x.info && x.info.mid); }).every(function (x) { return x.ok; })) lay = layout; } catch (e) { /* Referenz */ } }
     try { return E.expectedAnswers(t, lay); } catch (e) { try { return E.expectedAnswers(t, t.ref); } catch (e2) { return {}; } }
   }
@@ -10266,7 +10494,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
   function revealHtml(t, m) { var soll = sollOf(t, ed && ed.layout)[m.id]; return '<div class="rv-box"><b>Aufgedeckt – Sollwert ' + fmtSoll(soll, m.unit) + '</b>' + rechenwegHtml(t, m, soll) + '</div>'; }
   function revealValue(t, mid) {
     var d = draftOf(t), s = d.meas[mid] = d.meas[mid] || { tries: 0 }; if (s.ok || s.revealed) return;
-    s.revealed = true; save(); log('value_reveal', { id: t.id, mid: mid, tries: s.tries || 0 });
+    s.revealed = true; markLow(t.id, 'revealed'); save(); log('value_reveal', { id: t.id, mid: mid, tries: s.tries || 0 });
     var inp = $('[data-ans="' + mid + '"]'); if (inp) { inp.disabled = true; var sv = sollOf(t, ed && ed.layout)[mid]; if (sv !== undefined && !isNaN(sv)) inp.value = String(+(+sv).toPrecision(4)); }
     renderMeasState(t);
     if (measState(t, d).done) toast('Alle Werte erledigt – jetzt „Prüfen“ drücken.');
@@ -10282,7 +10510,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
   var solMini = null;
   function showSolution(t) {
     var d = draftOf(t), v = $('#solView'); if (!v) return;
-    if (!d.sol) { d.sol = true; save(); log('solution_view', { id: t.id, fails: d.fails || 0, tries: current.tries }); }
+    if (!d.sol) { d.sol = true; markLow(t.id, 'solution'); save(); log('solution_view', { id: t.id, fails: d.fails || 0, tries: current.tries }); }
     var soll = sollOf(t, null), rows = (t.measure || []).map(function (m) { return '<tr><td>' + esc(m.ask) + '</td><td class="mono num">' + fmtSoll(soll[m.id], m.unit) + '</td></tr>'; }).join('');
     v.hidden = false;
     v.innerHTML = '<h3>Lösung</h3><p class="dim small">Referenzschaltung (' + (viewMode === 'bench' ? 'Werkbank' : 'Schaltplan') + ') – zum Vergleich, nicht zum Übernehmen:</p><div id="solCircuit"></div>' +
@@ -10305,9 +10533,10 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
   }
   function tbLabel(v) { var o = $$('#tb option').filter(function (o) { return +o.value === v; })[0]; return o ? o.textContent : E.fmt(v, 's'); }
   function setupHtml(t) {
-    if (typeof t.setup === 'string') return '<details class="setup" open><summary>So stellst du das Gerät ein</summary>' + t.setup + '</details>';
+    // Testlauf 2 (3.2): standardmässig eingeklappt, eine Zeile mit der Anzahl Werte; je Messwert einzeln aufklappbar
+    if (typeof t.setup === 'string') return '<details class="setup"><summary>So stellst du das Gerät ein</summary>' + t.setup + '</details>';
     var soll = sollOf(t, null), manual = t.rangeUX === 'manual', refL = refOf(t.ref).label, rows = t.measure.map(function (m) {
-      if (t.setup && t.setup[m.id]) return '<li><b>' + esc(m.ask) + ':</b> ' + t.setup[m.id] + '</li>';
+      if (t.setup && t.setup[m.id]) return '<li><details><summary>' + esc(m.ask) + '</summary>' + t.setup[m.id] + '</details></li>';
       var parts = [], setTxt = m.set ? Object.keys(m.set).map(function (k) { return k.indexOf('@') === 0 ? '' : k + ' ' + (m.set[k].closed ? 'zu' : 'offen'); }).filter(Boolean).join(', ') : '';
       if (setTxt) parts.push('Schalter: ' + setTxt);
       if (m.value !== undefined) parts.push('Rechenwert – kein Messgerät, Ergebnis in ' + (m.unit || 'der angegebenen Einheit') + ' eintragen');
@@ -10319,9 +10548,9 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
         if (m.mode !== 'A' && m.mode !== 'AAC') parts.push('rote Spitze an ' + m.a + ', schwarze an ' + (m.b || refL + ' (Bezugspunkt)'));
         if (manual && soll[m.id] !== undefined) { var sc = E.UNIT_SCALE[m.unit] || 1, rg = suggestRange(u, soll[m.id] * sc); parts.push('Bereich ' + E.rangeLabel(rg, u)); }
       }
-      return '<li><b>' + esc(m.ask) + ':</b> ' + parts.join(' · ') + '</li>';
+      return '<li><details><summary>' + esc(m.ask) + '</summary>' + parts.join(' · ') + '</details></li>';
     });
-    return '<details class="setup"' + (t.ch === 16 || t.ch === 'W' ? ' open' : '') + '><summary>So stellst du das Gerät ein</summary><ol>' + rows.join('') + '</ol>' +
+    return '<details class="setup"><summary>So stellst du das Gerät ein (' + rows.length + (rows.length === 1 ? ' Wert' : ' Werte') + ')</summary><ol class="setup-rows">' + rows.join('') + '</ol>' +
       (t.setupNote ? '<p class="small setup-note">' + t.setupNote + '</p>' : '') +
       '<p class="dim small">Spitzen und Tastkopf auf der Werkbank ziehen, im Schaltplan auf die Anschlüsse klicken. OL heisst nur: Bereich zu klein.</p></details>';
   }
@@ -10348,7 +10577,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     $('#taskInfo').innerHTML = h;
     $$('[data-ans]').forEach(function (inp) { inp.oninput = persistDraft; });
     $('#btnCheck').onclick = check;
-    $('#btnSend').onclick = function () { if (EXAM) EXAM.send(); };
+    $('#btnSend').onclick = function () { if (EXAM) { EXAM.send(); histReset(); } }; // Testlauf 2 (5.2): nicht hinter die Abgabe zurück
     renderPalette(t);
   }
   function renderPalette(t) {
@@ -10358,10 +10587,11 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     });
     $('#palette').innerHTML = pal || '<span class="dim small">Keine neuen Bauteile – nur messen.</span>';
     $$('[data-add]').forEach(function (b) {
-      b.onclick = function () { hideSheet(true); view().addPart(b.dataset.add); renderInspector(); };
-      // Palette: Maus drueber → sofort das volle Datenblatt (noch keine Messwerte, die im Weg stehen)
-      b.onpointerenter = function (ev) { if (ev.pointerType === 'mouse') sheetSoon(function () { showSheet(b.dataset.add, null, b.getBoundingClientRect(), { from: 'palette' }); }, 120); };
-      b.onpointerleave = function () { sheetLeave(); };
+      b.onclick = function () { if (palDrag.used) { palDrag.used = false; return; } hideSheet(true); view().addPart(b.dataset.add); renderInspector(); };
+      b.addEventListener('pointerdown', function (ev) { palDown(ev, b); });
+      // Palette: Maus verweilt ~0,4 s → Datenblatt neben der Palette, durchlässig für die Maus (Testlauf 2, 2.1: verdeckte Nachbarknöpfe und Arbeitsfläche)
+      b.onpointerenter = function (ev) { if (ev.pointerType === 'mouse') sheetSoon(function () { showSheet(b.dataset.add, null, b.getBoundingClientRect(), { from: 'palette' }); }, 400); };
+      b.onpointerleave = function () { if (sheet.pinned) sheetLeave(); else hideSheet(); }; // Palette: sofort weg beim Verlassen
     });
   }
 
@@ -10411,9 +10641,15 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
       log('datasheet', { type: type, from: opt.from || '' });
     }
     sheet.key = key; sheet.pinned = !!opt.pinned; el.hidden = false; el.dataset.type = type;
+    var passive = opt.from === 'palette'; el.classList.toggle('ds-passive', passive); el.style.width = '';
     var vw = innerWidth, vh = innerHeight, w = el.offsetWidth, h = el.offsetHeight, m = 10;
     if (vw < 700) { el.style.left = ''; el.style.top = ''; el.classList.add('sheet-bottom'); return; } // Handy: als Blatt von unten
     el.classList.remove('sheet-bottom');
+    if (passive) { // über dem Auftrag links neben der Arbeitsfläche (schmaler, falls nötig) – Palette und Fläche bleiben frei; reicht der Platz nicht, unter der Werkzeugleiste
+      var tb = ($('#scr-task .toolbar') || $('#palette')).getBoundingClientRect(), cr = ($('#scr-task .center') || $('#palette')).getBoundingClientRect(), room = cr.left - 2 * m;
+      if (room >= 280) { if (room < w) { el.style.width = room + 'px'; w = room; h = el.offsetHeight; } el.style.left = (cr.left - w - m) + 'px'; el.style.top = Math.max(m, Math.min(vh - h - m, tb.top)) + 'px'; return; }
+      el.style.left = Math.max(m, Math.min(vw - w - m, anchor.left)) + 'px'; el.style.top = Math.max(m, Math.min(vh - h - m, tb.bottom + m)) + 'px'; return;
+    }
     var left = anchor.right + m; if (left + w > vw - m) left = anchor.left - w - m; if (left < m) left = Math.max(m, Math.min(vw - w - m, anchor.left));
     var top = Math.max(m, Math.min(vh - h - m, anchor.top + anchor.height / 2 - h / 2));
     el.style.left = left + 'px'; el.style.top = top + 'px';
@@ -10625,7 +10861,19 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
   function status(items) {
     var el = $('#statusbar'); if (!el) return;
     el.innerHTML = items && items.length ? items.map(function (i) { return '<div class="st ' + i.cls + '">' + esc(i.text) + '</div>'; }).join('')
-      : '<div class="st ok">Schaltung läuft – keine Störung.</div>';
+      : (idleText() || '<div class="st ok">Schaltung läuft – keine Störung.</div>');
+  }
+  /* Testlauf 2 (2.5): «keine Störung» nur, wenn wirklich etwas läuft – ohne angeschlossene Quelle oder mit losen Bauteilen sagt die Statuszeile das */
+  var SOURCES = { battery: 1, acsource: 1, clock: 1, logicin: 1 };
+  function idleText() {
+    var L = ed && ed.layout; if (!L || !L.parts) return '';
+    var real = L.parts.filter(function (p) { return p.type !== 'ground' && !(p.props && p.props.virtual); }); if (!real.length) return '<div class="st info">Leere Arbeitsfläche – wähle ein Bauteil in der Palette.</div>';
+    var used = {}; L.wires.forEach(function (w) { used[w.from.split('.')[0]] = true; used[w.to.split('.')[0]] = true; });
+    var loose = real.filter(function (p) { return !used[p.id]; }).length, src = real.some(function (p) { return SOURCES[p.type] && used[p.id]; });
+    var out = [];
+    if (!src) out.push('Keine Quelle angeschlossen – ohne Batterie, Generator oder Taktgeber fliesst kein Strom.');
+    if (loose) out.push(loose === 1 ? '1 Bauteil ohne Verbindung.' : loose + ' Bauteile ohne Verbindung.');
+    return out.length ? '<div class="st info">' + esc(out.join(' ')) + '</div>' : '';
   }
 
   /* ---------- Multimeter ---------- */
@@ -10680,16 +10928,6 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
       var key = JSON.stringify(layout) + '|' + m.a + '|' + m.b;
       if (m.acKey !== key) { m.acKey = key; m.ac = E.acMeasure(layout, { a: m.a, b: m.b }); }
       return m.ac;
-    }
-    function acA() { // Wechselstrom über den Shunt (A~ und Hinweis bei A⎓): wie ac(), aber mit eingesetztem Amperemeter
-      var key = JSON.stringify(layout) + '|A|' + m.a + '|' + m.b;
-      if (m.acAKey !== key) { m.acAKey = key; m.acA = mn ? E.acMeasure(layout, { a: m.a, b: m.b }, { meter: { mode: 'A', a: mn.a, b: mn.b } }) : { ok: false }; }
-      return m.acA;
-    }
-    function acA() { // Wechselstrom über den Shunt (A~ und Hinweis bei A⎓): wie ac(), aber mit eingesetztem Amperemeter
-      var key = JSON.stringify(layout) + '|A|' + m.a + '|' + m.b;
-      if (m.acAKey !== key) { m.acAKey = key; m.acA = mn ? E.acMeasure(layout, { a: m.a, b: m.b }, { meter: { mode: 'A', a: mn.a, b: mn.b } }) : { ok: false }; }
-      return m.acA;
     }
     function acA() { // Wechselstrom über den Shunt (A~ und Hinweis bei A⎓): wie ac(), aber mit eingesetztem Amperemeter
       var key = JSON.stringify(layout) + '|A|' + m.a + '|' + m.b;
@@ -10830,7 +11068,15 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
   function renderInspector() {
     var el = $('#inspector'); if (!ed) return;
     var p = ed.sel && ed.sel.indexOf('w:') !== 0 ? ed.part(ed.sel) : null;
-    if (!p) { el.innerHTML = '<p class="dim small">Bauteil anklicken, um Werte zu ändern. <kbd>R</kbd> dreht, <kbd>Entf</kbd> löscht.</p>'; return; }
+    if (!p && ed.sel && ed.sel.indexOf('w:') === 0 && ed.layout.wires[+ed.sel.slice(2)]) { // Testlauf 2 (5.5): Leitung gewählt → Farbe wählen
+      var wi = +ed.sel.slice(2), wv = ed.layout.wires[wi], WC = Circuit.WIRE_COLORS || {};
+      el.innerHTML = '<div class="insp-head"><b>Leitung</b> ' + esc(wv.from) + ' – ' + esc(wv.to) + '</div><p class="small">Farbe</p><div class="wire-colors">' +
+        '<button class="wc' + (!wv.color ? ' on' : '') + '" data-wc="" title="Standard">Std</button>' + Object.keys(WC).map(function (c) { return '<button class="wc' + (wv.color === c ? ' on' : '') + '" data-wc="' + c + '" title="' + c + '" style="--wc:' + WC[c] + '"></button>'; }).join('') +
+        '</div><p class="dim tiny">Fährst du mit der Maus über eine Leitung, leuchtet ihr ganzes Netz auf. <kbd>Entf</kbd> löscht die Leitung.</p>';
+      $$('[data-wc]', el).forEach(function (b) { b.onclick = function () { core.setWireColor(wi, b.dataset.wc); core.sel = 'w:' + wi; renderInspector(); }; });
+      return;
+    }
+    if (!p) { el.innerHTML = '<p class="dim small">Bauteil anklicken, um Werte zu ändern. <kbd>R</kbd> dreht, <kbd>Entf</kbd> löscht. Leitung anklicken: Farbe wählen.</p>'; return; }
     var d = E.PARTS[p.type], q = p.props || (p.props = {}), lock = ed.locked[p.id] && p.type !== 'acsource' && p.type !== 'clock', val = p.value !== undefined ? p.value : (q.value !== undefined ? q.value : d.props.value);
     var r = live.res && live.res.parts[p.id];
     var h = '<div class="insp-head"><b>' + esc(p.id) + '</b> ' + esc(d.label) + (lock ? ' <span class="tag">Aufgabe</span>' : '') + '<button class="btn small ds-btn" id="dsBtn" title="Datenblatt: Funktion, Anschlüsse, Grenzen">ⓘ Datenblatt</button></div>';
@@ -10868,11 +11114,11 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
         if (k === 'offset') { var o = parseFloat(String(v).replace(',', '.')); if (!isFinite(o)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; q.offset = o; }
         else if (k === 'value' || k === 'freq' || k === 'vz' || k === 'beta') { var n = parseVal(v); if (!(n > 0)) { inp.classList.add('bad'); return; } inp.classList.remove('bad'); if (ev.type !== 'change') return; v = n; if (k === 'value') { p.value = n; delete q.value; } else q[k] = n; }
         else if (k === 'pos') q.pos = +v; else q[k] = v;
-        persistDraft(); rebuild(); core.redraw(); if (k !== 'pos') renderInspector();
+        persistDraft(); rebuild(); core.redraw(); if (k !== 'pos') renderInspector(); if (ev.type === 'change') histRecord();
       };
     });
     $('#dsBtn').onclick = function () { showSheet(p.type, p, this.getBoundingClientRect(), { pinned: true, from: 'inspector' }); };
-    var tg = $('#tgl'); if (tg) tg.onclick = function () { q.closed = !q.closed; persistDraft(); rebuild(); renderInspector(); };
+    var tg = $('#tgl'); if (tg) tg.onclick = function () { q.closed = !q.closed; persistDraft(); rebuild(); renderInspector(); histRecord(); };
   }
 
   /* ---------- Oszilloskop ----------
@@ -10887,6 +11133,17 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
    * beide Kurven auf gemeinsamer Skala, Kennwerte je Kanal, Phasenverschiebung CH2 gegen CH1 aus den steigenden Nulldurchgängen. */
   var scopeCh = { 1: true, 2: true, 3: false };   // 3 = MATH (CH1 − CH2), standardmässig aus
   var scopeCoup = { 1: false, 2: false, 3: false };   // Kopplung je Kanal: false = DC (Standard), true = AC (K3)
+  /* Testlauf 2 (2.3): beim Aufgabenwechsel steht das Oszilloskop wieder im Grundzustand – Kanäle CH1/CH2 an, MATH aus, alle DC,
+   * keine Kurve, kein Kennwerttext, kein Bezugspunkt-Hinweis (die Bildbreite setzt openTask passend zur Aufgabe, die Tastköpfe der neue Entwurf). */
+  function resetScope() {
+    scopeCh[1] = true; scopeCh[2] = true; scopeCh[3] = false; scopeCoup[1] = scopeCoup[2] = scopeCoup[3] = false; lastScope = null;
+    $$('#scopeCh [data-ch]').forEach(function (b) { b.classList.toggle('on', scopeCh[+b.dataset.ch]); });
+    $$('#scopeCpl [data-cpl]').forEach(function (b) { b.classList.remove('on'); b.textContent = (+b.dataset.cpl === 3 ? 'MATH ' : 'CH' + b.dataset.cpl + ' ') + 'DC'; if (+b.dataset.cpl > 1) b.hidden = true; });
+    var info = $('#scopeInfo'); if (info) info.textContent = 'Kanal 1 = Messspitzen des Multimeters (neue Messtechnik-Aufgaben: eigener Tastkopf auf der Werkbank). Aufnahme mit „Aufnahme“ bzw. RUN.';
+    var box = $('#scopeWarn'); if (box) { box.hidden = true; box.textContent = ''; }
+    var cv = $('#scope'); if (cv && cv.getContext) { var ctx = cv.getContext('2d'); ctx.clearRect(0, 0, cv.width, cv.height); }
+    if (bench) { bench.scope = null; bench.refMark = null; } if (ed) ed.refMark = null;
+  }
   function toggleCoupling(n) {
     scopeCoup[n] = !scopeCoup[n];
     $$('#scopeCpl [data-cpl]').forEach(function (b) { var on = scopeCoup[+b.dataset.cpl]; b.classList.toggle('on', on); b.textContent = (+b.dataset.cpl === 3 ? 'MATH ' : 'CH' + b.dataset.cpl + ' ') + (on ? 'AC' : 'DC'); });
@@ -11094,15 +11351,52 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   /* ---------- Pruefen ---------- */
+  /* Testlauf 2 (Phase 1.1): Steckt das Multimeter im Strombereich (A⎓ / A~) mit beiden Spitzen in einer Lücke, gehört es zum Stromkreis –
+   * gewertet wird eine Kopie des Entwurfs mit einem virtuellen Strommesser zwischen den Spitzen (Innenwiderstand wie A1). Der Entwurf bleibt unverändert. */
+  function gradeLayout(layout) {
+    if (!layout || !(meter.mode === 'A' || meter.mode === 'AAC') || !meter.a || !meter.b || meter.a === meter.b) return layout;
+    var ids = {}; layout.parts.forEach(function (p) { ids[p.id] = true; });
+    if (!ids[meter.a.split('.')[0]] || !ids[meter.b.split('.')[0]]) return layout;
+    var L = E.clone(layout);
+    L.parts.push({ id: 'MM', type: 'ammeter', x: -9999, y: -9999, rot: 0, props: { virtual: true } });
+    L.wires.push({ from: meter.a, to: 'MM.a' }, { from: 'MM.b', to: meter.b });
+    return L;
+  }
+  /* Entwurf bereinigen (Testlauf 2, Phase 1.3): Leitungen auf Anschlüsse, die es nicht (mehr) gibt, fallen weg – auch in älteren Spielständen */
+  function cleanLayout(L) {
+    if (!L || !Array.isArray(L.parts) || !Array.isArray(L.wires)) return L;
+    var ok = {}; L.parts.forEach(function (p) { var d = E.PARTS[p.type]; if (d) d.pins.forEach(function (pin) { ok[p.id + '.' + pin] = true; }); });
+    var n = L.wires.length; L.wires = L.wires.filter(function (w) { return ok[w.from] && ok[w.to] && w.from !== w.to; });
+    if (L.wires.length !== n) log('draft_clean', { removed: n - L.wires.length });
+    return L;
+  }
+  /* «Lösung angesehen» / «Wert aufgedeckt» bleibt an der Station (höchstens 1 Stern, auch nach «Neu») */
+  function markLow(id, kind) { var mk = S.marks[id] = S.marks[id] || {}; if (kind === 'solution') mk.solution = true; else mk.revealed = (mk.revealed || 0) + 1; }
+  /* Klartext-Hinweise nach dem Prüfen: offener Kreis bei Strommessung, nicht angeschlossene Bauteile, aufgabeneigene Hinweise (diag) */
+  function checkNotes(t, gl, testsOk) {
+    var notes = [], net; try { net = E.buildNetlist(E.clone(gl)); } catch (e) { return notes; }
+    if (!testsOk) {
+      var used = {}; gl.wires.forEach(function (w) { used[w.from.split('.')[0]] = true; used[w.to.split('.')[0]] = true; });
+      var loose = gl.parts.filter(function (p) { return !used[p.id] && p.type !== 'ground' && !(p.props && p.props.virtual); }).map(function (p) { return p.id; });
+      if (loose.length) notes.push((loose.length === 1 ? loose[0] + ' ist nicht angeschlossen' : loose.join(', ') + ' sind nicht angeschlossen') + ' – löschen oder einbauen.' + (loose.length > 2 ? ' Liegen Bauteile übereinander? «Einpassen» zeigt alle.' : ''));
+      var cur = (t.measure || []).filter(function (m) { return m.mode === 'A' || m.mode === 'AAC' || (m.truth && m.truth.q === 'i'); })[0];
+      if (cur && gl === ed.layout) {
+        var sel = cur.truth ? cur.truth.sel : null, an = null; try { an = E.analyze(gl); } catch (e) { an = null; }
+        if (sel && an && an.parts[sel] && Math.abs(an.parts[sel].i || 0) < 1e-6) notes.push('Der Stromkreis ist offen – setze das Multimeter (A⎓) in die Lücke oder schliesse die Leitung wieder.');
+      }
+      (t.diag || []).forEach(function (dg) { if ((dg.same || []).some(function (pr) { return net.pinNode[pr[0]] !== undefined && net.pinNode[pr[0]] === net.pinNode[pr[1]]; })) notes.push(dg.text); });
+    }
+    return notes;
+  }
   function check() {
     var t = current.task; current.tries++;
-    var ans = answers(), r = E.runTask(t, ed.layout, ans);
+    var gl = gradeLayout(ed.layout), ans = answers(), r = E.runTask(t, gl, ans);
     var h = '<ul class="res">' + r.results.map(function (x) {
       var extra = '';
       if (!x.ok && x.info && typeof x.info.got === 'number') extra = ' <span class="dim">(ist: ' + E.fmt(Math.abs(x.info.got), '') + ')</span>';
       return '<li class="' + (x.ok ? 'ok' : 'bad') + '">' + (x.ok ? '✔' : '✘') + ' ' + esc(x.text) + extra + '</li>';
     }).join('') + '</ul>';
-    var an = E.analyze(ed.layout); if (an.faults.length) h += diagnose(an.faults).map(function (d) { return '<div class="st err">' + esc(d.text) + '</div>'; }).join('');
+    var an = E.analyze(gl); if (an.faults.length) h += diagnose(an.faults).map(function (d) { return '<div class="st err">' + esc(d.text) + '</div>'; }).join('');
     $('#results').innerHTML = h;
     if (current.exam) { // nur die sichtbaren Tests; Messwerte und verdeckte Tests prueft der Server bei der Abgabe
       $('#results').innerHTML = '<p class="dim small">Sichtbare Tests im Browser' + (t.protocol.length ? ' – die Messwerte prüft der Server bei der Abgabe' : '') + ':</p>' + h;
@@ -11111,6 +11405,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     if (current.live) {
       log(r.pass ? 'live_done' : 'live_try', { id: t.id, tries: current.tries, hints: current.hints });
       if (LIVE) LIVE.attempt(r.pass, { layout: ed.layout, answers: ans });
+      histReset();   // Testlauf 2 (5.2): Rückgängig nie hinter die Abgabe zurück
       if (r.pass) modal('<h2 class="win">Gelöst!</h2><p>' + t.take + '</p><p class="dim" id="livePts">Punkte werden berechnet …</p>', [{ label: 'Rangliste', primary: true, action: function () { if (LIVE) LIVE.board(); } }]);
       return;
     }
@@ -11123,7 +11418,10 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     });
     var testsOk = r.results.filter(function (x) { return !(x.info && x.info.mid); }).every(function (x) { return x.ok; });
     var ms = measState(t, d), pass = testsOk && ms.done;
-    if (!pass) d.fails = (d.fails || 0) + 1;
+    // Testlauf 2 (1.7): ein Fehlversuch ist nur, wenn ein Test scheitert oder ein eingetragener Wert falsch ist – leere Felder zählen nicht
+    var wrongEntry = measRes.some(function (x) { return !x.ok && !(x.info && x.info.empty) && !(d.meas[x.info.mid] && d.meas[x.info.mid].revealed); });
+    if (!pass && (!testsOk || wrongEntry)) { current.miss++; d.fails = (d.fails || 0) + 1; }
+    var notes = checkNotes(t, gl, testsOk);
     save();
     $('#results').innerHTML = '<ul class="res">' + r.results.map(function (x) {
       var mid = x.info && x.info.mid, s = mid ? d.meas[mid] : null, extra = '';
@@ -11131,20 +11429,24 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
       if (!x.ok && x.info && typeof x.info.got === 'number') extra = ' <span class="dim">(ist: ' + E.fmt(Math.abs(x.info.got), '') + ')</span>';
       return '<li class="' + (x.ok ? 'ok' : 'bad') + '">' + (x.ok ? '✔' : '✘') + ' ' + esc(x.text) + extra + '</li>';
     }).join('') + '</ul>' + (an.faults.length ? diagnose(an.faults).map(function (dg) { return '<div class="st err">' + esc(dg.text) + '</div>'; }).join('') : '') +
-      (!pass && ms.n && !ms.done ? '<p class="dim small">' + ms.ok + ' von ' + ms.n + ' Werten richtig – richtige Werte bleiben stehen, nur die offenen musst du noch korrigieren.</p>' : '');
+      notes.map(function (n) { return '<div class="st warn">' + esc(n) + '</div>'; }).join('') +
+      (!pass && ms.n && !ms.done ? '<p class="dim small">' + ms.ok + ' von ' + ms.n + ' Werten richtig – richtige Werte bleiben stehen, nur die offenen musst du noch korrigieren.' + (testsOk && !wrongEntry ? ' Fehlende Werte zählen nicht als Fehlversuch.' : '') + '</p>' : '');
     renderMeasState(t);
     log(pass ? 'task_done' : 'task_try', { id: t.id, tries: current.tries, hints: current.hints, dur: Math.round((Date.now() - current.started) / 1000), tags: t.tags, revealed: ms.revealed, sol: !!d.sol });
     if (pass) {
-      var low = !!d.sol || ms.revealed > 0;
-      var first = !S.done[t.id], st = low ? 1 : starsFor(current.tries, current.hints), di = S.doneInfo[t.id];
+      var mk = S.marks[t.id] || {}, di = S.doneInfo[t.id];
+      var low = !!d.sol || ms.revealed > 0 || !!mk.solution || !!mk.revealed || !!(di && (di.solution || di.revealed)); // Testlauf 2 (1.6): bleibt nach «Neu»
+      var first = !S.done[t.id], st = low ? 1 : starsFor(current.miss + 1, current.hints);
+      var sol = !!(d.sol || mk.solution || (di && di.solution)), rvN = Math.max(ms.revealed || 0, mk.revealed || 0, (di && di.revealed) || 0);
       S.done[t.id] = true;
-      if (!di || st > (di.stars || 0)) S.doneInfo[t.id] = { at: di && di.at ? di.at : Date.now(), tries: current.tries, hints: current.hints, stars: st, revealed: ms.revealed || undefined, solution: d.sol || undefined };
-      else if (di) { if (d.sol) di.solution = true; if (ms.revealed) di.revealed = Math.max(di.revealed || 0, ms.revealed); }
+      if (!di || st > (di.stars || 0)) S.doneInfo[t.id] = { at: di && di.at ? di.at : Date.now(), tries: current.miss + 1, hints: current.hints, stars: st, revealed: rvN || undefined, solution: sol || undefined };
+      else if (di) { if (sol) di.solution = true; if (rvN) di.revealed = rvN; }
+      var why = low ? 'Höchstens 1 Stern: ' + (sol ? 'Lösung angesehen' : 'Wert aufgedeckt') + ' – das gilt für diese Station dauerhaft.' : st === 3 ? 'Ohne Fehlversuch und ohne Tipp.' : 'Fehlversuche: ' + current.miss + ', Tipps: ' + current.hints + ' – 3 Sterne gibt es ohne Fehlversuch und Tipp, 2 Sterne mit höchstens 2 Fehlversuchen und 1 Tipp.';
       save();
       var nx = nextOf(t.id), aw = null;
       Object.keys(DQ.awards || {}).forEach(function (k) { if (DQ.awards[k].boss === t.id) aw = DQ.awards[k]; });
       if (aw && first) log('award', { id: aw.id, tags: t.tags });
-      modal('<h2 class="win">Geschafft!</h2><p class="stars-win" title="' + st + ' von 3 Sternen">' + starRow(st) + '</p><p>' + t.take + '</p>' + (first ? '' : '<p class="dim">(bereits gelöst)</p>') +
+      modal('<h2 class="win">Geschafft!</h2><p class="stars-win" title="' + st + ' von 3 Sternen">' + starRow(st) + '</p><p class="dim small stars-why">' + esc(why) + '</p><p>' + t.take + '</p>' + (first ? '' : '<p class="dim">(bereits gelöst)</p>') +
         (aw ? '<div class="award-note">' + medal(aw, 64) + '<p><b>' + esc(aw.title) + '</b><br>Du hast die ' + esc(DQ.stages[aw.id]) + ' abgeschlossen. Dein ' + esc(aw.kind) + ' kannst du anzeigen und drucken.</p></div>' : ''),
         [{ label: 'Zur Karte', action: function () { renderMap(); show('map'); } }]
           .concat(aw ? [{ label: aw.kind + ' anzeigen', primary: !nx, action: function () { openAward(aw.id); } }] : [])
@@ -11193,7 +11495,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     var h = '<h3>Check – ' + Math.round(th.pass * 100) + ' % zum Bestehen</h3>';
     th.questions.forEach(function (q, i) {
       h += '<fieldset class="q" data-q="' + i + '"><legend>' + (i + 1) + '. ' + q.q + '</legend>' +
-        q.options.map(function (o, j) { return '<label><input type="radio" name="q' + i + '" value="' + j + '"> ' + o + '</label>'; }).join('') + '<div class="expl"></div></fieldset>';
+        quizOrder(q).map(function (j) { var o = q.options[j]; return '<label><input type="radio" name="q' + i + '" value="' + j + '"> ' + o + '</label>'; }).join('') + '<div class="expl"></div></fieldset>';
     });
     h += '<button class="btn primary" id="evalQuiz">Auswerten</button><div id="quizRes"></div>';
     $('#quiz').innerHTML = h;
@@ -11306,6 +11608,135 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     tut.bench.render();
   }
 
+  /* ================= Testlauf 2 (5.2): Rückgängig / Wiederholen =================
+   * Verlauf je geöffneter Aufgabe: Schnappschüsse des Layouts (JSON) nach jeder Änderung – Bauteil setzen, verschieben, drehen, löschen,
+   * Leitung ziehen/löschen/färben, Wert oder Schalter ändern. Höchstens 100 Schritte. Beim Öffnen und nach jeder Abgabe in Prüfung bzw.
+   * Live-Challenge beginnt der Verlauf neu (nie hinter die Abgabe zurück). */
+  var HIST = { past: [], future: [], cur: null };
+  function histBtns() { var u = $('#btnUndo'), r = $('#btnRedo'); if (u) u.disabled = !HIST.past.length; if (r) r.disabled = !HIST.future.length; }
+  function histReset() { HIST.past = []; HIST.future = []; HIST.cur = core ? JSON.stringify(core.layout) : null; histBtns(); }
+  function histRecord() {
+    if (!core) return; var s = JSON.stringify(core.layout); if (s === HIST.cur) return;
+    if (HIST.cur !== null) { HIST.past.push(HIST.cur); if (HIST.past.length > 100) HIST.past.shift(); }
+    HIST.cur = s; HIST.future = []; histBtns();
+  }
+  function histGo(dir) {
+    if (!core || current.screen !== 'task') return;
+    var from = dir < 0 ? HIST.past : HIST.future, to = dir < 0 ? HIST.future : HIST.past; if (!from.length) return;
+    to.push(HIST.cur); HIST.cur = from.pop();
+    core.layout = JSON.parse(HIST.cur); core.sel = null; core.wireStart = null; core.hiWire = null;
+    var has = function (pin) { return pin && core.part(String(pin).split('.')[0]); };
+    ['a', 'b'].forEach(function (k) { if (meter[k] && !has(meter[k])) meter[k] = null; if (core.probes[k] && !has(core.probes[k])) core.probes[k] = null; });
+    ['tip', 'gnd', 'tip2'].forEach(function (k) { if (core.scopeProbes[k] && !has(core.scopeProbes[k])) core.scopeProbes[k] = null; });
+    persistDraft(); rebuild(); core.redraw(); renderInspector(); histBtns();
+    log(dir < 0 ? 'undo' : 'redo', { id: current.task && current.task.id, n: HIST.past.length });
+  }
+
+  /* ================= Testlauf 2 (5.1): Bauteil aus der Palette auf die Arbeitsfläche ziehen =================
+   * Maus: ab 6 px Bewegung wird gezogen; Loslassen über Schaltplan bzw. Werkbank legt das Bauteil an dieser Stelle ab (nächster freier Platz).
+   * Touch: langes Drücken (0,35 s) startet das Ziehen, sonst bleibt Tippen = hinzufügen. Klick bleibt der zweite Weg (Tastatur, Handy). */
+  var palDrag = { used: false };
+  function palDown(ev, b) {
+    palDrag.used = false; if (ev.button > 0 || (current.exam && !EXAM)) return;
+    var type = b.dataset.add, st = { x: ev.clientX, y: ev.clientY, on: false, ghost: null, timer: 0, id: ev.pointerId, touch: ev.pointerType !== 'mouse' };
+    var noScroll = function (e) { if (st.on) e.preventDefault(); };
+    function begin() {
+      st.on = true; hideSheet(true);
+      var g = document.createElement('div'); g.className = 'pal-ghost'; g.innerHTML = b.querySelector('svg').outerHTML + '<span>' + esc(E.PARTS[type].label) + '</span>'; document.body.appendChild(g); st.ghost = g; place(st.x, st.y);
+      document.body.classList.add('pal-dragging');
+    }
+    function target(x, y) { var el = document.elementFromPoint(x, y); return el && el.closest && el.closest(viewMode === 'bench' ? '#bench' : '#board'); }
+    function place(x, y) { if (!st.ghost) return; st.ghost.style.left = x + 'px'; st.ghost.style.top = y + 'px'; st.ghost.classList.toggle('ok', !!target(x, y)); }
+    function move(e) {
+      if (e.pointerId !== st.id) return;
+      var d = Math.hypot(e.clientX - st.x, e.clientY - st.y);
+      if (!st.on) { if (st.touch) { if (d > 10) end(null); return; } if (d > 6) begin(); else return; }
+      place(e.clientX, e.clientY);
+    }
+    function end(e) {
+      clearTimeout(st.timer); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cancel); document.removeEventListener('touchmove', noScroll);
+      if (st.ghost) st.ghost.remove(); document.body.classList.remove('pal-dragging');
+      if (!st.on || !e) return;
+      palDrag.used = true;   // unterdrückt nur den Klick, den dieses Loslassen auf dem Knopf selbst auslöst; der nächste Druck setzt zurück
+      if (!target(e.clientX, e.clientY)) return;
+      var v = view(), xy = v._pt(e), p;
+      p = viewMode === 'bench' ? core.addPart(type, xy[0], xy[1], 'bench') : core.addPart(type, xy[0], xy[1], 'schema');
+      if (p) { renderInspector(); log('palette_drop', { id: current.task && current.task.id, type: type, view: viewMode }); }
+    }
+    function up(e) { if (e.pointerId === st.id) end(e); }
+    function cancel(e) { if (e.pointerId === st.id) end(null); }
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cancel);
+    document.addEventListener('touchmove', noScroll, { passive: false });
+    if (st.touch) st.timer = setTimeout(begin, 350);
+  }
+
+  /* ================= Testlauf 2 (5.5): Leitung beim Darüberfahren samt Netz hervorheben ================= */
+  function bindNetHover(svg) { // der Kern merkt sich die Leitung (core.hiWire), die Ansichten zeichnen das Netz bei jedem Neuzeichnen hervor
+    svg.addEventListener('pointerover', function (ev) { var g = ev.target.closest && ev.target.closest('[data-wire]'); if (!core || ev.buttons) return; core.setHiWire(g ? g.getAttribute('data-wire') : null); });
+    svg.addEventListener('pointerleave', function () { if (core) core.setHiWire(null); });
+  }
+
+  /* ================= Testlauf 2 (5.3): benannte Aufbauten der Freien Werkbank =================
+   * Gespeichert im Spielstand (S.setups – lokal und mit Konto im Konto), höchstens 30 Aufbauten und rund 150 KB, sonst Hinweis
+   * «als Datei exportieren». Ein Aufbau enthält das Layout samt Schalterstellungen sowie die Messgeräte-Einstellungen
+   * (Messart, Bereich, AVG/TRMS, Spitzen, Tastköpfe, Bildbreite). Export/Import als JSON-Datei. */
+  var SETUP_MAX = 30, SETUP_BYTES = 150 * 1024;
+  function setupsHtml() {
+    var list = S.setups || [];
+    return '<div class="setups"><h3>Meine Aufbauten</h3><div class="row"><input id="suName" maxlength="40" placeholder="Name, z. B. LED mit 220 Ω" aria-label="Name des Aufbaus"><button class="btn small" id="suSave">Speichern</button></div>' +
+      (list.length ? '<ul class="su-list">' + list.map(function (x, i) { return '<li><span title="' + esc(new Date(x.t).toLocaleString('de-CH')) + '">' + esc(x.name) + '</span><button class="btn small" data-su-load="' + i + '">Laden</button><button class="btn small" data-su-del="' + i + '" title="Löschen" aria-label="' + esc(x.name) + ' löschen">✕</button></li>'; }).join('') + '</ul>' : '<p class="dim small">Noch nichts gespeichert. Gespeichert wird der ganze Aufbau mit Schalterstellungen und Messgeräten.</p>') +
+      '<div class="row"><button class="btn small" id="suExport">Als Datei exportieren</button><label class="btn small su-imp">Datei importieren<input type="file" id="suImport" accept=".json,application/json" hidden></label></div><p class="small" id="suMsg" aria-live="polite"></p></div>';
+  }
+  function setupNow(name) {
+    return { v: 1, name: name, t: Date.now(), layout: E.clone(core.layout),
+      meter: { mode: meter.mode, range: meter.range, a: meter.a, b: meter.b, type: S.settings.meterType || 'trms' },
+      scope: { tip: core.scopeProbes.tip, gnd: core.scopeProbes.gnd, tip2: core.scopeProbes.tip2, tb: $('#tb') ? $('#tb').value : null } };
+  }
+  function setupValid(x) { return x && typeof x.name === 'string' && x.layout && Array.isArray(x.layout.parts) && Array.isArray(x.layout.wires) && x.layout.parts.every(function (p) { return p && typeof p.id === 'string' && E.PARTS[p.type]; }) && x.layout.wires.every(function (w) { return w && typeof w.from === 'string' && typeof w.to === 'string'; }); }
+  function setupApply(x) {
+    S.drafts.sandbox = { layout: E.clone(x.layout), answers: {}, t: Date.now() }; save();
+    openTask(sandboxTask());
+    var m = x.meter || {}, sc = x.scope || {}, has = function (pin) { return pin && core.part(String(pin).split('.')[0]); };
+    if (m.type) S.settings.meterType = m.type;
+    if (m.mode) setMeterMode(m.mode);
+    if (m.range && m.range !== 'AUTO') setMeterRange(m.range);
+    ['a', 'b'].forEach(function (k) { if (has(m[k])) { meter[k] = m[k]; core.probes[k] = m[k]; } });
+    ['tip', 'gnd', 'tip2'].forEach(function (k) { if (has(sc[k])) core.scopeProbes[k] = sc[k]; });
+    if (sc.tb && $('#tb')) $('#tb').value = sc.tb;
+    core.redraw(); tick(0); histReset();
+  }
+  function bindSetups() {
+    var msg = function (t, bad) { var el = $('#suMsg'); if (el) { el.textContent = t; el.className = 'small ' + (bad ? 'err' : 'ok'); } };
+    var sv = $('#suSave'); if (!sv) return;
+    sv.onclick = function () {
+      if (!core) return; var name = ($('#suName').value || '').trim() || 'Aufbau ' + new Date().toLocaleString('de-CH');
+      var x = setupNow(name.slice(0, 40)), list = (S.setups || []).filter(function (y) { return y.name !== x.name; }).concat([x]);
+      if (list.length > SETUP_MAX) { msg('Höchstens ' + SETUP_MAX + ' Aufbauten – lösche alte oder exportiere sie als Datei.', true); return; }
+      if (JSON.stringify(list).length > SETUP_BYTES) { msg('Der Speicher für Aufbauten ist voll – lösche alte oder exportiere sie als Datei.', true); return; }
+      S.setups = list; save(); log('setup_save', { n: list.length, parts: x.layout.parts.length });
+      renderTaskPanels(current.task, null); msg('«' + x.name + '» gespeichert.');
+    };
+    $$('[data-su-load]').forEach(function (b) { b.onclick = function () { var x = S.setups[+b.dataset.suLoad]; if (x) { setupApply(x); log('setup_load', {}); msg('«' + x.name + '» geladen.'); } }; });
+    $$('[data-su-del]').forEach(function (b) { b.onclick = function () { var x = S.setups[+b.dataset.suDel]; if (!x) return; modal('<h2>Aufbau löschen?</h2><p>«' + esc(x.name) + '» wird gelöscht.</p>', [{ label: 'Abbrechen' }, { label: 'Löschen', primary: true, action: function () { S.setups = S.setups.filter(function (y) { return y !== x; }); save(); renderTaskPanels(current.task, null); } }]); }; });
+    $('#suExport').onclick = function () {
+      if (!core) return; var x = setupNow(($('#suName').value || '').trim() || 'Aufbau'), blob = new Blob([JSON.stringify({ digitalquest: 'aufbau', version: 1, setups: [x].concat(S.setups || []) }, null, 1)], { type: 'application/json' });
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'DigitalQuest-Aufbauten.json'; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+      log('setup_export', {}); msg('Datei «DigitalQuest-Aufbauten.json» erstellt (aktueller Aufbau zuerst, dann die gespeicherten).');
+    };
+    $('#suImport').onchange = function () {
+      var f = this.files && this.files[0]; if (!f) return; if (f.size > 2 * 1024 * 1024) { msg('Datei zu gross.', true); return; }
+      var rd = new FileReader(); rd.onload = function () {
+        var data; try { data = JSON.parse(rd.result); } catch (e) { msg('Keine gültige Aufbau-Datei (JSON).', true); return; }
+        var list = (data && Array.isArray(data.setups) ? data.setups : setupValid(data) ? [data] : []).filter(setupValid);
+        if (!list.length) { msg('In der Datei ist kein gültiger Aufbau.', true); return; }
+        setupApply(list[0]); var add = list.slice(1).filter(function (x) { return !(S.setups || []).some(function (y) { return y.name === x.name; }); });
+        var merged = (S.setups || []).concat(add); if (merged.length <= SETUP_MAX && JSON.stringify(merged).length <= SETUP_BYTES) S.setups = merged; save();
+        renderTaskPanels(current.task, null); msg('«' + list[0].name + '» geladen' + (add.length ? ', ' + add.length + ' weitere Aufbauten übernommen.' : '.'));
+        log('setup_import', { n: list.length });
+      }; rd.readAsText(f);
+    };
+  }
+
   /* ================= Handbuch ================= */
   function renderManual(pageId) {
     var pages = [{ id: 'wegweiser', title: 'Wegweiser', html: '' }].concat(DQ.manual || [], [{ id: 'datenblaetter', title: 'Datenblätter', html: '' }]), p = pages.filter(function (x) { return x.id === pageId; })[0] || pages[0];
@@ -11323,7 +11754,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
       return '<div class="ww-card" data-id="' + i.id + '"><div class="ww-ic" aria-hidden="true">' + i.icon + '</div><div class="ww-body"><b>' + esc(i.titel) + '</b><p>' + esc(i.text) + '</p><p class="ww-wann"><span>Wann?</span> ' + esc(i.wann) + '</p></div><div class="ww-act">' + open + '</div></div>';
     };
     var labor = WW.items.filter(function (i) { return i.bereich === 'labor' && (!i.portalOnly || root.DQ_PORTAL); }), aufgabe = WW.items.filter(function (i) { return i.bereich === 'aufgabe'; });
-    return '<p class="lead">Wo finde ich was? Jeder Punkt der Kopfzeile und jedes Element einer Aufgabe in einem Satz.</p>' +
+    return '<p class="lead">Hier findest du alle Bereiche von DigitalQuest und wofür du sie brauchst.</p>' +
       '<div class="ww-tools"><button class="btn primary" id="wwTour">▶ Rundgang durch das Labor</button>' + (root.DQ_PORTAL ? '<a class="btn" href="../#/wegweiser">Wegweiser des Portals</a>' : '') + '</div>' +
       '<h3>Labor</h3><div class="ww-cards">' + labor.map(card).join('') + '</div>' +
       '<h3>In einer Aufgabe</h3><p class="dim small">Die Bedienung der Messgeräte zeigt dir das Werkbank-Tutorial Schritt für Schritt.</p><div class="ww-cards">' + aufgabe.map(card).join('') + '</div>';
@@ -11401,7 +11832,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
   function init() {
     applyTheme(); applyMode();
     root.DQ_PREFS = { get: function (k) { return S.settings[k]; }, set: function (k, v) { S.settings[k] = v; save(); } }; // Tempo der Theorie-Animationen u. a.
-    if (ACCT) ACCT.init({ state: function () { return S; }, fresh: fresh, modal: modal, esc: esc, toast: toast, summary: summary, refresh: refreshView,
+    if (ACCT) ACCT.init({ state: function () { return S; }, fresh: fresh, normalize: normalize, modal: modal, esc: esc, toast: toast, summary: summary, refresh: refreshView,
       setState: function (n) { S = normalize(n); clearTimeout(saveTimer); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { indicator('Nicht gespeichert!', 'err'); } } });
     root.DQ_REPORT_CONTEXT = function () {
       var c = current.screen === 'task' && current.task ? (current.task.sandbox ? 'Freie Werkbank' : 'Aufgabe ' + current.task.id) + ' (' + (viewMode === 'bench' ? 'Werkbank' : 'Schaltplan') + ')' :
@@ -11432,6 +11863,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     });
     if (root.DQCalc) {
       root.DQCalc.onLog = log;
+      root.DQCalc.posStore = { get: function () { return S.settings.calcPos || null; }, set: function (v) { if (v) S.settings.calcPos = v; else delete S.settings.calcPos; save(); } }; // Testlauf 2 (2.2): Position in den Einstellungen
       var calcHist = function () { if (root.DQCalc.isOpen) { try { history.pushState({ dq: 'calc' }, '', location.href); } catch (e) { /* file:// ohne History */ } } };
       $('#btnCalc').onclick = function () { root.DQCalc.toggle(); calcHist(); };
       document.addEventListener('click', function (ev) { var b = ev.target.closest && ev.target.closest('[data-calc]'); if (b) { ev.preventDefault(); root.DQCalc.open(); calcHist(); } });
@@ -11439,6 +11871,9 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
     }
     $('#btnRot').onclick = function () { view().rotateSelected(); };
     $('#btnFit').onclick = function () { view().fit(); };
+    $('#btnUndo').onclick = function () { histGo(-1); }; $('#btnRedo').onclick = function () { histGo(1); };
+    var zoomBtn = function (f) { var v = view(), r = v.svg.getBoundingClientRect(); v.zoomAt(f, r.left + r.width / 2, r.top + r.height / 2); };
+    $('#btnZoomIn').onclick = function () { zoomBtn(0.8); }; $('#btnZoomOut').onclick = function () { zoomBtn(1.25); };
     window.addEventListener('resize', function () { if (ed && current.screen === 'task') view().fit(); if (tut && current.screen === 'tutorial') tut.bench.fit(); });
     $('#btnDel').onclick = function () { ed.removeSelected(); renderInspector(); };
     $('#btnView').onclick = function () { setView(viewMode === 'bench' ? 'schema' : 'bench'); log('view', { id: current.task && current.task.id, view: viewMode }); };
@@ -11468,6 +11903,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
       if (root.DQCalc && root.DQCalc.isOpen) return;
       if (current.screen !== 'task' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
       if (live.replay) { if (ev.key === 'ArrowLeft') showStep(live.replay.i - 1); else if (ev.key === 'ArrowRight') showStep(live.replay.i + 1); else if (ev.key === 'Escape') closeReplay(); return; }
+      if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && /^[zZyY]$/.test(ev.key)) { ev.preventDefault(); histGo(/[yY]/.test(ev.key) || (ev.shiftKey && /[zZ]/.test(ev.key)) ? 1 : -1); return; } // Testlauf 2 (5.2)
       ed && ed.key(ev); renderInspector();
     });
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
@@ -11481,7 +11917,7 @@ if(typeof module !== 'undefined' && module.exports) module.exports = API;
       open: function (t, o) { openTask(t, o); }, closeModal: function () { $('#modal').classList.remove('open'); } }) : null;
     if (LIVE && !LIVE.id) LIVE = null;
     EXAM = root.DQExamUI && !LIVE ? root.DQExamUI.create({ modal: modal, esc: esc, show: show, open: function (t, o) { openTask(t, o); },
-      layout: function () { return ed ? E.clone(ed.layout) : null; }, answers: answers }) : null;
+      layout: function () { return ed ? E.clone(gradeLayout(ed.layout)) : null; }, answers: answers }) : null;
     if (EXAM && !EXAM.id) EXAM = null;
     if (EXAM) { var bk = document.createElement('button'); bk.textContent = 'Zur Prüfung'; bk.className = 'exam-back'; bk.onclick = function () { EXAM.back(); }; $('.top nav').appendChild(bk); }
     if (LIVE || EXAM) { /* Einstieg uebernimmt die Challenge bzw. die Pruefung */ }

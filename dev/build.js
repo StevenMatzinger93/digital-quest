@@ -18,7 +18,8 @@ const files = ['engine.js', 'content/_helpers.js', ...content.map(f => 'content/
 const js = files.map(f => `/* ==== ${f} ==== */\n` + src(f)).join('\n');
 if (/<\/script/i.test(js)) throw new Error('JS enthält </script>');
 const tpl = src('index.template.html');
-const fill = (t, pwa) => t.split('/*CSS*/').join(src('style.css')).split('/*JS*/').join(js).split('<!--PWA-->').join(pwa);
+const headerCss = '\n' + src('header.css');   // Testlauf 2 (Phase 4): gemeinsame Kopfzeile für Labor und Portal
+const fill = (t, pwa) => t.split('/*CSS*/').join(src('style.css') + headerCss).split('/*JS*/').join(js).split('<!--PWA-->').join(pwa);
 const root = path.join(__dirname, '..'), web = path.join(root, 'web'), lab = path.join(web, 'labor');
 
 /* ---------- Spiel offline (eine Datei) ---------- */
@@ -69,7 +70,7 @@ fs.writeFileSync(path.join(web, 'data', 'dq_live.json'), JSON.stringify({ refs, 
 /* ---------- Portal ---------- */
 const circuitCss = src('style.css').split('/*CIRCUIT-START*/').slice(1).map(x => x.split('/*CIRCUIT-END*/')[0]).join('\n');
 if (circuitCss.length < 4000) throw new Error('Schaltungs-Stile (CIRCUIT-START/END in style.css) fehlen');
-const portalCss = P('portal.css') + '\n/* ==== Mini-Schaltung im Portal: Variablen und Stile aus dem Spiel (style.css, CIRCUIT-Blöcke) ==== */\n' +
+const portalCss = P('portal.css') + headerCss + '\n/* ==== Mini-Schaltung im Portal: Variablen und Stile aus dem Spiel (style.css, CIRCUIT-Blöcke) ==== */\n' +
   ':root { --sym: #d8d8d8; --wire: #d9a441; --accent-lead: #ffb000; --accent-lead-dim: #8a6000; --accent-green: #39ff14; --accent-cyan: #1ec8e0; --accent-red: #ff3333; --accent-orange: #ff8c00;' +
   ' --bg-editor: #0c0d0a; --bg-secondary: #0d1218; --bg-tertiary: #111821; --text-dim: #8b98a6; --text-faint: #5a6774; --font-code: var(--mono); --font-ui: var(--font); }\n' + circuitCss +
   '\n.mini .btn.small { padding: 4px 10px; font-size: 13px; } .mini .mono { font-family: var(--mono); }\n';

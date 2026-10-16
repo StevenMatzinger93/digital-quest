@@ -52,7 +52,7 @@ async function route(req, env, url, ctx){
   if(p === '/api/register' && m === 'POST') return register(C);
   if(p === '/api/class-info' && m === 'GET') return classInfo(C);
 
-  const H = { currentUser, requireRole, ownClass, studentOf };
+  const H = { currentUser, requireRole, ownClass, studentOf, checkLock, noteFail, ipOf, LOCK };
   const r = (await challengeRoutes(C, p, m, H)) || (await reportRoutes(C, p, m, H)) || (await assignRoutes(C, p, m, H)) || (await examRoutes(C, p, m, H)) || (await certRoutes(C, p, m, H)) || (await avatarRoutes(C, p, m, H));
   if(r) return r;
 

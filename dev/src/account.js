@@ -35,6 +35,26 @@
     if (s.events && s.events.length > 1500) s.events = s.events.slice(-1500);
     return s;
   }
+  /* Testlauf 2: Zwei Stände desselben Kontos zusammenführen, ohne dass Sterne verloren gehen (vorher ersetzte der Stand mit mehr
+   * gelösten Stationen den anderen ganz). Je Station gilt der bessere Eintrag (mehr Sterne, bei Gleichstand der neuere), gelöst bleibt gelöst,
+   * Theorie: bestes Ergebnis, Marken «Lösung angesehen/aufgedeckt» vereinigt, Entwürfe/Einstellungen/Profil vom eigenen Gerät,
+   * Aufbauten nach Namen vereinigt, Ereignisse vereinigt (ohne Doppelte, nach Zeit). */
+  function merge(srv, loc) {
+    var norm = ctx.normalize || function (x) { return x; };
+    var a = norm(JSON.parse(JSON.stringify(srv || {}))), b = norm(JSON.parse(JSON.stringify(loc || {}))), m = JSON.parse(JSON.stringify(b));
+    m.done = Object.assign({}, a.done || {}); Object.keys(b.done || {}).forEach(function (id) { if (b.done[id]) m.done[id] = b.done[id]; });
+    m.doneInfo = Object.assign({}, a.doneInfo || {});
+    Object.keys(b.doneInfo || {}).forEach(function (id) { var x = m.doneInfo[id], y = b.doneInfo[id]; if (!x || (y.stars || 0) > (x.stars || 0) || ((y.stars || 0) === (x.stars || 0) && (y.at || 0) > (x.at || 0))) m.doneInfo[id] = y; });
+    m.theory = Object.assign({}, a.theory || {});
+    Object.keys(b.theory || {}).forEach(function (id) { var x = m.theory[id], y = b.theory[id]; if (!x || ((y && y.best) || 0) > ((x && x.best) || 0)) m.theory[id] = y; });
+    m.marks = Object.assign({}, a.marks || {});
+    Object.keys(b.marks || {}).forEach(function (id) { var x = m.marks[id] || {}, y = b.marks[id] || {}; m.marks[id] = { solution: !!(x.solution || y.solution), revealed: Math.max(x.revealed || 0, y.revealed || 0) }; if (!m.marks[id].solution) delete m.marks[id].solution; if (!m.marks[id].revealed) delete m.marks[id].revealed; });
+    m.drafts = Object.assign({}, a.drafts || {}, b.drafts || {});
+    var names = {}; m.setups = (b.setups || []).concat(a.setups || []).filter(function (x) { if (!x || names[x.name]) return false; names[x.name] = 1; return true; });
+    var seen = {}; m.events = (a.events || []).concat(b.events || []).filter(function (e) { var k = JSON.stringify(e); if (seen[k]) return false; seen[k] = 1; return true; }).sort(function (x, y) { return (x.t || 0) - (y.t || 0); });
+    if (m.events.length > 5000) m.events = m.events.slice(-5000);
+    return m;
+  }
   function adopt(state, updatedAt) {
     var old = S(), n = Object.assign(ctx.fresh(), state || {});
     n.settings = Object.assign({}, old.settings);
@@ -53,9 +73,11 @@
     return api('PUT', 'progress/' + Q, { state: payload(), summary: sum, base: sy.base || 0, force: !!force }).then(function (r) {
       if (r.status === 200) { setSync({ user: user.username, base: r.data.updatedAt, dirty: false, summary: sum }); chip(); return; }
       if (r.status === 409) return api('GET', 'progress/' + Q).then(function (g) {
-        if (g.status === 200 && g.data.state && count(g.data.state) > count(S())) {
-          adopt(g.data.state, g.data.updatedAt);
-          ctx.toast('Spielstand abgeglichen', 'Auf einem anderen Gerät warst du schon weiter – dieser Stand wird jetzt verwendet.');
+        if (g.status === 200 && g.data.state) {
+          adopt(merge(g.data.state, S()), g.data.updatedAt);   // Testlauf 2: je Station das Bessere, nichts geht verloren
+          setSync({ user: user.username, base: g.data.updatedAt, dirty: true });
+          ctx.toast('Spielstand abgeglichen', 'Die Stände dieses und eines anderen Geräts wurden zusammengeführt – keine Sterne gehen verloren.');
+          busy = false; return push();
         } else { busy = false; return push(true); }
       });
       if (r.status === 401) { user = null; chip(); ctx.refresh(); }
@@ -99,7 +121,7 @@
         var srv = g.data.state, srvAt = g.data.updatedAt || 0, sy = getSync(), me = user.username;
         if (sy.user && sy.user.toLowerCase() === me.toLowerCase()) {
           if (srv && srvAt > (sy.base || 0)) {
-            if (sy.dirty && count(S()) > count(srv)) return push(true);
+            if (sy.dirty) { adopt(merge(srv, S()), srvAt); setSync({ user: me, base: srvAt, dirty: true }); return push(); }   // Testlauf 2: zusammenführen
             adopt(srv, srvAt);
           } else if (sy.dirty || !srv) return push();
           return;
