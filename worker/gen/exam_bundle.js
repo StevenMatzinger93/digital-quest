@@ -187,6 +187,43 @@
     return x;
   }
 
+  /* Dünn besetztes System: Knoten, die nur über die Diagonale vorkommen (jede digitale Leitung: Ausgang gegen Masse, Eingang offen), werden einzeln gelöst, zusammenhängende
+   * Gruppen als kleines dichtes System mit solveLinear. Das Ergebnis ist dasselbe wie beim dichten System, die Rechenzeit wächst bei Digitalschaltungen aber nur noch
+   * linear mit der Knotenzahl statt mit der dritten Potenz (Leistungsmessung 16.10.2026, docs/LEISTUNG_STUDIO.md). sys = {d, off, z} von build(). */
+  var PARENT = new Int32Array(0); // Arbeitsfeld der Gruppenbildung, wird wiederverwendet
+  function solveSparse(N, sys) {
+    if (sys.A) return solveLinear(sys.A, Array.prototype.slice.call(sys.z));
+    var d = sys.d, off = sys.off, z = sys.z, x = new Array(N), i, e, E = off.r.length;
+    if (!E) { // keine Kopplung: reine Diagonale
+      for (i = 0; i < N; i++) { var p0 = d[i]; if (Math.abs(p0) < 1e-18) { if (isNaN(p0)) return null; p0 = p0 < 0 ? -GMIN : GMIN; } x[i] = z[i] / p0; }
+      return x;
+    }
+    if (PARENT.length < N) PARENT = new Int32Array(N);
+    var parent = PARENT, find = function (a) { while (parent[a] !== a) { parent[a] = parent[parent[a]]; a = parent[a]; } return a; };
+    for (i = 0; i < N; i++) parent[i] = i;
+    for (e = 0; e < E; e++) { var ra = find(off.r[e]), rb = find(off.c[e]); if (ra !== rb) parent[ra] = rb; }
+    var first = find(0), einzeln = true;
+    for (i = 1; i < N; i++) if (find(i) !== first) { einzeln = false; break; }
+    var A = [], zz, a;
+    if (einzeln) { // alles hängt zusammen (typisch für Analogschaltungen): ein dichtes System, ohne Umnummerierung
+      for (i = 0; i < N; i++) { var rw = new Float64Array(N); rw[i] = d[i]; A.push(rw); }
+      for (e = 0; e < E; e++) A[off.r[e]][off.c[e]] += off.v[e];
+      return solveLinear(A, Array.prototype.slice.call(z));
+    }
+    var gid = new Int32Array(N).fill(-1), groups = [], loc = new Int32Array(N);
+    for (i = 0; i < N; i++) { var r = find(i); if (gid[r] < 0) { gid[r] = groups.length; groups.push([]); } loc[i] = groups[gid[r]].length; groups[gid[r]].push(i); }
+    var rows = groups.map(function (g) { return g.length > 1 ? g.map(function (m) { var rw = new Float64Array(g.length); rw[loc[m]] = d[m]; return rw; }) : null; });
+    for (e = 0; e < E; e++) { var gi = gid[find(off.r[e])]; rows[gi][loc[off.r[e]]][loc[off.c[e]]] += off.v[e]; }
+    for (var g = 0; g < groups.length; g++) {
+      var members = groups[g], m = members.length;
+      if (m === 1) { i = members[0]; var p1 = d[i]; if (Math.abs(p1) < 1e-18) { if (isNaN(p1)) return null; p1 = p1 < 0 ? -GMIN : GMIN; } x[i] = z[i] / p1; continue; }
+      zz = []; for (a = 0; a < m; a++) zz.push(z[members[a]]);
+      var xs = solveLinear(rows[g], zz); if (!xs) return null;
+      for (a = 0; a < m; a++) x[members[a]] = xs[a];
+    }
+    return x;
+  }
+
   /* burnInfo: Werte im Moment des Durchbrennens (fuer die Diagnose), fuseInfo: Strom beim Ausloesen der Multimeter-Sicherung */
   /* tr: Transistor-Zustand ('off'|'on'|'sat'), zen: Z-Dioden-Zustand ('off'|'f'|'z'), ff: Flipflops {q, c (letzter Taktpegel)} */
   function newState() { return { burnt: {}, vC: {}, iL: {}, ctr: {}, logic: {}, diode: {}, tr: {}, zen: {}, ff: {}, fuse: false, t: 0, burnInfo: {}, fuseInfo: null }; }
@@ -214,14 +251,18 @@
     function ffQ(p) { return !!((st.ff || {})[p.id] || {}).q; }
     var V = null, iter = 0, converged = false, oscillating = false;
 
+    /* Reine Analogschaltung (kein digitales Bauteil): alles hängt zusammen, das dichte System ist am schnellsten. Mit digitalen Bauteilen: dünn besetzt (solveSparse). */
+    var dichtModus = !net.parts.some(function (p) { var dd = def(p.type); return dd.digital || dd.logic || dd.ff || dd.ctr || p.type === 'clock'; });
     function build() {
-      var A = [], z = [], i;
-      for (i = 0; i < N; i++) { A.push(new Float64Array(N)); z.push(0); A[i][i] += GMIN; }
+      var d = new Float64Array(N), z = new Float64Array(N), off = { r: [], c: [], v: [] }, A = null, i;   // d: Diagonale, off: Nebendiagonale als Liste (Zeile, Spalte, Wert), nur wo ein Bauteil zwei Knoten koppelt
+      if (dichtModus) { A = []; for (i = 0; i < N; i++) A.push(new Float64Array(N)); }
+      for (i = 0; i < N; i++) d[i] = GMIN;
+      function add(r, c, v) { if (A) A[r][c] += v; else if (r === c) d[r] += v; else { off.r.push(r); off.c.push(c); off.v.push(v); } } // r === c: beide Anschlüsse des Bauteils am selben Knoten
       function G(a, b, g) {
         var ia = idx[a], ib = idx[b];
-        if (ia !== undefined) A[ia][ia] += g;
-        if (ib !== undefined) A[ib][ib] += g;
-        if (ia !== undefined && ib !== undefined) { A[ia][ib] -= g; A[ib][ia] -= g; }
+        if (ia !== undefined) d[ia] += g;
+        if (ib !== undefined) d[ib] += g;
+        if (ia !== undefined && ib !== undefined) { add(ia, ib, -g); add(ib, ia, -g); }
       }
       function I(a, b, cur) { // Strom cur wird in Knoten a eingespeist und aus b entnommen
         if (idx[a] !== undefined) z[idx[a]] += cur;
@@ -230,8 +271,8 @@
       function norton(p, n, v, r) { var g = 1 / r; G(p, n, g); I(p, n, v * g); }
       function vccs(op, on, cp, cn, gm, voff) { // Strom gm·(V(cp) − V(cn) − voff) fliesst von op durch das Bauteil nach on
         var io = idx[op], jo = idx[on], ic = idx[cp], jc = idx[cn];
-        if (io !== undefined) { if (ic !== undefined) A[io][ic] += gm; if (jc !== undefined) A[io][jc] -= gm; z[io] += gm * voff; }
-        if (jo !== undefined) { if (ic !== undefined) A[jo][ic] -= gm; if (jc !== undefined) A[jo][jc] += gm; z[jo] -= gm * voff; }
+        if (io !== undefined) { if (ic !== undefined) add(io, ic, gm); if (jc !== undefined) add(io, jc, -gm); z[io] += gm * voff; }
+        if (jo !== undefined) { if (ic !== undefined) add(jo, ic, -gm); if (jc !== undefined) add(jo, jc, gm); z[jo] -= gm * voff; }
       }
       function drive(node, high) { norton(node, '0', high && !opts.zeroSources ? LOGIC.vcc : 0, LOGIC.rout); }
       net.parts.forEach(function (p) {
@@ -289,7 +330,8 @@
         if (m.mode === 'A' && !st.fuse) G(m.a, m.b, 1 / METER.rA);
       }
       if (opts.inject) I(opts.inject.a, opts.inject.b, opts.inject.i);
-      return { A: A, z: z };
+      if (A) { for (i = 0; i < N; i++) A[i][i] += d[i]; return { A: A, z: z }; }
+      return { d: d, off: off, z: z };
     }
     function volt(node) { return node === '0' || idx[node] === undefined ? 0 : V[idx[node]]; }
 
@@ -317,8 +359,7 @@
     }
     for (iter = 0; iter < (opts.maxIter || 400); iter++) {
       if (cycle) break;
-      var sys = build();
-      var x = solveLinear(sys.A, sys.z);
+      var x = solveSparse(N, build());
       if (!x) throw new Error('Gleichungssystem nicht lösbar');
       V = x;
       var changed = [];
@@ -366,8 +407,8 @@
        * (Laufzeit eines Gatters = ein Schritt) – so entsteht die Schwingung im Zeitverlauf, statt dass ein beliebiger Punkt des Kreises stehen bleibt. */
       if (dt) {
         Object.keys(logic0).forEach(function (k) { logic[k] = Array.isArray(logic0[k]) ? logic0[k].slice() : logic0[k]; });
-        var s0 = build(), x0 = solveLinear(s0.A, s0.z);
-        if (x0) { V = x0; var ng = nextGate(); if (ng) { logic[ng.id] = ng.to; var s1b = build(), x1 = solveLinear(s1b.A, s1b.z); if (x1) V = x1; } }
+        var x0 = solveSparse(N, build());
+        if (x0) { V = x0; var ng = nextGate(); if (ng) { logic[ng.id] = ng.to; var x1 = solveSparse(N, build()); if (x1) V = x1; } }
       }
     }
     var res = evaluate();

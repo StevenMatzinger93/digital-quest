@@ -352,6 +352,11 @@ ffCase('D JK-MS-Flipflop (Slave bei fallender Flanke): Tabelle wie JK', 'jkms', 
   for (let t = 1; t <= 23; t++) { const z = t % 10, expect = {}; for (let b = 0; b < 4; b++) expect['FF' + (b + 1) + '.q'] = !!(z >> b & 1); steps.push({ set: [['EC', 'closed', true]], expect }); steps.push({ set: [['EC', 'closed', false]] }); }
   digital.push({ name: 'D Dezimal-Ripple-Zähler mit preClear bei 10 zählt 0 bis 9 und springt auf 0 (kein Mitzählen beim Rücksetzen)', layout: { parts, wires }, steps });
 }
+// Bauteil mit beiden Anschlüssen am selben Knoten (Kurzschluss über sich selbst) neben digitalen Bauteilen: darf das dünn besetzte Gleichungssystem nicht stören.
+// Handgerechnet: R1 führt keinen Strom (U = 0), R2 liegt an 5 V: I = 5 / (1 + 1000) mit ri = 1 Ω.
+cases.push({ name: '16 Bauteil mit beiden Anschlüssen am selben Knoten, daneben ein Gatter', layout: { parts: [P('B1', 'battery', { value: 5, ri: 1 }), P('R1', 'resistor', { value: 1000 }), P('R2', 'resistor', { value: 1000 }), lin('E1'), P('U1', 'not'), P('GND1', 'ground')],
+  wires: [W('B1.p', 'R1.a'), W('B1.p', 'R1.b'), W('B1.p', 'R2.a'), W('R2.b', 'B1.n'), W('E1.out', 'U1.in'), W('B1.n', 'GND1.g')] },
+  node: { 'R2.a': 5 - 5 / 1001, 'R2.b': 0 }, i: { R1: 0, R2: 5 / 1001 }, v: { R1: 0, R2: 5 - 5 / 1001 } });
 digital.push({ name: 'D preSet/preClear setzen Q unabhängig vom Takt (Vorrang vor C, beide zugleich = unzulässig)',
   layout: { parts: [P('FF1', 'dff'), lin('EC'), lin('ED', true), lin('EP'), lin('EQ')], wires: [W('EC.out', 'FF1.C'), W('ED.out', 'FF1.D'), W('EP.out', 'FF1.PS'), W('EQ.out', 'FF1.PC')] },
   steps: [
