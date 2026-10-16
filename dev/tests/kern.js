@@ -227,6 +227,21 @@ const transient = [
       for (let k = 1; k < rows.length; k++) { const a = rows[k - 1].v('C1') - 5, b = rows[k].v('C1') - 5; if (a < 0 && b >= 0) ups.push(rows[k - 1].t + (-a) / (b - a) * (rows[k].t - rows[k - 1].t)); }
       const T = ups.length > 2 ? (ups[ups.length - 1] - ups[0]) / (ups.length - 1) : NaN, f = 1 / T, f0 = 1 / (2 * Math.PI * Math.sqrt(10e-3 * 1e-5));
       return [{ what: 'Schwingfrequenz (' + ups.length + ' Durchgänge, f = ' + f.toFixed(2) + ' Hz, f0 = ' + f0.toFixed(2) + ' Hz)', got: f, want: f0, rel: 0.01 }];
+    } },
+  { name: 'T9 Ringoszillator aus drei NICHT-Gattern schwingt (Periode 6 Gatterlaufzeiten)',
+    // Ohne stabilen Arbeitspunkt schaltet je Zeitschritt genau ein Gatter (Laufzeit = ein Schritt). Handgerechnet für drei NICHT im Ring: der Kreis hat
+    // sechs Zustände (100 101 001 011 010 110), je Schritt kippt genau ein Bit, nach sechs Schritten ist der Anfang wieder da. Die Phase hängt vom
+    // Zustand nach dem Arbeitspunkt ab und wird nicht verlangt. Außerdem muss UNSTABLE gemeldet werden.
+    layout: { parts: [P('U1', 'not'), P('U2', 'not'), P('U3', 'not')], wires: [W('U1.out', 'U2.in'), W('U2.out', 'U3.in'), W('U3.out', 'U1.in')] },
+    dt: 1e-9, n: 24,
+    check(rows) {
+      const bits = k => ['U1', 'U2', 'U3'].map(id => rows[k].part(id).out ? 1 : 0), val = k => bits(k).join(''), out = [];
+      for (let k = 2; k <= 24; k++) out.push({ what: 'Schritt ' + k + ': genau ein Gatter kippt', got: bits(k).filter((b, j) => b !== bits(k - 1)[j]).length, want: 1 });
+      for (let k = 7; k <= 24; k++) out.push({ what: 'Schritt ' + k + ': Periode 6', got: Number('0b' + val(k)), want: Number('0b' + val(k - 6)) });
+      out.push({ what: 'sechs verschiedene Zustände in sechs Schritten', got: new Set([7, 8, 9, 10, 11, 12].map(val)).size, want: 6 });
+      out.push({ what: 'Zustände 000 und 111 kommen nicht vor', got: [7, 8, 9, 10, 11, 12].filter(k => val(k) === '000' || val(k) === '111').length, want: 0 });
+      out.push({ what: 'meldet UNSTABLE', got: rows[24].faults.some(f => f.code === 'UNSTABLE') ? 1 : 0, want: 1 });
+      return out;
     } }
 ];
 

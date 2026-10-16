@@ -1,5 +1,5 @@
-// Service Worker: hält Portal und Labor offline verfügbar (Cache-first, Version a2e92a4aae)
-const CACHE = 'dquest-a2e92a4aae';
+// Service Worker: hält Portal und Labor offline verfügbar (Cache-first, Version c0b0cd8978)
+const CACHE = 'dquest-c0b0cd8978';
 const FILES = ["./","./index.html","./impressum.html","./datenschutz.html","./manifest.webmanifest","./icon.svg","./icon-192.png","./icon-512.png","./data/dq.json","./data/dq_live.json","./labor/","./labor/index.html","./labor/manifest.webmanifest","./studio/","./studio/index.html","./studio/manifest.webmanifest"];
 // Antworten, die der Browser nach einer Weiterleitung geholt hat (z. B. impressum.html → /impressum), dürfen nicht als „redirected“
 // gespeichert werden – sonst verweigert der Browser sie später für eine Seitennavigation („nicht verfügbar“). Darum frisch verpacken.

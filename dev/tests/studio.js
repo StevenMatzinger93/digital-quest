@@ -410,7 +410,10 @@ function uhr() {
     await page.evaluate(() => Studio.newCircuit()); await add('jkff'); await selectPart('FF1'); await page.waitForTimeout(100);
     const ins = await page.evaluate(() => ({ tabs: document.querySelectorAll('#inspector table.itab').length, act: document.querySelectorAll('#inspector tr.act').length,
       excit: Array.from(document.querySelectorAll('#inspector table.ffx tbody tr')).map(r => Array.from(r.children).map(c => c.textContent).join('')), svg: !!document.querySelector('#inspector svg.sfd'),
-      heads: Array.from(document.querySelectorAll('#inspector h3')).map(h => h.textContent) }));
+      heads: Array.from(document.querySelectorAll('#inspector h3')).map(h => h.textContent),
+      cols: Array.from(document.querySelectorAll('#inspector table.ff thead th, #inspector table.ffx thead th')).map(h => h.textContent).join(' '), all: document.querySelector('#inspector').textContent }));
+    ok(ins.cols === 'J K AV A AV A J K', 'Tabellenköpfe in Stevens Schreibweise AV | A (Analyse: Eingänge | AV | A, Ansteuer: AV | A | Eingänge): ' + ins.cols);
+    ok(!/Qₙ|Q⁺/.test(ins.all), 'Kein Qₙ / Q⁺ mehr im Inspektor');
     ok(ins.tabs === 2 && ins.act === 2 && ins.svg, 'Inspektor: Analyse- und Ansteuertabelle, Zustandsfolgediagramm, aktive Zeilen: ' + JSON.stringify({ tabs: ins.tabs, act: ins.act, svg: ins.svg }));
     ok(ins.excit.join() === '000X,011X,10X1,11X0', 'Ansteuertabelle JK mit X: ' + ins.excit.join());
     ok(['Funktion', 'Analysetabelle', 'Ansteuertabelle', 'Zustandsfolgediagramm'].every(h => ins.heads.includes(h)), 'Begriffe wie im Lehrmittel: ' + ins.heads.join(' | '));

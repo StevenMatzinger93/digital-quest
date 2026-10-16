@@ -297,7 +297,24 @@
       trace.push({ iter: iter, kind: kind, changed: changed, res: evaluate() });
       if (trace.length > TRACE_MAX) trace.shift();
     }
+    /* Grenzzyklus: V haengt nur vom diskreten Zustand ab, die naechste Aenderung nur von V. Kehrt der diskrete Zustand wieder, laeuft die Iteration
+     * endlos im Kreis (Ringoszillator) – dann sofort abbrechen statt bis maxIter zu rechnen. */
+    var seen = {}, cycle = false, logic0 = {};
+    Object.keys(logic).forEach(function (k) { logic0[k] = Array.isArray(logic[k]) ? logic[k].slice() : logic[k]; });
+    function sig() { return JSON.stringify([diode, tr, zen, logic]); }
+    seen[sig()] = 1;
+    function nextGate() { // erstes Gatter (in Bauteilreihenfolge), dessen Ausgang nicht zu den Eingaengen passt
+      for (var gi = 0; gi < net.parts.length; gi++) {
+        var g = net.parts[gi], d = def(g.type);
+        if (!d.logic || st.burnt[g.id]) continue;
+        var ins = insOfPart(g).map(function (pin) { return volt(g.n[pin]) > LOGIC.vth; });
+        var out = d.logic(ins); out = Array.isArray(out) ? out.map(Boolean) : !!out;
+        if (JSON.stringify(out) !== JSON.stringify(logic[g.id])) return { id: g.id, to: out };
+      }
+      return null;
+    }
     for (iter = 0; iter < (opts.maxIter || 400); iter++) {
+      if (cycle) break;
       var sys = build();
       var x = solveLinear(sys.A, sys.z);
       if (!x) throw new Error('Gleichungssystem nicht lösbar');
@@ -333,21 +350,24 @@
       if (changed.length) {
         record('diode', changed);
         changed.forEach(function (c) { if (tr[c.id] !== undefined) tr[c.id] = c.to; else if (zen[c.id] !== undefined) zen[c.id] = c.to; else diode[c.id] = c.to; });
+        var s1 = sig(); if (seen[s1]) cycle = true; seen[s1] = 1;
         continue;
       }
       // Gatter einzeln nachfuehren (Gauss-Seidel) – stabil fuer Speicherschaltungen
-      var gateChanged = null;
-      for (var gi = 0; gi < net.parts.length && !gateChanged; gi++) {
-        var g = net.parts[gi], d = def(g.type);
-        if (!d.logic || st.burnt[g.id]) continue;
-        var ins = insOfPart(g).map(function (pin) { return volt(g.n[pin]) > LOGIC.vth; });
-        var out = d.logic(ins); out = Array.isArray(out) ? out.map(Boolean) : !!out;
-        if (JSON.stringify(out) !== JSON.stringify(logic[g.id])) gateChanged = { id: g.id, to: out };
-      }
-      if (gateChanged) { record('gate', [gateChanged]); logic[gateChanged.id] = gateChanged.to; continue; }
+      var gateChanged = nextGate();
+      if (gateChanged) { record('gate', [gateChanged]); logic[gateChanged.id] = gateChanged.to; var s2 = sig(); if (seen[s2]) cycle = true; seen[s2] = 1; continue; }
       converged = true; break;
     }
-    if (!converged) oscillating = true;
+    if (!converged) {
+      oscillating = true;
+      /* Schwingt die Schaltung (Ringoszillator), gibt es keinen Arbeitspunkt. In der Zeitsimulation schaltet dann je Zeitschritt genau ein Gatter
+       * (Laufzeit eines Gatters = ein Schritt) – so entsteht die Schwingung im Zeitverlauf, statt dass ein beliebiger Punkt des Kreises stehen bleibt. */
+      if (dt) {
+        Object.keys(logic0).forEach(function (k) { logic[k] = Array.isArray(logic0[k]) ? logic0[k].slice() : logic0[k]; });
+        var s0 = build(), x0 = solveLinear(s0.A, s0.z);
+        if (x0) { V = x0; var ng = nextGate(); if (ng) { logic[ng.id] = ng.to; var s1b = build(), x1 = solveLinear(s1b.A, s1b.z); if (x1) V = x1; } }
+      }
+    }
     var res = evaluate();
     record(converged ? 'done' : 'unstable', []);
     return { res: res, V: res.nodeV, diode: diode, logic: logic, tr: tr, zen: zen };

@@ -216,3 +216,14 @@ Benannt wie im Portal («Beamer»); der **Vorführ-Modus** des Spiels ist etwas 
 | `U-Werte` ist im Knopf «U» aufgegangen: Spannung je **Knoten** (eine Beschriftung statt einer je Anschluss), daneben «I» für Ströme | nach Auftrag; ein Knopf je Grösse, Menü und Tasten U und I schalten dasselbe |
 | Beschriftungen suchen Plätze rund um den Anschluss, dann in Ringen weiter aussen, und meiden Bauteilkörper, «⏚ 0 V» und andere Beschriftungen; Werte kurz (7.5 V statt 7.500 V) | Digitaluhr: keine Überdeckung (Test) |
 | Das Aufgabenfenster erscheint rechts statt links über dem Schaltplan | Es verdeckte sonst Bauteile bei kleinerer Zeichenfläche |
+
+## Nachtlauf 2 (16./17.10.2026)
+
+| Entscheidung | Begründung |
+|---|---|
+| Rechenkern: Wiederholt sich der diskrete Zustand (Dioden, Transistoren, Z-Dioden, Gatterausgänge) innerhalb eines Rechenschritts, wird die Iteration sofort abgebrochen (Grenzzyklus) | V hängt nur vom diskreten Zustand ab, die nächste Änderung nur von V: Kehrt der Zustand wieder, läuft es beweisbar endlos im Kreis. 400 Iterationen weiterzurechnen bringt nichts (waren die zwei, inzwischen drei, Hänger von `tests/robust.js`) |
+| Im Zeitbereich schaltet bei einer schwingenden Schaltung je Zeitschritt genau ein Gatter (das erste in Bauteilreihenfolge, das nicht zu seinen Eingängen passt), ausgehend vom Zustand vor dem Schritt | Ein Gatter braucht eine Laufzeit. Ohne diese Regel blieb irgendein Punkt des Kreises stehen, und der Ringoszillator zeigte nichts. Mit ihr durchläuft der Ring aus drei NICHT die sechs Zustände 100 101 001 011 010 110 (Periode 6 Gatterlaufzeiten). `UNSTABLE` wird weiter gemeldet, der Arbeitspunkt selbst bleibt «nicht stabil» |
+| Die Laufzeit eines Gatters ist ein Rechenschritt (`dt`), kein eigener Wert wie `tpd` bei Flipflops | Gatter haben kein `tpd`; ein neues Bauteilmerkmal wäre mehr, als der Auftrag verlangt. Der Spielbetrieb (ohne Rückkopplung ohne Ruhelage) ist unberührt |
+| `AV` und `A` in Inspektor und Datenblatt: Analysetabelle Eingänge \| AV \| A, Ansteuertabelle AV \| A \| Eingänge | nach Stevens Unterlagen. Pin-Beschriftung am Bauteil bleibt Q und Q̄ (Schaltzeichen) |
+| Zähler-Tabellen im Inspektor behalten ihre Köpfe (Z, Q0 … Q3, Z⁺ …) | Stevens Schreibweise ist für Flipflops belegt, nicht für Zählertabellen; Aufträge nennen sie nicht. Offen für Rückmeldung |
+| Der Druck enthält keine Flipflop-Tabellen (nur Wahrheitstabelle reiner Logik), daher dort nichts umzustellen; der Zeitverlauf hat keine Tabellenköpfe | geprüft in `druck.js` und `timing.js` |

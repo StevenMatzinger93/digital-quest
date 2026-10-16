@@ -19,7 +19,7 @@
     nor: 'NOR (NICHT-ODER): Der Ausgang ist 1, nur wenn alle Eingänge 0 sind. Y = ¬(A ∨ B).',
     xor: 'XOR (Antivalenz): Der Ausgang ist 1, wenn eine <b>ungerade Zahl</b> von Eingängen 1 ist; bei zwei Eingängen: wenn sie verschieden sind.',
     xnor: 'XNOR (Äquivalenz): Der Ausgang ist 1, wenn eine <b>gerade Zahl</b> von Eingängen 1 ist; bei zwei Eingängen: wenn sie gleich sind.',
-    dff: 'D-Flipflop: Bei der aktiven Taktflanke übernimmt Q den Wert von D und speichert ihn. Q⁺ = D.',
+    dff: 'D-Flipflop: Bei der aktiven Taktflanke übernimmt Q den Wert von D und speichert ihn. A = D (AV: Ausgang vorher, A: Ausgang danach).',
     tff: 'T-Flipflop: Bei der aktiven Taktflanke kippt Q, wenn T = 1 ist; bei T = 0 bleibt Q. Teilt die Takt­frequenz durch 2.',
     jkff: 'JK-Flipflop: J = 1 setzt, K = 1 setzt zurück, J = K = 1 kippt, J = K = 0 speichert (bei aktiver Taktflanke).',
     rsff: 'RS-Flipflop (taktgesteuert): S = 1 setzt, R = 1 setzt zurück, S = R = 0 speichert. S = R = 1 ist verboten.',
@@ -70,9 +70,9 @@
   function ffAnalysis(p) {
     var d = E.PARTS[p.type], pins = d.ffIns, h = '';
     ffRows(d).forEach(function (r) { h += tr(r.ins.map(b2).join('') + b2(r.q), r.ins.map(b2).concat([b2(r.q), r.qn === null ? '–' : b2(r.qn)])); });
-    return table('ff', pins.concat(['Q', 'Q⁺']), h);
+    return table('ff', pins.concat(['AV', 'A']), h);
   }
-  /* Ansteuertabelle: welche Eingaenge braucht der Uebergang Q → Q⁺? Eingaenge, die beide Werte erlauben, sind X (Don't-Care) */
+  /* Ansteuertabelle: welche Eingaenge braucht der Uebergang AV → A? Eingaenge, die beide Werte erlauben, sind X (Don't-Care) */
   function excitation(d) {
     var pins = d.ffIns, rows = ffRows(d), out = [];
     [[false, false], [false, true], [true, false], [true, true]].forEach(function (t) {
@@ -86,7 +86,7 @@
   function ffExcitation(p) {
     var d = E.PARTS[p.type], ex = excitation(d), h = '';
     ex.forEach(function (r) { h += tr('x' + b2(r.q) + b2(r.qn), [b2(r.q), b2(r.qn)].concat(r.vals)); });
-    return table('ffx', ['Q', 'Q⁺'].concat(d.ffIns), h);
+    return table('ffx', ['AV', 'A'].concat(d.ffIns), h);
   }
   /* Zustandsfolgediagramm: zwei Zustaende Q = 0 und Q = 1, Pfeile beschriftet mit den Eingaben der Ansteuertabelle */
   function ffDiagram(p) {

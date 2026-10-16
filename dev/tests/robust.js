@@ -78,7 +78,7 @@ const finite = (obj, where, layout) => {
   walk(obj, '');
 };
 function runOne(layout, label) {
-  runs++; const t0 = Date.now(); let sim;
+  runs++; const t0 = Date.now(); let sim; const stg = {}; let tl = t0; const lap = k => { const n = Date.now(); stg[k] = n - tl; tl = n; };
   try {
     let net; try { net = E.buildNetlist(JSON.parse(JSON.stringify(layout))); } catch (e) { note('buildNetlist wirft', e.message, layout); return; }
     // Arbeitspunkt und Zeitsimulation direkt über die Engine
@@ -87,8 +87,10 @@ function runOne(layout, label) {
     catch (e) { if (/nicht lösbar/.test(e.message)) clean.errors[e.message] = (clean.errors[e.message] || 0) + 1; else note('Ausnahme im Arbeitspunkt', e.name + ': ' + e.message, layout); return; }
     const dt = Sim.chooseDt(net);
     const tz = Date.now(); for (let k = 0; k < 40; k++) { if (Date.now() - tz > 2000) { info.slowUnstable++; break; } try { res = E.step(net, st, { dt, noGroundFault: true, iters: [] }); finite({ nodeV: res.nodeV, parts: res.parts }, 'Zeitschritt ' + k, layout); } catch (e) { if (/nicht lösbar/.test(e.message)) { clean.errors[e.message] = (clean.errors[e.message] || 0) + 1; break; } note('Ausnahme in der Zeitsimulation', e.name + ': ' + e.message, layout); break; } }
+    lap('Zeitsimulation');
     // Wechselstromanalyse
     if (net.parts.some(p => p.type === 'acsource' || p.type === 'battery')) for (const f of [1, 1e3, 1e6]) { try { const a = E.acSolve(JSON.parse(JSON.stringify(layout)), f); if (a.ok) finite(a.nodeV, 'AC ' + f + ' Hz', layout); } catch (e) { note('Ausnahme in der Wechselstromanalyse', e.name + ': ' + e.message, layout); } }
+    lap('Wechselstrom');
     // Studio-Simulation: Aufbau, Zurücksetzen, einige Rahmen, Aufzeichnung
     sim = new Sim({ getLayout: () => JSON.parse(JSON.stringify(layout)) }); const ok = sim.refresh(true); sim.reset();
     if (!ok && !sim.err) note('Studio meldet Fehler nicht', 'refresh false ohne err', layout);
@@ -98,8 +100,9 @@ function runOne(layout, label) {
     if (sim.err) { reported++; if (!/nicht lösbar|Unbekannt|Doppelte/.test(sim.err)) note('Studio meldet unerwarteten Fehler', sim.err, layout); }
     keep.forEach(tr => { for (let i = 0; i < tr.n; i += Math.max(1, tr.n >> 6)) { finiteChecks++; if (!isFinite(tr.v[i]) || !isFinite(tr.t[i])) { note('NaN/Unendlich', 'Aufzeichnung ' + tr.label, layout); break; } } });
     if (sim.res) finite({ nodeV: sim.res.nodeV }, 'Studio', layout);
+    lap('Studio');
   } catch (e) { note('unbehandelte Ausnahme', (label || '') + ' ' + e.name + ': ' + e.message + ' @' + String(e.stack).split('\n')[1].trim().slice(0, 90), layout); }
-  const ms = Date.now() - t0; if (ms > maxMs) maxMs = ms; if (ms > 3000) { slow++; note('hängt (> 3 s)', (label || '') + ' ' + ms + ' ms', layout); }
+  const ms = Date.now() - t0; if (ms > maxMs) maxMs = ms; if (ms > 3000) { slow++; note('hängt (> 3 s)', (label || '') + ' ' + ms + ' ms ' + JSON.stringify(stg), layout); }
 }
 const pathReport = [];
 PATH.forEach(([name, lay]) => { runOne(lay, name); try { const net = E.buildNetlist(JSON.parse(JSON.stringify(lay))), st = E.newState(); let r = E.step(net, st, { noGroundFault: true }); const dt = Sim.chooseDt(net); for (let k = 0; k < 40; k++) r = E.step(net, st, { dt, noGroundFault: true, maxIter: 150 }); const codes = {}; r.faults.forEach(f => { codes[f.code] = 1; }); pathReport.push(name + ' → ' + (Object.keys(codes).join(', ') || 'keine Meldung')); } catch (e) { pathReport.push(name + ' → AUSNAHME ' + e.message); } });

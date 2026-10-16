@@ -662,7 +662,24 @@ body.beamer .dr text { font-size: inherit; }
       trace.push({ iter: iter, kind: kind, changed: changed, res: evaluate() });
       if (trace.length > TRACE_MAX) trace.shift();
     }
+    /* Grenzzyklus: V haengt nur vom diskreten Zustand ab, die naechste Aenderung nur von V. Kehrt der diskrete Zustand wieder, laeuft die Iteration
+     * endlos im Kreis (Ringoszillator) – dann sofort abbrechen statt bis maxIter zu rechnen. */
+    var seen = {}, cycle = false, logic0 = {};
+    Object.keys(logic).forEach(function (k) { logic0[k] = Array.isArray(logic[k]) ? logic[k].slice() : logic[k]; });
+    function sig() { return JSON.stringify([diode, tr, zen, logic]); }
+    seen[sig()] = 1;
+    function nextGate() { // erstes Gatter (in Bauteilreihenfolge), dessen Ausgang nicht zu den Eingaengen passt
+      for (var gi = 0; gi < net.parts.length; gi++) {
+        var g = net.parts[gi], d = def(g.type);
+        if (!d.logic || st.burnt[g.id]) continue;
+        var ins = insOfPart(g).map(function (pin) { return volt(g.n[pin]) > LOGIC.vth; });
+        var out = d.logic(ins); out = Array.isArray(out) ? out.map(Boolean) : !!out;
+        if (JSON.stringify(out) !== JSON.stringify(logic[g.id])) return { id: g.id, to: out };
+      }
+      return null;
+    }
     for (iter = 0; iter < (opts.maxIter || 400); iter++) {
+      if (cycle) break;
       var sys = build();
       var x = solveLinear(sys.A, sys.z);
       if (!x) throw new Error('Gleichungssystem nicht lösbar');
@@ -698,21 +715,24 @@ body.beamer .dr text { font-size: inherit; }
       if (changed.length) {
         record('diode', changed);
         changed.forEach(function (c) { if (tr[c.id] !== undefined) tr[c.id] = c.to; else if (zen[c.id] !== undefined) zen[c.id] = c.to; else diode[c.id] = c.to; });
+        var s1 = sig(); if (seen[s1]) cycle = true; seen[s1] = 1;
         continue;
       }
       // Gatter einzeln nachfuehren (Gauss-Seidel) – stabil fuer Speicherschaltungen
-      var gateChanged = null;
-      for (var gi = 0; gi < net.parts.length && !gateChanged; gi++) {
-        var g = net.parts[gi], d = def(g.type);
-        if (!d.logic || st.burnt[g.id]) continue;
-        var ins = insOfPart(g).map(function (pin) { return volt(g.n[pin]) > LOGIC.vth; });
-        var out = d.logic(ins); out = Array.isArray(out) ? out.map(Boolean) : !!out;
-        if (JSON.stringify(out) !== JSON.stringify(logic[g.id])) gateChanged = { id: g.id, to: out };
-      }
-      if (gateChanged) { record('gate', [gateChanged]); logic[gateChanged.id] = gateChanged.to; continue; }
+      var gateChanged = nextGate();
+      if (gateChanged) { record('gate', [gateChanged]); logic[gateChanged.id] = gateChanged.to; var s2 = sig(); if (seen[s2]) cycle = true; seen[s2] = 1; continue; }
       converged = true; break;
     }
-    if (!converged) oscillating = true;
+    if (!converged) {
+      oscillating = true;
+      /* Schwingt die Schaltung (Ringoszillator), gibt es keinen Arbeitspunkt. In der Zeitsimulation schaltet dann je Zeitschritt genau ein Gatter
+       * (Laufzeit eines Gatters = ein Schritt) – so entsteht die Schwingung im Zeitverlauf, statt dass ein beliebiger Punkt des Kreises stehen bleibt. */
+      if (dt) {
+        Object.keys(logic0).forEach(function (k) { logic[k] = Array.isArray(logic0[k]) ? logic0[k].slice() : logic0[k]; });
+        var s0 = build(), x0 = solveLinear(s0.A, s0.z);
+        if (x0) { V = x0; var ng = nextGate(); if (ng) { logic[ng.id] = ng.to; var s1b = build(), x1 = solveLinear(s1b.A, s1b.z); if (x1) V = x1; } }
+      }
+    }
     var res = evaluate();
     record(converged ? 'done' : 'unstable', []);
     return { res: res, V: res.nodeV, diode: diode, logic: logic, tr: tr, zen: zen };
@@ -5110,7 +5130,7 @@ body.beamer .dr text { font-size: inherit; }
     nor: 'NOR (NICHT-ODER): Der Ausgang ist 1, nur wenn alle Eingänge 0 sind. Y = ¬(A ∨ B).',
     xor: 'XOR (Antivalenz): Der Ausgang ist 1, wenn eine <b>ungerade Zahl</b> von Eingängen 1 ist; bei zwei Eingängen: wenn sie verschieden sind.',
     xnor: 'XNOR (Äquivalenz): Der Ausgang ist 1, wenn eine <b>gerade Zahl</b> von Eingängen 1 ist; bei zwei Eingängen: wenn sie gleich sind.',
-    dff: 'D-Flipflop: Bei der aktiven Taktflanke übernimmt Q den Wert von D und speichert ihn. Q⁺ = D.',
+    dff: 'D-Flipflop: Bei der aktiven Taktflanke übernimmt Q den Wert von D und speichert ihn. A = D (AV: Ausgang vorher, A: Ausgang danach).',
     tff: 'T-Flipflop: Bei der aktiven Taktflanke kippt Q, wenn T = 1 ist; bei T = 0 bleibt Q. Teilt die Takt­frequenz durch 2.',
     jkff: 'JK-Flipflop: J = 1 setzt, K = 1 setzt zurück, J = K = 1 kippt, J = K = 0 speichert (bei aktiver Taktflanke).',
     rsff: 'RS-Flipflop (taktgesteuert): S = 1 setzt, R = 1 setzt zurück, S = R = 0 speichert. S = R = 1 ist verboten.',
@@ -5161,9 +5181,9 @@ body.beamer .dr text { font-size: inherit; }
   function ffAnalysis(p) {
     var d = E.PARTS[p.type], pins = d.ffIns, h = '';
     ffRows(d).forEach(function (r) { h += tr(r.ins.map(b2).join('') + b2(r.q), r.ins.map(b2).concat([b2(r.q), r.qn === null ? '–' : b2(r.qn)])); });
-    return table('ff', pins.concat(['Q', 'Q⁺']), h);
+    return table('ff', pins.concat(['AV', 'A']), h);
   }
-  /* Ansteuertabelle: welche Eingaenge braucht der Uebergang Q → Q⁺? Eingaenge, die beide Werte erlauben, sind X (Don't-Care) */
+  /* Ansteuertabelle: welche Eingaenge braucht der Uebergang AV → A? Eingaenge, die beide Werte erlauben, sind X (Don't-Care) */
   function excitation(d) {
     var pins = d.ffIns, rows = ffRows(d), out = [];
     [[false, false], [false, true], [true, false], [true, true]].forEach(function (t) {
@@ -5177,7 +5197,7 @@ body.beamer .dr text { font-size: inherit; }
   function ffExcitation(p) {
     var d = E.PARTS[p.type], ex = excitation(d), h = '';
     ex.forEach(function (r) { h += tr('x' + b2(r.q) + b2(r.qn), [b2(r.q), b2(r.qn)].concat(r.vals)); });
-    return table('ffx', ['Q', 'Q⁺'].concat(d.ffIns), h);
+    return table('ffx', ['AV', 'A'].concat(d.ffIns), h);
   }
   /* Zustandsfolgediagramm: zwei Zustaende Q = 0 und Q = 1, Pfeile beschriftet mit den Eingaben der Ansteuertabelle */
   function ffDiagram(p) {

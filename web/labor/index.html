@@ -1033,7 +1033,24 @@ body.has-exam-bar .top { padding-top: 50px; }
       trace.push({ iter: iter, kind: kind, changed: changed, res: evaluate() });
       if (trace.length > TRACE_MAX) trace.shift();
     }
+    /* Grenzzyklus: V haengt nur vom diskreten Zustand ab, die naechste Aenderung nur von V. Kehrt der diskrete Zustand wieder, laeuft die Iteration
+     * endlos im Kreis (Ringoszillator) – dann sofort abbrechen statt bis maxIter zu rechnen. */
+    var seen = {}, cycle = false, logic0 = {};
+    Object.keys(logic).forEach(function (k) { logic0[k] = Array.isArray(logic[k]) ? logic[k].slice() : logic[k]; });
+    function sig() { return JSON.stringify([diode, tr, zen, logic]); }
+    seen[sig()] = 1;
+    function nextGate() { // erstes Gatter (in Bauteilreihenfolge), dessen Ausgang nicht zu den Eingaengen passt
+      for (var gi = 0; gi < net.parts.length; gi++) {
+        var g = net.parts[gi], d = def(g.type);
+        if (!d.logic || st.burnt[g.id]) continue;
+        var ins = insOfPart(g).map(function (pin) { return volt(g.n[pin]) > LOGIC.vth; });
+        var out = d.logic(ins); out = Array.isArray(out) ? out.map(Boolean) : !!out;
+        if (JSON.stringify(out) !== JSON.stringify(logic[g.id])) return { id: g.id, to: out };
+      }
+      return null;
+    }
     for (iter = 0; iter < (opts.maxIter || 400); iter++) {
+      if (cycle) break;
       var sys = build();
       var x = solveLinear(sys.A, sys.z);
       if (!x) throw new Error('Gleichungssystem nicht lösbar');
@@ -1069,21 +1086,24 @@ body.has-exam-bar .top { padding-top: 50px; }
       if (changed.length) {
         record('diode', changed);
         changed.forEach(function (c) { if (tr[c.id] !== undefined) tr[c.id] = c.to; else if (zen[c.id] !== undefined) zen[c.id] = c.to; else diode[c.id] = c.to; });
+        var s1 = sig(); if (seen[s1]) cycle = true; seen[s1] = 1;
         continue;
       }
       // Gatter einzeln nachfuehren (Gauss-Seidel) – stabil fuer Speicherschaltungen
-      var gateChanged = null;
-      for (var gi = 0; gi < net.parts.length && !gateChanged; gi++) {
-        var g = net.parts[gi], d = def(g.type);
-        if (!d.logic || st.burnt[g.id]) continue;
-        var ins = insOfPart(g).map(function (pin) { return volt(g.n[pin]) > LOGIC.vth; });
-        var out = d.logic(ins); out = Array.isArray(out) ? out.map(Boolean) : !!out;
-        if (JSON.stringify(out) !== JSON.stringify(logic[g.id])) gateChanged = { id: g.id, to: out };
-      }
-      if (gateChanged) { record('gate', [gateChanged]); logic[gateChanged.id] = gateChanged.to; continue; }
+      var gateChanged = nextGate();
+      if (gateChanged) { record('gate', [gateChanged]); logic[gateChanged.id] = gateChanged.to; var s2 = sig(); if (seen[s2]) cycle = true; seen[s2] = 1; continue; }
       converged = true; break;
     }
-    if (!converged) oscillating = true;
+    if (!converged) {
+      oscillating = true;
+      /* Schwingt die Schaltung (Ringoszillator), gibt es keinen Arbeitspunkt. In der Zeitsimulation schaltet dann je Zeitschritt genau ein Gatter
+       * (Laufzeit eines Gatters = ein Schritt) – so entsteht die Schwingung im Zeitverlauf, statt dass ein beliebiger Punkt des Kreises stehen bleibt. */
+      if (dt) {
+        Object.keys(logic0).forEach(function (k) { logic[k] = Array.isArray(logic0[k]) ? logic0[k].slice() : logic0[k]; });
+        var s0 = build(), x0 = solveLinear(s0.A, s0.z);
+        if (x0) { V = x0; var ng = nextGate(); if (ng) { logic[ng.id] = ng.to; var s1b = build(), x1 = solveLinear(s1b.A, s1b.z); if (x1) V = x1; } }
+      }
+    }
     var res = evaluate();
     record(converged ? 'done' : 'unstable', []);
     return { res: res, V: res.nodeV, diode: diode, logic: logic, tr: tr, zen: zen };
@@ -5905,9 +5925,9 @@ body.has-exam-bar .top { padding-top: 50px; }
       anschluesse: { A: 'Eingang Wertigkeit 1', B: 'Eingang Wertigkeit 2', C: 'Eingang Wertigkeit 4', D: 'Eingang Wertigkeit 8', a: 'Segment a (oben)', b: 'Segment b', c: 'Segment c', d: 'Segment d (unten)', e: 'Segment e', f: 'Segment f', g: 'Segment g (Mitte)' },
       extra: function (E) { return LOGIC_EXTRA(E).concat([CLASH]); }
     },
-    dff: ff('D-Flipflop: übernimmt bei der <b>steigenden Flanke</b> an C den Wert von D und speichert ihn bis zur nächsten Flanke.', { D: 'Dateneingang' }, 'Q<sub>neu</sub> = D'),
+    dff: ff('D-Flipflop: übernimmt bei der <b>steigenden Flanke</b> an C den Wert von D und speichert ihn bis zur nächsten Flanke.', { D: 'Dateneingang' }, 'A = D (AV: Ausgang vorher, A: danach)'),
     jkff: ff('JK-Flipflop: bei der steigenden Flanke an C: J = 1 setzt, K = 1 setzt zurück, J = K = 1 <b>kippt</b>, J = K = 0 speichert.', { J: 'Setzen', K: 'Rücksetzen' }, 'J K = 00 halten · 10 setzen · 01 rücksetzen · 11 kippen'),
-    tff: ff('T-Flipflop: <b>kippt</b> bei jeder steigenden Flanke an C, wenn T = 1 ist – teilt die Taktfrequenz durch 2. Grundbaustein von Zählern.', { T: 'Kippfreigabe (1 = kippen)' }, 'T = 1: Q<sub>neu</sub> = ¬Q'),
+    tff: ff('T-Flipflop: <b>kippt</b> bei jeder steigenden Flanke an C, wenn T = 1 ist – teilt die Taktfrequenz durch 2. Grundbaustein von Zählern.', { T: 'Kippfreigabe (1 = kippen)' }, 'T = 1: A = ¬AV (kippt)'),
     rsff: ff('RS-Flipflop (taktgesteuert): S = 1 setzt, R = 1 setzt zurück, S = R = 0 speichert. <b>S = R = 1 ist verboten</b> (Störung, der Zustand bleibt). Standard: taktzustandsgesteuert, übernimmt solange C = 1.', { S: 'Setzen', R: 'Rücksetzen' }, 'S R = 00 halten · 10 setzen · 01 rücksetzen · 11 verboten'),
     jkms: ff('JK-Master-Slave-Flipflop: Der Master nimmt J und K auf, solange C = 1; der Ausgang ändert sich erst bei der <b>fallenden Flanke</b> an C (Slave). J = K = 1 kippt.', { J: 'Setzen', K: 'Rücksetzen' }, 'J K = 00 halten · 10 setzen · 01 rücksetzen · 11 kippen (Ausgang bei C 1 → 0)'),
     ctr_async: { funktion: 'Asynchroner Dualzähler (Ripple-Zähler): Jede Stufe taktet die nächste. Die höheren Bits kippen erst, wenn die niedrigeren überlaufen – mit <b>Laufzeit</b> von Stufe zu Stufe. Doppelklick klappt ihn in Flipflops auf.', anschluesse: { C: 'Takteingang (Flanke einstellbar)', R: 'Rückstellen (asynchron, 1 = Zähler auf 0)', Q0: 'Ausgang Wertigkeit 1 (niederwertigstes Bit)', Q1: 'Ausgang Wertigkeit 2', Q2: 'Ausgang Wertigkeit 4', Q3: 'Ausgang Wertigkeit 8' }, extra: function (E) { return LOGIC_EXTRA(E).concat([CLASH]); }, formel: 'Zählerstand = Σ Q<sub>k</sub> · 2<sup>k</sup> · Teilung der Taktfrequenz durch 2<sup>n</sup>' },
