@@ -114,6 +114,25 @@ const imp = f => import(pathToFileURL(path.join(__dirname, '../worker/' + f)));
   ok(r.status === 200 && r.data.state.done.T1A, 'Dozent sieht den Spielstand der eigenen Lernenden');
   ok((await other('GET', '/api/students/' + funkeId + '/progress/dq')).status === 404, 'Fremder Dozent sieht ihn nicht');
 
+  /* ===== 5b Lernpfad im Studio (Quest dqpfad): Fortschritt und Zusammenfassung für den Leitstand ===== */
+  const pst = { format: 'dqstudio-lernpfad', version: 1, geaendert: '2026-10-16T10:00:00.000Z', frei: [], stationen: { A1: { aufgaben: { 'A1.1': { versuche: 1, richtig: true, gezeigt: false, antwort: { '0,1': '0' }, letzte: 'richtig' } } } } };
+  r = await stud('PUT', '/api/progress/dqpfad', { state: pst, summary: { tasks: 1, totalTasks: 175, stations: 0, totalStations: 26, lastAt: 1760608800000, stationen: { A1: { s: 'a', r: 1, p: 5, a: 'ro?xoo' }, A13: { s: 'b', r: 13, p: 13, a: 'rrrrrrrrrrrrrr' }, B9: { s: 'zzz', r: 'x', p: 2, a: 'Hallo' }, ZZ9: { s: 'b', r: 1, p: 1, a: 'r' }, 'A1; DROP': { s: 'b' }, A99x: { s: 'b' } } }, base: 0 });
+  ok(r.status === 200 && r.data.updatedAt > 0, 'Lernpfad: Fortschritt speichern');
+  const pbase = r.data.updatedAt;
+  r = await stud('GET', '/api/progress/dqpfad'); ok(r.data.state.stationen.A1.aufgaben['A1.1'].richtig === true && r.data.state.format === 'dqstudio-lernpfad' && r.data.updatedAt === pbase, 'Lernpfad: Stand wird unverändert zurückgegeben');
+  r = await teacher('GET', '/api/classes/' + cls.id); const fp = r.data.students.find(s => s.username === 'Funke').progress;
+  ok(fp.dqpfad && fp.dqpfad.kind === 'pfad' && fp.dqpfad.tasks === 1 && fp.dqpfad.totalTasks === 175 && fp.dqpfad.stationen.A1.a === 'rooo', 'Lernpfad: Dozent sieht die Zusammenfassung je Station (Zeichen ausserhalb von r, f, a, o entfernt)', fp.dqpfad && fp.dqpfad.stationen.A1);
+  ok(fp.dqpfad.stationen.A13.s === 'b' && fp.dqpfad.stationen.A13.r === 13 && fp.dqpfad.stationen.B9.s === 'o' && fp.dqpfad.stationen.B9.r === 0 && fp.dqpfad.stationen.B9.a === 'ao' && !fp.dqpfad.stationen.ZZ9 && !fp.dqpfad.stationen['A1; DROP'] && !fp.dqpfad.stationen.A99x, 'Lernpfad: ungültige Stationen, Zustände und Zahlen werden bereinigt', fp.dqpfad.stationen);
+  ok(fp.dq && fp.dq.tasks === 1, 'Lernpfad: der Spielstand des Labors bleibt daneben unverändert');
+  r = await teacher('GET', '/api/students/' + funkeId + '/progress/dqpfad'); ok(r.status === 200 && r.data.state.stationen.A1, 'Lernpfad: Dozent sieht den Stand der eigenen Lernenden');
+  ok((await other('GET', '/api/students/' + funkeId + '/progress/dqpfad')).status === 404, 'Lernpfad: fremder Dozent sieht ihn nicht');
+  r = await stud2('GET', '/api/progress/dqpfad'); ok(r.status === 200 && r.data.state === null, 'Lernpfad: andere Lernende sehen nur ihren eigenen Stand (leer)');
+  r = await stud('PUT', '/api/progress/dqpfad', { state: pst, summary: {}, base: pbase - 5 }); ok(r.status === 409 && r.data.updatedAt === pbase, 'Lernpfad: Konflikt 409, wenn ein anderes Gerät weitergearbeitet hat');
+  ok((await stud('PUT', '/api/progress/dqpfad', { state: pst, summary: {}, base: pbase - 5, force: true })).status === 200, 'Lernpfad: force überschreibt');
+  const gross = JSON.parse(JSON.stringify(pst)); gross.stationen.A1.aufgaben['A1.1'].antwort = 'x'.repeat(950 * 1024); ok((await stud('PUT', '/api/progress/dqpfad', { state: gross, summary: {} })).status === 413, 'Lernpfad: zu grosser Stand wird abgelehnt (413)');
+  ok((await admin('PUT', '/api/progress/dqpfad', { state: pst })).status === 400, 'Lernpfad: Secret-Admin speichert nichts');
+  ok((await anon('PUT', '/api/progress/dqpfad', { state: pst })).status === 401, 'Lernpfad: ohne Anmeldung kein Speichern (401)');
+
   /* ===== 6 Vorgaben mit Frist ===== */
   r = await teacher('GET', '/api/classes/' + cls.id); const blitz = r.data.students.find(s => s.username === 'Blitz');
   r = await teacher('POST', '/api/assignments', { targets: [{ type: 'kapitel', id: '12' }, { type: 'aufgabe', id: '14.3' }], classId: cls.id, due: '2026-10-20' });

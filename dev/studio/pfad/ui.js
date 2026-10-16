@@ -5,7 +5,7 @@
 (function (root) {
   'use strict';
   var S = root.Studio, P = root.DQPfad, B = root.DQStudioBool, E = S.E;
-  var KEY = 'dqstudio_lernpfad_v1';
+  var KEY0 = 'dqstudio_lernpfad_v1', KEY = KEY0;   // ohne Anmeldung KEY0; mit Konto je Konto ein eigener Schlüssel (sync.js): Konten werden nie gemischt
   var $ = function (s, el) { return (el || document).querySelector(s); };
   var $$ = function (s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -22,7 +22,9 @@
   }
   function sichere() {
     try { root.localStorage.setItem(KEY, P.exportiere(stand, jetzt())); } catch (e) { speicherOk = false; }
+    if (S.pfadSync && S.pfadSync.geaendert) S.pfadSync.geaendert();
   }
+  function leseSchluessel(key) { try { var raw = root.localStorage.getItem(key); if (!raw) return null; var r = P.importiere(raw); return r.ok ? r.stand : null; } catch (e) { return null; } }
   var sichertimer = 0; function sichereSpaeter() { clearTimeout(sichertimer); sichertimer = setTimeout(sichere, 300); }
   ladeStand();
 
@@ -38,7 +40,7 @@
   function placeOv() { var mb = $('#menubar'); ensure().style.top = (mb ? mb.offsetHeight : 44) + 'px'; }
   function open(view) { ensure(); if (edit) leaveEdit(true); placeOv(); ov.hidden = false; S.pfadAktiv = true; if (view === 'liste' || !cur.sid) cur.sid = null; render(); }
   function close() { if (edit) leaveEdit(true); if (ov) ov.hidden = true; S.pfadAktiv = false; S.palFilter = null; S.pfadPal = null; S.rebuildPalette(); S.stopPfadPanel && S.stopPfadPanel(); }
-  S.pfad = { open: open, close: close, stand: function () { return stand; }, setStand: function (s) { stand = s; sichere(); render(); }, openStation: function (sid) { open(); cur.sid = sid; cur.aid = null; render(); }, openAufgabe: function (aid) { open(); cur.sid = aid.split('.')[0]; cur.aid = aid; render(); },
+  S.pfad = { KEY0: KEY0, wechsleSpeicher: function (key) { KEY = key; stand = leseSchluessel(key) || P.neuerStand(); render(); }, leseSchluessel: leseSchluessel, loescheSchluessel: function (key) { try { root.localStorage.removeItem(key); } catch (e) { } }, refresh: function () { render(); }, open: open, close: close, stand: function () { return stand; }, setStand: function (s) { stand = s; sichere(); render(); }, openStation: function (sid) { open(); cur.sid = sid; cur.aid = null; render(); }, openAufgabe: function (aid) { open(); cur.sid = aid.split('.')[0]; cur.aid = aid; render(); },
     get cur() { return cur; }, get edit() { return edit; }, pruefe: function () { return doCheck(); }, speicherOk: function () { return speicherOk; }, sichere: sichere, kvState: function () { return kv; } };
 
   /* ---------- Darstellung ---------- */
@@ -52,6 +54,7 @@
   function listeHtml() {
     var h = '<h1>Lernpfad Digitaltechnik</h1><p class="pf-lead">Stevens Kurs als geführter Weg durch das Studio: Du füllst Tabellen aus, vereinfachst Ausdrücke, zeichnest KV-Diagramme und baust Schaltungen – die Software rechnet nach und sagt dir, <b>was</b> falsch ist. Eine Station öffnet sich, wenn die vorige abgeschlossen ist. Stationen, die nicht von der Software geprüft werden (Messungen am Experimenter), sind gekennzeichnet.</p>';
     h += '<p class="hint">' + (speicherOk ? 'Dein Fortschritt liegt in diesem Browser. Mit «Fortschritt ausgeben» nimmst du ihn mit oder gibst ihn ab.' : '<b>Der Browser speichert nicht.</b> Gib deinen Fortschritt am Ende mit «Fortschritt ausgeben» als Datei aus.') + '</p>';
+    h += syncZeile();
     h += '<p><button class="tb" data-a="export">Fortschritt ausgeben …</button> <button class="tb" data-a="import">Fortschritt einlesen …</button> <button class="tb" data-a="freigabelesen">Freigabedatei einlesen …</button> <button class="tb" data-a="freigabemachen">Freigabedatei erstellen (Lehrperson) …</button></p>';
     var teile = { A: 'Teil A – Stationäre Vorgänge', B: 'Teil B – Zeitabhängige Vorgänge' };
     ['A', 'B'].forEach(function (t) {
@@ -65,6 +68,13 @@
       h += '</div>';
     });
     return h;
+  }
+  function syncZeile() { // Anbindung an das Portal (sync.js): nur in der gehosteten Fassung
+    var y = S.pfadSync; if (!y || y.status === 'aus') return '';
+    var t = { pruefe: 'Prüfe, ob du angemeldet bist …', abgemeldet: '<b>Nicht angemeldet.</b> Dein Fortschritt bleibt in diesem Browser. Wenn du dich im <a href="/">Portal</a> anmeldest und danach wieder hierher kommst, sieht deine Lehrperson im Leitstand, wo du stehst – das Studio bleibt auch ohne Anmeldung voll nutzbar.',
+      verbunden: '<b>Mit deinem Konto verbunden</b>' + (y.user ? ' (' + esc(y.user.username) + ')' : '') + ': Dein Fortschritt wird abgeglichen, deine Lehrperson sieht ihn im Leitstand. ' + (y.fehler ? '<span class="bad">' + esc(y.fehler) + '</span>' : y.letzter ? '<span class="hint">Zuletzt abgeglichen ' + new Date(y.letzter).toLocaleTimeString('de-CH') + '.</span>' : ''),
+      lehrperson: '<b>Als Lehrperson angemeldet.</b> Den Fortschritt deiner Klasse siehst du im <a href="/#/leitstand">Leitstand</a>. Hier bleibt dein eigener Fortschritt in diesem Browser.' }[y.status] || '';
+    return t ? '<p class="pf-sync st-' + y.status + '" role="status">' + t + '</p>' : '';
   }
   function stationHtml(s) {
     var stt = P.stationStatus(stand, s.id), z = P.zaehlung(stand, s.id);

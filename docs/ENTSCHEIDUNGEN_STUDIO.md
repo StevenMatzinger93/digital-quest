@@ -272,3 +272,17 @@ Benannt wie im Portal («Beamer»); der **Vorführ-Modus** des Spiels ist etwas 
 | Der Test ersetzt die Dialoge des Systems durch Ersatzfunktionen (`showSaveFilePicker` und `showOpenFilePicker`), prüft Aufruf, Schreiben und Rückfall | Die echten Dialoge des Betriebssystems lassen sich nicht automatisch bedienen; ob der echte Dialog in Chrome und Edge so aussieht, muss Steven einmal von Hand ansehen |
 | Neuere Fassung: Hinweisleiste auf `controllerchange` des Service Workers (nicht beim ersten Besuch); «Jetzt neu laden» oder «Später» | Der Service Worker liefert zuerst aus dem Cache und lädt neu nach; ohne Hinweis liefe die geöffnete Seite mit dem alten Stand weiter |
 | `dist/` mit `studio.html` und `LIESMICH.txt` wird vom Build erzeugt und eingecheckt; das Wurzel-`studio.html` bleibt | Auftrag: tragbare Fassung mit zwei Sätzen |
+
+### Lernpfad Stufe 2: Anbindung an das Portal (Zusatzpunkt)
+
+| Entscheidung | Begründung |
+|---|---|
+| Neue Quest `dqpfad` in der bestehenden Tabelle `progress` (kein neues Schema, keine Migration); eigener Bereiniger `sanitizePfad` für die Zusammenfassung | Konten, Klassen, Rechte, Löschen des Kontos, Grössenbegrenzung und der Zugriff der Lehrperson (`/api/students/:id/progress/dqpfad`) gelten damit von selbst |
+| Das Studio spiegelt nur, wenn es unter http(s) läuft **und** als Lernende(r) angemeldet ist (`/api/me`); als Lehrperson nur ein Hinweis auf den Leitstand; ohne Anmeldung und in der Datei-Fassung ändert sich nichts | Auftrag: Das Studio bleibt ohne Anmeldung voll benutzbar |
+| Zusammenführen statt Konflikt: `P.zusammen` (richtig und «gezeigt» gehen nie verloren, weiter fortgeschrittener Eintrag gewinnt, Freigaben werden vereinigt); bei 409 wird neu geholt, zusammengeführt und noch einmal gesendet | Zwei Geräte desselben Kontos dürfen sich nicht gegenseitig Fortschritt löschen; eine Rechenregel ist einfacher und prüfbarer als eine Konfliktfrage an die Lernenden. Test mit 200 Zufallspaaren |
+| Konten werden nie gemischt: mit Konto ein eigener Speicherschlüssel je Konto; ohne Anmeldung Gearbeitetes wird nur nach ausdrücklicher Rückfrage («in dein Konto übernehmen?») übernommen und danach gelöscht | Wie im Spiel («Konten nie mischen»); an einem Schulrechner würde sonst der Fortschritt der einen Person im Konto der nächsten landen |
+| Der Server bekommt den vollständigen Stand (damit ein zweites Gerät ihn laden kann) ohne die Layouts bereits gelöster Schaltungsaufgaben, und eine kleine Zusammenfassung (Zustand je Station, ein Zeichen je Aufgabe: r, f, a, o) für den Leitstand, ohne Antworten und Namen | Klein halten (Grenze 900 KB je Stand); der Leitstand braucht nur den Zustand |
+| Ein leerer Stand wird nicht hochgeladen; im Leitstand zählt als «begonnen», wer mindestens eine Aufgabe angefasst hat | Sonst erscheinen alle angemeldeten Lernenden, die das Studio nur geöffnet haben |
+| Stationsliste und Aufgabentitel für den Leitstand kommen aus `data/dq.json` (Schlüssel `lernpfad`, vom Build aus den Daten der Stationen erzeugt) | Eine Quelle: Neue Stationen erscheinen ohne Änderung im Leitstand |
+| Leitstand: Panel in der Klassenansicht (Haken der Erweiterung `classExtra`/`classBind`), Matrix Person × Station, Klick auf ein Feld = Aufgaben dieser Person, Klick auf die Stationsnummer = Aufgaben der ganzen Klasse | Auftrag: «je Station und je Aufgabe» |
+| Nicht gebaut: Vorgaben mit Frist für Stationen, Freigabe der Stationen vom Leitstand aus (bleibt die Datei), Benachrichtigungen | Stufe 2 hier bewusst klein; Steven soll das Muster zuerst sehen |

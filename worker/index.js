@@ -14,7 +14,7 @@ import { avatarRoutes, avatarOf, avatarsFor } from './avatar.js';
 const COOKIE = 'dq_sess';
 const HEADER = 'x-dquest';
 const SESSION_DAYS = 30;
-const QUESTS = ['dq'];
+const QUESTS = ['dq', 'dqpfad'];   // dq = Spiel, dqpfad = Lernpfad Digitaltechnik im Studio (Fortschritt, damit die Lehrperson im Leitstand sieht, wo die Klasse steht)
 const MAX_STATE = 900 * 1024;           // D1: Zeilen bis 1 MB
 const LOCK = { user: 5, ip: 40, window: 15 * 60 * 1000 };
 
@@ -305,7 +305,7 @@ async function putProgress(C, quest){
   delete st.name;
   const text = JSON.stringify(st);
   if(text.length > MAX_STATE) fail(413, 'Spielstand zu gross.');
-  const summary = JSON.stringify(sanitizeSummary(C.body.summary));
+  const summary = JSON.stringify(quest === 'dqpfad' ? sanitizePfad(C.body.summary) : sanitizeSummary(C.body.summary));
   const base = +C.body.base || 0;
   const cur = await C.db.prepare('SELECT updated_at FROM progress WHERE user_id = ? AND quest = ?').bind(C.user.id, quest).first();
   if(cur && base && cur.updated_at > base && !C.body.force) fail(409, 'Auf einem anderen Gerät wurde weitergespielt.', { updatedAt: cur.updated_at });
@@ -321,6 +321,19 @@ function sanitizeSummary(s){
   const done = Array.isArray(s.done) ? s.done.filter(x => typeof x === 'string' && /^[A-Za-z0-9.]{1,12}$/.test(x)).slice(0, 600) : [];
   return { tasks: num(s.tasks), theory: num(s.theory), points: num(s.points), stars: num(s.stars), ch: num(s.ch),
     totalTasks: num(s.totalTasks), totalTheory: num(s.totalTheory), current: cleanText(s.current, 80), lastAt: num(s.lastAt), done };
+}
+
+// Lernpfad: je Station Zustand (b bestanden, a in Arbeit, o offen), richtige und verlangte Pflichtaufgaben, Zustand jeder Aufgabe als Zeichenkette (r richtig, f falsch, a in Arbeit, o offen)
+function sanitizePfad(s){
+  s = s && typeof s === 'object' ? s : {};
+  const num = v => Math.max(0, Math.min(1e7, +v || 0));
+  const stationen = {};
+  if(s.stationen && typeof s.stationen === 'object') Object.keys(s.stationen).slice(0, 60).forEach(id => {
+    if(!/^[AB][0-9]{1,2}$/.test(id)) return;
+    const x = s.stationen[id] && typeof s.stationen[id] === 'object' ? s.stationen[id] : {};
+    stationen[id] = { s: ['b', 'a', 'o'].includes(x.s) ? x.s : 'o', r: num(x.r), p: num(x.p), a: typeof x.a === 'string' ? x.a.replace(/[^rfao]/g, '').slice(0, 80) : '' };
+  });
+  return { kind: 'pfad', tasks: num(s.tasks), totalTasks: num(s.totalTasks), stations: num(s.stations), totalStations: num(s.totalStations), lastAt: num(s.lastAt), stationen };
 }
 
 // ---------------- Admin ----------------

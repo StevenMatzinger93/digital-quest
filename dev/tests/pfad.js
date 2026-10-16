@@ -176,6 +176,36 @@ if (section('pfad')) {
   const lab = P.stations.filter(s => s.auto === false).map(s => s.id); chk('Laborstationen sind gekennzeichnet (nur A2)', lab.join() === 'A2', lab.join());
 }
 
+/* ---------- 3c. Stufe 2: Zusammenführen und Zusammenfassung (Anbindung an das Portal) ---------- */
+if (section('portal')) {
+  let seed = 424242; const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  const alle = []; P.stations.forEach(s => s.aufgaben.forEach(a => alle.push(a.id)));
+  const zufall = () => { const st = P.neuerStand(); alle.forEach(aid => { const r = rnd(); if (r < 0.15) P.speichereErgebnis(st, aid, { ok: true, meldung: 'r' }, { x: aid }, 't' + Math.floor(rnd() * 9)); else if (r < 0.3) { P.speichereErgebnis(st, aid, { ok: false, meldung: 'f' }, { y: aid }, 't'); if (rnd() < 0.5) P.speichereErgebnis(st, aid, { ok: false, meldung: 'f' }, { y: aid }, 't'); } else if (r < 0.4) P.speichereAntwort(st, aid, { z: aid }, 't'); if (rnd() < 0.05) P.markiereGezeigt(st, aid, 't'); }); if (rnd() < 0.5) P.freischalten(st, ['A' + (1 + Math.floor(rnd() * 13))]); st.geaendert = '2026-10-16T' + String(10 + Math.floor(rnd() * 9)).padStart(2, '0') + ':00:00Z'; return st; };
+  let verloren = 0, nichtIdem = 0, nichtKomm = 0, veraendert = 0, stationVerloren = 0;
+  for (let n = 0; n < 200; n++) {
+    const a = zufall(), b = zufall(), sa = JSON.stringify(a), sb = JSON.stringify(b), m = P.zusammen(a, b), m2 = P.zusammen(b, a);
+    if (JSON.stringify(a) !== sa || JSON.stringify(b) !== sb) veraendert++;
+    alle.forEach(aid => { const ra = P.aufgabeStatus(a, aid) === 'richtig', rb = P.aufgabeStatus(b, aid) === 'richtig', rm = P.aufgabeStatus(m, aid) === 'richtig'; if ((ra || rb) !== rm) verloren++; if (P.aufgabeStatus(m, aid) !== P.aufgabeStatus(m2, aid)) nichtKomm++; const ea = P.eintrag(a, aid), eb = P.eintrag(b, aid), em = P.eintrag(m, aid); if ((ea && ea.gezeigt || eb && eb.gezeigt) && !(em && em.gezeigt)) verloren++; if (em && em.versuche < Math.max(ea ? ea.versuche : 0, eb ? eb.versuche : 0)) verloren++; });
+    P.stations.forEach(s => { if ((P.stationFertig(a, s.id) || P.stationFertig(b, s.id)) && !P.stationFertig(m, s.id)) stationVerloren++; });
+    if (JSON.stringify(P.zusammen(m, m)) !== JSON.stringify(m)) nichtIdem++;
+  }
+  chk('Zusammenführen (200 Zufallspaare): richtig, «gezeigt» und Versuche gehen nie verloren, keine Station fällt zurück', verloren === 0 && stationVerloren === 0, verloren + '/' + stationVerloren);
+  chk('Zusammenführen: gleiche Aufgabenzustände in beiden Reihenfolgen, wiederholtes Zusammenführen ändert nichts, die Eingaben bleiben unverändert', nichtKomm === 0 && nichtIdem === 0 && veraendert === 0, nichtKomm + '/' + nichtIdem + '/' + veraendert);
+  const x = P.neuerStand(), y = P.neuerStand(); P.speichereErgebnis(x, 'A1.1', { ok: true }, { a: 1 }, 't'); P.speichereErgebnis(y, 'A1.2', { ok: true }, { a: 2 }, 't'); P.freischalten(x, ['A4']); P.freischalten(y, ['A7']);
+  const xy = P.zusammen(x, y); chk('Zusammenführen: zwei Geräte mit verschiedenem Fortschritt ergeben die Vereinigung (A1.1 und A1.2 richtig, Freigaben A4 und A7)', P.aufgabeStatus(xy, 'A1.1') === 'richtig' && P.aufgabeStatus(xy, 'A1.2') === 'richtig' && xy.frei.join() === 'A4,A7');
+  // Zusammenfassung
+  const full = P.neuerStand(); P.stations.forEach(s => s.aufgaben.forEach(a => P.speichereErgebnis(full, a.id, { ok: true, meldung: 'ok' }, P.muster(a), 't')));
+  const z = P.zusammenfassung(full), zs = JSON.stringify(z);
+  chk('Zusammenfassung: 26 Stationen, alle «b», Aufgabenzeichenkette so lang wie die Aufgabenliste, Summen stimmen', Object.keys(z.stationen).length === 26 && P.stations.every(s => z.stationen[s.id].s === 'b' && z.stationen[s.id].a === 'r'.repeat(s.aufgaben.length) && z.stationen[s.id].r === z.stationen[s.id].p) && z.tasks === z.totalTasks && z.stations === 26, zs.slice(0, 120));
+  chk('Zusammenfassung: klein (' + zs.length + ' Zeichen), enthält keine Antworten und keine Namen', zs.length < 6000 && !/antwort|meldung|vorname|nachname/i.test(zs));
+  const leer = P.zusammenfassung(P.neuerStand()); chk('Zusammenfassung: leerer Stand → A1 offen, alle übrigen offen, 0 Aufgaben', leer.tasks === 0 && leer.stations === 0 && leer.stationen.A1.s === 'o' && /^o+$/.test(leer.stationen.A1.a));
+  const mid = P.neuerStand(); P.speichereErgebnis(mid, 'A1.1', { ok: true }, {}, 't'); P.speichereErgebnis(mid, 'A1.2', { ok: false }, {}, 't'); P.speichereAntwort(mid, 'A1.3', { a: 1 }, 't'); const zm = P.zusammenfassung(mid).stationen.A1; chk('Zusammenfassung: in Arbeit, Zeichenkette r f a o o', zm.s === 'a' && zm.a === 'rfaoo' && zm.r === 1 && zm.p === 5, JSON.stringify(zm));
+  // Stand für den Server
+  const fs2 = P.fuerServer(full), sz = JSON.stringify(full).length, sz2 = JSON.stringify(fs2).length;
+  chk('Stand für den Server: gelöste Schaltungsaufgaben behalten kein Layout (' + sz + ' → ' + sz2 + ' Zeichen), der Rest bleibt', sz2 < sz && JSON.stringify(full) === JSON.stringify(full) && P.aufgabeStatus(fs2, 'A5.3') === 'richtig' && P.eintrag(fs2, 'A5.3').antwort === null && P.eintrag(fs2, 'A5.2').antwort === P.eintrag(full, 'A5.2').antwort && sz2 < 700000);
+  const halb = P.neuerStand(); P.speichereAntwort(halb, 'A5.3', P.muster(P.task('A5.3')), 't'); chk('Stand für den Server: Layout einer noch nicht gelösten Aufgabe bleibt erhalten', P.eintrag(P.fuerServer(halb), 'A5.3').antwort && P.eintrag(P.fuerServer(halb), 'A5.3').antwort.parts.length > 0);
+}
+
 /* ---------- 4. Stationen ---------- */
 const GRUND = ['logicin', 'logicled', 'ground', 'node'];
 function mutiere(a, muster) { // eine bewusst falsche Antwort zur Musterlösung

@@ -7039,6 +7039,52 @@ body.beamer .dr text { font-size: inherit; }
     var s = P.get(sid); return s.aufgaben.some(function (a) { return P.aufgabeStatus(stand, a.id) !== 'offen'; }) ? 'arbeit' : 'offen';
   };
   P.zaehlung = function (stand, sid) { var s = P.get(sid), pf = s.aufgaben.filter(P.pflicht); return { pflicht: pf.length, richtig: pf.filter(function (a) { return P.aufgabeStatus(stand, a.id) === 'richtig'; }).length, alle: s.aufgaben.length }; };
+
+  /* ---------- Zusammenführen, Zusammenfassung, Server (Stufe 2: Anbindung an das Portal) ---------- */
+  /* Zwei Fortschrittsstände eines Kontos (zwei Geräte, oder Browser und Server) zusammenführen: Fortschritt geht nie verloren. Richtig und «Lösung gezeigt» gelten, sobald eine Seite es hat;
+   * sonst gewinnt der Eintrag mit mehr Versuchen. Freigaben werden vereinigt. Reine Funktion, ändert nichts an a und b. */
+  P.zusammen = function (a, b) {
+    var out = P.neuerStand(); a = a || P.neuerStand(); b = b || P.neuerStand();
+    out.geaendert = [a.geaendert, b.geaendert].filter(Boolean).sort().pop() || null;
+    out.frei = (a.frei || []).concat((b.frei || []).filter(function (x) { return (a.frei || []).indexOf(x) < 0; }));
+    var sids = Object.keys(a.stationen || {}); Object.keys(b.stationen || {}).forEach(function (k) { if (sids.indexOf(k) < 0) sids.push(k); });
+    sids.forEach(function (sid) {
+      var sa = (a.stationen[sid] || { aufgaben: {} }).aufgaben, sb = (b.stationen[sid] || { aufgaben: {} }).aufgaben, aids = Object.keys(sa), res = {};
+      Object.keys(sb).forEach(function (k) { if (aids.indexOf(k) < 0) aids.push(k); });
+      aids.forEach(function (aid) {
+        var ea = sa[aid], eb = sb[aid], base;
+        if (!ea) base = clone(eb); else if (!eb) base = clone(ea);
+        else {
+          var rang = function (e) { return e.richtig ? 3 : e.letzte === 'falsch' ? 2 : (e.antwort != null && e.antwort !== '') ? 1 : 0; }, ka = rang(ea), kb = rang(eb);
+          // der weiter fortgeschrittene Eintrag gewinnt; bei Gleichstand mehr Versuche; dann eine feste Reihenfolge (damit a, b und b, a dasselbe ergeben)
+          base = clone(ka !== kb ? (ka > kb ? ea : eb) : (ea.versuche || 0) !== (eb.versuche || 0) ? ((ea.versuche || 0) > (eb.versuche || 0) ? ea : eb) : (JSON.stringify(ea) <= JSON.stringify(eb) ? ea : eb));
+          base.versuche = Math.max(ea.versuche || 0, eb.versuche || 0); base.gezeigt = !!(ea.gezeigt || eb.gezeigt); base.richtig = !!(ea.richtig || eb.richtig);
+          if (base.richtig) base.falschSeit = 0;
+        }
+        res[aid] = base;
+      });
+      out.stationen[sid] = { aufgaben: res };
+    });
+    return out;
+  };
+  /* Kleine Zusammenfassung für die Lehrperson: je Station Zustand (b bestanden, a in Arbeit, o offen/gesperrt), richtige und verlangte Pflichtaufgaben und eine Zeichenkette mit dem Zustand jeder Aufgabe
+   * (r richtig, f falsch, a in Arbeit, o offen, in der Reihenfolge der Aufgaben). Keine Antworten, keine Namen. */
+  P.zusammenfassung = function (stand) {
+    var out = { stationen: {}, tasks: 0, totalTasks: 0, stations: 0, totalStations: P.stations.length, lastAt: stand.geaendert ? (Date.parse(stand.geaendert) || 0) : 0 };
+    P.stations.forEach(function (s) {
+      var z = P.zaehlung(stand, s.id), stt = P.stationStatus(stand, s.id);
+      out.stationen[s.id] = { s: stt === 'bestanden' ? 'b' : (stt === 'arbeit' ? 'a' : 'o'), r: z.richtig, p: z.pflicht, a: s.aufgaben.map(function (a) { var st = P.aufgabeStatus(stand, a.id); return st === 'richtig' ? 'r' : st === 'falsch' ? 'f' : st === 'arbeit' ? 'a' : 'o'; }).join('') };
+      out.tasks += z.richtig; out.totalTasks += z.pflicht; if (stt === 'bestanden') out.stations++;
+    });
+    return out;
+  };
+  /* Stand für den Server: gelöste Schaltungsaufgaben behalten nur das Ergebnis, nicht das Layout (klein halten); passt es immer noch nicht, fallen alle Layouts weg */
+  P.fuerServer = function (stand, maxBytes) {
+    var c = clone(stand), alle = false;
+    function strip(nur) { Object.keys(c.stationen).forEach(function (sid) { var ag = c.stationen[sid].aufgaben; Object.keys(ag).forEach(function (aid) { var e = ag[aid]; if (e.antwort && typeof e.antwort === 'object' && e.antwort.parts && (!nur || e.richtig)) e.antwort = null; }); }); }
+    strip(true); if (JSON.stringify(c).length > (maxBytes || 700000)) strip(false);
+    return c;
+  };
   P.exportiere = function (stand, zeit) { return JSON.stringify({ format: P.FORMAT, version: P.VERSION, exportiert: zeit || null, stand: stand }, null, 1); };
   P.importiere = function (text) {
     var o; try { o = JSON.parse(text); } catch (e) { return { ok: false, error: 'Das ist keine Fortschrittsdatei (kein gültiges JSON).' }; }
@@ -8170,7 +8216,7 @@ body.beamer .dr text { font-size: inherit; }
 (function (root) {
   'use strict';
   var S = root.Studio, P = root.DQPfad, B = root.DQStudioBool, E = S.E;
-  var KEY = 'dqstudio_lernpfad_v1';
+  var KEY0 = 'dqstudio_lernpfad_v1', KEY = KEY0;   // ohne Anmeldung KEY0; mit Konto je Konto ein eigener Schlüssel (sync.js): Konten werden nie gemischt
   var $ = function (s, el) { return (el || document).querySelector(s); };
   var $$ = function (s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -8187,7 +8233,9 @@ body.beamer .dr text { font-size: inherit; }
   }
   function sichere() {
     try { root.localStorage.setItem(KEY, P.exportiere(stand, jetzt())); } catch (e) { speicherOk = false; }
+    if (S.pfadSync && S.pfadSync.geaendert) S.pfadSync.geaendert();
   }
+  function leseSchluessel(key) { try { var raw = root.localStorage.getItem(key); if (!raw) return null; var r = P.importiere(raw); return r.ok ? r.stand : null; } catch (e) { return null; } }
   var sichertimer = 0; function sichereSpaeter() { clearTimeout(sichertimer); sichertimer = setTimeout(sichere, 300); }
   ladeStand();
 
@@ -8203,7 +8251,7 @@ body.beamer .dr text { font-size: inherit; }
   function placeOv() { var mb = $('#menubar'); ensure().style.top = (mb ? mb.offsetHeight : 44) + 'px'; }
   function open(view) { ensure(); if (edit) leaveEdit(true); placeOv(); ov.hidden = false; S.pfadAktiv = true; if (view === 'liste' || !cur.sid) cur.sid = null; render(); }
   function close() { if (edit) leaveEdit(true); if (ov) ov.hidden = true; S.pfadAktiv = false; S.palFilter = null; S.pfadPal = null; S.rebuildPalette(); S.stopPfadPanel && S.stopPfadPanel(); }
-  S.pfad = { open: open, close: close, stand: function () { return stand; }, setStand: function (s) { stand = s; sichere(); render(); }, openStation: function (sid) { open(); cur.sid = sid; cur.aid = null; render(); }, openAufgabe: function (aid) { open(); cur.sid = aid.split('.')[0]; cur.aid = aid; render(); },
+  S.pfad = { KEY0: KEY0, wechsleSpeicher: function (key) { KEY = key; stand = leseSchluessel(key) || P.neuerStand(); render(); }, leseSchluessel: leseSchluessel, loescheSchluessel: function (key) { try { root.localStorage.removeItem(key); } catch (e) { } }, refresh: function () { render(); }, open: open, close: close, stand: function () { return stand; }, setStand: function (s) { stand = s; sichere(); render(); }, openStation: function (sid) { open(); cur.sid = sid; cur.aid = null; render(); }, openAufgabe: function (aid) { open(); cur.sid = aid.split('.')[0]; cur.aid = aid; render(); },
     get cur() { return cur; }, get edit() { return edit; }, pruefe: function () { return doCheck(); }, speicherOk: function () { return speicherOk; }, sichere: sichere, kvState: function () { return kv; } };
 
   /* ---------- Darstellung ---------- */
@@ -8217,6 +8265,7 @@ body.beamer .dr text { font-size: inherit; }
   function listeHtml() {
     var h = '<h1>Lernpfad Digitaltechnik</h1><p class="pf-lead">Stevens Kurs als geführter Weg durch das Studio: Du füllst Tabellen aus, vereinfachst Ausdrücke, zeichnest KV-Diagramme und baust Schaltungen – die Software rechnet nach und sagt dir, <b>was</b> falsch ist. Eine Station öffnet sich, wenn die vorige abgeschlossen ist. Stationen, die nicht von der Software geprüft werden (Messungen am Experimenter), sind gekennzeichnet.</p>';
     h += '<p class="hint">' + (speicherOk ? 'Dein Fortschritt liegt in diesem Browser. Mit «Fortschritt ausgeben» nimmst du ihn mit oder gibst ihn ab.' : '<b>Der Browser speichert nicht.</b> Gib deinen Fortschritt am Ende mit «Fortschritt ausgeben» als Datei aus.') + '</p>';
+    h += syncZeile();
     h += '<p><button class="tb" data-a="export">Fortschritt ausgeben …</button> <button class="tb" data-a="import">Fortschritt einlesen …</button> <button class="tb" data-a="freigabelesen">Freigabedatei einlesen …</button> <button class="tb" data-a="freigabemachen">Freigabedatei erstellen (Lehrperson) …</button></p>';
     var teile = { A: 'Teil A – Stationäre Vorgänge', B: 'Teil B – Zeitabhängige Vorgänge' };
     ['A', 'B'].forEach(function (t) {
@@ -8230,6 +8279,13 @@ body.beamer .dr text { font-size: inherit; }
       h += '</div>';
     });
     return h;
+  }
+  function syncZeile() { // Anbindung an das Portal (sync.js): nur in der gehosteten Fassung
+    var y = S.pfadSync; if (!y || y.status === 'aus') return '';
+    var t = { pruefe: 'Prüfe, ob du angemeldet bist …', abgemeldet: '<b>Nicht angemeldet.</b> Dein Fortschritt bleibt in diesem Browser. Wenn du dich im <a href="/">Portal</a> anmeldest und danach wieder hierher kommst, sieht deine Lehrperson im Leitstand, wo du stehst – das Studio bleibt auch ohne Anmeldung voll nutzbar.',
+      verbunden: '<b>Mit deinem Konto verbunden</b>' + (y.user ? ' (' + esc(y.user.username) + ')' : '') + ': Dein Fortschritt wird abgeglichen, deine Lehrperson sieht ihn im Leitstand. ' + (y.fehler ? '<span class="bad">' + esc(y.fehler) + '</span>' : y.letzter ? '<span class="hint">Zuletzt abgeglichen ' + new Date(y.letzter).toLocaleTimeString('de-CH') + '.</span>' : ''),
+      lehrperson: '<b>Als Lehrperson angemeldet.</b> Den Fortschritt deiner Klasse siehst du im <a href="/#/leitstand">Leitstand</a>. Hier bleibt dein eigener Fortschritt in diesem Browser.' }[y.status] || '';
+    return t ? '<p class="pf-sync st-' + y.status + '" role="status">' + t + '</p>' : '';
   }
   function stationHtml(s) {
     var stt = P.stationStatus(stand, s.id), z = P.zaehlung(stand, s.id);
@@ -8486,6 +8542,83 @@ body.beamer .dr text { font-size: inherit; }
   });
   root.addEventListener('resize', function () { if (ov && !ov.hidden) placeOv(); });
   document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && ov && !ov.hidden && !ev.target.closest('input,textarea,select') && !$('#modalBg.open')) close(); });
+})(window);
+
+/* ==== studio/pfad/sync.js ==== */
+/* Digital Quest Studio – Lernpfad: Anbindung an das Portal (Stufe 2, Nachtlauf 2)
+ * Nur in der gehosteten Fassung (https://…/studio/); die Datei-Fassung hat keinen Server und diese Datei tut dort nichts.
+ * Wer im Portal als Lernende(r) angemeldet ist, bekommt den Lernpfad-Fortschritt auf den Server gespiegelt (Quest «dqpfad»): vollständiger Stand und eine kleine Zusammenfassung,
+ * die im Leitstand je Station und je Aufgabe erscheint. Das Studio bleibt ohne Anmeldung voll benutzbar; die Anmeldung fügt nur die Sichtbarkeit für die Lehrperson und den Abgleich
+ * zwischen Geräten hinzu. Konten werden nie gemischt: Mit Konto hat der Fortschritt einen eigenen Speicherschlüssel je Konto; ohne Anmeldung Gearbeitetes wird nur nach ausdrücklicher
+ * Zustimmung in ein Konto übernommen. Zwei Stände desselben Kontos (zwei Geräte) werden zusammengeführt (P.zusammen): Fortschritt geht nie verloren. */
+(function (root) {
+  'use strict';
+  var S = root.Studio, P = root.DQPfad;
+  var sy = S.pfadSync = { status: 'aus', user: null, fehler: null, base: 0, letzter: 0, busy: false, dirty: false };
+  var timer = 0, retry = 0;
+  function http() { return /^https?:$/.test(root.location.protocol); }
+  function api(method, path, body, keepalive) {
+    var h = { 'content-type': 'application/json' }; if (method !== 'GET') h['x-dquest'] = '1';
+    return fetch('/api/' + path, { method: method, credentials: 'same-origin', headers: h, body: body ? JSON.stringify(body) : undefined, keepalive: !!keepalive }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error(j.error || ('Fehler ' + r.status)); e.status = r.status; e.data = j; throw e; } return j; });
+    });
+  }
+  function neuZeichnen() { if (S.pfad && S.pfad.refresh) S.pfad.refresh(); }
+  function schluessel(u) { return S.pfad.KEY0 + '_u' + u.id; }
+  var kurz = function (s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); };
+
+  sy.start = function () {
+    if (!http() || !S.pfad) return; sy.status = 'pruefe';
+    api('GET', 'me').then(function (j) {
+      var u = j.user; if (!u) { sy.status = 'abgemeldet'; neuZeichnen(); return; }
+      sy.user = u; if (u.role !== 'student') { sy.status = 'lehrperson'; neuZeichnen(); return; }
+      sy.status = 'verbunden'; return anmelden(u);
+    }).catch(function () { sy.status = 'abgemeldet'; neuZeichnen(); }); // kein Netz: wie ohne Anmeldung, nichts geht verloren
+  };
+  /* Konto erkannt: Speicher des Kontos wählen, ohne Anmeldung Gearbeitetes anbieten, mit dem Server abgleichen */
+  function anmelden(u) {
+    var anonym = S.pfad.leseSchluessel(S.pfad.KEY0), hatAnonym = anonym && P.zusammenfassung(anonym).tasks + Object.keys(anonym.stationen).length > 0;
+    S.pfad.wechsleSpeicher(schluessel(u));
+    var uebernahme = Promise.resolve(false);
+    if (hatAnonym) uebernahme = new Promise(function (res) {
+      S.openModal('<h2>Fortschritt in dein Konto übernehmen?</h2><p>Du hast in diesem Browser schon ohne Anmeldung am Lernpfad gearbeitet. Soll dieser Fortschritt in dein Konto <b>' + kurz(u.username) + '</b> übernommen werden? Dann sieht ihn auch deine Lehrperson.</p><p class="hint">Wenn der Fortschritt von jemand anderem stammt, wähle «Nein»: Er bleibt dann unverändert in diesem Browser.</p><p><button class="tb run" id="uebJa">Ja, übernehmen</button> <button class="tb" id="uebNein">Nein</button></p>');
+      document.getElementById('uebJa').onclick = function () { S.closeModal(); res(true); }; document.getElementById('uebNein').onclick = function () { S.closeModal(); res(false); };
+    });
+    return uebernahme.then(function (ja) {
+      if (ja) { S.pfad.setStand(P.zusammen(S.pfad.stand(), anonym)); S.pfad.loescheSchluessel(S.pfad.KEY0); }
+      return abgleichen();
+    });
+  }
+  /* Server holen, zusammenführen, bei Unterschied zurückschreiben */
+  function abgleichen() {
+    return api('GET', 'progress/dqpfad').then(function (r) {
+      sy.base = r.updatedAt || 0; var lokal = S.pfad.stand(), srv = r.state && r.state.stationen ? P.importiere(JSON.stringify({ format: P.FORMAT, version: P.VERSION, stand: r.state })) : null;
+      var gem = srv && srv.ok ? P.zusammen(lokal, srv.stand) : lokal;
+      if (JSON.stringify(gem) !== JSON.stringify(lokal)) S.pfad.setStand(gem);
+      var gleich = !!(srv && srv.ok) && JSON.stringify(P.fuerServer(P.zusammen(gem, gem))) === JSON.stringify(P.fuerServer(P.zusammen(srv.stand, srv.stand))); // Server hat schon alles
+      sy.fehler = null; sy.letzter = Date.now(); neuZeichnen();
+      if (!gleich && (Object.keys(gem.stationen).length || (gem.frei || []).length)) return senden(); // ein leerer Stand wird nicht hochgeladen
+    }).catch(function (e) { fehler(e); });
+  }
+  function senden(keepalive) {
+    if (sy.status !== 'verbunden') return Promise.resolve();
+    if (sy.busy) { sy.dirty = true; return Promise.resolve(); } sy.busy = true; sy.dirty = false;
+    var st = S.pfad.stand();
+    return api('PUT', 'progress/dqpfad', { state: P.fuerServer(st), summary: P.zusammenfassung(st), base: sy.base }, keepalive).then(function (r) { sy.base = r.updatedAt || sy.base; sy.fehler = null; sy.letzter = Date.now(); sy.busy = false; neuZeichnen(); if (sy.dirty) return senden(); })
+      .catch(function (e) { sy.busy = false; if (e && e.status === 409) return abgleichen(); fehler(e); }); // 409: ein anderes Gerät war schneller → zusammenführen und noch einmal
+  }
+  function fehler(e) {
+    if (e && (e.status === 401 || e.status === 403)) { sy.status = 'abgemeldet'; sy.fehler = null; neuZeichnen(); return; }
+    sy.fehler = 'Gerade keine Verbindung zum Portal – dein Stand bleibt hier gespeichert und wird später abgeglichen.'; neuZeichnen();
+    clearTimeout(retry); retry = setTimeout(function () { if (sy.status === 'verbunden') senden(); }, 30000);
+  }
+  /* wird von ui.js nach jeder Änderung des Standes gerufen */
+  sy.geaendert = function () { if (sy.status !== 'verbunden') return; clearTimeout(timer); timer = setTimeout(function () { senden(); }, 2500); };
+  sy.jetzt = function () { clearTimeout(timer); return senden(); };
+  root.addEventListener('online', function () { if (sy.status === 'verbunden') senden(); });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden' && sy.status === 'verbunden' && timer) { clearTimeout(timer); timer = 0; senden(true); } });
+  root.addEventListener('pagehide', function () { if (sy.status === 'verbunden' && timer) { clearTimeout(timer); timer = 0; senden(true); } });
+  S.initFns.push(function () { sy.start(); });
 })(window);
 
 /* ==== studio/examples.js ==== */

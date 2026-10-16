@@ -465,6 +465,52 @@
     var s = P.get(sid); return s.aufgaben.some(function (a) { return P.aufgabeStatus(stand, a.id) !== 'offen'; }) ? 'arbeit' : 'offen';
   };
   P.zaehlung = function (stand, sid) { var s = P.get(sid), pf = s.aufgaben.filter(P.pflicht); return { pflicht: pf.length, richtig: pf.filter(function (a) { return P.aufgabeStatus(stand, a.id) === 'richtig'; }).length, alle: s.aufgaben.length }; };
+
+  /* ---------- Zusammenführen, Zusammenfassung, Server (Stufe 2: Anbindung an das Portal) ---------- */
+  /* Zwei Fortschrittsstände eines Kontos (zwei Geräte, oder Browser und Server) zusammenführen: Fortschritt geht nie verloren. Richtig und «Lösung gezeigt» gelten, sobald eine Seite es hat;
+   * sonst gewinnt der Eintrag mit mehr Versuchen. Freigaben werden vereinigt. Reine Funktion, ändert nichts an a und b. */
+  P.zusammen = function (a, b) {
+    var out = P.neuerStand(); a = a || P.neuerStand(); b = b || P.neuerStand();
+    out.geaendert = [a.geaendert, b.geaendert].filter(Boolean).sort().pop() || null;
+    out.frei = (a.frei || []).concat((b.frei || []).filter(function (x) { return (a.frei || []).indexOf(x) < 0; }));
+    var sids = Object.keys(a.stationen || {}); Object.keys(b.stationen || {}).forEach(function (k) { if (sids.indexOf(k) < 0) sids.push(k); });
+    sids.forEach(function (sid) {
+      var sa = (a.stationen[sid] || { aufgaben: {} }).aufgaben, sb = (b.stationen[sid] || { aufgaben: {} }).aufgaben, aids = Object.keys(sa), res = {};
+      Object.keys(sb).forEach(function (k) { if (aids.indexOf(k) < 0) aids.push(k); });
+      aids.forEach(function (aid) {
+        var ea = sa[aid], eb = sb[aid], base;
+        if (!ea) base = clone(eb); else if (!eb) base = clone(ea);
+        else {
+          var rang = function (e) { return e.richtig ? 3 : e.letzte === 'falsch' ? 2 : (e.antwort != null && e.antwort !== '') ? 1 : 0; }, ka = rang(ea), kb = rang(eb);
+          // der weiter fortgeschrittene Eintrag gewinnt; bei Gleichstand mehr Versuche; dann eine feste Reihenfolge (damit a, b und b, a dasselbe ergeben)
+          base = clone(ka !== kb ? (ka > kb ? ea : eb) : (ea.versuche || 0) !== (eb.versuche || 0) ? ((ea.versuche || 0) > (eb.versuche || 0) ? ea : eb) : (JSON.stringify(ea) <= JSON.stringify(eb) ? ea : eb));
+          base.versuche = Math.max(ea.versuche || 0, eb.versuche || 0); base.gezeigt = !!(ea.gezeigt || eb.gezeigt); base.richtig = !!(ea.richtig || eb.richtig);
+          if (base.richtig) base.falschSeit = 0;
+        }
+        res[aid] = base;
+      });
+      out.stationen[sid] = { aufgaben: res };
+    });
+    return out;
+  };
+  /* Kleine Zusammenfassung für die Lehrperson: je Station Zustand (b bestanden, a in Arbeit, o offen/gesperrt), richtige und verlangte Pflichtaufgaben und eine Zeichenkette mit dem Zustand jeder Aufgabe
+   * (r richtig, f falsch, a in Arbeit, o offen, in der Reihenfolge der Aufgaben). Keine Antworten, keine Namen. */
+  P.zusammenfassung = function (stand) {
+    var out = { stationen: {}, tasks: 0, totalTasks: 0, stations: 0, totalStations: P.stations.length, lastAt: stand.geaendert ? (Date.parse(stand.geaendert) || 0) : 0 };
+    P.stations.forEach(function (s) {
+      var z = P.zaehlung(stand, s.id), stt = P.stationStatus(stand, s.id);
+      out.stationen[s.id] = { s: stt === 'bestanden' ? 'b' : (stt === 'arbeit' ? 'a' : 'o'), r: z.richtig, p: z.pflicht, a: s.aufgaben.map(function (a) { var st = P.aufgabeStatus(stand, a.id); return st === 'richtig' ? 'r' : st === 'falsch' ? 'f' : st === 'arbeit' ? 'a' : 'o'; }).join('') };
+      out.tasks += z.richtig; out.totalTasks += z.pflicht; if (stt === 'bestanden') out.stations++;
+    });
+    return out;
+  };
+  /* Stand für den Server: gelöste Schaltungsaufgaben behalten nur das Ergebnis, nicht das Layout (klein halten); passt es immer noch nicht, fallen alle Layouts weg */
+  P.fuerServer = function (stand, maxBytes) {
+    var c = clone(stand), alle = false;
+    function strip(nur) { Object.keys(c.stationen).forEach(function (sid) { var ag = c.stationen[sid].aufgaben; Object.keys(ag).forEach(function (aid) { var e = ag[aid]; if (e.antwort && typeof e.antwort === 'object' && e.antwort.parts && (!nur || e.richtig)) e.antwort = null; }); }); }
+    strip(true); if (JSON.stringify(c).length > (maxBytes || 700000)) strip(false);
+    return c;
+  };
   P.exportiere = function (stand, zeit) { return JSON.stringify({ format: P.FORMAT, version: P.VERSION, exportiert: zeit || null, stand: stand }, null, 1); };
   P.importiere = function (text) {
     var o; try { o = JSON.parse(text); } catch (e) { return { ok: false, error: 'Das ist keine Fortschrittsdatei (kein gültiges JSON).' }; }

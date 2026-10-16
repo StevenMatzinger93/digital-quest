@@ -601,3 +601,12 @@ body.beamer-mode main{ min-height:100vh; }
   .ww-page{ max-width:none; margin:0; padding:0; color:#000; } .ww-card{ border:1px solid #999; background:#fff; break-inside:avoid; color:#000; } .ww-body p, .ww-body .ww-wann{ color:#000; }
   .ww-cards{ grid-template-columns:1fr 1fr; gap:8px; } .ww-act{ display:none; } .ww-foot{ display:block; color:#333; margin-top:12px; } .ww-sect h2 .tag{ display:none; } .ww-wege{ border:1px solid #999; }
 }
+
+/* Leitstand: Lernpfad Digitaltechnik (portal_lernpfad.js) */
+.lp-tbl th, .lp-tbl td{ padding:5px 6px; }
+.lp-tbl .lp-h{ text-align:center; font-family:var(--mono); font-size:11px; cursor:pointer; }
+.lp-tbl .lp-h:hover{ color:var(--text); }
+.lp{ text-align:center; font-family:var(--mono); min-width:26px; cursor:pointer; }
+.lp-b{ background:rgba(60,200,120,.22); color:#7be0a4; } .lp-a{ background:rgba(79,195,247,.2); color:#8fd8f8; } .lp-o{ color:var(--dim); }
+.lp-sym{ text-align:center; font-family:var(--mono); } .lp-t-r{ color:#7be0a4; } .lp-t-f{ color:#ff8f8f; } .lp-t-a{ color:#8fd8f8; } .lp-t-o{ color:var(--dim); }
+#lpDetail{ margin-top:14px; } #lpDetail h3{ margin:0 0 6px; }

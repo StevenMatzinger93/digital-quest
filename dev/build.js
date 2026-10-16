@@ -44,12 +44,15 @@ const E = require('./src/engine.js');
 require('./src/content/_helpers.js');
 content.forEach(f => require('./src/content/' + f));
 const DQ = globalThis.DQ;
+/* Lernpfad Digitaltechnik (Studio): Stationen und Aufgaben für den Leitstand (Stufe 2) */
+const PFAD = require('./studio/pfad/kern.js'); require('./studio/pfad/bausteine.js'); fs.readdirSync(path.join(__dirname, 'studio', 'pfad')).filter(f => /^st_.*\.js$/.test(f)).sort().forEach(f => require('./studio/pfad/' + f));
 const meta = {
   quest: 'dq',
   chapters: DQ.chapters.map(c => ({ n: c.id, title: c.title, pro: c.stage === 'profi', seq: c.sequence })),
   tasks: DQ.tasks.filter(t => !t.messOnly || t.ch !== DQ.workshop.id).map(t => ({ id: t.id, ch: t.ch, title: t.title, boss: !!t.boss })),
   theory: DQ.theories.map(t => ({ id: t.id, ch: t.ch, title: t.title })),
-  workshop: { id: DQ.workshop.id, title: DQ.workshop.title, tasks: DQ.workshop.sequence.map(id => ({ id, title: DQ.byId[id].title })) }
+  workshop: { id: DQ.workshop.id, title: DQ.workshop.title, tasks: DQ.workshop.sequence.map(id => ({ id, title: DQ.byId[id].title })) },
+  lernpfad: PFAD.stations.map(s => ({ id: s.id, teil: s.teil, nr: s.nr, titel: s.titel, auto: s.auto !== false, aufgaben: s.aufgaben.map(a => ({ id: a.id, titel: a.titel, pflicht: a.pflicht !== false, art: a.art })) }))
 };
 fs.writeFileSync(path.join(web, 'data', 'dq.json'), JSON.stringify(meta));
 // Stoerungsszenarien: jede benannte Falschloesung (wrong) einer Aufgabe. Symptom = erste Pruefung, die daran scheitert
@@ -149,8 +152,8 @@ if (/defExamTask|"hidden"/.test(game)) throw new Error('Prüfungspool ist im Spi
  * Teilt engine.js, circuit-ui.js, editor.js mit dem Spiel; eigene Oberflaeche in dev/studio/. Plan: docs/AUFTRAG_STUDIO.md */
 const SD = f => fs.readFileSync(path.join(__dirname, 'studio', f), 'utf8').split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
 const PFAD_DIR = path.join(__dirname, 'studio', 'pfad'), pfadFiles = fs.readdirSync(PFAD_DIR).filter(f => /^st_.*\.js$/.test(f)).sort();   // Lernpfad: kern.js, dann alle Stationen (st_*.js, nur Daten), dann ui.js
-const studioFiles = fs.readdirSync(path.join(__dirname, 'studio')).filter(f => /\.js$/.test(f)).concat(['pfad/kern.js', 'pfad/bausteine.js', 'pfad/ui.js'], pfadFiles.map(f => 'pfad/' + f));
-const STUDIO_ORDER = ['sim.js', 'studio.js', 'counters.js', 'edit.js', 'slider.js', 'file.js', 'bool.js', 'logic.js', 'task.js', 'scope.js', 'bode.js', 'timing.js', 'inspector.js', 'signale.js', 'bedienung.js', 'ansicht.js', 'zeichnen.js', 'blatt.js', 'druck.js', 'beispiele.js', 'netz.js', 'pfad/kern.js', 'pfad/bausteine.js'].concat(pfadFiles.map(f => 'pfad/' + f), ['pfad/ui.js', 'examples.js']);   // studio.js legt S an, danach die Module; examples.js zuletzt
+const studioFiles = fs.readdirSync(path.join(__dirname, 'studio')).filter(f => /\.js$/.test(f)).concat(['pfad/kern.js', 'pfad/bausteine.js', 'pfad/ui.js', 'pfad/sync.js'], pfadFiles.map(f => 'pfad/' + f));
+const STUDIO_ORDER = ['sim.js', 'studio.js', 'counters.js', 'edit.js', 'slider.js', 'file.js', 'bool.js', 'logic.js', 'task.js', 'scope.js', 'bode.js', 'timing.js', 'inspector.js', 'signale.js', 'bedienung.js', 'ansicht.js', 'zeichnen.js', 'blatt.js', 'druck.js', 'beispiele.js', 'netz.js', 'pfad/kern.js', 'pfad/bausteine.js'].concat(pfadFiles.map(f => 'pfad/' + f), ['pfad/ui.js', 'pfad/sync.js', 'examples.js']);   // studio.js legt S an, danach die Module; examples.js zuletzt
 const studioJs = ['engine.js', 'circuit-ui.js', 'editor.js', 'visuals.js', 'content/_logic.js'].map(f => '/* ==== ' + f + ' ==== */\n' + src(f))
   .concat(STUDIO_ORDER.filter(f => studioFiles.includes(f)).map(f => '/* ==== studio/' + f + ' ==== */\n' + SD(f))).join('\n');
 studioFiles.forEach(f => { if (!STUDIO_ORDER.includes(f)) throw new Error('studio/' + f + ' fehlt in STUDIO_ORDER (build.js)'); });

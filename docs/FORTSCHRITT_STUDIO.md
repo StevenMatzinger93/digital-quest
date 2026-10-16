@@ -238,3 +238,11 @@ Alle in `ENTSCHEIDUNGEN_STUDIO.md` (Abschnitte «Nachtlauf 2», «Lernpfad», «
 
 ### Testkette (Endstand dieses Berichts)
 Siehe den Abschnitt «Endstand Testkette» weiter unten.
+
+## Zusatzpunkte «Wenn Zeit übrig bleibt» (16.10.2026)
+
+### 1. Leistungsgrenze angehoben (`docs/LEISTUNG_STUDIO.md`)
+Engpass gefunden (Profiler: 50 % Gauss-Löser, 22 % Aufbau der dichten Matrix bei Logikschaltungen) und die einfachste Verbesserung umgesetzt: dünn besetztes Gleichungssystem (`solveSparse` in `engine.js`; reine Analogschaltungen behalten den dichten Weg). Flüssig bis jetzt **100 Bauteile reine Logik** (vorher 50), **50 gemischt** (vorher 25); mit «U-Werte» Logik 100 (vorher 25). Rechenzeit je Schritt bei 100 Logik-Bauteilen 1,5 → 0,3 ms. Alle Tests unverändert grün; ein beim Bauen entdeckter Fehler (Bauteil mit beiden Anschlüssen am selben Knoten) hat einen neuen Kern-Test.
+
+### 2. Lernpfad Stufe 2: Anbindung an das Portal
+Umgesetzt, weil mehr als zwei Stunden übrig waren. Angemeldete Lernende (Portal → Studio unter `/studio/`) bekommen ihren Lernpfad-Fortschritt auf den Server gespiegelt (Quest `dqpfad`); im **Leitstand** erscheint je Klasse ein Panel «Lernpfad Digitaltechnik»: Matrix Person × 26 Stationen, Klick auf ein Feld zeigt die Aufgaben dieser Person, Klick auf eine Stationsnummer die Aufgaben der ganzen Klasse. Zwei Geräte desselben Kontos werden zusammengeführt, Konten werden nie gemischt, ohne Anmeldung bleibt alles wie bisher. Tests: `test_api.js` (13 neue Prüfungen: Speichern, Bereinigung, Rechte, 409, Grösse), `tests/pfad.js` (Zusammenführen mit 200 Zufallspaaren, Zusammenfassung), `tests/pfad_portal.js` (35 Prüfungen im Browser mit echtem Worker-Code: Rückfrage bei Übernahme, Server-Stand, zweites Gerät, Konflikt, anderes Konto, Leitstand, fremde Lehrperson). Entscheidungen in `ENTSCHEIDUNGEN_STUDIO.md`. **Steven hat das Muster noch nicht gesehen** (der Auftrag wollte es erst nach Stufe 1 sehen): Es ist auf dem Branch, nicht auf `main`.

@@ -48,7 +48,7 @@ Die Zeichenfläche ist 2400 × 1500 gross. Ein **Masse-Symbol** brauchst du nur,
 | **Taktgeber … Hz** | stellt alle Taktgeber auf einmal um |
 
 Die Rechenschrittweite Δt wählt das Studio selbst («auto»). Willst du genauer oder schneller rechnen, trägst du rechts bei «Rechenschritt» (nichts ausgewählt) einen Wert ein. Meldet die Statusleiste **«Rechner kommt nicht mit»**, senke den Zeitfaktor.
-Flüssig läuft es bis etwa **50 Bauteile** (siehe `docs/LEISTUNG_STUDIO.md`).
+Flüssig läuft es bis etwa **100 Bauteile** bei reiner Logik und reiner Analogschaltung, bis etwa **50** bei gemischten Schaltungen (siehe `docs/LEISTUNG_STUDIO.md`).
 
 **Schieberegler:** Bauteil anklicken, unten bei «Schieberegler» ein Häkchen setzen. Bereich, linear oder logarithmisch und Schrittweite stellst du selbst ein. Der Regler steht in der Leiste unter der Werkzeugleiste und wirkt sofort, während die Simulation läuft – Kurve und Messwerte wandern mit.
 
@@ -155,6 +155,23 @@ Die Oszilloskop-Fenster eines Beispiels liegen am rechten Rand, die Schaltung st
 - Gatter haben keine Laufzeit, nur Flipflops und Zähler (20 ns je Stufe, einstellbar). Im Stillstand wirken Flipflops sofort.
 - Dioden, Transistor und Logik sind einfache, stückweise lineare Modelle (kein Operationsverstärker, keine Rausch- oder Monte-Carlo-Analyse).
 - Die Wechselstromanalyse behandelt Dioden und Transistor mit dem Kleinsignalwert ihres Arbeitspunkts, Logik gar nicht.
-- Über etwa 50 Bauteile (gemischte Schaltungen 25) kann die Simulation hinterherhinken; Zeitfaktor senken hilft.
+- Über etwa 100 Bauteile (gemischte Schaltungen 50) kann die Simulation hinterherhinken; Zeitfaktor senken hilft.
 - Verborgene Werte einer Aufgabe sind verschleiert, nicht verschlüsselt (Abschnitt 8).
 - Es gibt kein Leiterplatten-Layout, kein VHDL, keine Mikrocontroller-Emulation.
+
+## 14. Lernpfad Digitaltechnik (Menü «Lernpfad»)
+
+Der Lernpfad führt durch den Kurs: **Teil A** (stationäre Vorgänge, A1 bis A13) und **Teil B** (zeitabhängige Vorgänge, B1 bis B13). Menü **Lernpfad → Stationen** öffnet die Übersicht.
+- **Stationen:** gesperrt, offen, in Arbeit, bestanden. Eine Station öffnet sich, wenn die vorige bestanden ist; die Lehrperson kann Stationen freischalten (Datei, siehe unten). Laborstationen (A2) und Aufgaben mit ✎ werden nicht von der Software geprüft: Du bestätigst sie selbst.
+- **Aufgaben:** Tabelle ausfüllen, Ausdruck eintippen (Vorschau mit Überstreichung), KV-Diagramm (Felder anklicken, «Päckchen bilden», Minimalform angeben), Prüffragen, Zustandsfolgediagramm von Hand zeichnen und abgeben (die Software zeigt ihr Diagramm zum Vergleich) und **Schaltungen bauen**: «Im Editor bauen» öffnet den Editor mit den Bauteilen, die du bis dahin kennengelernt hast, und dem Aufgabenfenster. «Prüfen» schaltet alle Eingänge durch, gibt Takte und sagt in einem Satz, **was** nicht stimmt.
+- **Lösung zeigen** gibt es nach zwei Fehlversuchen; die Aufgabe zählt danach erst, wenn du sie selbst richtig löst.
+- **Schreibweise** wie im Lehrmittel: ODER = `v`, UND = Nebeneinanderstellen, NICHT = Überstreichung (getippt `/`), Eingänge e1, e2 …; AV = Ausgang vorher, A = Ausgang danach.
+- **Fortschritt:** Er bleibt im Browser. Mit **Lernpfad → Fortschritt ausgeben** nimmst du ihn als Datei (`*.fortschritt.dqstudio.json`) mit oder gibst ihn ab, mit **Fortschritt einlesen** holst du ihn zurück. Lehrpersonen erstellen mit **Freigabedatei erstellen** eine Datei, die Stationen für die Klasse freischaltet; die Lernenden lesen sie ein.
+- **Mit Konto (gehostete Fassung):** Wer im Portal als Lernende(r) angemeldet ist, bekommt den Fortschritt auf den Server gespiegelt und zwischen Geräten abgeglichen; die Lehrperson sieht im Leitstand je Station und je Aufgabe, wo die Klasse steht. Ohne Anmeldung bleibt alles wie oben beschrieben.
+
+## 15. Im Netz, offline und als App
+- **Offline:** Nach dem ersten Besuch läuft die gehostete Fassung (`/studio/`) auch ohne Netz. Gibt es eine neuere Fassung, erscheint oben eine Leiste «Neuere Fassung verfügbar»; speichere deine Schaltung und klicke «Jetzt neu laden».
+- **Dateien öffnen und speichern:** In Chrome und Edge benutzt das Studio die Dateiauswahl des Systems; «Speichern» schreibt danach direkt in dieselbe Datei, «Speichern unter …» fragt immer. In anderen Browsern wird heruntergeladen und über die Dateiauswahl des Browsers geöffnet.
+- **Als App:** Im Menü Hilfe erscheint «Als App installieren …», wenn der Browser es anbietet (eigenes Fenster und Symbol).
+- **Tragbar:** `dist/studio.html` ist eine einzelne Datei ohne Installation (`dist/LIESMICH.txt`).
+
