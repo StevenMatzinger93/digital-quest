@@ -221,6 +221,69 @@ if (section('fachlich')) {
     const dz = Number.isFinite(d) ? d : null, ok1 = parseInt(dual, 2) === parseInt(hex, 16) && (dz === null || dz === parseInt(dual, 2)) && (dual === String(parseInt(dual, 2).toString(2)).padStart(dual.length, '0'));
     chk('A1 ' + a.id + ' Zeile ' + (r + 1) + ': Dezimal, Dual und Hex stimmen überein (parseInt)', ok1, d + ' / ' + dual + ' / ' + hex);
   }));
+  // A6: negative Logik aus den Gatterdefinitionen der Engine: f_neg(e) = NICHT f(NICHT e) muss die genannte Funktion sein
+  const a6 = P.get('A6');
+  if (a6) {
+    const TY = { 'Trennstufe': e => e[0], 'NICHT': e => !e[0], 'UND': e => e.every(Boolean), 'NAND': e => !e.every(Boolean), 'ODER': e => e.some(Boolean), 'NOR': e => !e.some(Boolean), 'XOR': e => e.filter(Boolean).length === 1, 'XNOR': e => e.filter(Boolean).length !== 1 };
+    const eng = { 'NICHT': 'not', 'UND': 'and', 'NAND': 'nand', 'ODER': 'or', 'NOR': 'nor', 'XOR': 'xor', 'XNOR': 'xnor' };
+    Object.keys(eng).forEach(n => chk('A6 Gatterdefinition «' + n + '» stimmt mit der Engine überein', [0, 1, 2, 3].every(k => { const e = [!!(k & 1), !!(k >> 1 & 1)], inp = n === 'NICHT' ? [e[0]] : e; return !!TY[n](inp) === !!E.PARTS[eng[n]].logic(inp); })));
+    a6.aufgaben.find(a => a.id === 'A6.1').zeilen.forEach(row => { const pos = row[0], neg = [].concat(row[1].a)[0], n = pos === 'NICHT' || pos === 'Trennstufe' ? 1 : 2;
+      let same = true; for (let k = 0; k < (1 << n); k++) { const e = Array.from({ length: n }, (_, i) => !!(k >> i & 1)); if (!TY[pos](e.map(x => !x)) !== !!TY[neg](e)) same = false; }
+      chk('A6.1 ' + pos + ' → ' + neg + ': NICHT f(NICHT e) = ' + neg + ' (Engine-Definition)', same); });
+  }
+  // A7, A8, A9: Soll-Tabellen gegen gewöhnliche Rechnung beziehungsweise gegen den Parser
+  const a7 = P.get('A7');
+  if (a7) { const t = a7.aufgaben.find(a => a.id === 'A7.1'); chk('A7.1 Förderband: A = 1 genau bei einem gedrückten Taster', t.zeilen.every(r => +[].concat(r[2].a)[0] === (+r[0] + +r[1] === 1 ? 1 : 0)));
+    const m = a7.aufgaben.find(a => a.id === 'A7.6'); chk('A7.6 Mehrheit: A = 1 bei mindestens zwei Einsen', m.zeilen.every(r => +[].concat(r[3].a)[0] === (+r[0] + +r[1] + +r[2] >= 2 ? 1 : 0))); }
+  const a8 = P.get('A8');
+  if (a8) {
+    const J = { 'A8.1': [(a, b) => a & b, (a, b) => b & a, (a, b) => a | b, (a, b) => b | a], 'A8.2': [(a, b, c) => (a & b) & c, (a, b, c) => a & (b & c)], 'A8.3': [(a, b, c) => a & (b | c), (a, b, c) => (a & b) | (a & c)],
+      'A8.4': [(a, b, c) => a | (b & c), (a, b, c) => (a | b) & (a | c)], 'A8.5': [(a, b) => 1 - (a & b), (a, b) => (1 - a) | (1 - b)], 'A8.6': [(a, b) => 1 - (a | b), (a, b) => (1 - a) & (1 - b)], 'A8.7': [(a, b) => a | (a & b), (a, b) => a & (a | b)] };
+    Object.keys(J).forEach(id => { const t = a8.aufgaben.find(a => a.id === id), n = t.kopf.length - J[id].length; chk('A8 ' + id + ' ' + t.titel + ': alle Spalten gegen JavaScript-Operatoren', t.zeilen.every(r => J[id].every((f, j) => +[].concat(r[n + j].a)[0] === f.apply(null, r.slice(0, n).map(Number))))); });
+    ['A8.1', 'A8.2', 'A8.3', 'A8.4', 'A8.5', 'A8.6', 'A8.7'].slice(1).forEach(id => { const t = a8.aufgaben.find(a => a.id === id), n = t.kopf.length - 2; chk('A8 ' + id + ': beide Seiten des Gesetzes sind in jeder Zeile gleich', t.zeilen.every(r => [].concat(r[n].a)[0] === [].concat(r[n + 1].a)[0] || id === 'A8.7')); });
+  }
+  const a9 = P.get('A9');
+  if (a9) { const REF = { 'A9.1': '/e1', 'A9.2': 'e1e2', 'A9.3': 'e1 v e2', 'A9.4': 'e1e2 v /e3', 'A9.5': 'e1/e2 v /e1e2', 'A9.6': 'e1/e2 v /e1e2' };
+    Object.keys(REF).forEach(id => { const a = a9.aufgaben.find(x => x.id === id), r = P.refOf({ ref: REF[id], n: a.n }), so = P.sollOf(a); chk('A9 ' + id + ': Soll-Funktion entspricht dem Ausdruck ' + REF[id], so.every((row, k) => (r.ones.indexOf(k) >= 0 ? 1 : 0) === row[0])); }); }
+  // A13: Musterschaltungen gegen gewöhnliche Arithmetik (durch die Engine gerechnet)
+  if (P.A13_MUSTER) {
+    const M = P.A13_MUSTER, tab = l => B.circuitTable(l).rows, bitsOf = (k, n) => Array.from({ length: n }, (_, i) => k >> i & 1);
+    let good = true; tab(M.half).forEach((r, k) => { const [a, b] = bitsOf(k, 2); if (a + b !== r[0] + 2 * r[1]) good = false; }); chk('A13 Halbaddierer: a + b = S + 2·C (Engine)', good);
+    good = true; tab(M.full).forEach((r, k) => { const [a, b, c] = bitsOf(k, 3); if (a + b + c !== r[0] + 2 * r[1]) good = false; }); chk('A13 Volladdierer: a + b + c = S + 2·Caus (Engine)', good);
+    good = true; tab(M.sub).forEach((r, k) => { const [a, b, c] = bitsOf(k, 3); if (a - b - c !== r[0] - 2 * r[1]) good = false; }); chk('A13 Vollsubtrahierer: a − b − Bein = D − 2·Baus (Engine)', good);
+    good = true; tab(M.kom1).forEach((r, k) => { const [a, b] = bitsOf(k, 2); if (r[0] !== +(a > b) || r[1] !== +(a === b) || r[2] !== +(a < b)) good = false; }); chk('A13 Komparator 1 Bit gegen > = < (Engine)', good);
+    const t4 = (function () { const net = E.buildNetlist(JSON.parse(JSON.stringify(M.kom4))), st = E.newState(), rows = []; for (let k = 0; k < 256; k++) { for (let i = 0; i < 8; i++) net.byId['E' + (i + 1)].props.closed = !!(k >> i & 1); const r = E.step(net, st, { noGroundFault: true }); rows.push(['L1', 'L2', 'L3'].map(id => (r.nodeV[net.pinNode[id + '.in']] || 0) > E.LOGIC.vth ? 1 : 0)); } return rows; })();
+    good = t4.every((r, k) => { const a = k & 15, b = k >> 4; return r[0] === +(a > b) && r[1] === +(a === b) && r[2] === +(a < b); }); chk('A13 Komparator 4 Bit: alle 256 Kombinationen gegen a > b, a = b, a < b (Engine)', good);
+    good = true; tab(M.mux2).forEach((r, k) => { const [d0, d1, s] = bitsOf(k, 3); if (r[0] !== (s ? d1 : d0)) good = false; }); chk('A13 Multiplexer 2:1 wählt D[S] (Engine)', good);
+    good = true; tab(M.mux4).forEach((r, k) => { const bits = bitsOf(k, 6), sel = bits[4] + 2 * bits[5]; if (r[0] !== bits[sel]) good = false; }); chk('A13 Multiplexer 4:1 wählt D[S1S0] (Engine, 64 Kombinationen)', good);
+    good = true; tab(M.demux).forEach((r, k) => { const [d, s0, s1] = bitsOf(k, 3), sel = s0 + 2 * s1; r.forEach((v, y) => { if (v !== (y === sel ? d : 0)) good = false; }); }); chk('A13 Demultiplexer 1:4 verteilt D auf Y[S1S0] (Engine)', good);
+  }
+  // A12: Paritätstabellen und Hamming(7,4) unabhängig nachgerechnet
+  const a12 = P.get('A12');
+  if (a12) {
+    const val = c => P.isAns(c) ? +[].concat(c.a)[0] : +c;
+    a12.aufgaben.find(a => a.id === 'A12.1').zeilen.forEach((r, i) => chk('A12.1 Zeile ' + (i + 1) + ': gerade Parität (Summe der Einsen gerade)', (val(r[0]) + val(r[1]) + val(r[2]) + val(r[3])) % 2 === 0));
+    a12.aufgaben.find(a => a.id === 'A12.3').zeilen.forEach((r, i) => chk('A12.3 Zeile ' + (i + 1) + ': Fehler genau bei ungerader Einsenzahl', val(r[4]) === (val(r[0]) + val(r[1]) + val(r[2]) + val(r[3])) % 2));
+    let allSyn = true, nSyn = 0;
+    a12.aufgaben.find(a => a.id === 'A12.6').zeilen.forEach(r => {
+      const d = [val(r[0]), val(r[1]), val(r[2]), val(r[3])], pp = [val(r[4]), val(r[5]), val(r[6])];
+      const cw = [pp[0], pp[1], d[0], pp[2], d[1], d[2], d[3]]; // Positionen 1 bis 7
+      const syn = w => (w[0] ^ w[2] ^ w[4] ^ w[6]) | ((w[1] ^ w[2] ^ w[5] ^ w[6]) << 1) | ((w[3] ^ w[4] ^ w[5] ^ w[6]) << 2);
+      if (syn(cw) !== 0) allSyn = false;
+      for (let i = 0; i < 7; i++) { const w = cw.slice(); w[i] ^= 1; nSyn++; if (syn(w) !== i + 1) allSyn = false; }
+    });
+    chk('A12.6 Hamming(7,4): fehlerfrei Syndrom 0, jedes gekippte Bit ergibt seine Positionsnummer (' + nSyn + ' Fehlerfälle)', allSyn && nSyn === 112);
+  }
+  // A11: Codes unabhängig (Definition: 3-Exzess = Ziffer + 3; Gray ändert pro Schritt genau ein Bit)
+  const a11 = P.get('A11');
+  if (a11) {
+    const t = a11.aufgaben.find(a => a.id === 'A11.1'), val = c => P.isAns(c) ? [].concat(c.a)[0] : c;
+    t.zeilen.forEach((r, i) => { const dz = +val(r[0]); chk('A11.1 Zeile ' + (i + 1) + ': BCD und 3-Exzess', parseInt(val(r[1]), 2) === dz && parseInt(val(r[2]), 2) === dz + 3); });
+    const g = t.zeilen.map(r => parseInt(val(r[3]), 2)); chk('A11.1 Gray-Folge: zwischen zwei Zeilen kippt genau ein Bit', g.slice(1).every((x, i) => { const dd = x ^ g[i]; return dd && !(dd & (dd - 1)); }));
+    const w = a11.aufgaben.find(a => a.id === 'A11.2').zeilen; let ok2 = true;
+    w.forEach(r => { const word = parseInt(r.slice(0, 4).join(''), 2), out = r.slice(4).map(c => [].concat(c.a)[0]); if (word >= 3 && word <= 12) { if (parseInt(out.join(''), 2) !== word - 3) ok2 = false; } else if (!out.every(x => x === 'X')) ok2 = false; });
+    chk('A11.2 Wandlertabelle: gültige Wörter ergeben Ziffer = Wort − 3, die übrigen sechs sind X', ok2 && w.length === 16);
+  }
   // Vereinfachungsaufgaben: der gegebene Ausdruck ist wirklich länger als die Minimalform (sonst gäbe es nichts zu vereinfachen)
   P.stations.forEach(s => s.aufgaben.forEach(a => { if (a.art === 'ausdruck' && a.gegeben) { const r = P.refOf(a), m = P.minimal(r.n, r.ones, r.dc), g = P.litCount(B.clean(B.parse(a.gegeben).ast)); chk(s.id + ' ' + a.id + ': «' + a.gegeben + '» hat ' + g + ' Buchstaben, Minimalform ' + m.minLits + ' – es gibt etwas zu vereinfachen', g > m.minLits); } }));
   // Alle Aufgaben mit Ausdruck/KV: die hinterlegte Minimalform gegen Brute Force

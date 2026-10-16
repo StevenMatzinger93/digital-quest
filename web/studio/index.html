@@ -341,7 +341,7 @@ body.beamer .dr text { font-size: inherit; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .pf-work { background: var(--karte); border: 1px solid var(--rand); border-radius: 12px; padding: 6px 18px 16px; min-height: 240px; }
 .pf-tw { overflow: auto; max-width: 100%; } .pf-tab { width: auto; font-family: var(--font-ui); font-size: 15px; } .pf-tab td, .pf-tab th { padding: 3px 10px; }
-.pf-cell { width: 64px; min-height: 36px; text-align: center; border: 1px solid var(--rand); border-radius: 6px; font-family: var(--font-mono); background: #fff; } .pf-cell.wide { width: 170px; }
+.pf-cell { width: 64px; min-height: 36px; text-align: center; border: 1px solid var(--rand); border-radius: 6px; font-family: var(--font-mono); background: #fff; } .pf-cell.wide { width: 130px; }
 .pf-cell.ok { border-color: var(--gut); background: #effaf4; } .pf-cell.bad { border-color: var(--schlecht); background: #fdeeed; }
 .pf-expr { font-family: var(--font-mono); font-size: 18px; min-height: 40px; } .pf-gegeben { font-family: var(--font-mono); font-size: 20px; background: var(--bg); border-radius: 8px; padding: 8px 12px; }
 .pf-prev { min-height: 24px; color: var(--grau); } .pf-msg { margin: 10px 0; min-height: 26px; } .pf-msg .ok, .pf-msg .bad, .pf-prev .bad { font-weight: 600; } .pf-msg .ok { color: var(--gut-text); } .pf-msg .bad, .pf-prev .bad { color: var(--sch-text); }
@@ -6995,8 +6995,8 @@ body.beamer .dr text { font-size: inherit; }
     and: 'M12 6H28A16 16 0 0 1 28 38H12Z', or: 'M12 6Q34 6 50 22Q34 38 12 38Q22 22 12 6Z', buf: 'M14 6L46 22L14 38Z', not: 'M14 6L44 22L14 38Z'
   };
   P.svgUS = function (art, neg, xor) {
-    var body = US[art === 'buf' || art === 'not' ? art : art], bubble = neg ? '<circle cx="' + (art === 'not' ? 48 : art === 'and' ? 56 : 54) + '" cy="22" r="4" fill="none" stroke="currentColor" stroke-width="2"/>' : '';
-    var out = neg ? (art === 'not' ? 52 : art === 'and' ? 60 : 58) : (art === 'and' ? 56 : art === 'or' ? 50 : 46);
+    var body = US[art], bubble = neg ? '<circle cx="' + (art === 'not' ? 48 : art === 'and' ? 48 : 54) + '" cy="22" r="4" fill="none" stroke="currentColor" stroke-width="2"/>' : '';
+    var out = neg ? (art === 'not' || art === 'and' ? 52 : 58) : (art === 'and' ? 44 : art === 'or' ? 50 : 46);
     return '<svg viewBox="0 0 72 44" width="72" height="44" class="pf-sym" role="img" aria-label="Gatter in US-Darstellung"><path d="' + body + '" fill="none" stroke="currentColor" stroke-width="2"/>' + (xor ? '<path d="M6 6Q16 22 6 38" fill="none" stroke="currentColor" stroke-width="2"/>' : '') + bubble +
       (art === 'buf' || art === 'not' ? '<path d="M2 22H14" stroke="currentColor" stroke-width="2"/>' : '<path d="M2 15H' + (xor ? 12 : 14) + 'M2 29H' + (xor ? 12 : 14) + '" stroke="currentColor" stroke-width="2"/>') + '<path d="M' + out + ' 22H70" stroke="currentColor" stroke-width="2"/></svg>';
   };
@@ -7036,6 +7036,31 @@ body.beamer .dr text { font-size: inherit; }
         { q: 'Wie viele Dualstellen entsprechen einer Hexadezimalziffer?', opt: ['2', '3', '4', '8'], richtig: 2, erkl: 'Eine Hexadezimalziffer hat 16 Werte, das sind genau 4 Bit.' },
         { q: 'Welche Dezimalzahl ist die Dualzahl 1000?', opt: ['4', '8', '10', '1000'], richtig: 1, erkl: 'Die einzige Eins hat die Wertigkeit 8.' },
         { q: 'Welche Ziffern gibt es im Hexadezimalsystem?', opt: ['0 bis 9', '0 bis 9 und A bis F', '0 bis 7', '0 und 1'], richtig: 1, erkl: 'Sechzehn Ziffern: 0 bis 9 und A bis F.' }] }
+    ]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_A02.js ==== */
+/* Lernpfad Station A2 – Logikfamilien TTL und CMOS. LABORSTATION: Die Messung macht man am Elektronik-Experimenter, die Software prüft sie nicht.
+ * Sie stellt das Messprotokoll bereit (Tabelle zum Eintragen, Speichern im Lernpfad-Fortschritt, Drucken); als erledigt markieren die Lernenden selbst.
+ * Bewusst keine Sollwerte: Datenblattwerte stehen im Datenblatt, Messwerte kommen vom Gerät. */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  var blatt = { titel: 'Datenblattwerte', kopf: ['Kenngrösse', '7400 (TTL)', '4027 (CMOS)'], zeilen: [
+    ['Versorgungsspannung', null, null], ['Eingangsspannung L, höchstens (V_IL)', null, null], ['Eingangsspannung H, mindestens (V_IH)', null, null], ['Ausgangsspannung L, höchstens (V_OL)', null, null],
+    ['Ausgangsspannung H, mindestens (V_OH)', null, null], ['Eingangsstrom bei L (I_IL)', null, null], ['Eingangsstrom bei H (I_IH)', null, null], ['Laufzeit (t_pd)', null, null], ['Leistungsaufnahme', null, null]] };
+  var ue = ['0,0', '0,4', '0,8', '1,0', '1,2', '1,4', '1,6', '2,0', '2,4', '2,8', '3,2', '4,0', '5,0'];
+  var mess = { titel: 'Übertragungskennlinie U_a = f(U_e)', kopf: ['U_e in V', 'U_a 7400 in V', 'U_a 74LS00 in V', 'U_a 74HC00 in V', 'U_a 4011 in V'], zeilen: ue.map(function (u) { return [u, null, null, null, null]; }) };
+  var ausw = { titel: 'Auswertung', kopf: ['Baustein', 'Schaltschwelle (U_e, bei der U_a kippt) in V', 'Bemerkung'], zeilen: ['7400', '74LS00', '74HC00', '4011'].map(function (n) { return [n, null, null]; }) };
+  P.station({
+    id: 'A2', teil: 'A', nr: 2, titel: 'Logikfamilien TTL und CMOS', kurz: 'Laborstation: Datenblattwerte und Kennlinien messen',
+    einfuehrung: '<p>Gatter gibt es in verschiedenen <b>Logikfamilien</b>. <b>TTL</b> (7400, 74LS00) ist aus bipolaren Transistoren gebaut, <b>CMOS</b> (74HC00, 4011, 4027) aus Feldeffekttransistoren. Beide verstehen dieselben 0 und 1, unterscheiden sich aber in Pegeln, Stromaufnahme, Geschwindigkeit und Empfindlichkeit.</p><p>In dieser Station machst du zwei Dinge <b>im Labor am Elektronik-Experimenter</b>:</p><ol><li>Du suchst im Datenblatt die Kennwerte eines TTL-Bausteins (7400) und eines CMOS-Bausteins (4027) heraus und trägst sie ein.</li><li>Du misst an vier Bausteinen die Übertragungskennlinie U<sub>a</sub> = f(U<sub>e</sub>): U<sub>e</sub> an einem NAND-Eingang einstellen (der andere Eingang liegt auf 1), U<sub>a</sub> mit dem Multimeter ablesen.</li></ol><p><b>Vorsicht:</b> Versorgung auf 5 V einstellen und kontrollieren, bevor du einschaltest. Ungebrauchte Eingänge anschliessen (Station A3).</p>',
+    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: false,
+    aufgaben: [
+      { id: 'A2.1', titel: 'Datenblattwerte eintragen', art: 'protokoll', tabellen: [blatt], text: '<p>Trage die Werte aus dem Datenblatt ein (mit Einheit). Die Software prüft sie nicht: Das Datenblatt ist die Lösung.</p><p>Das Protokoll wird in deinem Fortschritt gespeichert und lässt sich ausdrucken.</p>' },
+      { id: 'A2.2', titel: 'Kennlinien messen', art: 'protokoll', tabellen: [mess], text: '<p>Miss U<sub>a</sub> bei den angegebenen U<sub>e</sub> für alle vier Bausteine und trage die Werte ein. Zwischen 1,0 V und 2,8 V kippt der Ausgang: Wenn du die Stelle genauer treffen willst, miss dort zusätzliche Punkte und schreibe sie in die Notizen.</p>' },
+      { id: 'A2.3', titel: 'Auswertung', art: 'protokoll', tabellen: [ausw], text: '<p>Lies aus deiner Messung die <b>Schaltschwelle</b> jedes Bausteins ab: die Eingangsspannung, bei der der Ausgang von H nach L kippt. Notiere in der Bemerkung, was dir bei den Familien auffällt (Lage der Schwelle, Steilheit, Pegel bei 0 V).</p>' }
     ]
   });
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -7344,6 +7369,151 @@ body.beamer .dr text { font-size: inherit; }
   });
 })(typeof window !== 'undefined' ? window : globalThis);
 
+/* ==== studio/pfad/st_A11.js ==== */
+/* Lernpfad Station A11 – Code und Codewandler: BCD, 3-Exzess, Gray. Pflicht: Codewandler 3-Exzess nach BCD (Wahrheitstabelle, vier KV-Diagramme mit Don't-Care, Schaltung).
+ * Eingänge der Schaltung: E1 = Wertigkeit 1 … E4 = Wertigkeit 8; Ausgänge L1 = Wertigkeit 1 … L4 = Wertigkeit 8. Tabellen: höchste Wertigkeit links.
+ * Alles wird aus der Definition gerechnet: 3-Exzess-Wort w ist gültig für 3 ≤ w ≤ 12, die Ziffer ist w − 3; sonst Don't-Care. */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad, D = P.dual;
+  var bcd = function (w) { return w >= 3 && w <= 12 ? w - 3 : 'X'; };
+  // Aufgabe 1: Codetabelle 0…9
+  var codes = { kopf: ['Dezimal', 'BCD', '3-Exzess', 'Gray'], zeilen: [] };
+  for (var d = 0; d <= 9; d++) codes.zeilen.push([String(d), { a: D(d, 4), typ: 'bin' }, { a: D(d + 3, 4), typ: 'bin' }, { a: D(P.gray(d), 4), typ: 'bin' }]);
+  // Aufgabe 2: Wahrheitstabelle 3-Exzess → BCD. Tabelle: Wort w = [e4 e3 e2 e1] (MSB zuerst); Ausgänge A4 … A1
+  var wt = P.wahrheit({ ein: ['e4', 'e3', 'e2', 'e1'], aus: ['A4', 'A3', 'A2', 'A1'], f: function (e) { var v = bcd(P.wertMSB(e)); return v === 'X' ? ['X', 'X', 'X', 'X'] : [v >> 3 & 1, v >> 2 & 1, v >> 1 & 1, v & 1]; } });
+  // Soll für die Schaltung (e1 = Bit 0): Ausgang j = Bit j der Ziffer
+  var sollF = function (e) { var v = bcd(P.wertLSB(e)); return v === 'X' ? ['X', 'X', 'X', 'X'] : [v & 1, v >> 1 & 1, v >> 2 & 1, v >> 3 & 1]; };
+  var kvs = [1, 2, 4, 8].map(function (wert, j) {
+    var ones = P.einsen(4, sollF, j), dc = P.dcs(4, sollF, j);
+    return { id: 'A11.' + (3 + j), titel: 'KV-Diagramm für A' + wert, art: 'kv', n: 4, ones: ones, dc: dc,
+      text: '<p>Der Codewandler 3-Exzess → BCD hat für das Ausgangsbit <b>A' + wert + '</b> (Wertigkeit ' + wert + ') die Einsen <b>m(' + ones.join(', ') + ')</b>. Die Codewörter 0, 1, 2 und 13, 14, 15 kommen im 3-Exzess-Code nicht vor: Das sind die <b>Don\'t-Care</b> <b>d(' + dc.join(', ') + ')</b>. Zeichne die Päckchen (X darfst du dazunehmen) und gib die Minimalform an. e1 ist das niedrigste Bit des Codeworts.</p>',
+      hilfe: 'Ein X darfst du in ein Päckchen aufnehmen, wenn es dadurch grösser wird. Musst du aber nicht.' };
+  });
+  var gr = P.wahrheit({ ein: ['b3', 'b2', 'b1', 'b0'], aus: ['g3', 'g2', 'g1', 'g0'], f: function (e) { var g = P.gray(P.wertMSB(e)); return [g >> 3 & 1, g >> 2 & 1, g >> 1 & 1, g & 1]; } });
+  var xo = function (a, b) { return a ^ b; };
+  P.station({
+    id: 'A11', teil: 'A', nr: 11, titel: 'Code und Codewandler', kurz: 'BCD, 3-Exzess, Gray – und ein Codewandler selbst gebaut',
+    einfuehrung: '<p>Zahlen lassen sich auf viele Arten als Bitmuster schreiben – das sind <b>Codes</b>:</p><ul><li><b>BCD</b> (binary coded decimal): Jede Dezimalziffer wird einzeln als Dualzahl mit 4 Bit geschrieben. 57 ist 0101 0111.</li><li><b>3-Exzess:</b> wie BCD, aber zur Ziffer wird 3 addiert (Ziffer 0 = 0011). Praktisch beim Rechnen, weil der Übertrag bei der Addition von selbst entsteht.</li><li><b>Gray-Code:</b> Von einem Wert zum nächsten ändert sich <b>immer nur ein Bit</b>. Wichtig für Positionsgeber, weil beim Umschalten nie ein falscher Zwischenwert gelesen wird.</li></ul><p>Ein <b>Codewandler</b> ist eine Schaltung, die ein Codewort in ein anderes übersetzt. Du baust den Wandler 3-Exzess → BCD: Tabelle, Vereinfachung mit dem KV-Diagramm (die unmöglichen Codewörter sind Don\'t-Care) und Schaltung.</p>',
+    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    aufgaben: [
+      { id: 'A11.1', titel: 'Codetabelle 0 bis 9', art: 'tabelle', kopf: codes.kopf, zeilen: codes.zeilen, text: '<p>Fülle BCD, 3-Exzess und Gray (alle vierstellig) für die Dezimalziffern 0 bis 9 aus.</p>', hilfe: 'BCD = die Dualzahl. 3-Exzess: Ziffer plus 3, dann dual. Gray: Das höchste Bit bleibt, jedes weitere Bit = Dualbit XOR das Dualbit links davon.' },
+      { id: 'A11.2', titel: 'Wahrheitstabelle 3-Exzess → BCD', art: 'tabelle', kopf: wt.kopf, zeilen: wt.zeilen,
+        text: '<p>Eingang ist ein Codewort im <b>3-Exzess-Code</b> (e4 e3 e2 e1, e4 hat die Wertigkeit 8), Ausgang ist die Ziffer als <b>BCD</b> (A4 A3 A2 A1). Für Codewörter, die im 3-Exzess nicht vorkommen (0000 bis 0010 und 1101 bis 1111), schreibst du <b>X</b> (beliebig).</p>', hilfe: 'Codewort 0011 ist die Ziffer 0, also BCD 0000. Codewort 1100 ist die Ziffer 9, also BCD 1001.' }
+    ].concat(kvs, [
+      { id: 'A11.7', titel: 'Schaltung 3-Exzess → BCD', art: 'schaltung', n: 4, ausgaenge: 4, soll: P.sollAus(4, sollF), start: P.startNetz(4, 4),
+        muster: P.netzMinimal(4, [1, 2, 4, 8].map(function (w, j) { return { ones: P.einsen(4, sollF, j), dc: P.dcs(4, sollF, j) }; })),
+        text: '<p>Baue den Codewandler <b>3-Exzess → BCD</b>. Die Eingänge E1 bis E4 sind das Codewort (E1 = Wertigkeit 1, E4 = Wertigkeit 8), die Anzeigen L1 bis L4 die BCD-Ziffer (L1 = Wertigkeit 1, L4 = Wertigkeit 8). Bei den Codewörtern 0 bis 2 und 13 bis 15 darf die Anzeige zeigen, was sie will. Nimm die Minimalformen aus den KV-Diagrammen.</p>', hilfe: 'Vier Ausgänge, vier Schaltungen: Gemeinsame NICHT-Glieder für e1 bis e4 darfst du von allen Ausgängen aus benutzen.' },
+      { id: 'A11.8', titel: 'Dual → Gray: Tabelle', pflicht: false, art: 'tabelle', kopf: gr.kopf, zeilen: gr.zeilen, text: '<p><b>Freiwillig.</b> Wandle vierstellige Dualzahlen (b3 b2 b1 b0) in Gray-Code (g3 g2 g1 g0) um. Prüfe: Zwischen zwei aufeinanderfolgenden Zeilen ändert sich in der Gray-Spalte genau ein Bit.</p>' },
+      { id: 'A11.9', titel: 'Dual → Gray: Schaltung', pflicht: false, art: 'schaltung', n: 4, ausgaenge: 4, soll: P.sollAus(4, function (e) { var g = P.gray(P.wertLSB(e)); return [g & 1, g >> 1 & 1, g >> 2 & 1, g >> 3 & 1]; }), start: P.startNetz(4, 4),
+        muster: P.netz({ n: 4, gatter: [['U1', 'xor', ['E1', 'E2']], ['U2', 'xor', ['E2', 'E3']], ['U3', 'xor', ['E3', 'E4']]], aus: { L1: 'U1', L2: 'U2', L3: 'U3', L4: 'E4' } }),
+        text: '<p><b>Freiwillig.</b> Baue den Wandler Dual → Gray: E1 bis E4 sind b0 bis b3, die Anzeigen L1 bis L4 g0 bis g3. Mit XOR-Gattern geht es sehr einfach.</p>', hilfe: 'g3 = b3, und jedes weitere Gray-Bit ist b(i) XOR b(i+1).' }
+    ])
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_A12.js ==== */
+/* Lernpfad Station A12 – Kontrollinstanzen: Paritätsbit erzeugen und auswerten (gerade Parität), Hamming-Code als Zusatz (freiwillig).
+ * Alles aus der Definition gerechnet: P = e1 XOR e2 XOR e3 macht die Gesamtzahl der Einsen gerade; der Auswerter meldet F = 1, wenn die Zahl der Einsen ungerade ist.
+ * Hamming(7,4): p1 = d1 ⊕ d2 ⊕ d4, p2 = d1 ⊕ d3 ⊕ d4, p3 = d2 ⊕ d3 ⊕ d4 (Test: jede Einzelbitstörung hat ein eindeutiges Syndrom). */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  var par = function (e) { return e.reduce(function (a, b) { return a ^ b; }, 0); };
+  var pe = P.wahrheit({ ein: ['e1', 'e2', 'e3'], aus: ['P'], f: function (e) { return [par(e)]; } });
+  var pw = P.wahrheit({ ein: ['e1', 'e2', 'e3', 'P'], aus: ['F'], f: function (e) { return [par(e)]; } });
+  var h = P.wahrheit({ ein: ['d1', 'd2', 'd3', 'd4'], aus: ['p1', 'p2', 'p3'], f: function (e) { return [e[0] ^ e[1] ^ e[3], e[0] ^ e[2] ^ e[3], e[1] ^ e[2] ^ e[3]]; } });
+  var N = function (id, type, ins, props) { return [id, type, ins, props]; };
+  P.station({
+    id: 'A12', teil: 'A', nr: 12, titel: 'Kontrollinstanzen', kurz: 'Paritätsbit erzeugen und prüfen; Hamming-Code als Zusatz',
+    einfuehrung: '<p>Beim Übertragen oder Speichern kann ein Bit kippen. Ein <b>Paritätsbit</b> erkennt das: Der <b>Sender</b> hängt an jedes Datenwort ein Bit an, das die Zahl der Einsen <b>gerade</b> macht («gerade Parität»). Der <b>Empfänger</b> zählt die Einsen nach: Ist die Zahl ungerade, ist etwas schiefgegangen.</p><p>Die Schaltung dafür ist eine Kette aus <b>XOR</b>-Gattern: XOR ist 1, wenn die Zahl der Einsen ungerade ist.</p><p>Ein einzelner Bitfehler wird erkannt, zwei Fehler gleichzeitig nicht. Der <b>Hamming-Code</b> (freiwillig) geht weiter: Mit drei Prüfbits zu vier Datenbits erkennt er nicht nur den Fehler, sondern auch <b>welches</b> Bit kippte – und kann es korrigieren.</p>',
+    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    aufgaben: [
+      { id: 'A12.1', titel: 'Paritätsbit erzeugen: Tabelle', art: 'tabelle', kopf: pe.kopf, zeilen: pe.zeilen, text: '<p>Dreibit-Datenwort e1 e2 e3. Das Paritätsbit P soll die Gesamtzahl der Einsen (Daten <b>und</b> P) <b>gerade</b> machen. Fülle die Spalte P aus.</p>', hilfe: 'Zähle die Einsen in e1 e2 e3: Ungerade Zahl → P = 1, gerade Zahl → P = 0.' },
+      { id: 'A12.2', titel: 'Paritätsersteller bauen', art: 'schaltung', n: 3, ausgaenge: 1, f: function (e) { return [par(e)]; }, start: P.startNetz(3, 1),
+        muster: P.netz({ n: 3, gatter: [N('U1', 'xor', ['E1', 'E2']), N('U2', 'xor', ['U1', 'E3'])], aus: { L1: 'U2' } }), text: '<p>Baue den <b>Paritätsersteller</b> für drei Datenbits E1, E2, E3. Die Anzeige L1 ist das Paritätsbit P.</p>', hilfe: 'XOR hat 1 am Ausgang bei ungerader Zahl von Einsen. Zwei XOR hintereinander reichen.' },
+      { id: 'A12.3', titel: 'Paritätsauswerter: Tabelle', art: 'tabelle', kopf: pw.kopf, zeilen: pw.zeilen, text: '<p>Der Empfänger bekommt die drei Datenbits und das Paritätsbit P. Der Fehlerausgang <b>F</b> soll 1 sein, wenn die Zahl der Einsen in allen vier Bits <b>ungerade</b> ist (also ein Fehler vorliegt).</p>' },
+      { id: 'A12.4', titel: 'Paritätsauswerter bauen', art: 'schaltung', n: 4, ausgaenge: 1, f: function (e) { return [par(e)]; }, start: P.startNetz(4, 1),
+        muster: P.netz({ n: 4, gatter: [N('U1', 'xor', ['E1', 'E2']), N('U2', 'xor', ['E3', 'E4']), N('U3', 'xor', ['U1', 'U2'])], aus: { L1: 'U3' } }), text: '<p>Baue den <b>Paritätsauswerter</b>: E1, E2, E3 sind die Datenbits, E4 ist das Paritätsbit P. Die Anzeige L1 ist der Fehlerausgang F.</p>' },
+      { id: 'A12.5', titel: 'Prüffragen Parität', art: 'fragen', text: '<p>Vier kurze Fragen.</p>', fragen: [
+        { q: 'Ein Paritätsbit erkennt …', opt: ['jeden Fehler', 'jeden einzelnen Bitfehler', 'nur Fehler im Paritätsbit', 'keinen Fehler'], richtig: 1, erkl: 'Ein gekipptes Bit ändert die Zahl der Einsen um eins: gerade wird ungerade.' },
+        { q: 'Zwei Bits kippen gleichzeitig. Was meldet der Paritätsauswerter?', opt: ['Fehler', 'keinen Fehler', 'er fällt aus', 'er korrigiert'], richtig: 1, erkl: 'Die Zahl der Einsen ändert sich um 2, 0 oder −2 und bleibt gerade: Der Fehler bleibt unbemerkt.' },
+        { q: 'Welches Gatter eignet sich für die Paritätsbildung?', opt: ['UND', 'ODER', 'XOR', 'NAND'], richtig: 2, erkl: 'XOR zählt die Einsen modulo 2.' },
+        { q: 'Das Datenwort 1011 hat (gerade Parität) das Paritätsbit …', opt: ['0', '1'], richtig: 1, erkl: 'Drei Einsen sind ungerade: Das Paritätsbit 1 macht vier daraus.' }] },
+      { id: 'A12.6', titel: 'Hamming(7,4): Prüfbits', pflicht: false, art: 'tabelle', kopf: h.kopf, zeilen: h.zeilen,
+        text: '<p><b>Freiwillig.</b> Vier Datenbits d1 d2 d3 d4 bekommen drei Prüfbits: <b>p1 = d1 ⊕ d2 ⊕ d4</b>, <b>p2 = d1 ⊕ d3 ⊕ d4</b>, <b>p3 = d2 ⊕ d3 ⊕ d4</b> (⊕ = XOR). Fülle die Tabelle aus.</p>' },
+      { id: 'A12.7', titel: 'Hamming(7,4): Sender bauen', pflicht: false, art: 'schaltung', n: 4, ausgaenge: 3, f: function (e) { return [e[0] ^ e[1] ^ e[3], e[0] ^ e[2] ^ e[3], e[1] ^ e[2] ^ e[3]]; }, start: P.startNetz(4, 3),
+        muster: P.netz({ n: 4, gatter: [N('U1', 'xor', ['E1', 'E2', 'E4'], { inputs: 3 }), N('U2', 'xor', ['E1', 'E3', 'E4'], { inputs: 3 }), N('U3', 'xor', ['E2', 'E3', 'E4'], { inputs: 3 })], aus: { L1: 'U1', L2: 'U2', L3: 'U3' } }),
+        text: '<p><b>Freiwillig.</b> Baue die Prüfbit-Erzeugung des Hamming-Senders: E1 bis E4 sind d1 bis d4, die Anzeigen L1 bis L3 sind p1 bis p3. Ein XOR-Gatter hat auch drei Eingänge (Eigenschaftenfeld).</p>' },
+      { id: 'A12.8', titel: 'Prüffragen Hamming', pflicht: false, art: 'fragen', text: '<p><b>Freiwillig.</b></p>', fragen: [
+        { q: 'Wie viele Prüfbits braucht der Hamming-Code für vier Datenbits?', opt: ['1', '2', '3', '4'], richtig: 2, erkl: 'Drei Prüfbits unterscheiden sieben Fehlerstellen und «kein Fehler» (2³ = 8 Zustände).' },
+        { q: 'Was kann der Hamming-Code, was ein Paritätsbit nicht kann?', opt: ['Zwei Fehler erkennen', 'Die Stelle eines einzelnen Fehlers finden und das Bit korrigieren', 'Daten verschlüsseln', 'Daten komprimieren'], richtig: 1, erkl: 'Die drei Prüfergebnisse ergeben zusammen die Nummer des gekippten Bits.' }] }
+    ]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_A13.js ==== */
+/* Lernpfad Station A13 – Datenkoordination: Multiplexer, Demultiplexer, Komparator, Halbaddierer, Volladdierer, Vollsubtrahierer – je bauen und prüfen lassen.
+ * Eingänge der Schaltungen: E1, E2 … in der Reihenfolge, die in der Aufgabe steht. Die Tabellen und Soll-Werte werden aus je EINER Funktion gerechnet;
+ * der Test rechnet Addition, Subtraktion, Vergleich und Auswahl mit gewöhnlicher Arithmetik gegen die Musterschaltungen nach (nicht gegen die Funktionen). */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  var N = function (id, type, ins, props) { return [id, type, ins, props]; };
+  var mux2 = function (d0, d1, s) { return s ? d1 : d0; };
+  var T = P.wahrheit({ ein: ['S', 'D1', 'D0'], aus: ['A'], f: function (e) { return [mux2(e[2], e[1], e[0])]; } });          // Tabelle: S links
+  var half = function (a, b) { return [a ^ b, a & b]; }, full = function (a, b, c) { return [a ^ b ^ c, (a & b) | ((a ^ b) & c)]; };
+  var sub = function (a, b, c) { return [a ^ b ^ c, ((1 - a) & b) | ((1 - (a ^ b)) & c)]; };
+  var kom1 = function (a, b) { return [a & (1 - b), (a === b) ? 1 : 0, (1 - a) & b]; };
+  var tHalf = P.wahrheit({ ein: ['a', 'b'], aus: ['S', 'C'], f: function (e) { return half(e[0], e[1]); } });
+  var tFull = P.wahrheit({ ein: ['a', 'b', 'c(ein)'], aus: ['S', 'C(aus)'], f: function (e) { return full(e[0], e[1], e[2]); } });
+  var tSub = P.wahrheit({ ein: ['a', 'b', 'B(ein)'], aus: ['D', 'B(aus)'], f: function (e) { return sub(e[0], e[1], e[2]); } });
+  var tKom = P.wahrheit({ ein: ['a', 'b'], aus: ['a > b', 'a = b', 'a < b'], f: function (e) { return kom1(e[0], e[1]); } });
+  // Musterschaltungen
+  var mMux2 = P.netz({ n: 3, gatter: [N('U1', 'not', ['E3']), N('U2', 'and', ['U1', 'E1']), N('U3', 'and', ['E3', 'E2']), N('U4', 'or', ['U2', 'U3'])], aus: { L1: 'U4' } });
+  var mMux4 = P.netz({ n: 6, gatter: [N('U1', 'not', ['E5']), N('U2', 'not', ['E6']),
+    N('U3', 'and', ['E1', 'U1', 'U2'], { inputs: 3 }), N('U4', 'and', ['E2', 'E5', 'U2'], { inputs: 3 }), N('U5', 'and', ['E3', 'U1', 'E6'], { inputs: 3 }), N('U6', 'and', ['E4', 'E5', 'E6'], { inputs: 3 }), N('U7', 'or', ['U3', 'U4', 'U5', 'U6'], { inputs: 4 })], aus: { L1: 'U7' } });
+  var mDemux = P.netz({ n: 3, gatter: [N('U1', 'not', ['E2']), N('U2', 'not', ['E3']), N('U3', 'and', ['E1', 'U1', 'U2'], { inputs: 3 }), N('U4', 'and', ['E1', 'E2', 'U2'], { inputs: 3 }), N('U5', 'and', ['E1', 'U1', 'E3'], { inputs: 3 }), N('U6', 'and', ['E1', 'E2', 'E3'], { inputs: 3 })], aus: { L1: 'U3', L2: 'U4', L3: 'U5', L4: 'U6' } });
+  var mKom1 = P.netz({ n: 2, gatter: [N('U1', 'not', ['E2']), N('U2', 'and', ['E1', 'U1']), N('U3', 'xnor', ['E1', 'E2']), N('U4', 'not', ['E1']), N('U5', 'and', ['U4', 'E2'])], aus: { L1: 'U2', L2: 'U3', L3: 'U5' } });
+  var mKom4 = P.netz({ n: 8, gatter: [N('N5', 'not', ['E5']), N('N6', 'not', ['E6']), N('N7', 'not', ['E7']), N('N8', 'not', ['E8']), N('X0', 'xnor', ['E1', 'E5']), N('X1', 'xnor', ['E2', 'E6']), N('X2', 'xnor', ['E3', 'E7']), N('X3', 'xnor', ['E4', 'E8']),
+    N('G0', 'and', ['E1', 'N5']), N('G1', 'and', ['E2', 'N6']), N('G2', 'and', ['E3', 'N7']), N('G3', 'and', ['E4', 'N8']), N('T1', 'and', ['X3', 'G2']), N('T2', 'and', ['X3', 'X2', 'G1'], { inputs: 3 }), N('T3', 'and', ['X3', 'X2', 'X1', 'G0'], { inputs: 4 }),
+    N('GT', 'or', ['G3', 'T1', 'T2', 'T3'], { inputs: 4 }), N('EQ', 'and', ['X0', 'X1', 'X2', 'X3'], { inputs: 4 }), N('LT', 'nor', ['GT', 'EQ'])], aus: { L1: 'GT', L2: 'EQ', L3: 'LT' } });
+  var mHalf = P.netz({ n: 2, gatter: [N('U1', 'xor', ['E1', 'E2']), N('U2', 'and', ['E1', 'E2'])], aus: { L1: 'U1', L2: 'U2' } });
+  var mFull = P.netz({ n: 3, gatter: [N('U1', 'xor', ['E1', 'E2']), N('U2', 'xor', ['U1', 'E3']), N('U3', 'and', ['E1', 'E2']), N('U4', 'and', ['U1', 'E3']), N('U5', 'or', ['U3', 'U4'])], aus: { L1: 'U2', L2: 'U5' } });
+  var mSub = P.netz({ n: 3, gatter: [N('U1', 'xor', ['E1', 'E2']), N('U2', 'xor', ['U1', 'E3']), N('U3', 'not', ['E1']), N('U4', 'and', ['U3', 'E2']), N('U5', 'not', ['U1']), N('U6', 'and', ['U5', 'E3']), N('U7', 'or', ['U4', 'U6'])], aus: { L1: 'U2', L2: 'U7' } });
+  P.A13_MUSTER = { mux2: mMux2, mux4: mMux4, demux: mDemux, kom1: mKom1, kom4: mKom4, half: mHalf, full: mFull, sub: mSub }; // für den Test
+  P.station({
+    id: 'A13', teil: 'A', nr: 13, titel: 'Datenkoordination', kurz: 'Multiplexer, Demultiplexer, Komparator, Addierer, Subtrahierer',
+    einfuehrung: '<p>Hier entstehen die Bausteine, mit denen ein Rechner Daten verteilt und verarbeitet:</p><ul><li>Der <b>Multiplexer</b> wählt mit Steuereingängen einen von mehreren Dateneingängen aus und leitet ihn zum Ausgang. Der <b>Demultiplexer</b> macht das Umgekehrte: Er verteilt einen Eingang auf einen von mehreren Ausgängen.</li><li>Der <b>Komparator</b> vergleicht zwei Zahlen: grösser, gleich, kleiner.</li><li>Der <b>Halbaddierer</b> addiert zwei Bit (Summe S und Übertrag C). Der <b>Volladdierer</b> nimmt zusätzlich den Übertrag der Stelle davor (c<sub>ein</sub>) – so lassen sich mehrstellige Zahlen addieren. Der <b>Vollsubtrahierer</b> rechnet entsprechend mit einem Borger.</li></ul><p>Jeden Baustein baust du, die Software schaltet alle Eingangskombinationen durch und vergleicht.</p>',
+    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    aufgaben: [
+      { id: 'A13.1', titel: 'Multiplexer 2:1: Tabelle', art: 'tabelle', kopf: T.kopf, zeilen: T.zeilen, text: '<p>Ein Multiplexer mit zwei Dateneingängen D0, D1 und einem Steuereingang S: Bei <b>S = 0</b> erscheint D0 am Ausgang A, bei <b>S = 1</b> erscheint D1. Fülle die Tabelle aus.</p>' },
+      { id: 'A13.2', titel: 'Multiplexer 2:1 bauen', art: 'schaltung', n: 3, ausgaenge: 1, f: function (e) { return [mux2(e[0], e[1], e[2])]; }, start: P.startNetz(3, 1), muster: mMux2,
+        text: '<p>Baue den Multiplexer 2:1. <b>E1 = D0</b>, <b>E2 = D1</b>, <b>E3 = S</b>, Anzeige L1 = A.</p>', hilfe: 'A = /S D0 v S D1: Zwei UND-Gatter, von denen immer nur eines freigegeben ist, dann ein ODER.' },
+      { id: 'A13.3', titel: 'Multiplexer 4:1 bauen', art: 'schaltung', n: 6, ausgaenge: 1, f: function (e) { var s = e[4] + 2 * e[5]; return [e[s]]; }, start: P.startNetz(6, 1), muster: mMux4,
+        text: '<p>Baue einen Multiplexer 4:1. <b>E1 bis E4 = D0 bis D3</b> (Daten), <b>E5 = S0</b> (niedrige Steuerstelle), <b>E6 = S1</b> (hohe Steuerstelle). Die Nummer des gewählten Eingangs ist S1 S0 als Dualzahl. Anzeige L1 = A.</p>', hilfe: 'Vier UND-Gatter mit drei Eingängen (ein Dateneingang und die zwei Steuerleitungen, passend invertiert), ein ODER mit vier Eingängen. Die Eingangszahl steht im Eigenschaftenfeld.' },
+      { id: 'A13.4', titel: 'Demultiplexer 1:4 bauen', art: 'schaltung', n: 3, ausgaenge: 4, f: function (e) { var s = e[1] + 2 * e[2]; return [0, 1, 2, 3].map(function (k) { return k === s ? e[0] : 0; }); }, start: P.startNetz(3, 4), muster: mDemux,
+        text: '<p>Baue einen Demultiplexer 1:4. <b>E1 = D</b> (Daten), <b>E2 = S0</b>, <b>E3 = S1</b>. Die Anzeigen <b>L1 bis L4 = Y0 bis Y3</b>: Der Ausgang, dessen Nummer S1 S0 ist, bekommt D, alle anderen sind 0.</p>', hilfe: 'Vier UND-Gatter: D und die Steuerleitungen so invertiert, dass genau eine Kombination durchlässt.' },
+      { id: 'A13.5', titel: 'Komparator 1 Bit: Tabelle', art: 'tabelle', kopf: tKom.kopf, zeilen: tKom.zeilen, text: '<p>Der 1-Bit-Komparator vergleicht a und b und meldet auf drei Ausgängen: a grösser b, a gleich b, a kleiner b. Fülle die Tabelle aus.</p>' },
+      { id: 'A13.6', titel: 'Komparator 1 Bit bauen', art: 'schaltung', n: 2, ausgaenge: 3, f: function (e) { return kom1(e[0], e[1]); }, start: P.startNetz(2, 3), muster: mKom1,
+        text: '<p>Baue den 1-Bit-Komparator. <b>E1 = a</b>, <b>E2 = b</b>, <b>L1 = (a &gt; b)</b>, <b>L2 = (a = b)</b>, <b>L3 = (a &lt; b)</b>.</p>', hilfe: 'a > b heisst: a = 1 und b = 0. a = b ist das XNOR.' },
+      { id: 'A13.7', titel: '4-Bit-Komparator bauen', pflicht: false, art: 'schaltung', n: 8, ausgaenge: 3, f: function (e) { var a = P.wertLSB(e.slice(0, 4)), b = P.wertLSB(e.slice(4)); return [a > b ? 1 : 0, a === b ? 1 : 0, a < b ? 1 : 0]; }, start: P.startNetz(8, 3), muster: mKom4,
+        text: '<p><b>Freiwillig.</b> Baue einen Komparator für zwei vierstellige Zahlen. <b>E1 bis E4 = A0 bis A3</b>, <b>E5 bis E8 = B0 bis B3</b> (A3 und B3 sind die höchsten Stellen). <b>L1 = (A &gt; B)</b>, <b>L2 = (A = B)</b>, <b>L3 = (A &lt; B)</b>. Die Software schaltet alle 256 Kombinationen durch.</p>', hilfe: 'Beginne bei der höchsten Stelle: Ist sie verschieden, entscheidet sie. Sind beide gleich, entscheidet die nächste. A = B, wenn alle vier Stellen gleich sind (XNOR je Stelle, dann UND). A < B ist «weder grösser noch gleich».' },
+      { id: 'A13.8', titel: 'Halbaddierer: Tabelle', art: 'tabelle', kopf: tHalf.kopf, zeilen: tHalf.zeilen, text: '<p>Der <b>Halbaddierer</b> addiert zwei Bit a und b: S ist die Summenstelle, C der Übertrag (Carry). 1 + 1 ergibt dual 10: S = 0, C = 1. Fülle die Tabelle aus.</p>' },
+      { id: 'A13.9', titel: 'Halbaddierer bauen', art: 'schaltung', n: 2, ausgaenge: 2, f: function (e) { return half(e[0], e[1]); }, start: P.startNetz(2, 2), muster: mHalf, text: '<p>Baue den Halbaddierer: <b>E1 = a</b>, <b>E2 = b</b>, <b>L1 = S</b>, <b>L2 = C</b>.</p>', hilfe: 'S ist ein XOR, C ein UND.' },
+      { id: 'A13.10', titel: 'Volladdierer: Tabelle', art: 'tabelle', kopf: tFull.kopf, zeilen: tFull.zeilen, text: '<p>Der <b>Volladdierer</b> addiert drei Bit: a, b und den Übertrag der Stelle davor (c<sub>ein</sub>). Ausgänge: Summe S und Übertrag C<sub>aus</sub> für die nächste Stelle. Fülle die Tabelle aus (a + b + c<sub>ein</sub> als Dualzahl: höhere Stelle = C<sub>aus</sub>).</p>' },
+      { id: 'A13.11', titel: 'Volladdierer bauen', art: 'schaltung', n: 3, ausgaenge: 2, f: function (e) { return full(e[0], e[1], e[2]); }, start: P.startNetz(3, 2), muster: mFull, text: '<p>Baue den Volladdierer: <b>E1 = a</b>, <b>E2 = b</b>, <b>E3 = c<sub>ein</sub></b>, <b>L1 = S</b>, <b>L2 = C<sub>aus</sub></b>.</p>', hilfe: 'Zwei Halbaddierer hintereinander, die beiden Überträge mit ODER verbunden.' },
+      { id: 'A13.12', titel: 'Vollsubtrahierer: Tabelle', art: 'tabelle', kopf: tSub.kopf, zeilen: tSub.zeilen, text: '<p>Der <b>Vollsubtrahierer</b> rechnet a − b − B<sub>ein</sub> (B<sub>ein</sub> = Borger von der Stelle davor). Ausgänge: Differenz D und Borger B<sub>aus</sub> für die nächste Stelle. Es muss immer gelten: a − b − B<sub>ein</sub> = D − 2 · B<sub>aus</sub>.</p>' },
+      { id: 'A13.13', titel: 'Vollsubtrahierer bauen', art: 'schaltung', n: 3, ausgaenge: 2, f: function (e) { return sub(e[0], e[1], e[2]); }, start: P.startNetz(3, 2), muster: mSub, text: '<p>Baue den Vollsubtrahierer: <b>E1 = a</b>, <b>E2 = b</b>, <b>E3 = B<sub>ein</sub></b>, <b>L1 = D</b>, <b>L2 = B<sub>aus</sub></b>.</p>', hilfe: 'Die Differenz D ist dieselbe Dreier-Kette aus XOR wie beim Addierer. Der Borger entsteht, wenn a kleiner ist als b + B(ein).' },
+      { id: 'A13.14', titel: 'Prüffragen Datenkoordination', art: 'fragen', text: '<p>Vier kurze Fragen.</p>', fragen: [
+        { q: 'Wie viele Steuereingänge braucht ein Multiplexer mit 8 Dateneingängen?', opt: ['2', '3', '4', '8'], richtig: 1, erkl: '2³ = 8: Drei Steuerbits wählen einen von acht Eingängen.' },
+        { q: 'Aus wie vielen Halbaddierern (plus einem ODER) besteht ein Volladdierer?', opt: ['1', '2', '3', '4'], richtig: 1, erkl: 'Der erste addiert a und b, der zweite addiert den Übertrag von davor.' },
+        { q: 'Welches Gatter liefert die Summenstelle des Halbaddierers?', opt: ['UND', 'ODER', 'XOR', 'NAND'], richtig: 2, erkl: '0+0 = 0, 0+1 = 1, 1+0 = 1, 1+1 = 0 (mit Übertrag): das ist XOR.' },
+        { q: 'Ein Demultiplexer 1:4 hat …', opt: ['1 Dateneingang, 2 Steuereingänge, 4 Ausgänge', '4 Dateneingänge, 1 Ausgang', '2 Dateneingänge, 4 Ausgänge', '1 Dateneingang, 4 Steuereingänge'], richtig: 0, erkl: 'Zwei Steuerbits unterscheiden die vier Ausgänge.' }] }
+    ]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
 /* ==== studio/pfad/ui.js ==== */
 /* Digital Quest Studio – Lernpfad: Oberfläche (Nachtlauf 2, Block 2)
  * Eigener Bereich über dem Editor: Stationsliste, Station mit Aufgaben, Arbeitsfläche je Prüfart. Schaltungsaufgaben wechseln in den Editor
@@ -7513,7 +7683,7 @@ body.beamer .dr text { font-size: inherit; }
     function lbl(b, k, first) { var g = b === 1 ? k : GRAY[k], s = []; for (var i = b - 1; i >= 0; i--) { var nm = names[first + i]; s.push(g >> i & 1 ? nm : '<tspan class="ovt">' + nm + '̅</tspan>'); } return s.join(' '); }
     var s = '<svg class="kv" viewBox="0 0 ' + (ox + C * cw + 20) + ' ' + (oy + R * ch + 20) + '" role="img" aria-label="KV-Diagramm mit ' + n + ' Eingängen">', r, c;
     for (c = 0; c < C; c++) s += '<text class="kv-h" x="' + (ox + c * cw + cw / 2) + '" y="' + (oy - 10) + '">' + lbl(L[1], c, 0) + '</text>';
-    for (r = 0; r < R; r++) s += '<text class="kv-h" x="' + (ox - 10) + '" y="' + (oy + r * ch + ch / 2 + 5) + '" text-anchor="end">' + lbl(L[0], r, L[1]) + '</text>';
+    for (r = 0; r < R; r++) s += '<text class="kv-h" x="' + (ox - 10) + '" y="' + (oy + r * ch + ch / 2 + 5) + '" style="text-anchor:end">' + lbl(L[0], r, L[1]) + '</text>';
     for (r = 0; r < R; r++) for (c = 0; c < C; c++) {
       var m = kvCellNr(n, r, c), v = on[m] ? '1' : dc[m] ? 'X' : '0', sel = kv.sel.indexOf(m) >= 0;
       s += '<g class="kv-cell edit' + (sel ? ' sel' : '') + '" data-m="' + m + '" tabindex="0" role="button" aria-label="Feld ' + m + ' Wert ' + v + (sel ? ' ausgewählt' : '') + '"><rect x="' + (ox + c * cw) + '" y="' + (oy + r * ch) + '" width="' + cw + '" height="' + ch + '"/><text class="kv-v' + (v === '1' ? ' one' : v === 'X' ? ' dc' : '') + '" x="' + (ox + c * cw + cw / 2) + '" y="' + (oy + r * ch + ch / 2 + 7) + '">' + v + '</text><text class="kv-m" x="' + (ox + c * cw + 5) + '" y="' + (oy + r * ch + 12) + '">' + m + '</text></g>';

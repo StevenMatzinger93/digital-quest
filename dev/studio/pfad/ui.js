@@ -166,7 +166,7 @@
     function lbl(b, k, first) { var g = b === 1 ? k : GRAY[k], s = []; for (var i = b - 1; i >= 0; i--) { var nm = names[first + i]; s.push(g >> i & 1 ? nm : '<tspan class="ovt">' + nm + '̅</tspan>'); } return s.join(' '); }
     var s = '<svg class="kv" viewBox="0 0 ' + (ox + C * cw + 20) + ' ' + (oy + R * ch + 20) + '" role="img" aria-label="KV-Diagramm mit ' + n + ' Eingängen">', r, c;
     for (c = 0; c < C; c++) s += '<text class="kv-h" x="' + (ox + c * cw + cw / 2) + '" y="' + (oy - 10) + '">' + lbl(L[1], c, 0) + '</text>';
-    for (r = 0; r < R; r++) s += '<text class="kv-h" x="' + (ox - 10) + '" y="' + (oy + r * ch + ch / 2 + 5) + '" text-anchor="end">' + lbl(L[0], r, L[1]) + '</text>';
+    for (r = 0; r < R; r++) s += '<text class="kv-h" x="' + (ox - 10) + '" y="' + (oy + r * ch + ch / 2 + 5) + '" style="text-anchor:end">' + lbl(L[0], r, L[1]) + '</text>';
     for (r = 0; r < R; r++) for (c = 0; c < C; c++) {
       var m = kvCellNr(n, r, c), v = on[m] ? '1' : dc[m] ? 'X' : '0', sel = kv.sel.indexOf(m) >= 0;
       s += '<g class="kv-cell edit' + (sel ? ' sel' : '') + '" data-m="' + m + '" tabindex="0" role="button" aria-label="Feld ' + m + ' Wert ' + v + (sel ? ' ausgewählt' : '') + '"><rect x="' + (ox + c * cw) + '" y="' + (oy + r * ch) + '" width="' + cw + '" height="' + ch + '"/><text class="kv-v' + (v === '1' ? ' one' : v === 'X' ? ' dc' : '') + '" x="' + (ox + c * cw + cw / 2) + '" y="' + (oy + r * ch + ch / 2 + 7) + '">' + v + '</text><text class="kv-m" x="' + (ox + c * cw + 5) + '" y="' + (oy + r * ch + 12) + '">' + m + '</text></g>';

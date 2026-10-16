@@ -332,7 +332,7 @@ body.beamer .dr text { font-size: inherit; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .pf-work { background: var(--karte); border: 1px solid var(--rand); border-radius: 12px; padding: 6px 18px 16px; min-height: 240px; }
 .pf-tw { overflow: auto; max-width: 100%; } .pf-tab { width: auto; font-family: var(--font-ui); font-size: 15px; } .pf-tab td, .pf-tab th { padding: 3px 10px; }
-.pf-cell { width: 64px; min-height: 36px; text-align: center; border: 1px solid var(--rand); border-radius: 6px; font-family: var(--font-mono); background: #fff; } .pf-cell.wide { width: 170px; }
+.pf-cell { width: 64px; min-height: 36px; text-align: center; border: 1px solid var(--rand); border-radius: 6px; font-family: var(--font-mono); background: #fff; } .pf-cell.wide { width: 130px; }
 .pf-cell.ok { border-color: var(--gut); background: #effaf4; } .pf-cell.bad { border-color: var(--schlecht); background: #fdeeed; }
 .pf-expr { font-family: var(--font-mono); font-size: 18px; min-height: 40px; } .pf-gegeben { font-family: var(--font-mono); font-size: 20px; background: var(--bg); border-radius: 8px; padding: 8px 12px; }
 .pf-prev { min-height: 24px; color: var(--grau); } .pf-msg { margin: 10px 0; min-height: 26px; } .pf-msg .ok, .pf-msg .bad, .pf-prev .bad { font-weight: 600; } .pf-msg .ok { color: var(--gut-text); } .pf-msg .bad, .pf-prev .bad { color: var(--sch-text); }

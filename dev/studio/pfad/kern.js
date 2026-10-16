@@ -210,8 +210,22 @@
     return rows;
   }
   P.sollOf = sollOf;
+  /* Aufbau prüfen: erlaubte Typen (nur), Zahl der Bauteile je Typ (limit), Mindestzahl (min), Gatter mit höchstens maxEingaenge Eingängen, keine offenen Eingänge. Gibt den Text des ersten Mangels oder null. */
+  function strukturPruefen(a, layout) {
+    var nur = a.nur || (a.art === 'nand' ? ['nand'] : null), limit = a.limit || null, cnt = P.zaehle(layout);
+    if (nur) { var fremd = Object.keys(cnt).filter(function (t) { return !GRUND[t] && nur.indexOf(t) < 0; }); if (fremd.length) return 'Hier sind nur ' + nur.map(typName).join(' und ') + ' erlaubt – ' + typName(fremd[0]) + ' ist nicht dabei.'; }
+    if (limit) {
+      var gates = gateParts(layout).length;
+      for (var t in limit) { var have = t === 'gates' ? gates : (cnt[t] || 0); if (have > limit[t]) return (t === 'gates' ? 'Gatter' : typName(t)) + ': ' + have + ' verbaut, erlaubt sind höchstens ' + limit[t] + (a.limitText ? ' (' + a.limitText + ')' : '') + '.'; }
+    }
+    if (a.min) for (var mt in a.min) { var hv = mt === 'gates' ? gateParts(layout).length : (cnt[mt] || 0); if (hv < a.min[mt]) return (mt === 'gates' ? 'Die Schaltung braucht mindestens ' + a.min[mt] + ' Gatter' : 'Die Aufgabe verlangt mindestens ' + a.min[mt] + ' × ' + typName(mt)) + (mt === 'gates' ? ' – nur Draht von e1 zur Anzeige zählt nicht.' : '.'); }
+    if (a.maxEingaenge) { var breit = layout.parts.filter(function (p) { var d = E.PARTS[p.type]; return d && d.logic && d.multi && ((p.props && p.props.inputs) || d.props.inputs || 2) > a.maxEingaenge; })[0]; if (breit) return 'Das Gatter ' + breit.id + ' hat mehr als ' + a.maxEingaenge + ' Eingänge – hier sind nur Gatter mit höchstens ' + a.maxEingaenge + ' Eingängen erlaubt (wie im IC).'; }
+    var offen = offeneEingaenge(layout); if (offen.length && a.offeneOk !== true) return 'Der Eingang ' + offen[0] + ' ist offen. Offene Eingänge gibt es nicht: Jeden Eingang an einen Ausgang oder einen Pegelschalter anschliessen.';
+    if (a.props) for (var i = 0; i < a.props.length; i++) { var pr = a.props[i], teil = layout.parts.filter(function (p) { return p.id === pr.id; })[0]; var wert = teil ? (teil.props && teil.props[pr.k] !== undefined ? teil.props[pr.k] : E.PARTS[teil.type].props[pr.k]) : undefined; if (teil && wert !== pr.v) return 'Bei ' + pr.id + ' ist «' + (pr.name || pr.k) + '» falsch eingestellt (' + (pr.zeige ? pr.zeige(wert) : wert) + ').'; }
+    return null;
+  }
   P.pruefeSchaltung = function (a, layout) {
-    var n = a.n, nur = a.nur || (a.art === 'nand' ? ['nand'] : null), limit = a.limit || null, mel = [];
+    var n = a.n, nur = a.nur || (a.art === 'nand' ? ['nand'] : null);
     if (!layout || !layout.parts || !layout.parts.length) return bad('Die Zeichenfläche ist leer.');
     var ins = B.inputsOf(layout), want = []; for (var i = 1; i <= n; i++) want.push('E' + i);
     var haveIds = ins.map(function (x) { return x.id; });
@@ -221,16 +235,7 @@
     var leds = layout.parts.filter(function (p) { return p.type === 'logicled'; }).sort(function (x, y) { return x.id < y.id ? -1 : 1; }), nOut = a.ausgaenge || 1;
     if (leds.length < nOut) return bad('Es fehlt eine Logikanzeige für den Ausgang' + (nOut > 1 ? ' (verlangt: ' + nOut + ')' : '') + '.');
     if (leds.length > nOut) return bad('Es gibt mehr Logikanzeigen als Ausgänge (verlangt: ' + nOut + ').');
-    // Aufbau: erlaubte Typen und Zahl der Gatter je Typ
-    var cnt = P.zaehle(layout);
-    if (nur) { var fremd = Object.keys(cnt).filter(function (t) { return !GRUND[t] && nur.indexOf(t) < 0; }); if (fremd.length) return bad('Hier sind nur ' + nur.map(typName).join(' und ') + ' erlaubt – ' + typName(fremd[0]) + ' ist nicht dabei.'); }
-    if (limit) {
-      var gates = gateParts(layout).length;
-      for (var t in limit) { var have = t === 'gates' ? gates : (cnt[t] || 0); if (have > limit[t]) return bad((t === 'gates' ? 'Gatter' : typName(t)) + ': ' + have + ' verbaut, erlaubt sind höchstens ' + limit[t] + (a.limitText ? ' (' + a.limitText + ')' : '') + '.'); }
-    }
-    if (a.min) for (var mt in a.min) { var hv = mt === 'gates' ? gateParts(layout).length : (cnt[mt] || 0); if (hv < a.min[mt]) return bad((mt === 'gates' ? 'Die Schaltung braucht mindestens ' + a.min[mt] + ' Gatter' : 'Die Aufgabe verlangt mindestens ' + a.min[mt] + ' × ' + typName(mt)) + ' – nur Draht von e1 zur Anzeige zählt nicht.'); }
-    if (a.maxEingaenge) { var breit = layout.parts.filter(function (p) { var d = E.PARTS[p.type]; return d && d.logic && d.multi && ((p.props && p.props.inputs) || d.props.inputs || 2) > a.maxEingaenge; })[0]; if (breit) return bad('Das Gatter ' + breit.id + ' hat mehr als ' + a.maxEingaenge + ' Eingänge – hier sind nur Gatter mit höchstens ' + a.maxEingaenge + ' Eingängen erlaubt (wie im IC).'); }
-    var offen = offeneEingaenge(layout); if (offen.length && a.offeneOk !== true) return bad('Der Eingang ' + offen[0] + ' ist offen. Offene Eingänge gibt es nicht: Jeden Eingang an einen Ausgang oder einen Pegelschalter anschliessen.');
+    var sm = strukturPruefen(a, layout); if (sm) return bad(sm);
     // Funktion: alle Eingangskombinationen durchschalten
     var lay = clone(layout), net, st = E.newState(), faults = {};
     try { net = E.buildNetlist(lay); } catch (e) { return bad('Die Schaltung lässt sich nicht berechnen: ' + e.message); }
@@ -307,25 +312,41 @@
     return (a.soll || []).map(function (z) { var e = []; for (var i = a.lesen.length - 1; i >= 0; i--) e.push(z >> i & 1); return { takte: 1, erwartet: a.lesen.map(function (x, j) { return z >> (a.lesen.length - 1 - j) & 1; }) }; });
   }
   P.folgeSchritte = folgeSchritte;
+  /* Siebensegmentanzeige als Ziffer lesen: Segmentmuster a bis g, 'X' wenn es keine Ziffer ist */
+  var SEG = { 0: 'abcdef', 1: 'bc', 2: 'abdeg', 3: 'abcdg', 4: 'bcfg', 5: 'acdfg', 6: 'acdefg', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg' };
+  function ziffer(on) { var m = 'abcdefg'.split('').filter(function (c) { return on[c]; }).join(''); for (var d in SEG) if (SEG[d] === m) return +d; return 'X'; }
+  P.SEGMENTE = SEG;
+  /* Schritt = {set:{E1:1}, takte:n, erwartet:[…]} oder {abfolge:[{set:{…}}, …], erwartet:[…]} (Eingänge nacheinander setzen, nach jedem Schritt rechnen).
+   * takt (optional): Pegelschalter oder Taktgeber, den die Software von Hand taktet. lesen: Logikanzeigen (Wert 0/1) oder Siebensegmentanzeigen (Ziffer 0 bis 9, X = keine Ziffer). */
   P.pruefeFolge = function (a, layout) {
     if (!layout || !layout.parts || !layout.parts.length) return bad('Die Zeichenfläche ist leer.');
     var lay = clone(layout), net, st = E.newState(), clk = a.takt, byId = {}; lay.parts.forEach(function (p) { byId[p.id] = p; });
-    if (!byId[clk] || byId[clk].type !== 'logicin') return bad('Der Takteingang ' + clk + ' (Pegelschalter) fehlt.');
-    var miss = (a.lesen || []).filter(function (id) { return !byId[id] || byId[id].type !== 'logicled'; }); if (miss.length) return bad('Die Logikanzeige ' + miss[0] + ' fehlt.');
-    var offen = offeneEingaenge(layout); if (offen.length && a.offeneOk !== true) return bad('Der Eingang ' + offen[0] + ' ist offen. Jeden Eingang anschliessen (nicht gebrauchte auf einen Pegelschalter legen).');
+    if (clk) {
+      if (!byId[clk] || (byId[clk].type !== 'logicin' && byId[clk].type !== 'clock')) return bad('Der Takteingang ' + clk + ' (Pegelschalter oder Taktgeber) fehlt.');
+      if (byId[clk].type === 'clock') { byId[clk].type = 'logicin'; byId[clk].props = { closed: false }; } // die Software taktet von Hand: derselbe Anschluss out
+    }
+    var miss = (a.lesen || []).filter(function (id) { return !byId[id] || (byId[id].type !== 'logicled' && byId[id].type !== 'seg7'); }); if (miss.length) return bad('Die Anzeige ' + miss[0] + ' fehlt (Logikanzeige oder Siebensegmentanzeige).');
+    var sm = strukturPruefen(a, layout); if (sm) return bad(sm);
     try { net = E.buildNetlist(lay); } catch (e) { return bad('Die Schaltung lässt sich nicht berechnen: ' + e.message); }
     function setIn(id, v) { if (net.byId[id]) net.byId[id].props.closed = !!v; }
     function run() { return E.step(net, st, { noGroundFault: true }); }
-    function read(r) { return a.lesen.map(function (id) { return (r.nodeV[net.pinNode[id + '.in']] || 0) > E.LOGIC.vth ? 1 : 0; }); }
+    function lv(r, pin) { return (r.nodeV[net.pinNode[pin]] || 0) > E.LOGIC.vth; }
+    function read(r) { return a.lesen.map(function (id) { if (byId[id].type === 'seg7') { var on = {}; 'abcdefg'.split('').forEach(function (c) { on[c] = lv(r, id + '.' + c); }); return ziffer(on); } return lv(r, id + '.in') ? 1 : 0; }); }
     Object.keys(byId).forEach(function (id) { if (byId[id].type === 'logicin' && !(byId[id].props && byId[id].props.konst)) setIn(id, false); });
     (a.vorher || []).forEach(function (v) { Object.keys(v.set || {}).forEach(function (id) { setIn(id, v.set[id]); }); run(); });
-    var r = run(), schritte = folgeSchritte(a), takteSumme = 0;
+    var r, schritte = folgeSchritte(a), takteSumme = 0;
+    try { r = run(); } catch (e) { return bad('Die Schaltung lässt sich nicht berechnen: ' + e.message); }
     for (var s = 0; s < schritte.length; s++) {
-      var sc = schritte[s]; Object.keys(sc.set || {}).forEach(function (id) { setIn(id, sc.set[id]); }); if (sc.set) r = run();
-      for (var t = 0; t < (sc.takte || 0); t++) { setIn(clk, true); r = run(); setIn(clk, false); r = run(); takteSumme++; }
+      var sc = schritte[s], was = '';
+      try {
+        (sc.abfolge || []).forEach(function (x) { Object.keys(x.set || {}).forEach(function (id) { setIn(id, x.set[id]); }); r = run(); });
+        Object.keys(sc.set || {}).forEach(function (id) { setIn(id, sc.set[id]); }); if (sc.set) r = run();
+        for (var t = 0; t < (sc.takte || 0); t++) { setIn(clk, true); r = run(); setIn(clk, false); r = run(); takteSumme++; }
+      } catch (e) { return bad('Die Schaltung lässt sich nicht berechnen: ' + e.message); }
       var got = read(r), want = sc.erwartet, nm = a.lesen;
       for (var j = 0; j < want.length; j++) if (want[j] !== 'X' && got[j] !== want[j]) {
-        return bad('Nach ' + (takteSumme ? 'dem ' + takteSumme + '. Takt' : 'dem Start') + (sc.set ? ' (mit ' + Object.keys(sc.set).map(function (id) { return id + ' = ' + (sc.set[id] ? 1 : 0); }).join(', ') + ')' : '') + ' zeigt ' + nm[j] + ' eine ' + got[j] + ', erwartet ist ' + want[j] + '. Gelesen ' + nm.join('') + ' = ' + got.join('') + ', soll ' + want.join('') + '.', { schritt: s });
+        var wo = sc.name ? sc.name : (takteSumme && !sc.abfolge ? 'dem ' + takteSumme + '. Takt' : 'Schritt ' + (s + 1));
+        return bad('Nach ' + wo + (sc.set ? ' (mit ' + Object.keys(sc.set).map(function (id) { return id + ' = ' + (sc.set[id] ? 1 : 0); }).join(', ') + ')' : '') + ' zeigt ' + nm[j] + ' ' + (byId[nm[j]].type === 'seg7' ? 'die Ziffer ' + (got[j] === 'X' ? '(keine gültige Ziffer)' : got[j]) : 'eine ' + got[j]) + ', erwartet ist ' + want[j] + '. Gelesen ' + got.join(' ') + ', soll ' + want.join(' ') + '.', { schritt: s });
       }
     }
     return ok('Richtig: die Ausgangsfolge stimmt über alle ' + schritte.length + ' Schritte' + (takteSumme ? ' (' + takteSumme + ' Takte)' : '') + '.');

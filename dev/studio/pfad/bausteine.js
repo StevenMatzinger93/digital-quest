@@ -63,11 +63,77 @@
     and: 'M12 6H28A16 16 0 0 1 28 38H12Z', or: 'M12 6Q34 6 50 22Q34 38 12 38Q22 22 12 6Z', buf: 'M14 6L46 22L14 38Z', not: 'M14 6L44 22L14 38Z'
   };
   P.svgUS = function (art, neg, xor) {
-    var body = US[art === 'buf' || art === 'not' ? art : art], bubble = neg ? '<circle cx="' + (art === 'not' ? 48 : art === 'and' ? 56 : 54) + '" cy="22" r="4" fill="none" stroke="currentColor" stroke-width="2"/>' : '';
-    var out = neg ? (art === 'not' ? 52 : art === 'and' ? 60 : 58) : (art === 'and' ? 56 : art === 'or' ? 50 : 46);
+    var body = US[art], bubble = neg ? '<circle cx="' + (art === 'not' ? 48 : art === 'and' ? 48 : 54) + '" cy="22" r="4" fill="none" stroke="currentColor" stroke-width="2"/>' : '';
+    var out = neg ? (art === 'not' || art === 'and' ? 52 : 58) : (art === 'and' ? 44 : art === 'or' ? 50 : 46);
     return '<svg viewBox="0 0 72 44" width="72" height="44" class="pf-sym" role="img" aria-label="Gatter in US-Darstellung"><path d="' + body + '" fill="none" stroke="currentColor" stroke-width="2"/>' + (xor ? '<path d="M6 6Q16 22 6 38" fill="none" stroke="currentColor" stroke-width="2"/>' : '') + bubble +
       (art === 'buf' || art === 'not' ? '<path d="M2 22H14" stroke="currentColor" stroke-width="2"/>' : '<path d="M2 15H' + (xor ? 12 : 14) + 'M2 29H' + (xor ? 12 : 14) + '" stroke="currentColor" stroke-width="2"/>') + '<path d="M' + out + ' 22H70" stroke="currentColor" stroke-width="2"/></svg>';
   };
+
+  /* ---------- Flipflops nach Lehrbuch (Teil B) ----------
+   * Ein Flipflop wird durch seine Folgefunktion next(AV, e) beschrieben (e = Liste der Eingangswerte, Ergebnis 0, 1 oder 'X' für unzulässig). Daraus entstehen
+   * Analysetabelle, Ansteuertabelle, Zustandsfolgediagramm und Soll-Folgen für die Prüfmaschine. Die Tests vergleichen next() mit dem Verhalten der Engine. */
+  var X = ['X', 'x', '-', 'verboten'];
+  P.ffAnalyse = function (ein, next) { // Zeilen: Eingänge (hochzählend), dann AV; Antwort A
+    var n = ein.length, zeilen = [];
+    for (var k = 0; k < (1 << (n + 1)); k++) { var av = k & 1, e = []; for (var i = 0; i < n; i++) e.push(k >> (n - i) & 1); var a = next(av, e); zeilen.push(e.map(String).concat([String(av), { a: a === 'X' ? X : String(a), typ: 'bit' }])); }
+    return { kopf: ein.concat(['AV', 'A']), zeilen: zeilen };
+  };
+  /* Ansteuertabelle: zu jedem Übergang AV → A die nötigen Eingangswerte (0, 1 oder X = beliebig) */
+  P.ffUebergang = function (ein, next) {
+    var n = ein.length, out = [];
+    [[0, 0], [0, 1], [1, 0], [1, 1]].forEach(function (t) {
+      var sets = ein.map(function () { return {}; });
+      for (var k = 0; k < (1 << n); k++) { var e = []; for (var i = 0; i < n; i++) e.push(k >> (n - 1 - i) & 1); if (next(t[0], e) === t[1]) e.forEach(function (v, i) { sets[i][v] = 1; }); }
+      out.push({ av: t[0], a: t[1], v: sets.map(function (st) { return st[0] && st[1] ? 'X' : st[1] ? '1' : '0'; }) });
+    });
+    return out;
+  };
+  P.ffAnsteuer = function (ein, next) {
+    var u = P.ffUebergang(ein, next);
+    return { kopf: ['AV', 'A'].concat(ein), zeilen: u.map(function (r) { return [String(r.av), String(r.a)].concat(r.v.map(function (x) { return { a: x === 'X' ? X : x, typ: 'bit' }; })); }) };
+  };
+  /* Zustandsfolgediagramm als SVG (zwei Zustände, Pfeile beschriftet mit den Eingängen der Ansteuertabelle) */
+  P.svgZustand = function (ein, next) {
+    var u = P.ffUebergang(ein, next), lab = function (r) { return ein.join(' ') + ' = ' + r.v.join(' '); }, t = function (x, y, s) { return '<text x="' + x + '" y="' + y + '" text-anchor="middle" font-size="12" font-family="sans-serif" fill="currentColor">' + s + '</text>'; };
+    var s = '<svg viewBox="0 0 280 150" width="320" class="pf-sfd" role="img" aria-label="Zustandsfolgediagramm"><defs><marker id="pfa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs><g fill="none" stroke="currentColor" stroke-width="1.6">';
+    s += '<circle cx="70" cy="78" r="22"/><circle cx="210" cy="78" r="22"/><path d="M90 66C115 48 165 48 190 66" marker-end="url(#pfa)"/><path d="M190 90C165 108 115 108 90 90" marker-end="url(#pfa)"/><path d="M58 58C40 22 82 22 76 56" marker-end="url(#pfa)"/><path d="M198 58C180 22 222 22 216 56" marker-end="url(#pfa)"/></g>';
+    return s + t(70, 83, '0') + t(210, 83, '1') + t(140, 42, lab(u[1])) + t(140, 124, lab(u[2])) + t(62, 16, lab(u[0])) + t(202, 16, lab(u[3])) + '</svg>';
+  };
+  /* Soll-Folge für die Prüfmaschine: plan = [{set:{E1:1}, takte:n}] → Schritte mit erwartet [Q, Q̄]; ein Taktimpuls wendet next(AV, Eingänge) an; Eingangsnamen in ein (Reihenfolge wie next) */
+  P.ffSchritte = function (ein, next, plan, q0) {
+    var q = q0 ? 1 : 0, cur = {}; ein.forEach(function (n, i) { cur['E' + (i + 1)] = 0; }); // Eingänge der Prüfschaltung heissen E1, E2 … in der Reihenfolge von ein
+    return plan.map(function (p) {
+      Object.keys(p.set || {}).forEach(function (k) { cur[k] = p.set[k] ? 1 : 0; });
+      for (var t = 0; t < (p.takte || 0); t++) { var nq = next(q, ein.map(function (n, i) { return cur['E' + (i + 1)]; })); if (nq !== 'X') q = nq; }
+      var st = { erwartet: [q, 1 - q] }; if (p.set) st.set = p.set; if (p.takte) st.takte = p.takte; if (p.name) st.name = p.name; return st;
+    });
+  };
+  P.FF = {
+    rs: function (q, e) { return e[0] && e[1] ? 'X' : e[0] ? 1 : e[1] ? 0 : q; },       // e = [S, R]
+    d: function (q, e) { return e[0]; },
+    t: function (q, e) { return e[0] ? 1 - q : q; },
+    jk: function (q, e) { return e[0] && e[1] ? 1 - q : e[0] ? 1 : e[1] ? 0 : q; }       // e = [J, K]
+  };
+
+  /* Standard-Station für ein einzelnes Flipflop (T, D, RS, JK): Analysetabelle, Ansteuertabelle, Zustandsfolgediagramm (von Hand, die Software zeigt das Muster),
+   * Schaltung mit dem Bauteil bauen und über Takte prüfen. def: {id, nr, titel, kurz, einfuehrung, typ (Bauteil), ein (Namen der Eingänge, Reihenfolge wie next), next,
+   * plan (Schritte für die Prüfung), props? (Eigenschaften des Bauteils, z. B. {trig:'pos'}), extra:[weitere Aufgaben], fragen:[…], schaltet:[…]} */
+  P.ffStation = function (d) {
+    var id = d.id, n = d.ein.length, aufg = [], nr = 0, q = function () { return id + '.' + (++nr); };
+    var an = P.ffAnalyse(d.ein, d.next), ans = P.ffAnsteuer(d.ein, d.next), pins = d.ein.concat(['C']);
+    var start = P.startNetz(n, 2, [{ id: 'C', type: 'logicin', x: 200, y: 80 + n * 100 + 100, rot: 0 }]);
+    var srcs = d.ein.map(function (x, i) { return 'E' + (i + 1); }).concat(['C']);
+    var muster = P.netz({ n: n, eingaenge: ['C'], gatter: [['FF1', d.typ, srcs, d.props || null, pins]], aus: { L1: 'FF1.Q', L2: 'FF1.Qn' } });
+    aufg.push({ id: q(), titel: 'Analysetabelle', art: 'tabelle', kopf: an.kopf, zeilen: an.zeilen, text: d.analyseText || '<p>Fülle die <b>Analysetabelle</b> aus: Bei welchem Eingang und welchem Zustand <b>vor</b> der Taktflanke (<b>AV</b>) hat der Ausgang <b>danach</b> (<b>A</b>) welchen Wert?' + (d.unzulaessig ? ' Für den unzulässigen Fall schreibst du <b>X</b>.' : '') + '</p>', hilfe: d.analyseHilfe });
+    aufg.push({ id: q(), titel: 'Ansteuertabelle', art: 'tabelle', kopf: ans.kopf, zeilen: ans.zeilen, text: '<p>Die <b>Ansteuertabelle</b> fragt umgekehrt: Der Zustand soll von <b>AV</b> nach <b>A</b> wechseln – welche Eingangswerte braucht es dafür? Wo es egal ist, schreibst du <b>X</b> (beliebig).</p>', hilfe: 'Schau dir in der Analysetabelle alle Zeilen an, die zu diesem Übergang führen. Ist ein Eingang darin einmal 0 und einmal 1, ist er egal: X.' });
+    aufg.push({ id: q(), titel: 'Zustandsfolgediagramm', art: 'vergleich', text: '<p>Zeichne das <b>Zustandsfolgediagramm</b> des Flipflops auf Papier: zwei Kreise für Q = 0 und Q = 1, vier Pfeile für die vier Übergänge, jeder beschriftet mit den Eingangswerten aus der Ansteuertabelle. Schreibe dann kurz auf, was dir aufgefallen ist, und gib ab. Die Software zeigt dir danach das Diagramm zum Vergleich; bewertet wird nicht.</p>', zeigeMuster: '<p>So sieht das Diagramm aus:</p>' + P.svgZustand(d.ein, d.next) });
+    aufg.push({ id: q(), titel: 'Schaltung bauen und prüfen', art: 'folge', takt: 'C', lesen: ['L1', 'L2'], schritte: P.ffSchritte(d.ein, d.next, d.plan), start: start, muster: muster, min: (function () { var m = {}; m[d.typ] = 1; return m; })(),
+      text: d.bauText || '<p>Baue die Schaltung: Setze ein <b>' + P.FFNAMEN[d.typ] + '</b> und verbinde es mit den Pegelschaltern ' + d.ein.map(function (x, i) { return '<b>E' + (i + 1) + '</b> (' + x + ')'; }).join(', ') + ' und <b>C</b> (Takt). Die Anzeige <b>L1</b> zeigt Q, <b>L2</b> zeigt Q̄. Die Software schaltet die Eingänge, gibt Takte und liest die Anzeigen.</p>', hilfe: 'Q und Q̄ sind die zwei Ausgänge des Bauteils. Du kannst die Schaltung selbst ausprobieren: Eingänge setzen, C auf 1 und wieder auf 0.' });
+    (d.extra || []).forEach(function (x) { x.id = q(); aufg.push(x); });
+    if (d.fragen) aufg.push({ id: q(), titel: 'Prüffragen ' + d.titel, art: 'fragen', text: '<p>Kurze Fragen.</p>', fragen: d.fragen });
+    return P.station({ id: id, teil: 'B', nr: d.nr, titel: d.titel, kurz: d.kurz, einfuehrung: d.einfuehrung, verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: d.schaltet || [], auto: true, aufgaben: aufg });
+  };
+  P.FFNAMEN = { tff: 'T-Flipflop', dff: 'D-Flipflop', rsff: 'RS-Flipflop', jkff: 'JK-Flipflop', jkms: 'JK-Master-Slave-Flipflop' };
   /* Dezimal ↔ Dual ↔ Hex für die Zahlensysteme */
   P.dual = function (v, stellen) { var s = v.toString(2); while (s.length < (stellen || 0)) s = '0' + s; return s; };
   P.hex = function (v) { return v.toString(16).toUpperCase(); };
