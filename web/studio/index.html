@@ -420,6 +420,9 @@ body.beamer .dr text { font-size: inherit; }
   var LOGIC = { vcc: 5, vth: 2.5, rout: 25 };
   var METER = { rV: 1e7, rA: 0.1, fuseA: 10, iOhm: 1e-3, olOhm: 40e6, cal: 0.002 }; // cal: Verstaerkungsfehler des Geraets (+0,2 %)
   var LIMITS = { lampBurn: 2, ledReverse: 5 }; // Lampe brennt ab lampBurn · Nennleistung durch; LED meldet Sperrspannung ab ledReverse Volt
+  /* Modellregeln, die offene Fragen beantworten (docs/FRAGEN_STUDIO.md Punkt 7): preClearRennen = ein Flipflop-Takt, der im selben Zeitpunkt eintrifft, in dem preSet/preClear wegfällt, zählt nicht
+   * (Rennen beim Rücksetzen eines Ripple-Zählers; im echten Baustein hält der Rücksetzimpuls wegen der Gatterlaufzeit noch an). Auf false gestellt zählen Ripple-Zähler mit Rücksetzen falsch. */
+  var RULES = { preClearRennen: true };
   var TRACE_MAX = 200;        // Zeitlupe: hoechstens so viele Rechenschritte pro Arbeitspunkt speichern
 
   var LED_COLORS = {
@@ -948,7 +951,7 @@ body.beamer .dr text { font-size: inherit; }
         var c = lv('C'), ins = d.ffIns.map(lv), mode = d.ms ? 'ms' : (p.props.trig || 'pos'), nq = f.q, active = false;
         /* Rennen beim asynchronen Rücksetzen (Zähler mit preClear): Fällt preSet/preClear im selben Zeitpunkt weg, in dem eine Taktflanke eintrifft, die erst durch das Rücksetzen einer Vorstufe
          * entstand, so ist der Rücksetzimpuls im echten Baustein noch wirksam (Gatterlaufzeit) – die Flanke zählt nicht. Ohne diese Regel würde ein Ripple-Zähler mit Rücksetzung bei jedem Zurücksetzen falsch weiterzählen. */
-        var apNow = lv('PS') || lv('PC'), blocked = !!f.ap && !apNow; f.ap = apNow;
+        var apNow = lv('PS') || lv('PC'), blocked = RULES.preClearRennen && !!f.ap && !apNow; f.ap = apNow;
         if (blocked) { f.c = c; }
         if (mode === 'pos') { if (f.c === false && c) { active = true; nq = d.ff(f.q, ins); } }
         else if (mode === 'neg') { if (f.c === true && !c) { active = true; nq = d.ff(f.q, ins); } }
@@ -1377,7 +1380,7 @@ body.beamer .dr text { font-size: inherit; }
 
   var api = {
     expectedAnswers: expectedAnswers, UNIT_SCALE: UNIT_SCALE,
-    version: '0.2.0', PARTS: PARTS, LED_COLORS: LED_COLORS, LOGIC: LOGIC, METER: METER, LIMITS: LIMITS, SOURCES: SOURCES, TRACE_MAX: TRACE_MAX,
+    version: '0.2.0', PARTS: PARTS, LED_COLORS: LED_COLORS, LOGIC: LOGIC, METER: METER, LIMITS: LIMITS, RULES: RULES, SOURCES: SOURCES, TRACE_MAX: TRACE_MAX,
     acSolve: acSolve, acSweep: acSweep, pinsOf: pinsOf, ctrNext: ctrNext, ctrCount: ctrCount, ctrBitCount: ctrBitCount, bitsToNum: bitsToNum, numToBits: numToBits, wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, DMM_MANUAL: DMM_MANUAL, rangeLabel: rangeLabel, acMeasure: acMeasure,
     buildNetlist: buildNetlist, solve: solve, step: step, newState: newState,
     measure: measure, simulate: simulate, runTask: runTask, fmt: fmt, clone: clone,
@@ -7135,6 +7138,23 @@ body.beamer .dr text { font-size: inherit; }
   if (typeof module !== 'undefined' && module.exports) module.exports = P;
 })(typeof window !== 'undefined' ? window : globalThis);
 
+/* ==== studio/pfad/konventionen.js ==== */
+/* Lernpfad: Konventionen an EINER Stelle. Offene Fragen an Steven (docs/FRAGEN_STUDIO.md) werden hier beantwortet; die Änderung ist dann eine Zeile.
+ * Wer eine Konvention ändert: tests/pfad.js laufen lassen (sie nennt jede Stelle, die davon abhängt). */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad = root.DQPfad || {};
+  P.KONV = {
+    /* Stellenwertigkeit der Eingänge im KV-Teil und in der m-Schreibweise: Die Buchstaben stehen vom NIEDERWERTIGSTEN zum höchstwertigen Bit. Belegt aus Stevens Lehrmittel:
+     * d'cb'a' = 0100, also ist d das höchstwertige und a das niederwertigste Bit; Feldnummer = d·8 + c·4 + b·2 + a. Die Feldnummern in docs/aufgaben/kv_diagramm.json gelten für diese Reihenfolge.
+     * Der Rechenkern zählt überall «Eingang 1 = Bit 0» (E1 = a); die Buchstaben benennen nur die Eingänge. */
+    buchstaben: 'abcdef',
+    /* NOR-Flipflop (B1, B2): Welcher Eingang SETZT (Q = 1)? 'e1' oder 'e2'. Der andere setzt zurück. Offen bis Steven antwortet (FRAGEN_STUDIO.md, Punkt 6). */
+    norSetzen: 'e2'
+    /* preClear-Regel im Rechenkern (Takt im selben Zeitpunkt wie das Wegfallen von preSet/preClear zählt nicht): E.RULES.preClearRennen in src/engine.js (FRAGEN_STUDIO.md, Punkt 7). */
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
+
 /* ==== studio/pfad/serien.js ==== */
 /* ERZEUGT von build.js aus docs/aufgaben/*.json – nicht von Hand ändern */
 (function (root) { var P = root.DQPfad = root.DQPfad || {}; P.SERIEN = {"algebra":[{"nr":2,"ausdruck":"e1 + n(e1)*e2 + e1*e2","variablen":["e1","e2"],"minterme":[1,2,3],"minimalform":"e2 + e1","terme":2,"buchstaben":2},{"nr":3,"ausdruck":"e1*n(e2) + n(e1)*e2 + e1*e2 + n(e1)*n(e2)","variablen":["e1","e2"],"minterme":[0,1,2,3],"minimalform":"1","terme":1,"buchstaben":0},{"nr":4,"ausdruck":"e1*n(e2)*(e1+e3) + e1*e3*(n(e1)+n(e2))","variablen":["e1","e2","e3"],"minterme":[4,5],"minimalform":"e1*n(e2)","terme":1,"buchstaben":2},{"nr":5,"ausdruck":"(e1*e2 + e3)*(e1*e2 + e4)","variablen":["e1","e2","e3","e4"],"minterme":[3,7,11,12,13,14,15],"minimalform":"e3*e4 + e1*e2","terme":2,"buchstaben":4},{"nr":6,"ausdruck":"e1*n(e2)*e3 + n(e1)*n(e2)*e3","variablen":["e1","e2","e3"],"minterme":[1,5],"minimalform":"n(e2)*e3","terme":1,"buchstaben":2},{"nr":7,"ausdruck":"(1 + e2)*(e1*e2*e3)","variablen":["e1","e2","e3"],"minterme":[7],"minimalform":"e1*e2*e3","terme":1,"buchstaben":3},{"nr":8,"ausdruck":"(n(e1)*e2)*(e1*e2) + e1*e2","variablen":["e1","e2"],"minterme":[3],"minimalform":"e1*e2","terme":1,"buchstaben":2},{"nr":9,"ausdruck":"(e1*n(e2) + e1*n(e3))*(e2*e3 + e2*n(e3))*(e1*e2*e3)","variablen":["e1","e2","e3"],"minterme":[],"minimalform":"0","terme":0,"buchstaben":0},{"nr":10,"ausdruck":"e1 + n(e2)*e3*(e1 + n(n(e2*e3)))","variablen":["e1","e2","e3"],"minterme":[4,5,6,7],"minimalform":"e1","terme":1,"buchstaben":1},{"nr":11,"ausdruck":"e3*(n(e1*e2*e3) + e1*n(e2)*n(e3))","variablen":["e1","e2","e3"],"minterme":[1,3,5],"minimalform":"n(e1)*e3 + n(e2)*e3","terme":2,"buchstaben":4},{"nr":12,"ausdruck":"n(e1*e2*e3 + n(e1)*n(e2)) + e2*n(e3)","variablen":["e1","e2","e3"],"minterme":[2,3,4,5,6],"minimalform":"n(e1)*e2 + e1*n(e2) + e2*n(e3)","terme":3,"buchstaben":6},{"nr":13,"ausdruck":"e1*n(e2 + e3*(e1*e2 + e1*e3))","variablen":["e1","e2","e3"],"minterme":[4],"minimalform":"e1*n(e2)*n(e3)","terme":1,"buchstaben":3},{"nr":14,"ausdruck":"e1*e2 + e1*n(e2 + e3)","variablen":["e1","e2","e3"],"minterme":[4,6,7],"minimalform":"e1*n(e3) + e1*e2","terme":2,"buchstaben":4},{"nr":15,"ausdruck":"n(e1*e2*e3*(e1 + e2 + e3))","variablen":["e1","e2","e3"],"minterme":[0,1,2,3,4,5,6],"minimalform":"n(e1) + n(e2) + n(e3)","terme":3,"buchstaben":3},{"nr":16,"ausdruck":"n((n(e1*e2) + e1*e2*e3)*(e1*n(e2)*e3))","variablen":["e1","e2","e3"],"minterme":[0,1,2,3,4,6,7],"minimalform":"n(e1) + n(e3) + e2","terme":3,"buchstaben":3},{"nr":17,"ausdruck":"e1*e2*e3 + e1*e2*n(e3) + n(e1)*e2*e3 + n(e1)*n(e2)*n(e3)","variablen":["e1","e2","e3"],"minterme":[0,3,6,7],"minimalform":"n(e1)*n(e2)*n(e3) + e2*e3 + e1*e2","terme":3,"buchstaben":7}],"kv":[{"nr":1,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[0,1,2,4,5,6,8,9,10,13],"egal":[],"minimalform":"d'a' + c'a' + b'a","terme":3,"buchstaben":6,"gleichwertige_loesungen":1},{"nr":2,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[1,5,7,12,13,14,15],"egal":[],"minimalform":"d'b'a + ca + dc","terme":3,"buchstaben":7,"gleichwertige_loesungen":1},{"nr":3,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[1,2,3,5,6,7,9,11,12,13,14,15],"egal":[],"minimalform":"a + d'b + dc","terme":3,"buchstaben":5,"gleichwertige_loesungen":1},{"nr":4,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[0,1,2,3,4,5,6,7,9,11,12,13,14,15],"egal":[],"minimalform":"d' + a + c","terme":3,"buchstaben":3,"gleichwertige_loesungen":1},{"nr":5,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[5,7],"egal":[1,3,8,9,10,11],"minimalform":"d'a","terme":1,"buchstaben":2,"gleichwertige_loesungen":1},{"nr":6,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[0,2,6,10,11,12,13],"egal":[3,4,5,14,15],"minimalform":"d'a' + c'b + cb'","terme":3,"buchstaben":6,"gleichwertige_loesungen":4},{"nr":7,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[0,3,4,6,8,10,11],"egal":[1,5,7,9,12,13,15],"minimalform":"b' + a + d'c + dc'","terme":4,"buchstaben":6,"gleichwertige_loesungen":1},{"nr":8,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[0,2],"egal":[4,5,6],"minimalform":"d'a'","terme":1,"buchstaben":2,"gleichwertige_loesungen":1},{"nr":9,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[0,6,8,10,11],"egal":[1,3,5,7,13,15],"minimalform":"d'cb + c'b'a' + dc'b","terme":3,"buchstaben":9,"gleichwertige_loesungen":1},{"nr":10,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[3,6,10,11,12,14],"egal":[1,4,5,7,9,13,15],"minimalform":"a + c + db","terme":3,"buchstaben":4,"gleichwertige_loesungen":1},{"nr":14,"eingaenge":5,"variablen":["e","d","c","b","a"],"einsen":[2,10,13,15,18,26,29,31],"egal":[],"minimalform":"c'ba' + dca","terme":2,"buchstaben":6,"gleichwertige_loesungen":1},{"nr":15,"eingaenge":5,"variablen":["e","d","c","b","a"],"einsen":[0,1,7,15,16,17,23,25,27,29,31],"egal":[],"minimalform":"d'c'b' + cba + eda","terme":3,"buchstaben":9,"gleichwertige_loesungen":1},{"nr":16,"eingaenge":5,"variablen":["e","d","c","b","a"],"einsen":[3,4,5,10,12,19,20,21,22,26,30],"egal":[],"minimalform":"d'c'ba + d'cb' + dc'ba' + e'cb'a' + ecba'","terme":5,"buchstaben":19,"gleichwertige_loesungen":1},{"nr":17,"eingaenge":6,"variablen":["f","e","d","c","b","a"],"einsen":[1,3,6,7,9,11,15,17,19,22,23,25,27,31,33,35,38,41,43,49,51,54,57,59],"egal":[],"minimalform":"c'a + f'ba + d'cba'","terme":3,"buchstaben":9,"gleichwertige_loesungen":1}]}; })(typeof window !== 'undefined' ? window : globalThis);
@@ -7608,36 +7628,29 @@ body.beamer .dr text { font-size: inherit; }
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* ==== studio/pfad/st_A09.js ==== */
-/* Lernpfad Station A9 – Normierte Schaltungen: nur NAND, und mit festen ICs (74HC00 = vier NAND, 74HC02 = vier NOR, 74HC08 = vier UND). */
+/* Lernpfad Station A9 – Normierte Schaltungen: Stevens Originalaufgaben (docs/aufgaben/A9_ORIGINAL.md). Keine eigenen Beispiele mehr.
+ * Aufgabe 1: A = e1·e2·(e3 + e4)·e5 nur mit NAND (das Lehrmittel erlaubt dazu ein NAND mit drei Eingängen, SN7410). Aufgabe 2: A1 = NICHT(A + C)·B mit je einem 74HC02 und 74HC08
+ * (höchstens vier NOR und vier UND, jeweils mit zwei Eingängen). Aufgabe 2 hat im Lehrmittel nur diesen einen Ausdruck belegt (FRAGEN_STUDIO.md). */
 (function (root) {
   'use strict';
   var P = root.DQPfad;
-  var N = function (id, type, ins) { return [id, type, ins]; };
-  var IC = '74HC00 = vier NAND mit zwei Eingängen, 74HC02 = vier NOR, 74HC08 = vier UND';
-  var xorNand = P.netz({ n: 2, gatter: [N('U1', 'nand', ['E1', 'E2']), N('U2', 'nand', ['E1', 'U1']), N('U3', 'nand', ['E2', 'U1']), N('U4', 'nand', ['U2', 'U3'])], aus: { L1: 'U4' } });
+  var N = function (id, type, ins, props) { return [id, type, ins, props]; };
+  var f1 = function (e) { return e[0] & e[1] & (e[2] | e[3]) & e[4]; };
+  var f2 = function (e) { return (1 - (e[0] | e[2])) & e[1]; };          // A = E1, B = E2, C = E3
+  // Muster 1: UND(e1, e2) = NAND(NAND(e1,e2)) doppelt negiert; ODER(e3, e4) = NAND(NICHT e3, NICHT e4); A = NICHT(NAND3(UND12, ODER34, e5))
+  var m1 = P.netz({ n: 5, gatter: [N('U1', 'nand', ['E1', 'E2']), N('U2', 'nand', ['U1', 'U1']), N('U3', 'nand', ['E3', 'E3']), N('U4', 'nand', ['E4', 'E4']), N('U5', 'nand', ['U3', 'U4']),
+    N('U6', 'nand', ['U2', 'U5', 'E5'], { inputs: 3 }), N('U7', 'nand', ['U6', 'U6'])], aus: { L1: 'U7' } });
+  // Muster 2: A1 = NOR(A, C) · B
+  var m2 = P.netz({ n: 3, gatter: [N('U1', 'nor', ['E1', 'E3']), N('U2', 'and', ['U1', 'E2'])], aus: { L1: 'U2' } });
   P.station({
-    id: 'A9', teil: 'A', nr: 9, titel: 'Normierte Schaltungen', kurz: 'Nur NAND – und mit den Gattern aus festen ICs',
-    einfuehrung: '<p>In der Praxis kauft man keine einzelnen Gatter, sondern <b>ICs</b> mit mehreren gleichen Gattern: Ein <b>74HC00</b> enthält vier NAND mit je zwei Eingängen, ein <b>74HC02</b> vier NOR, ein <b>74HC08</b> vier UND. Je weniger verschiedene ICs, desto billiger die Platine.</p><p>Das <b>NAND</b> ist ein <b>Universalgatter</b>: Mit NAND allein lässt sich jede Schaltung bauen (ebenso mit NOR allein). Du baust die Grundgatter aus NAND nach und löst dann Aufgaben mit einer festen Zahl von Gattern.</p><p>Wichtig: Bei einem IC darf man die Gatter nicht beliebig vermehren – was im IC fehlt, fehlt.</p>',
-    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    id: 'A9', teil: 'A', nr: 9, titel: 'Normierte Schaltungen', kurz: 'Nur NAND – und mit den Gattern aus festen ICs (Stevens Originalaufgaben)',
+    einfuehrung: '<p>Oftmals werden in der Praxis nicht alle Eingänge eines fertigen ICs benützt. Dann werden Teile der booleschen Ausdrücke so verändert, dass die bereits benützten ICs verwendet werden können. Dies wird aus Kosten- sowie Platzgründen angewendet.</p><p>Ein <b>74HC00</b> enthält vier NAND mit je zwei Eingängen, ein <b>74HC02</b> vier NOR, ein <b>74HC08</b> vier UND. Das <b>NAND</b> ist ein <b>Universalgatter</b>: Mit NAND allein lässt sich jede Schaltung bauen. Bei einem IC darf man die Gatter nicht beliebig vermehren – was im IC fehlt, fehlt.</p>',
+    verweis: 'Aufgaben aus Stevens Lehrmittel «Digitaltechnik stationäre Vorgänge». Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
     aufgaben: [
-      { id: 'A9.1', titel: 'NICHT nur aus NAND', art: 'nand', n: 1, ausgaenge: 1, f: function (e) { return 1 - e[0]; }, start: P.startNetz(1, 1), min: { nand: 1 },
-        muster: P.netz({ n: 1, gatter: [N('U1', 'nand', ['E1', 'E1'])], aus: { L1: 'U1' } }), text: '<p>Baue ein <b>NICHT</b> (L1 = /e1) nur mit NAND-Gattern.</p>', hilfe: 'Was passiert, wenn du beide Eingänge eines NAND mit demselben Signal verbindest?' },
-      { id: 'A9.2', titel: 'UND nur aus NAND', art: 'nand', n: 2, ausgaenge: 1, f: function (e) { return e[0] & e[1]; }, start: P.startNetz(2, 1), min: { nand: 2 },
-        muster: P.netz({ n: 2, gatter: [N('U1', 'nand', ['E1', 'E2']), N('U2', 'nand', ['U1', 'U1'])], aus: { L1: 'U2' } }), text: '<p>Baue ein <b>UND</b> nur mit NAND-Gattern.</p>', hilfe: 'NAND ist ein UND mit nachgeschaltetem NICHT. Wie hebst du das NICHT wieder auf?' },
-      { id: 'A9.3', titel: 'ODER nur aus NAND', art: 'nand', n: 2, ausgaenge: 1, f: function (e) { return e[0] | e[1]; }, start: P.startNetz(2, 1), min: { nand: 3 },
-        muster: P.netz({ n: 2, gatter: [N('U1', 'nand', ['E1', 'E1']), N('U2', 'nand', ['E2', 'E2']), N('U3', 'nand', ['U1', 'U2'])], aus: { L1: 'U3' } }), text: '<p>Baue ein <b>ODER</b> nur mit NAND-Gattern.</p>', hilfe: 'De Morgan: e1 v e2 = /( /e1 /e2 ). Das ist ein NAND von zwei invertierten Eingängen.' },
-      { id: 'A9.4', titel: 'Ausdruck nur mit NAND', art: 'nand', n: 3, ausgaenge: 1, f: function (e) { return (e[0] & e[1]) | (1 - e[2]); }, start: P.startNetz(3, 1), min: { nand: 2 },
-        muster: P.netz({ n: 3, gatter: [N('U1', 'nand', ['E1', 'E2']), N('U2', 'nand', ['U1', 'E3'])], aus: { L1: 'U2' } }), text: '<p>Baue <b>A = e1e2 v /e3</b> nur mit NAND. Du brauchst weniger Gatter, als du denkst.</p>', hilfe: 'Schreibe A mit zwei Überstreichungen und wende De Morgan auf die untere an: A = /( /(e1e2) · e3 ).' },
-      { id: 'A9.5', titel: 'XOR mit einem 74HC00', art: 'ics', n: 2, ausgaenge: 1, f: function (e) { return e[0] ^ e[1]; }, nur: ['nand'], limit: { nand: 4 }, maxEingaenge: 2, limitText: 'ein 74HC00 hat vier NAND mit zwei Eingängen', start: P.startNetz(2, 1), muster: xorNand,
-        text: '<p>Baue ein <b>XOR</b> aus höchstens <b>vier NAND</b> mit je zwei Eingängen – das ist genau ein 74HC00. (' + IC + ')</p>', hilfe: 'Das erste NAND bekommt e1 und e2. Sein Ausgang geht zusätzlich an zwei weitere NAND, die je einen Eingang dazunehmen. Ein viertes NAND führt beide zusammen.' },
-      { id: 'A9.6', titel: 'XOR mit 74HC02 und 74HC08', art: 'ics', n: 2, ausgaenge: 1, f: function (e) { return e[0] ^ e[1]; }, nur: ['nor', 'and'], limit: { nor: 4, and: 4 }, maxEingaenge: 2, limitText: 'je ein 74HC02 (vier NOR) und ein 74HC08 (vier UND), alle mit zwei Eingängen', start: P.startNetz(2, 1),
-        muster: P.netz({ n: 2, gatter: [N('U1', 'nor', ['E1', 'E2']), N('U2', 'and', ['E1', 'E2']), N('U3', 'nor', ['U1', 'U2'])], aus: { L1: 'U3' } }),
-        text: '<p>Baue ein <b>XOR</b> mit <b>je einem 74HC02 und einem 74HC08</b>: höchstens vier NOR und vier UND, jeweils mit zwei Eingängen. Andere Gatter sind nicht erlaubt. (' + IC + ')</p>', hilfe: 'XOR = (e1 v e2) und nicht (e1 e2). Das ODER ohne Negation gibt es hier nicht – aber NOR und UND. Wie kommst du mit NOR(e1,e2) und UND(e1,e2) auf XOR?' },
-      { id: 'A9.7', titel: 'Prüffragen Universalgatter', art: 'fragen', text: '<p>Vier kurze Fragen.</p>', fragen: [
-        { q: 'Wie viele NAND braucht man mindestens für ein ODER?', opt: ['1', '2', '3', '4'], richtig: 2, erkl: 'Zwei NAND als Inverter für die Eingänge, ein drittes als Verknüpfung.' },
-        { q: 'Welche Gatter sind Universalgatter (jede Funktion lässt sich nur damit bauen)?', opt: ['UND und ODER', 'NAND und NOR', 'XOR und XNOR', 'NICHT'], richtig: 1, erkl: 'Mit NAND allein oder NOR allein lässt sich NICHT, UND und ODER bilden, damit alles.' },
-        { q: 'Wie viele NAND-Gatter enthält ein 74HC00?', opt: ['2', '4', '6', '8'], richtig: 1, erkl: 'Vier NAND mit je zwei Eingängen im 14-poligen Gehäuse.' },
-        { q: 'Ein NAND mit zusammengeschalteten Eingängen verhält sich wie ein …', opt: ['UND', 'ODER', 'NICHT', 'XOR'], richtig: 2, erkl: '/(e1 e1) = /e1.' }] }
+      { id: 'A9.1', titel: 'Aufgabe 1: Nur NAND', art: 'nand', n: 5, ausgaenge: 1, f: f1, nur: ['nand'], maxEingaenge: 3, start: P.startNetz(5, 1), muster: m1,
+        text: '<p>Du hast nur <b>NAND</b> ICs zur Verfügung. Wandle die folgende Schaltung um:</p><p class="pf-gegeben">A = e1 · e2 · (e3 + e4) · e5</p><p>Die Schaltung besteht aus einem UND für e1 und e2, einem ODER für e3 und e4, einem zweiten UND für deren Ausgänge und einem dritten UND mit e5. <b>Erlaubt sind nur NAND-Gatter. Wie im Lehrmittel darfst du auch ein NAND mit drei Eingängen verwenden</b> (SN7410, Eigenschaftenfeld: Eingänge = 3); alle anderen Gatter haben zwei Eingänge. Andere Gattertypen sind nicht erlaubt.</p><p>E1 bis E5 sind e1 bis e5, die Anzeige L1 ist A.</p>', hilfe: 'UND und ODER lassen sich aus NAND bauen (De Morgan): ein UND ist ein NAND mit nachgeschaltetem NAND, dessen Eingänge verbunden sind; e3 + e4 = NAND(/e3, /e4).' },
+      { id: 'A9.2', titel: 'Aufgabe 2: Mit gegebenen ICs (74HC02 und 74HC08)', art: 'ics', n: 3, ausgaenge: 1, f: f2, nur: ['nor', 'and'], limit: { nor: 4, and: 4 }, maxEingaenge: 2, limitText: 'je ein 74HC02 = vier NOR und ein 74HC08 = vier UND, alle mit zwei Eingängen', start: P.startNetz(3, 1), muster: m2,
+        text: '<p>Zur Verfügung stehen je ein IC <b>74HC02</b> und ein <b>74HC08</b>. Folgender Ausdruck muss dabei erfüllt sein:</p><p class="pf-gegeben">A1 = NICHT(A + C) · B</p><p>Der 74HC02 enthält vier NOR mit je zwei Eingängen, der 74HC08 vier UND mit je zwei Eingängen: Du darfst also <b>höchstens vier NOR und vier UND</b> verwenden, andere Gattertypen nicht. E1 = A, E2 = B, E3 = C, die Anzeige L1 ist A1.</p>', hilfe: 'NICHT(A + C) ist genau ein NOR.' }
     ]
   });
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -7649,7 +7662,7 @@ body.beamer .dr text { font-size: inherit; }
  * Aufgaben 7 bis 13 sind freiwillig. Die selbst erfundenen Schaltungsaufgaben am Ende sind eine eigene, freiwillige Zusatzübung. */
 (function (root) {
   'use strict';
-  var P = root.DQPfad, KV = P.serie('kv');
+  var P = root.DQPfad, KV = P.serie('kv'), BU = P.KONV.buchstaben;   // Stellenwertigkeit: konventionen.js
   var HILFE = 'Päckchen haben 1, 2, 4, 8, 16 … Felder. Variablen, die sich im Päckchen ändern, fallen weg. Auch über den Rand des Diagramms darf ein Päckchen gehen. X darfst du dazunehmen, musst es aber nicht.';
   function mText(r) {
     var n = r.eingaenge, m = (n === 4 ? 'Z = m4(' : 'Z = Σ m' + n + '(') + r.einsen.join(',') + ')';
@@ -7660,7 +7673,7 @@ body.beamer .dr text { font-size: inherit; }
   KV.filter(function (r) { return r.nr <= 10; }).forEach(function (r) { add(einzel(r)); });
   function einzel(r) {
     var n = r.eingaenge, fw = r.nr >= 7 && r.nr <= 13, vier = r.gleichwertige_loesungen > 1;
-    return { id: 'A10.' + r.nr, titel: 'Aufgabe ' + r.nr + (fw ? ' (freiwillig)' : ''), pflicht: !fw, art: 'kv', n: n, ones: r.einsen, dc: r.egal, buchstaben: 'abcdef'.slice(0, n), erwartet: { terme: r.terme, buchstaben: r.buchstaben },
+    return { id: 'A10.' + r.nr, titel: 'Aufgabe ' + r.nr + (fw ? ' (freiwillig)' : ''), pflicht: !fw, art: 'kv', n: n, ones: r.einsen, dc: r.egal, buchstaben: P.KONV.buchstaben.slice(0, n), erwartet: { terme: r.terme, buchstaben: r.buchstaben },
       text: '<p>' + (fw ? '<b>Freiwillig.</b> ' : '') + 'Vereinfachen Sie folgenden Ausdruck mit einem KV-Diagramm:</p><p class="pf-gegeben">' + mText(r) + '</p><p>Zeichne die Päckchen ein und gib die Minimalform an (<code>a\'</code> bedeutet NICHT a, Beispiel <code>d\'a\' + c\'b</code>).' + (vier ? ' <b>Diese Aufgabe hat mehrere gleich kurze Lösungen; jede davon ist richtig.</b>' : '') + '</p>', hilfe: HILFE };
   }
   // Sonderaufgaben 11 bis 13 (kein m-Ausdruck), alle freiwillig
@@ -7671,15 +7684,15 @@ body.beamer .dr text { font-size: inherit; }
     text: '<p><b>Freiwillig.</b> b) Vereinfachen Sie denselben Ausdruck mittels KV-Diagramm. (Im Diagramm ist A das niederwertigste Bit und D das höchstwertige, wie bei a, b, c, d.)</p>', hilfe: HILFE });
   var ref12a = "a'bc + ab'c + abc' + abc", ref12b = "cba' + cb'a' + cb'a + cba' + cba";
   [[ref12a, 'a', 3, 6], [ref12b, 'b', 1, 1]].forEach(function (x) {
-    var r = P.refOf({ ref: x[0], n: 3, buchstaben: 'abc' });
-    add({ id: 'A10.12' + x[1], titel: 'Aufgabe 12' + x[1] + ' (freiwillig)', pflicht: false, art: 'kv', n: 3, ones: r.ones, dc: [], buchstaben: 'abc', erwartet: { terme: x[2], buchstaben: x[3] },
+    var r = P.refOf({ ref: x[0], n: 3, buchstaben: BU.slice(0, 3) });
+    add({ id: 'A10.12' + x[1], titel: 'Aufgabe 12' + x[1] + ' (freiwillig)', pflicht: false, art: 'kv', n: 3, ones: r.ones, dc: [], buchstaben: BU.slice(0, 3), erwartet: { terme: x[2], buchstaben: x[3] },
       text: '<p><b>Freiwillig.</b> Vereinfachung mittels KV-Diagramm: <b>' + x[1] + ') ' + x[0].replace(/'/g, '\'') + '</b></p>', hilfe: HILFE });
   });
   // 13: Beweisen Sie a'bc + ab'c + abc' + abc = ab + ac + bc = (a + b)(b + c)(c + a)
-  var f13 = ["a'bc + ab'c + abc' + abc", 'ab + ac + bc', '(a + b)(b + c)(c + a)'], fs13 = f13.map(function (t) { return P.formel(t, 'abc'); });
+  var f13 = ["a'bc + ab'c + abc' + abc", 'ab + ac + bc', '(a + b)(b + c)(c + a)'], fs13 = f13.map(function (t) { return P.formel(t, BU.slice(0, 3)); });
   var w13 = P.wahrheit({ ein: ['a', 'b', 'c'], aus: f13, f: function (e) { var x = [e[2], e[1], e[0]]; return fs13.map(function (f) { return f(x); }); } }); // e = [a, b, c] von links; formel erwartet e[0] = a (niederwertig)
   add({ id: 'A10.13a', titel: 'Aufgabe 13a (freiwillig): Beweisen Sie – Wahrheitstabelle', pflicht: false, art: 'tabelle', kopf: w13.kopf, zeilen: w13.zeilen, text: '<p><b>Freiwillig.</b> Beweisen Sie: <b>a\'bc + ab\'c + abc\' + abc = ab + ac + bc = (a + b)(b + c)(c + a)</b>. Rechne dazu die drei Ausdrücke in der Wahrheitstabelle aus: Sind die drei Spalten in jeder Zeile gleich, sind die Ausdrücke gleich.</p>' });
-  add({ id: 'A10.13b', titel: 'Aufgabe 13b (freiwillig): Produktform', pflicht: false, art: 'ausdruck', n: 3, buchstaben: 'abc', ref: ref12a, form: 'pos', maxBuchstaben: 6, muster: '(a + b)(b + c)(c + a)', text: '<p><b>Freiwillig.</b> Gib den Ausdruck von Aufgabe 12a als <b>Produkt von Summen</b> an (UND von ODER-Klammern, höchstens sechs Buchstaben).</p>', hilfe: 'Aus der Summenform ab + ac + bc ergibt sich (a + b)(b + c)(c + a).' });
+  add({ id: 'A10.13b', titel: 'Aufgabe 13b (freiwillig): Produktform', pflicht: false, art: 'ausdruck', n: 3, buchstaben: BU.slice(0, 3), ref: ref12a, form: 'pos', maxBuchstaben: 6, muster: '(a + b)(b + c)(c + a)', text: '<p><b>Freiwillig.</b> Gib den Ausdruck von Aufgabe 12a als <b>Produkt von Summen</b> an (UND von ODER-Klammern, höchstens sechs Buchstaben).</p>', hilfe: 'Aus der Summenform ab + ac + bc ergibt sich (a + b)(b + c)(c + a).' });
   KV.filter(function (r) { return r.nr >= 14; }).forEach(function (r) { add(einzel(r)); });
   // Eigene, freiwillige Zusatzübung: Schaltung zur Minimalform
   [1, 3].forEach(function (nr, j) {
@@ -7707,14 +7720,14 @@ body.beamer .dr text { font-size: inherit; }
   // Aufgabe 1: Codetabelle 0…9
   var codes = { kopf: ['Dezimal', 'BCD', '3-Exzess', 'Gray'], zeilen: [] };
   for (var d = 0; d <= 9; d++) codes.zeilen.push([String(d), { a: D(d, 4), typ: 'bin' }, { a: D(d + 3, 4), typ: 'bin' }, { a: D(P.gray(d), 4), typ: 'bin' }]);
-  // Aufgabe 2: Wahrheitstabelle 3-Exzess → BCD. Tabelle: Wort w = [e4 e3 e2 e1] (MSB zuerst); Ausgänge A4 … A1
-  var wt = P.wahrheit({ ein: ['e4', 'e3', 'e2', 'e1'], aus: ['A4', 'A3', 'A2', 'A1'], f: function (e) { var v = bcd(P.wertMSB(e)); return v === 'X' ? ['X', 'X', 'X', 'X'] : [v >> 3 & 1, v >> 2 & 1, v >> 1 & 1, v & 1]; } });
+  // Aufgabe 2: Wahrheitstabelle 3-Exzess → BCD. Tabelle: Wort w = [d c b a] (MSB zuerst); Ausgänge A4 … A1
+  var wt = P.wahrheit({ ein: ['d', 'c', 'b', 'a'], aus: ['A4', 'A3', 'A2', 'A1'], f: function (e) { var v = bcd(P.wertMSB(e)); return v === 'X' ? ['X', 'X', 'X', 'X'] : [v >> 3 & 1, v >> 2 & 1, v >> 1 & 1, v & 1]; } });
   // Soll für die Schaltung (e1 = Bit 0): Ausgang j = Bit j der Ziffer
   var sollF = function (e) { var v = bcd(P.wertLSB(e)); return v === 'X' ? ['X', 'X', 'X', 'X'] : [v & 1, v >> 1 & 1, v >> 2 & 1, v >> 3 & 1]; };
   var kvs = [1, 2, 4, 8].map(function (wert, j) {
     var ones = P.einsen(4, sollF, j), dc = P.dcs(4, sollF, j);
-    return { id: 'A11.' + (3 + j), titel: 'KV-Diagramm für A' + wert, art: 'kv', n: 4, ones: ones, dc: dc,
-      text: '<p>Der Codewandler 3-Exzess → BCD hat für das Ausgangsbit <b>A' + wert + '</b> (Wertigkeit ' + wert + ') die Einsen <b>m(' + ones.join(', ') + ')</b>. Die Codewörter 0, 1, 2 und 13, 14, 15 kommen im 3-Exzess-Code nicht vor: Das sind die <b>Don\'t-Care</b> <b>d(' + dc.join(', ') + ')</b>. Zeichne die Päckchen (X darfst du dazunehmen) und gib die Minimalform an. e1 ist das niedrigste Bit des Codeworts.</p>',
+    return { id: 'A11.' + (3 + j), titel: 'KV-Diagramm für A' + wert, art: 'kv', n: 4, ones: ones, dc: dc, buchstaben: P.KONV.buchstaben.slice(0, 4),
+      text: '<p>Der Codewandler 3-Exzess → BCD hat für das Ausgangsbit <b>A' + wert + '</b> (Wertigkeit ' + wert + ') die Einsen <b>m(' + ones.join(', ') + ')</b>. Die Codewörter 0, 1, 2 und 13, 14, 15 kommen im 3-Exzess-Code nicht vor: Das sind die <b>Don\'t-Care</b> <b>d(' + dc.join(', ') + ')</b>. Zeichne die Päckchen (X darfst du dazunehmen) und gib die Minimalform an. a ist das niedrigste, d das höchste Bit des Codeworts.</p>',
       hilfe: 'Ein X darfst du in ein Päckchen aufnehmen, wenn es dadurch grösser wird. Musst du aber nicht.' };
   });
   var gr = P.wahrheit({ ein: ['b3', 'b2', 'b1', 'b0'], aus: ['g3', 'g2', 'g1', 'g0'], f: function (e) { var g = P.gray(P.wertMSB(e)); return [g >> 3 & 1, g >> 2 & 1, g >> 1 & 1, g & 1]; } });
@@ -7726,7 +7739,7 @@ body.beamer .dr text { font-size: inherit; }
     aufgaben: [
       { id: 'A11.1', titel: 'Codetabelle 0 bis 9', art: 'tabelle', kopf: codes.kopf, zeilen: codes.zeilen, text: '<p>Fülle BCD, 3-Exzess und Gray (alle vierstellig) für die Dezimalziffern 0 bis 9 aus.</p>', hilfe: 'BCD = die Dualzahl. 3-Exzess: Ziffer plus 3, dann dual. Gray: Das höchste Bit bleibt, jedes weitere Bit = Dualbit XOR das Dualbit links davon.' },
       { id: 'A11.2', titel: 'Wahrheitstabelle 3-Exzess → BCD', art: 'tabelle', kopf: wt.kopf, zeilen: wt.zeilen,
-        text: '<p>Eingang ist ein Codewort im <b>3-Exzess-Code</b> (e4 e3 e2 e1, e4 hat die Wertigkeit 8), Ausgang ist die Ziffer als <b>BCD</b> (A4 A3 A2 A1). Für Codewörter, die im 3-Exzess nicht vorkommen (0000 bis 0010 und 1101 bis 1111), schreibst du <b>X</b> (beliebig).</p>', hilfe: 'Codewort 0011 ist die Ziffer 0, also BCD 0000. Codewort 1100 ist die Ziffer 9, also BCD 1001.' }
+        text: '<p>Eingang ist ein Codewort im <b>3-Exzess-Code</b> (d c b a, d hat die Wertigkeit 8), Ausgang ist die Ziffer als <b>BCD</b> (A4 A3 A2 A1). Für Codewörter, die im 3-Exzess nicht vorkommen (0000 bis 0010 und 1101 bis 1111), schreibst du <b>X</b> (beliebig).</p>', hilfe: 'Codewort 0011 ist die Ziffer 0, also BCD 0000. Codewort 1100 ist die Ziffer 9, also BCD 1001.' }
     ].concat(kvs, [
       { id: 'A11.7', titel: 'Schaltung 3-Exzess → BCD', art: 'schaltung', n: 4, ausgaenge: 4, soll: P.sollAus(4, sollF), start: P.startNetz(4, 4),
         muster: P.netzMinimal(4, [1, 2, 4, 8].map(function (w, j) { return { ones: P.einsen(4, sollF, j), dc: P.dcs(4, sollF, j) }; })),
@@ -7842,36 +7855,49 @@ body.beamer .dr text { font-size: inherit; }
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* ==== studio/pfad/st_B01.js ==== */
-/* Lernpfad Station B1 – NOR-Flipflop. Eingänge wie im Lehrmittel e1 und e2; hier e1 = Setzen (S), e2 = Rücksetzen (R) – siehe docs/FRAGEN_STUDIO.md.
+/* Lernpfad Station B1 – NOR-Flipflop. Eingänge e1 und e2; welcher setzt, steht in P.KONV.norSetzen (konventionen.js, FRAGEN_STUDIO.md Punkt 6).
  * Tabellen aus der Folgefunktion des RS-Flipflops (P.FF.rs); die Schaltung aus zwei NOR wird von der Prüfmaschine über das Verhalten geprüft. */
 (function (root) {
   'use strict';
   var P = root.DQPfad;
-  var EIN = ['e1', 'e2'], an = P.ffAnalyse(EIN, P.FF.rs), ans = P.ffAnsteuer(EIN, P.FF.rs);
-  var OPT = ['0', '1', 'AV', 'unzulässig'];
-  var wt = { kopf: ['e1', 'e2', 'A'], zeilen: [['0', '0', { a: 'AV', typ: 'wahl', opt: OPT }], ['0', '1', { a: '0', typ: 'wahl', opt: OPT }], ['1', '0', { a: '1', typ: 'wahl', opt: OPT }], ['1', '1', { a: 'unzulässig', typ: 'wahl', opt: OPT }]] };
+  // Konvention aus dem Lehrmittel (docs/aufgaben/B1_NOR_FLIPFLOP.md, belegt): e2 setzt, e1 setzt zurück; bei e1 = e2 = 1 gewinnt e1, der Ausgang wird 0.
+  // Welcher Eingang setzt, steht in P.KONV.norSetzen (konventionen.js); Rücksetzen hat bei beiden Eingängen = 1 Vorrang.
+  var SZ = P.KONV.norSetzen === 'e2' ? 1 : 0, sN = SZ ? 'e2' : 'e1', rN = SZ ? 'e1' : 'e2', SI = sN.toUpperCase(), RI = rN.toUpperCase();
+  var nextNor = function (q, e) { var s = e[SZ], r = e[1 - SZ]; return r ? 0 : s ? 1 : q; };       // e = [e1, e2]; Rücksetzen gewinnt
+  var nextSR = function (q, e) { return e[0] && e[1] ? 'X' : (e[0] ? 1 : e[1] ? 0 : q); };       // e = [Setzen, Rücksetzen]; die gemeinsame 1 wird in der Ansteuertabelle nicht benutzt
+  var ENN = [sN, rN];                                                                            // Spaltenreihenfolge wie im Lehrmittel: Setzeingang (e2) vor Rücksetzeingang (e1)
+  var X = ['X', 'x', '-'];
+  // Wahrheitstabelle: e2 | e1 | AV | A (AV steht in der Mitte)
+  var wt = { kopf: ENN.concat(['AV', 'A']), zeilen: [] };
+  for (var k = 0; k < 8; k++) { var e = [k >> 2 & 1, k >> 1 & 1], av = k & 1; wt.zeilen.push([String(e[0]), String(e[1]), String(av), { a: String(e[1] ? 0 : e[0] ? 1 : av), typ: 'bit' }]); }
+  // Analysetabelle: e2 | e1 | A (A ist 0, 1 oder AV)
+  var OPT = ['0', '1', 'AV'];
+  var an = { kopf: ENN.concat(['A']), zeilen: [[0, 0], [0, 1], [1, 0], [1, 1]].map(function (e) { return [String(e[0]), String(e[1]), { a: e[1] ? '0' : e[0] ? '1' : 'AV', typ: 'wahl', opt: OPT }]; }) };
+  // Ansteuertabelle: AV | A | e2 | e1; X wo beide Werte erlaubt sind. Die Werte der Zeilen stehen nicht im Lehrmittel-Auszug: übliche Tabelle (11 nicht benutzt); X ist überall zulässig, wo die Gleichung mit gemeinsamer 1 es hergibt.
+  var u = P.ffUebergang(ENN, nextSR), ans = { kopf: ['AV', 'A'].concat(ENN), zeilen: u.map(function (r) {
+    return [String(r.av), String(r.a)].concat(r.v.map(function (x, i) { var mit = {}; [0, 1].forEach(function (a) { [0, 1].forEach(function (b) { var q = nextNor(r.av, SZ ? [b, a] : [a, b]); if (q === r.a) mit[i ? b : a] = 1; }); }); return { a: x === 'X' ? X : (mit[0] && mit[1] ? [x, 'X', 'x', '-'] : x), typ: 'bit' }; })); }) };
   var nor = P.raster({ teile: [['E1', 'logicin'], ['E2', 'logicin'], ['U1', 'nor'], ['U2', 'nor'], ['L1', 'logicled'], ['L2', 'logicled'], ['GND1', 'ground']], zeilen: 3,
-    leitungen: [['E2', 'U1.in1'], ['U2.out', 'U1.in2'], ['E1', 'U2.in1'], ['U1.out', 'U2.in2'], ['U1', 'L1'], ['U2', 'L2']] });
-  var Sch = function (s, r, q) { return { set: { E1: s, E2: r }, erwartet: [q, 1 - q] }; };
+    leitungen: [[RI, 'U1.in1'], ['U2.out', 'U1.in2'], [SI, 'U2.in1'], ['U1.out', 'U2.in2'], ['U1', 'L1'], ['U2', 'L2']] });
+  var Sch = function (s, r, q) { var set = {}; set[SI] = s; set[RI] = r; return { set: set, erwartet: [q, 1 - q] }; };
   var falsch = P.raster({ teile: [['E1', 'logicin'], ['E2', 'logicin'], ['U1', 'nor'], ['U2', 'nor'], ['L1', 'logicled'], ['L2', 'logicled'], ['GND1', 'ground']], zeilen: 3,   // Rückführung fehlt
-    leitungen: [['E2', 'U1.in1'], ['E1', 'U1.in2'], ['E1', 'U2.in1'], ['E2', 'U2.in2'], ['U1', 'L1'], ['U2', 'L2']] });
+    leitungen: [[RI, 'U1.in1'], [SI, 'U1.in2'], [SI, 'U2.in1'], [RI, 'U2.in2'], ['U1', 'L1'], ['U2', 'L2']] });
   P.station({
     id: 'B1', teil: 'B', nr: 1, titel: 'NOR-Flipflop', kurz: 'Das einfachste Speicherelement aus zwei NOR-Gattern',
-    einfuehrung: '<p>Bisher hing der Ausgang einer Schaltung nur von den <b>jetzigen</b> Eingängen ab (kombinatorische Logik). Ein <b>Flipflop</b> dagegen hat ein <b>Gedächtnis</b>: Sein Ausgang hängt auch davon ab, was vorher war. Möglich wird das durch eine <b>Rückkopplung</b>: Der Ausgang jedes Gatters führt zu einem Eingang des anderen.</p><p>Das <b>NOR-Flipflop</b> besteht aus zwei NOR-Gattern. Zwei Eingänge: <b>e1</b> (Setzen, S: macht Q = 1) und <b>e2</b> (Rücksetzen, R: macht Q = 0). Sind beide 0, hält das Flipflop seinen Zustand. Beide 1 ist unzulässig.</p><p><b>Schreibweise:</b> <b>AV</b> = Ausgang vorher, <b>A</b> = Ausgang danach. Die <b>Wahrheitstabelle</b> zeigt A in Abhängigkeit von e1 und e2 (mit AV als Wert «hält»), die <b>Analysetabelle</b> führt AV als zusätzliche Spalte, die <b>Ansteuertabelle</b> fragt umgekehrt, welche Eingänge einen Übergang AV → A bewirken. Das <b>Zustandsfolgediagramm</b> zeigt die Übergänge als Pfeile.</p>',
+    einfuehrung: '<p>Bisher hing der Ausgang einer Schaltung nur von den <b>jetzigen</b> Eingängen ab (kombinatorische Logik). Ein <b>Flipflop</b> dagegen hat ein <b>Gedächtnis</b>: Sein Ausgang hängt auch davon ab, was vorher war. Möglich wird das durch eine <b>Rückkopplung</b>: Der Ausgang jedes Gatters führt zu einem Eingang des anderen.</p><p>Das <b>NOR-Flipflop</b> besteht aus zwei NOR-Gattern. Zwei Eingänge: <b>' + sN + '</b> (Setzen, S: macht Q = 1) und <b>' + rN + '</b> (Rücksetzen, R: macht Q = 0). Sind beide 0, hält das Flipflop seinen Zustand. Sind beide 1, <b>gewinnt ' + rN + '</b>: der Ausgang wird 0.</p><p><b>Schreibweise:</b> <b>AV</b> = Ausgang vorher, <b>A</b> = Ausgang danach. Die <b>Wahrheitstabelle</b> (Spalten e2, e1, AV, A) zeigt A für jede Kombination, die <b>Analysetabelle</b> (e2, e1, A) fasst zusammen, wann A dem alten Wert AV entspricht, die <b>Ansteuertabelle</b> fragt umgekehrt, welche Eingänge einen Übergang AV → A bewirken. Das <b>Zustandsfolgediagramm</b> zeigt die Übergänge als Pfeile.</p>',
     verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
     aufgaben: [
-      { id: 'B1.1', titel: 'Wahrheitstabelle', art: 'tabelle', kopf: wt.kopf, zeilen: wt.zeilen, text: '<p>Wähle für jede Eingangskombination, was der Ausgang A <b>danach</b> zeigt: <b>0</b>, <b>1</b>, <b>AV</b> (hält den alten Wert) oder <b>unzulässig</b>.</p><p>e1 setzt (Q = 1), e2 setzt zurück (Q = 0).</p>' },
-      { id: 'B1.2', titel: 'Analysetabelle', art: 'tabelle', kopf: an.kopf, zeilen: an.zeilen, text: '<p>Fülle die <b>Analysetabelle</b> aus: Zu jeder Kombination von e1, e2 und AV der Ausgang A. Für den unzulässigen Fall schreibst du <b>X</b>.</p>' },
-      { id: 'B1.3', titel: 'Ansteuertabelle', art: 'tabelle', kopf: ans.kopf, zeilen: ans.zeilen, text: '<p>Fülle die <b>Ansteuertabelle</b> aus: Welche Werte brauchen e1 und e2 für den Übergang von AV nach A? Wo es egal ist: <b>X</b>.</p>', hilfe: 'Bei AV = 0, A = 0: Es darf nicht gesetzt werden (e1 = 0), zurücksetzen ist egal.' },
-      { id: 'B1.4', titel: 'Zustandsfolgediagramm', art: 'vergleich', text: '<p>Zeichne das Zustandsfolgediagramm des NOR-Flipflops auf Papier: zwei Zustände (Q = 0, Q = 1) und vier Pfeile, beschriftet mit e1 e2 aus der Ansteuertabelle. Notiere kurz, was dir auffällt, und gib ab; die Software zeigt dir ihr Diagramm zum Vergleich (bewertet wird nicht).</p>', zeigeMuster: '<p>So sieht das Diagramm aus:</p>' + P.svgZustand(EIN, P.FF.rs) },
+      { id: 'B1.1', titel: 'Wahrheitstabelle', art: 'tabelle', kopf: wt.kopf, zeilen: wt.zeilen, text: '<p>Fülle die <b>Wahrheitstabelle</b> aus: Was zeigt der Ausgang A <b>danach</b> (AV = Ausgang vorher)?</p><p>' + sN + ' setzt (A = 1), ' + rN + ' setzt zurück (A = 0). Sind beide 1, gewinnt ' + rN + '.</p>' },
+      { id: 'B1.2', titel: 'Analysetabelle', art: 'tabelle', kopf: an.kopf, zeilen: an.zeilen, text: '<p>Fülle die <b>Analysetabelle</b> aus: Zu jeder Kombination von e2 und e1 der Ausgang A. Wählst du <b>AV</b>, heisst das: A behält den alten Wert.</p>' },
+      { id: 'B1.3', titel: 'Ansteuertabelle', art: 'tabelle', kopf: ans.kopf, zeilen: ans.zeilen, text: '<p>Fülle die <b>Ansteuertabelle</b> aus: Welche Werte brauchen e2 und e1 für den Übergang von AV nach A? Wo es egal ist: <b>X</b>.</p>', hilfe: 'Bei AV = 0, A = 0: Es darf nicht gesetzt werden (' + sN + ' = 0); ob zurückgesetzt wird, ist egal (X).' },
+      { id: 'B1.4', titel: 'Zustandsfolgediagramm', art: 'vergleich', text: '<p>Zeichne das Zustandsfolgediagramm des NOR-Flipflops auf Papier: zwei Zustände (Q = 0, Q = 1) und vier Pfeile, beschriftet mit e2 e1 aus der Ansteuertabelle. Notiere kurz, was dir auffällt, und gib ab; die Software zeigt dir ihr Diagramm zum Vergleich (bewertet wird nicht).</p>', zeigeMuster: '<p>So sieht das Diagramm aus:</p>' + P.svgZustand(ENN, nextSR) },
       { id: 'B1.5', titel: 'Schaltung aus zwei NOR bauen', art: 'folge', lesen: ['L1', 'L2'], nur: ['nor'], limit: { nor: 2 }, min: { nor: 2 }, start: P.startNetz(2, 2), muster: nor, falsch: falsch,
-        schritte: [Sch(1, 0, 1), Sch(0, 0, 1), Sch(0, 1, 0), Sch(0, 0, 0), Sch(1, 0, 1), Sch(0, 0, 1)],
-        text: '<p>Baue das Flipflop aus <b>genau zwei NOR-Gattern</b>: <b>E1</b> = Setzen (S), <b>E2</b> = Rücksetzen (R); <b>L1</b> zeigt Q, <b>L2</b> zeigt Q̄. Der Ausgang jedes NOR geht an einen Eingang des anderen. Probiere es aus: Setzen, loslassen, Rücksetzen, loslassen.</p>', hilfe: 'NOR 1 bekommt R und den Ausgang von NOR 2, NOR 2 bekommt S und den Ausgang von NOR 1. Q ist der Ausgang von NOR 1.' },
+        schritte: [Sch(1, 0, 1), Sch(0, 0, 1), Sch(0, 1, 0), Sch(0, 0, 0), Sch(1, 0, 1), Sch(0, 0, 1), { set: (function () { var o = {}; o[SI] = 1; o[RI] = 1; return o; })(), erwartet: [0, 'X'], name: 'beide Eingänge 1: ' + rN + ' gewinnt, Q wird 0' }],
+        text: '<p>Baue das Flipflop aus <b>genau zwei NOR-Gattern</b>: <b>' + SI + '</b> = Setzen (S), <b>' + RI + '</b> = Rücksetzen (R); <b>L1</b> zeigt Q, <b>L2</b> zeigt Q̄. Das obere NOR (Ausgang A = Q) bekommt e1, das untere e2; der Ausgang jedes NOR geht an einen Eingang des anderen. Probiere es aus: Setzen, loslassen, Rücksetzen, loslassen – und beide Eingänge auf 1: Dann gewinnt ' + rN + ' (Q = 0).</p>', hilfe: 'NOR 1 bekommt R und den Ausgang von NOR 2, NOR 2 bekommt S und den Ausgang von NOR 1. Q ist der Ausgang von NOR 1.' },
       { id: 'B1.6', titel: 'Prüffragen NOR-Flipflop', art: 'fragen', text: '<p>Vier kurze Fragen.</p>', fragen: [
         { q: 'Was bewirkt die Rückkopplung im Flipflop?', opt: ['Sie macht es schneller', 'Sie speichert den Zustand', 'Sie verhindert Störungen', 'Sie erzeugt den Takt'], richtig: 1, erkl: 'Jedes Gatter hält durch den anderen seinen Ausgang fest.' },
-        { q: 'Beide Eingänge e1, e2 sind 0. Was zeigt der Ausgang?', opt: ['0', '1', 'Den alten Wert (AV)', 'Unzulässig'], richtig: 2, erkl: 'Ruhezustand: Das Flipflop speichert.' },
-        { q: 'e1 = 1, e2 = 0. Welcher Wert hat A danach?', opt: ['0', '1', 'AV', 'Unzulässig'], richtig: 1, erkl: 'e1 setzt.' },
-        { q: 'Welche Eingabe ist beim NOR-Flipflop verboten?', opt: ['e1 = 0, e2 = 0', 'e1 = 1, e2 = 1', 'e1 = 1, e2 = 0', 'e1 = 0, e2 = 1'], richtig: 1, erkl: 'Gleichzeitig setzen und rücksetzen.' }] }
+        { q: 'Beide Eingänge e1, e2 sind 0. Was zeigt der Ausgang?', opt: ['0', '1', 'Den alten Wert (AV)', 'Das ist nicht erlaubt'], richtig: 2, erkl: 'Ruhezustand: Das Flipflop speichert.' },
+        { q: 'e2 = 1, e1 = 0. Welcher Wert hat A danach?', opt: ['0', '1', 'AV', 'Das ist nicht erlaubt'], richtig: 1, erkl: 'Der Setzeingang macht Q = 1.' },
+        { q: 'e1 = 1 und e2 = 1 zugleich. Was zeigt A?', opt: ['0 (e1 gewinnt)', '1 (e2 gewinnt)', 'Den alten Wert', 'Unbestimmt'], richtig: 0, erkl: 'Das obere NOR bekommt e1 = 1: Sein Ausgang A ist 0, e1 gewinnt.' }] }
     ]
   });
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -7881,22 +7907,24 @@ body.beamer .dr text { font-size: inherit; }
 (function (root) {
   'use strict';
   var P = root.DQPfad;
-  var next = function (q, e) { return e[0] ? P.FF.rs(q, [e[1], e[2]]) : q; };          // e = [C, e1, e2]
-  var an = P.ffAnalyse(['C', 'e1', 'e2'], next);
+  var SZ = P.KONV.norSetzen === 'e2' ? 1 : 0, sN = SZ ? 'e2' : 'e1', rN = SZ ? 'e1' : 'e2', SI = sN.toUpperCase(), RI = rN.toUpperCase();   // Rollen aus konventionen.js
+  var next = function (q, e) { var sv = SZ ? e[2] : e[1], rv = SZ ? e[1] : e[2]; return e[0] ? (rv ? 0 : sv ? 1 : q) : q; };   // Rücksetzen gewinnt bei beiden = 1 (wie B1)          // e = [C, e1, e2]
+  var an = P.ffAnalyse(['C', 'e2', 'e1'].map(function (x, i) { return x; }), function (q, e) { return next(q, [e[0], e[2], e[1]]); });   // Spalten C, e2, e1 (Setzeingang zuerst wie in B1)
   var muster = P.raster({ teile: [['E1', 'logicin'], ['E2', 'logicin'], ['C', 'logicin'], ['U1', 'and'], ['U2', 'and'], ['U3', 'nor'], ['U4', 'nor'], ['L1', 'logicled'], ['L2', 'logicled'], ['GND1', 'ground']], zeilen: 4,
-    leitungen: [['E1', 'U1.in1'], ['C', 'U1.in2'], ['E2', 'U2.in1'], ['C', 'U2.in2'], ['U2', 'U3.in1'], ['U4.out', 'U3.in2'], ['U1', 'U4.in1'], ['U3.out', 'U4.in2'], ['U3', 'L1'], ['U4', 'L2']] });
-  var falsch = JSON.parse(JSON.stringify(muster)); falsch.wires = falsch.wires.filter(function (w) { return !(w.from === 'C.out' && w.to === 'U2.in2'); }); falsch.wires.push({ from: 'E1.out', to: 'U2.in2' }); // R wird nicht vom Takt gesperrt
+    leitungen: [[SI, 'U1.in1'], ['C', 'U1.in2'], [RI, 'U2.in1'], ['C', 'U2.in2'], ['U2', 'U3.in1'], ['U4.out', 'U3.in2'], ['U1', 'U4.in1'], ['U3.out', 'U4.in2'], ['U3', 'L1'], ['U4', 'L2']] });
+  var stp = function (sv, rv) { var o = {}; o[SI] = sv; o[RI] = rv; return o; };
+  var falsch = JSON.parse(JSON.stringify(muster)); falsch.wires = falsch.wires.filter(function (w) { return !(w.from === 'C.out' && w.to === 'U2.in2'); }); falsch.wires.push({ from: SI + '.out', to: 'U2.in2' }); // R wird nicht vom Takt gesperrt
   var st = P.startNetz(2, 2, [{ id: 'C', type: 'logicin', x: 200, y: 380, rot: 0 }]);
   P.station({
     id: 'B2', teil: 'B', nr: 2, titel: 'NOR-AND-Flipflop', kurz: 'Das getaktete NOR-Flipflop',
     einfuehrung: '<p>Das NOR-Flipflop aus B1 reagiert sofort auf jede Änderung von e1 und e2. Oft soll es aber nur zu bestimmten Zeiten übernehmen. Dafür kommt vor jeden Eingang ein <b>UND-Gatter</b>, das den <b>Takt C</b> als zweiten Eingang hat:</p><ul><li><b>C = 0:</b> Beide UND liefern 0, die Eingänge des NOR-Flipflops sind in Ruhe: Das Flipflop <b>speichert</b>.</li><li><b>C = 1:</b> Die UND geben e1 und e2 frei: Es verhält sich wie das NOR-Flipflop aus B1.</li></ul><p>Das ist ein <b>taktzustandsgesteuertes</b> Flipflop: Es folgt den Eingängen, solange C = 1 ist.</p>',
     verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
     aufgaben: [
-      { id: 'B2.1', titel: 'Analysetabelle mit Takt', art: 'tabelle', kopf: an.kopf, zeilen: an.zeilen, text: '<p>Fülle die Analysetabelle des getakteten Flipflops aus: Zu jeder Kombination von C, e1, e2 und AV der Ausgang A. Bei C = 0 ändert sich nichts. Bei C = 1, e1 = 1, e2 = 1 schreibst du <b>X</b> (unzulässig).</p>' },
+      { id: 'B2.1', titel: 'Analysetabelle mit Takt', art: 'tabelle', kopf: an.kopf, zeilen: an.zeilen, text: '<p>Fülle die Analysetabelle des getakteten Flipflops aus: Zu jeder Kombination von C, e1, e2 und AV der Ausgang A. Bei C = 0 ändert sich nichts. Bei C = 1 und e1 = e2 = 1 gewinnt wie in B1 e1 (A = 0).</p>' },
       { id: 'B2.2', titel: 'NOR-AND-Flipflop bauen', art: 'folge', lesen: ['L1', 'L2'], takt: 'C', nur: ['nor', 'and'], limit: { nor: 2, and: 2 }, min: { nor: 2, and: 2 }, start: st, muster: muster, falsch: falsch,
-        schritte: [{ set: { E1: 1, E2: 0 }, takte: 1, erwartet: [1, 0], name: 'C = 1 mit S = 1: Q wird 1' }, { set: { E1: 0, E2: 1 }, erwartet: [1, 0], name: 'R = 1 bei C = 0: Q bleibt' }, { takte: 1, erwartet: [0, 1], name: 'C = 1 mit R = 1: Q wird 0' },
-          { set: { E1: 1, E2: 0 }, erwartet: [0, 1], name: 'S = 1 bei C = 0: Q bleibt' }, { takte: 1, erwartet: [1, 0], name: 'C = 1 mit S = 1: Q wird 1' }],
-        text: '<p>Baue das Flipflop: zwei <b>UND</b> (e1 mit C, e2 mit C) vor einem NOR-Flipflop aus zwei <b>NOR</b>. <b>E1</b> = S, <b>E2</b> = R, <b>C</b> = Takt; <b>L1</b> zeigt Q, <b>L2</b> zeigt Q̄. Nur UND und NOR sind erlaubt, von jedem höchstens zwei.</p>', hilfe: 'Die UND-Ausgänge sind die Eingänge des NOR-Flipflops aus B1: UND mit e2 geht an NOR 1, UND mit e1 an NOR 2.' },
+        schritte: [{ set: stp(1, 0), takte: 1, erwartet: [1, 0], name: 'C = 1 mit S = 1: Q wird 1' }, { set: stp(0, 1), erwartet: [1, 0], name: 'R = 1 bei C = 0: Q bleibt' }, { takte: 1, erwartet: [0, 1], name: 'C = 1 mit R = 1: Q wird 0' },
+          { set: stp(1, 0), erwartet: [0, 1], name: 'S = 1 bei C = 0: Q bleibt' }, { takte: 1, erwartet: [1, 0], name: 'C = 1 mit S = 1: Q wird 1' }],
+        text: '<p>Baue das Flipflop: zwei <b>UND</b> (' + sN + ' mit C, ' + rN + ' mit C) vor einem NOR-Flipflop aus zwei <b>NOR</b>. <b>' + SI + '</b> = S, <b>' + RI + '</b> = R, <b>C</b> = Takt; <b>L1</b> zeigt Q, <b>L2</b> zeigt Q̄. Nur UND und NOR sind erlaubt, von jedem höchstens zwei.</p>', hilfe: 'Die UND-Ausgänge sind die Eingänge des NOR-Flipflops aus B1: UND mit e2 geht an NOR 1, UND mit e1 an NOR 2.' },
       { id: 'B2.3', titel: 'Prüffragen getaktetes Flipflop', art: 'fragen', text: '<p>Drei kurze Fragen.</p>', fragen: [
         { q: 'Was tun die beiden UND-Gatter vor dem NOR-Flipflop?', opt: ['Sie invertieren e1 und e2', 'Sie geben e1 und e2 nur bei C = 1 frei', 'Sie speichern', 'Sie erzeugen den Takt'], richtig: 1, erkl: 'Bei C = 0 liefern sie 0: Das NOR-Flipflop sieht keine Eingänge.' },
         { q: 'C = 0, e1 = 1, e2 = 0. Was zeigt Q?', opt: ['Q = 1', 'Q = 0', 'Den alten Wert', 'Unzulässig'], richtig: 2, erkl: 'Ohne Takt ändert sich nichts.' },
@@ -8151,7 +8179,7 @@ body.beamer .dr text { font-size: inherit; }
 
 /* ==== studio/pfad/st_B11.js ==== */
 /* Lernpfad Station B11 – Synchroner Dezimalzähler (BCD) mit D-Flipflops. Folgetabelle und Ansteuergleichungen werden aus «nächster Zählerstand = (n + 1) mod 10» gerechnet,
- * die KV-Aufgaben haben die Zustände 10 bis 15 als Don't-Care. Eingänge der KV-Aufgaben: e1 = Q0 (niedrigstes Bit) … e4 = Q3. */
+ * die KV-Aufgaben haben die Zustände 10 bis 15 als Don't-Care. Buchstaben der KV-Aufgaben: a = Q0 (niedrigstes Bit) … d = Q3. */
 (function (root) {
   'use strict';
   var P = root.DQPfad;
@@ -8161,7 +8189,7 @@ body.beamer .dr text { font-size: inherit; }
   var dc = [10, 11, 12, 13, 14, 15];
   var kvs = [3, 2, 1].map(function (b) {
     var ones = []; for (var k = 0; k <= 9; k++) if (next(k) >> b & 1) ones.push(k);
-    return { id: 'B11.' + (6 - b), titel: 'KV-Diagramm für D' + b, art: 'kv', n: 4, ones: ones, dc: dc, text: '<p>Der D-Eingang <b>D' + b + '</b> muss beim nächsten Takt 1 sein in den Zählerständen <b>m(' + ones.join(', ') + ')</b> (Q0 = e1, Q1 = e2, Q2 = e3, Q3 = e4). Die Zählerstände 10 bis 15 kommen nie vor: <b>d(' + dc.join(', ') + ')</b>. Päckchen einzeichnen, Minimalform angeben.</p>' };
+    return { id: 'B11.' + (6 - b), titel: 'KV-Diagramm für D' + b, art: 'kv', n: 4, ones: ones, dc: dc, buchstaben: P.KONV.buchstaben.slice(0, 4), text: '<p>Der D-Eingang <b>D' + b + '</b> muss beim nächsten Takt 1 sein in den Zählerständen <b>m(' + ones.join(', ') + ')</b> (Q0 = a, Q1 = b, Q2 = c, Q3 = d). Die Zählerstände 10 bis 15 kommen nie vor: <b>d(' + dc.join(', ') + ')</b>. Päckchen einzeichnen, Minimalform angeben.</p>' };
   });
   // Muster: D0 = /Q0, D1 = Q1 xor (Q0 /Q3), D2 = Q2 xor (Q1 Q0), D3 = Q3 /Q0 v Q2 Q1 Q0
   var muster = P.raster({ teile: [['C', 'logicin'], ['FF1', 'dff'], ['FF2', 'dff'], ['FF3', 'dff'], ['FF4', 'dff'], ['G1', 'not'], ['G2', 'not'], ['G3', 'and'], ['G4', 'xor'], ['G5', 'and'], ['G6', 'xor'], ['G7', 'and'], ['G8', 'and'], ['G9', 'or'], ['L1', 'logicled'], ['L2', 'logicled'], ['L3', 'logicled'], ['L4', 'logicled']], zeilen: 6,

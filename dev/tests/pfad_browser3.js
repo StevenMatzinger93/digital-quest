@@ -21,7 +21,7 @@ const fails = []; let checks = 0; const ok = (c, m) => { checks++; if (!c) fails
   // B1.5: NOR-Flipflop aus zwei NOR mit der Maus
   await edit('B1.5'); await place('nor', 0.45, 0.25); await place('nor', 0.45, 0.65);
   let msg = await pruefe(); ok(/nicht|mindestens|offen/.test(msg), 'unverdrahtet: ' + msg);
-  await pin('E2.out'); await pin('U1.in1'); await pin('U2.out'); await pin('U1.in2'); await pin('E1.out'); await pin('U2.in1'); await pin('U1.out'); await pin('U2.in2'); await pin('U1.out'); await pin('L1.in'); await pin('U2.out'); await pin('L2.in'); await page.waitForTimeout(200);
+  await pin('E1.out'); await pin('U1.in1'); await pin('U2.out'); await pin('U1.in2'); await pin('E2.out'); await pin('U2.in1'); await pin('U1.out'); await pin('U2.in2'); await pin('U1.out'); await pin('L1.in'); await pin('U2.out'); await pin('L2.in'); await page.waitForTimeout(200);
   msg = await pruefe(); ok(/Richtig/.test(msg), 'NOR-Flipflop angenommen: ' + msg); await page.screenshot({ path: shots + '/pfad_b1.png' }); await back();
   // B3.2 (Taktzustand): D-Flipflop mit Maus, Steuerungsart im Eigenschaftenfeld
   await edit('B3.2'); await place('dff', 0.45, 0.4); await pin('E1.out'); await pin('FF1.D'); await pin('C.out'); await pin('FF1.C'); await pin('E2.out'); await pin('FF1.PS'); await pin('E3.out'); await pin('FF1.PC'); await pin('FF1.Q'); await pin('L1.in'); await page.waitForTimeout(150);
