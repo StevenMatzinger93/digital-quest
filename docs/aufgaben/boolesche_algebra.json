@@ -1,0 +1,277 @@
+[
+ {
+  "nr": 2,
+  "ausdruck": "e1 + n(e1)*e2 + e1*e2",
+  "variablen": [
+   "e1",
+   "e2"
+  ],
+  "minterme": [
+   1,
+   2,
+   3
+  ],
+  "minimalform": "e2 + e1",
+  "terme": 2,
+  "buchstaben": 2
+ },
+ {
+  "nr": 3,
+  "ausdruck": "e1*n(e2) + n(e1)*e2 + e1*e2 + n(e1)*n(e2)",
+  "variablen": [
+   "e1",
+   "e2"
+  ],
+  "minterme": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "minimalform": "1",
+  "terme": 1,
+  "buchstaben": 0
+ },
+ {
+  "nr": 4,
+  "ausdruck": "e1*n(e2)*(e1+e3) + e1*e3*(n(e1)+n(e2))",
+  "variablen": [
+   "e1",
+   "e2",
+   "e3"
+  ],
+  "minterme": [
+   4,
+   5
+  ],
+  "minimalform": "e1*n(e2)",
+  "terme": 1,
+  "buchstaben": 2
+ },
+ {
+  "nr": 5,
+  "ausdruck": "(e1*e2 + e3)*(e1*e2 + e4)",
+  "variablen": [
+   "e1",
+   "e2",
+   "e3",
+   "e4"
+  ],
+  "minterme": [
+   3,
+   7,
+   11,
+   12,
+   13,
+   14,
+   15
+  ],
+  "minimalform": "e3*e4 + e1*e2",
+  "terme": 2,
+  "buchstaben": 4
+ },
+ {
+  "nr": 6,
+  "ausdruck": "e1*n(e2)*e3 + n(e1)*n(e2)*e3",
+  "variablen": [
+   "e1",
+   "e2",
+   "e3"
+  ],
+  "minterme": [
+   1,
+   5
+  ],
+  "minimalform": "n(e2)*e3",
+  "terme": 1,
+  "buchstaben": 2
+ },
+ {
+  "nr": 7,
+  "ausdruck": "(1 + e2)*(e1*e2*e3)",
+  "variablen": [
+   "e1",
+   "e2",
+   "e3"
+  ],
+  "minterme": [
+   7
+  ],
+  "minimalform": "e1*e2*e3",
+  "terme": 1,
+  "buchstaben": 3
+ },
+ {
+  "nr": 8,
+  "ausdruck": "(n(e1)*e2)*(e1*e2) + e1*e2",
+  "variablen": [
+   "e1",
+   "e2"
+  ],
+  "minterme": [
+   3
+  ],
+  "minimalform": "e1*e2",
+  "terme": 1,
+  "buchstaben": 2
+ },
+ {
+  "nr": 9,
+  "ausdruck": "(e1*n(e2) + e1*n(e3))*(e2*e3 + e2*n(e3))*(e1*e2*e3)",
+  "variablen": [
+   "e1",
+   "e2",
+   "e3"
+  ],
+  "minterme": [],
+  "minimalform": "0",
+  "terme": 0,
+  "buchstaben": 0
+ },
+ {
+  "nr": 10,
+  "ausdruck": "e1 + n(e2)*e3*(e1 + n(n(e2*e3)))",
+  "variablen": [
+   "e1",
+   "e2",
+   "e3"
+  ],
+  "minterme": [
+   4,
+   5,
+   6,
+   7
+  ],
+  "minimalform": "e1",
+  "terme": 1,
+  "buchstaben": 1
+ },
+ {
+  "nr": 11,
+  "ausdruck": "e3*(n(e1*e2*e3) + e1*n(e2)*n(e3))",
+  "variablen": [
+   "e1",
+   "e2",
+   "e3"
+  ],
+  "minterme": [
+   1,
+   3,
+   5
+  ],
+  "minimalform": "n(e1)*e3 + n(e2)*e3",
+  "terme": 2,
+  "buchstaben": 4
+ },
+ {
+  "nr": 12,
+  "ausdruck": "n(e1*e2*e3 + n(e1)*n(e2)) + e2*n(e3)",
+  "variablen": [
+   "e1",
+   "e2",
+   "e3"
+  ],
+  "minterme": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "minimalform": "n(e1)*e2 + e1*n(e2) + e2*n(e3)",
+  "terme": 3,
+  "buchstaben": 6
+ },
+ {
+  "nr": 13,
+  "ausdruck": "e1*n(e2 + e3*(e1*e2 + e1*e3))",
+  "variablen": [
+   "e1",
+   "e2",
+   "e3"
+  ],
+  "minterme": [
+   4
+  ],
+  "minimalform": "e1*n(e2)*n(e3)",
+  "terme": 1,
+  "buchstaben": 3
+ },
+ {
+  "nr": 14,
+  "ausdruck": "e1*e2 + e1*n(e2 + e3)",
+  "variablen": [
+   "e1",
+   "e2",
+   "e3"
+  ],
+  "minterme": [
+   4,
+   6,
+   7
+  ],
+  "minimalform": "e1*n(e3) + e1*e2",
+  "terme": 2,
+  "buchstaben": 4
+ },
+ {
+  "nr": 15,
+  "ausdruck": "n(e1*e2*e3*(e1 + e2 + e3))",
+  "variablen": [
+   "e1",
+   "e2",
+   "e3"
+  ],
+  "minterme": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "minimalform": "n(e1) + n(e2) + n(e3)",
+  "terme": 3,
+  "buchstaben": 3
+ },
+ {
+  "nr": 16,
+  "ausdruck": "n((n(e1*e2) + e1*e2*e3)*(e1*n(e2)*e3))",
+  "variablen": [
+   "e1",
+   "e2",
+   "e3"
+  ],
+  "minterme": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6,
+   7
+  ],
+  "minimalform": "n(e1) + n(e3) + e2",
+  "terme": 3,
+  "buchstaben": 3
+ },
+ {
+  "nr": 17,
+  "ausdruck": "e1*e2*e3 + e1*e2*n(e3) + n(e1)*e2*e3 + n(e1)*n(e2)*n(e3)",
+  "variablen": [
+   "e1",
+   "e2",
+   "e3"
+  ],
+  "minterme": [
+   0,
+   3,
+   6,
+   7
+  ],
+  "minimalform": "n(e1)*n(e2)*n(e3) + e2*e3 + e1*e2",
+  "terme": 3,
+  "buchstaben": 7
+ }
+]
