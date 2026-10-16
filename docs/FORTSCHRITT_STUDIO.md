@@ -169,3 +169,72 @@ Testkette auf dem Stand dieses Blocks: `test_engine` 174 ok, `tests/kern.js` 918
 - **Als App installierbar:** `web/studio/manifest.webmanifest` (Name «Digital Quest Studio», eigenes Fenster, Symbole 192, 512 und SVG aus `dev/assets/icon.svg`, `id` ergänzt). Chromium nimmt das Manifest ohne Fehler an und meldet keine Installierbarkeitsfehler (`Page.getAppManifest`, `Page.getInstallabilityErrors`). Im Menü Hilfe erscheint «Als App installieren …», wenn der Browser es anbietet.
 - **Tragbare Fassung:** `studio.html` bleibt eine Datei ohne alles; der Build legt sie zusätzlich in `dist/` ab, dazu `dist/LIESMICH.txt` (zwei Sätze).
 - Die bestehenden Browsertests des Studios schalten die Systemdialoge ab (sie prüfen den Rückfallweg, den es für andere Browser weiter gibt); `tests/studio.js` 421 ok.
+
+## Schlussbericht Nachtlauf 2 (16.10.2026)
+
+### Stand der Blöcke
+| Block | Stand |
+|---|---|
+| 1 Rückstände (Rechenkern-Hänger, AV/A, Spiel-Testkette) | **fertig** |
+| 2 Lernpfad: Gerüst und Prüfmaschine | **fertig** |
+| 3 Teil A (A1 bis A13) | **fertig** |
+| 4 Teil B (B1 bis B13) | **fertig** |
+| 5 Betrieb im Netz | **fertig** (echte Systemdialoge nicht automatisch geprüft, siehe unten) |
+| 6 Abschluss | Testkette siehe unten; Schlussbericht = dieser Abschnitt |
+
+Der Lauf blieb nirgends stehen; nichts musste wegen drei vergeblicher Anläufe zurückgestellt werden (`FRAGEN_STUDIO.md` enthält nur Fragen an Steven, keine hängenden Punkte).
+
+### Lernpfad, Station für Station
+«Freigegeben» heisst hier: Musterlösung wird angenommen, eine falsche wird mit Begründung abgelehnt, die Bauteile der Musterlösung sind freigeschaltet, und die Zahlen sind gegen eine unabhängige Rechnung geprüft (letzte Spalte). **Keine Station ist an der unabhängigen Prüfung gescheitert.** Zwei Stationen sind es nur eingeschränkt: A2 (Laborstation, bewusst nicht geprüft) und A4 (Zuordnung von Schaltzeichen: keine Rechnung möglich, die Zuordnung ist von mir nach der Norm gesetzt).
+
+| Station | Titel | Aufgaben (Pflicht) | Prüfarten | unabhängige Prüfung |
+|---|---|---|---|---|
+| A1 | Zahlensysteme | 5 (5) | tabelle, fragen | parseInt |
+| A2 | Logikfamilien TTL und CMOS (Labor) | 3 (3) | protokoll | – (Laborstation, nicht geprüft) |
+| A3 | Beschaltungsregeln | 4 (4) | fragen, schaltung | Verhalten der Engine (Fehler werden erkannt) |
+| A4 | Symbolik | 3 (3) | tabelle, fragen | – (Zuordnungen nach der Norm, keine Rechnung) |
+| A5 | Die acht Gatter | 24 (24) | tabelle, ausdruck, schaltung | Simulation der Gatter |
+| A6 | Positive und negative Logik | 5 (5) | tabelle, fragen, schaltung | Gatterdefinitionen der Engine |
+| A7 | DNF und KNF | 8 (5) | tabelle, ausdruck, schaltung, fragen | Simulation, kanonische Formen |
+| A8 | Boolesche Algebra | 26 (24) | tabelle, fragen, ausdruck | JavaScript-Operatoren, Brute Force |
+| A9 | Normierte Schaltungen | 7 (7) | nand, ics, fragen | Parser, Engine (Verhalten) |
+| A10 | KV-Diagramm | 15 (8) | kv, schaltung | Quine-McCluskey gegen Brute Force |
+| A11 | Code und Codewandler | 9 (7) | tabelle, kv, schaltung | Definition, Brute Force |
+| A12 | Kontrollinstanzen | 8 (5) | tabelle, schaltung, fragen | 112 Einzelbitstörungen (Hamming), Parität |
+| A13 | Datenkoordination | 14 (13) | tabelle, schaltung, fragen | Arithmetik gegen Engine (alle Kombinationen) |
+| B1 | NOR-Flipflop | 6 (6) | tabelle, vergleich, folge, fragen | NOR-Flipflop in der Engine nachgeschaltet |
+| B2 | NOR-AND-Flipflop | 3 (3) | tabelle, folge, fragen | getaktetes Flipflop in der Engine |
+| B3 | Steuerungsarten | 5 (5) | fragen, folge | Verhalten der Engine (Takt, preSet/preClear) |
+| B4 | T-Flipflop | 6 (6) | tabelle, vergleich, folge, fragen | Lehrbuch gegen Engine, Frequenz gemessen |
+| B5 | D-Flipflop | 6 (6) | tabelle, vergleich, folge, fragen | Lehrbuch gegen Engine |
+| B6 | RS-Flipflop | 5 (5) | tabelle, vergleich, folge, fragen | Lehrbuch gegen Engine |
+| B7 | JK-Flipflop | 7 (7) | tabelle, vergleich, folge, fragen | Lehrbuch gegen Engine, Master-Slave |
+| B8 | Asynchroner Dualzähler | 5 (4) | tabelle, folge, fragen | Laufzeit gemessen (20/40/60 ns) |
+| B9 | Digitale Uhr | 4 (2) | folge, fragen | 62 Takte in der Engine, Bauteile bis B8 |
+| B10 | Synchroner Dualzähler | 4 (4) | tabelle, fragen, folge | T = AV xor A, Laufzeit gemessen |
+| B11 | Synchroner Dezimalzähler | 6 (6) | tabelle, fragen, kv, folge | Folgetabelle, Brute Force (KV) |
+| B12 | Spezial- und Johnson-Zähler | 6 (5) | folge, tabelle, fragen | Johnson-Folge, Modulo-Folgen in der Engine |
+| B13 | Speicher | 3 (3) | tabelle, fragen | 2^n, Bit/Byte gerechnet |
+
+
+Zusammen 197 Aufgaben, davon 25 Prüffragen-Aufgaben mit 95 Einzelfragen. **Die Inhalte der Prüffragen sind von mir geschrieben und nicht gegengerechnet** (Ausnahmen: die Fragen mit Zahlen, die im Test gemessen oder gerechnet werden: Laufzeiten, Frequenz, Speichergrössen, Adressleitungen). Steven soll sie lesen.
+
+### Was Steven prüfen muss, nach Dringlichkeit
+1. **Rechenkern (Spiel und Studio):** Zwei Änderungen in `engine.js` (Grenzzyklus-Abbruch; Takt zählt nicht beim Wegfallen von preClear im selben Zeitpunkt). Alle Tests des Spiels sind grün, aber die zweite Regel ist eine Modellentscheidung (`FRAGEN_STUDIO.md` Punkt 7).
+2. **Aufgabentexte und Beispiele:** alle Aufgaben sind aus der Beschreibung abgeleitet und von mir formuliert; die 18 Vereinfachungen (A8), 13 KV-Funktionen (A10), das Förderband (A7) und die Prüffragen sind **meine Beispiele**, nicht seine Serien (`FRAGEN_STUDIO.md` Punkte 1 bis 5).
+3. **Minterm-Nummerierung** («m4-Schreibweise»): e1 = niedrigstes Bit (`FRAGEN_STUDIO.md` Punkt 2).
+4. **Pflicht und freiwillig:** nach seinen Hinweisen (A8 Nr. 12 und 18, A10 Nr. 7 bis 13) und von mir zusätzlich: A7 Mehrheitsentscheid, A11 Gray, A12 Hamming, A13 4-Bit-Komparator, B8 Abwärtszähler, B9 Teilaufgaben, B12 Modulo 12 freiwillig. Reihenfolge der Stationen wie im Auftrag.
+5. **Alte DIN-Norm (A4)** fehlt; **NOR-Flipflop e1/e2** (B1, B2: e1 = Setzen); **Aufbau der Digitaluhr** (asynchron mit preClear).
+6. **Rückmeldungstexte:** Sie sagen, was falsch ist («Bei e1 = 1, e2 = 0 zeigt die Anzeige eine 1, verlangt ist 0», «Die Zeile für … stimmt nicht»). Ob sie helfen oder bevormunden, kann nur er beurteilen.
+7. **Laborstation A2:** Messprotokoll mit Datenblattwerten (7400, 4027), Kennlinien (7400, 74LS00, 74HC00, 4011) und Auswertung zum Eintragen, Speichern, Drucken. Ob es den Zettel wirklich ersetzen kann, entscheidet er.
+8. **Systemdialoge** zum Öffnen und Speichern einmal von Hand in Chrome und Edge ansehen; die Schaltung und der Lernpfad-Fortschritt sollten sich dort als `*.dqstudio.json` speichern und wieder öffnen lassen.
+9. **Sichtprüfung der Oberfläche:** KV-Arbeitsfläche (Päckchen bilden), Symbole in A4, die Aufgabenfenster im Editor.
+
+### Selbst getroffene Entscheidungen
+Alle in `ENTSCHEIDUNGEN_STUDIO.md` (Abschnitte «Nachtlauf 2», «Lernpfad», «Lernpfad Teil B», «Betrieb im Netz»); die wichtigsten: Stationen als Daten, zehn Prüfarten, Quine-McCluskey als eigene Rechnung mit Brute-Force-Gegenprobe, Freigabe durch die Lehrperson als Datei, Digitaluhr asynchron, Zustandsfolgediagramme von Hand mit Vergleich.
+
+### Offene Fragen
+`docs/FRAGEN_STUDIO.md` (10 Punkte).
+
+### Testkette (Endstand dieses Berichts)
+Siehe den Abschnitt «Endstand Testkette» weiter unten.
