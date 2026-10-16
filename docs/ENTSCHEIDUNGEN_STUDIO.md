@@ -286,3 +286,15 @@ Benannt wie im Portal («Beamer»); der **Vorführ-Modus** des Spiels ist etwas 
 | Stationsliste und Aufgabentitel für den Leitstand kommen aus `data/dq.json` (Schlüssel `lernpfad`, vom Build aus den Daten der Stationen erzeugt) | Eine Quelle: Neue Stationen erscheinen ohne Änderung im Leitstand |
 | Leitstand: Panel in der Klassenansicht (Haken der Erweiterung `classExtra`/`classBind`), Matrix Person × Station, Klick auf ein Feld = Aufgaben dieser Person, Klick auf die Stationsnummer = Aufgaben der ganzen Klasse | Auftrag: «je Station und je Aufgabe» |
 | Nicht gebaut: Vorgaben mit Frist für Stationen, Freigabe der Stationen vom Leitstand aus (bleibt die Datei), Benachrichtigungen | Stufe 2 hier bewusst klein; Steven soll das Muster zuerst sehen |
+
+### Originalaufgaben und Konventionen (16.10.2026, `docs/aufgaben/AUFTRAG_ORIGINALAUFGABEN.md`)
+
+| Entscheidung | Begründung |
+|---|---|
+| Stevens JSON-Dateien sind die Quelle: der Build erzeugt daraus `dev/studio/pfad/serien.js` (Browser), Node liest sie direkt; die Stationen A8 und A10 bauen ihre Aufgaben aus diesen Daten | Eine Quelle, keine abgetippten Zahlen |
+| Prüfung nie gegen eine aufgeschriebene Lösung: gleichwertig mit dem Original **und** Termzahl und Buchstabenzahl nicht grösser als in der JSON-Vorgabe (`erwartet`); KV zusätzlich Päckchen gültig, so gross und so wenige wie möglich | Auftrag; Aufgabe 6 hat vier gleichwertige Minimalformen, der Test zählt sie (4) und lässt jede einzeln prüfen |
+| Eingänge mit Buchstaben (`buchstaben: 'abcdef'`, der erste = niederwertigstes Bit) im Parser, in den Rückmeldungen und in den KV-Zeichnungen; `n(…)` und `'` werden als NICHT gelesen | Schreibweise des Lehrmittels (`d'a' + c'b`); die Konvention steht in `P.KONV.buchstaben` |
+| KV mit 5 und 6 Eingängen als zwei beziehungsweise vier Diagramme mit durchgehender Feldnummer | Aufgaben 14 bis 17 der Serie |
+| A8 Aufgabe 1 = Förderband-Übung (DNF vereinfachen), 2 bis 17 die sechzehn Ausdrücke, 18 als a und b; 12 und 18 freiwillig. A10: 1 bis 10, 11 bis 13 (a und b), 14 bis 17; 7 bis 13 freiwillig | Auftrag |
+| Die selbst erfundenen Beispiele sind weg. Geblieben als **freiwillige Zusatzübungen** und mit «Zusatz (eigene Übung)» im Titel: Gesetze nachweisen (A8), Mehrheitsentscheid (A7), Schaltung zu KV-Aufgabe 1 und 3 (A10) | Auftrag: «deutlich getrennt von Stevens Serie» |
+| **Konventionen an einer Stelle** (`dev/studio/pfad/konventionen.js` und `E.RULES` in `engine.js`): Stellenwertigkeit der Buchstaben (`P.KONV.buchstaben`), welcher Eingang das NOR-Flipflop setzt (`P.KONV.norSetzen`, mit `'e2'` probiert: alle Tests bleiben grün), preClear-Regel (`E.RULES.preClearRennen`) | Auftrag Abschnitt 4: Steven beantwortet, die Änderung ist eine Zeile. Nicht zentralisiert: die Feldnummerierung selbst (der Rechenkern zählt «Eingang 1 = Bit 0»); sie hängt an den Nummern in den JSON-Dateien |

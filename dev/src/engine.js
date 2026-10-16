@@ -14,6 +14,9 @@
   var LOGIC = { vcc: 5, vth: 2.5, rout: 25 };
   var METER = { rV: 1e7, rA: 0.1, fuseA: 10, iOhm: 1e-3, olOhm: 40e6, cal: 0.002 }; // cal: Verstaerkungsfehler des Geraets (+0,2 %)
   var LIMITS = { lampBurn: 2, ledReverse: 5 }; // Lampe brennt ab lampBurn · Nennleistung durch; LED meldet Sperrspannung ab ledReverse Volt
+  /* Modellregeln, die offene Fragen beantworten (docs/FRAGEN_STUDIO.md Punkt 7): preClearRennen = ein Flipflop-Takt, der im selben Zeitpunkt eintrifft, in dem preSet/preClear wegfällt, zählt nicht
+   * (Rennen beim Rücksetzen eines Ripple-Zählers; im echten Baustein hält der Rücksetzimpuls wegen der Gatterlaufzeit noch an). Auf false gestellt zählen Ripple-Zähler mit Rücksetzen falsch. */
+  var RULES = { preClearRennen: true };
   var TRACE_MAX = 200;        // Zeitlupe: hoechstens so viele Rechenschritte pro Arbeitspunkt speichern
 
   var LED_COLORS = {
@@ -542,7 +545,7 @@
         var c = lv('C'), ins = d.ffIns.map(lv), mode = d.ms ? 'ms' : (p.props.trig || 'pos'), nq = f.q, active = false;
         /* Rennen beim asynchronen Rücksetzen (Zähler mit preClear): Fällt preSet/preClear im selben Zeitpunkt weg, in dem eine Taktflanke eintrifft, die erst durch das Rücksetzen einer Vorstufe
          * entstand, so ist der Rücksetzimpuls im echten Baustein noch wirksam (Gatterlaufzeit) – die Flanke zählt nicht. Ohne diese Regel würde ein Ripple-Zähler mit Rücksetzung bei jedem Zurücksetzen falsch weiterzählen. */
-        var apNow = lv('PS') || lv('PC'), blocked = !!f.ap && !apNow; f.ap = apNow;
+        var apNow = lv('PS') || lv('PC'), blocked = RULES.preClearRennen && !!f.ap && !apNow; f.ap = apNow;
         if (blocked) { f.c = c; }
         if (mode === 'pos') { if (f.c === false && c) { active = true; nq = d.ff(f.q, ins); } }
         else if (mode === 'neg') { if (f.c === true && !c) { active = true; nq = d.ff(f.q, ins); } }
@@ -971,7 +974,7 @@
 
   var api = {
     expectedAnswers: expectedAnswers, UNIT_SCALE: UNIT_SCALE,
-    version: '0.2.0', PARTS: PARTS, LED_COLORS: LED_COLORS, LOGIC: LOGIC, METER: METER, LIMITS: LIMITS, SOURCES: SOURCES, TRACE_MAX: TRACE_MAX,
+    version: '0.2.0', PARTS: PARTS, LED_COLORS: LED_COLORS, LOGIC: LOGIC, METER: METER, LIMITS: LIMITS, RULES: RULES, SOURCES: SOURCES, TRACE_MAX: TRACE_MAX,
     acSolve: acSolve, acSweep: acSweep, pinsOf: pinsOf, ctrNext: ctrNext, ctrCount: ctrCount, ctrBitCount: ctrBitCount, bitsToNum: bitsToNum, numToBits: numToBits, wave: wave, dmm: dmm, DMM_RANGES: DMM_RANGES, DMM_MANUAL: DMM_MANUAL, rangeLabel: rangeLabel, acMeasure: acMeasure,
     buildNetlist: buildNetlist, solve: solve, step: step, newState: newState,
     measure: measure, simulate: simulate, runTask: runTask, fmt: fmt, clone: clone,

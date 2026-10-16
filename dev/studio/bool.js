@@ -9,12 +9,14 @@
 
   /* ---------- Eingabe: Zeichen → Ausdrucksbaum ----------
    * Knoten: {op:'var', n} | {op:'const', v} | {op:'not', a} | {op:'and', args} | {op:'or', args} */
-  function tokenize(src) {
+  function tokenize(src, letters) { // letters: Buchstaben, die Eingänge sind (z. B. 'abcdef': a = Eingang 1 = niederwertigstes Bit); sonst e1, e2 …
     var s = String(src), t = [], i = 0, m;
     while (i < s.length) {
       var c = s[i];
       if (/\s/.test(c)) { i++; continue; }
-      if ((m = /^[eE](\d+)/.exec(s.slice(i)))) { t.push({ k: 'var', n: +m[1], pos: i }); i += m[0].length; continue; }
+      if (letters && letters.indexOf(c) >= 0) { t.push({ k: 'var', n: letters.indexOf(c) + 1, pos: i }); i++; continue; }
+      if (c === 'n' && s[i + 1] === '(') { t.push({ k: 'not', pos: i }); i++; continue; } // n(…) = Überstreichung über der Klammer
+      if (!letters && (m = /^[eE](\d+)/.exec(s.slice(i)))) { t.push({ k: 'var', n: +m[1], pos: i }); i += m[0].length; continue; }
       if (c === 'v' || c === 'V' || c === '+' || c === '∨' || c === '|') { t.push({ k: 'or', pos: i }); i++; continue; }
       if (c === '*' || c === '·' || c === '∧' || c === '&' || c === '•') { t.push({ k: 'and', pos: i }); i++; continue; }
       if (c === '/' || c === '!' || c === '¬' || c === '~') { t.push({ k: 'not', pos: i }); i++; continue; }
@@ -53,8 +55,8 @@
   }
   function flat(op, args) { var out = []; args.forEach(function (a) { if (a.op === op) out = out.concat(a.args); else out.push(a); }); return { op: op, args: out }; }
   /* Eine Gleichung «A = e1 ( e2 v e3 ) = e1e2 v e1e3» liefert mehrere Ausdrücke; der Ausgangsname links steht in name */
-  function parse(src) {
-    var t = tokenize(src), parts = [[]]; t.forEach(function (x) { if (x.k === 'eq') parts.push([]); else parts[parts.length - 1].push(x); });
+  function parse(src, opts) {
+    var t = tokenize(src, opts && opts.letters), parts = [[]]; t.forEach(function (x) { if (x.k === 'eq') parts.push([]); else parts[parts.length - 1].push(x); });
     var name = null; if (parts.length > 1 && parts[0].length === 1 && parts[0][0].k === 'name') { name = parts[0][0].v; parts.shift(); }
     else if (parts.length > 1 && parts[0].length && parts[0][0].k === 'name' && parts[0].length > 1) throw new Error('Links vom Gleichheitszeichen darf nur der Ausgang (A) stehen.');
     parts.forEach(function (x) { if (x.some(function (y) { return y.k === 'name'; })) throw new Error('Nur e1, e2 … sind Eingänge. Der Ausgang A steht links vom Gleichheitszeichen.'); });
@@ -86,22 +88,23 @@
   /* ---------- Anzeige in der Schreibweise des Lehrmittels ---------- */
   function vname(n) { return 'e' + n; }
   /* HTML: Überstreichung als <span class="ov">, ODER als « v », UND ohne Zeichen, Klammern bei ODER in UND */
-  function fmtHtml(ast, ctx) {
-    ctx = ctx || 0; // 0 oben, 1 in UND
+  function fmtHtml(ast, ctx, nm) {
+    ctx = ctx || 0; nm = nm || vname; // 0 oben, 1 in UND; nm: Name der Eingänge
     switch (ast.op) {
-      case 'var': return vname(ast.n); case 'const': return String(ast.v);
-      case 'not': var inner = ast.a.op === 'var' ? vname(ast.a.n) : ast.a.op === 'const' ? String(ast.a.v) : fmtHtml(ast.a, 0); return '<span class="ov">' + inner + '</span>';
-      case 'and': return ast.args.map(function (a) { return a.op === 'or' ? ' ( ' + fmtHtml(a, 0) + ' ) ' : fmtHtml(a, 1); }).join('').replace(/\s+/g, ' ').trim();
-      case 'or': return ast.args.map(function (a) { return fmtHtml(a, 0); }).join(' v ');
+      case 'var': return nm(ast.n); case 'const': return String(ast.v);
+      case 'not': var inner = ast.a.op === 'var' ? nm(ast.a.n) : ast.a.op === 'const' ? String(ast.a.v) : fmtHtml(ast.a, 0, nm); return '<span class="ov">' + inner + '</span>';
+      case 'and': return ast.args.map(function (a) { return a.op === 'or' ? ' ( ' + fmtHtml(a, 0, nm) + ' ) ' : fmtHtml(a, 1, nm); }).join('').replace(/\s+/g, ' ').trim();
+      case 'or': return ast.args.map(function (a) { return fmtHtml(a, 0, nm); }).join(' v ');
     }
   }
   /* Nur Text (zum Kopieren und Prüfen): NICHT als /, UND ohne Zeichen zwischen Gliedern, ODER « v » */
-  function fmtText(ast) {
+  function fmtText(ast, nm) {
+    nm = nm || vname;
     switch (ast.op) {
-      case 'var': return vname(ast.n); case 'const': return String(ast.v);
-      case 'not': return '/' + (ast.a.op === 'var' || ast.a.op === 'const' ? fmtText(ast.a) : '(' + fmtText(ast.a) + ')');
-      case 'and': return ast.args.map(function (a) { return a.op === 'or' ? '(' + fmtText(a) + ')' : fmtText(a); }).join('');
-      case 'or': return ast.args.map(fmtText).join(' v ');
+      case 'var': return nm(ast.n); case 'const': return String(ast.v);
+      case 'not': return '/' + (ast.a.op === 'var' || ast.a.op === 'const' ? fmtText(ast.a, nm) : '(' + fmtText(ast.a, nm) + ')');
+      case 'and': return ast.args.map(function (a) { return a.op === 'or' ? '(' + fmtText(a, nm) + ')' : fmtText(a, nm); }).join('');
+      case 'or': return ast.args.map(function (a) { return fmtText(a, nm); }).join(' v ');
     }
   }
 
@@ -221,7 +224,8 @@
     return res;
   }
 
-  var api = { parse: parse, tokenize: tokenize, varsOf: varsOf, evalAst: evalAst, truth: truth, equivalent: equivalent, clean: clean, fmtHtml: fmtHtml, fmtText: fmtText, minimalExpr: minimalExpr,
+  function letterNames(letters) { return function (n) { return letters.charAt(n - 1); }; }
+  var api = { letterNames: letterNames, parse: parse, tokenize: tokenize, varsOf: varsOf, evalAst: evalAst, truth: truth, equivalent: equivalent, clean: clean, fmtHtml: fmtHtml, fmtText: fmtText, minimalExpr: minimalExpr,
     buildCircuit: buildCircuit, readCircuit: readCircuit, circuitTable: circuitTable, inputsOf: inputsOf, outputsOf: outputsOf };
   root.DQStudioBool = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

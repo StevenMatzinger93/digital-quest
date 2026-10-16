@@ -1,5 +1,5 @@
 /* Lernpfad Station B11 – Synchroner Dezimalzähler (BCD) mit D-Flipflops. Folgetabelle und Ansteuergleichungen werden aus «nächster Zählerstand = (n + 1) mod 10» gerechnet,
- * die KV-Aufgaben haben die Zustände 10 bis 15 als Don't-Care. Eingänge der KV-Aufgaben: e1 = Q0 (niedrigstes Bit) … e4 = Q3. */
+ * die KV-Aufgaben haben die Zustände 10 bis 15 als Don't-Care. Buchstaben der KV-Aufgaben: a = Q0 (niedrigstes Bit) … d = Q3. */
 (function (root) {
   'use strict';
   var P = root.DQPfad;
@@ -9,7 +9,7 @@
   var dc = [10, 11, 12, 13, 14, 15];
   var kvs = [3, 2, 1].map(function (b) {
     var ones = []; for (var k = 0; k <= 9; k++) if (next(k) >> b & 1) ones.push(k);
-    return { id: 'B11.' + (6 - b), titel: 'KV-Diagramm für D' + b, art: 'kv', n: 4, ones: ones, dc: dc, text: '<p>Der D-Eingang <b>D' + b + '</b> muss beim nächsten Takt 1 sein in den Zählerständen <b>m(' + ones.join(', ') + ')</b> (Q0 = e1, Q1 = e2, Q2 = e3, Q3 = e4). Die Zählerstände 10 bis 15 kommen nie vor: <b>d(' + dc.join(', ') + ')</b>. Päckchen einzeichnen, Minimalform angeben.</p>' };
+    return { id: 'B11.' + (6 - b), titel: 'KV-Diagramm für D' + b, art: 'kv', n: 4, ones: ones, dc: dc, buchstaben: P.KONV.buchstaben.slice(0, 4), text: '<p>Der D-Eingang <b>D' + b + '</b> muss beim nächsten Takt 1 sein in den Zählerständen <b>m(' + ones.join(', ') + ')</b> (Q0 = a, Q1 = b, Q2 = c, Q3 = d). Die Zählerstände 10 bis 15 kommen nie vor: <b>d(' + dc.join(', ') + ')</b>. Päckchen einzeichnen, Minimalform angeben.</p>' };
   });
   // Muster: D0 = /Q0, D1 = Q1 xor (Q0 /Q3), D2 = Q2 xor (Q1 Q0), D3 = Q3 /Q0 v Q2 Q1 Q0
   var muster = P.raster({ teile: [['C', 'logicin'], ['FF1', 'dff'], ['FF2', 'dff'], ['FF3', 'dff'], ['FF4', 'dff'], ['G1', 'not'], ['G2', 'not'], ['G3', 'and'], ['G4', 'xor'], ['G5', 'and'], ['G6', 'xor'], ['G7', 'and'], ['G8', 'and'], ['G9', 'or'], ['L1', 'logicled'], ['L2', 'logicled'], ['L3', 'logicled'], ['L4', 'logicled']], zeilen: 6,

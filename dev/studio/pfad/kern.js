@@ -78,10 +78,10 @@
   P.minimal = function (n, ones, dc) {
     ones = (ones || []).slice().sort(function (a, b) { return a - b; }); dc = (dc || []).filter(function (m) { return ones.indexOf(m) < 0; });
     var N = 1 << n, r = { n: n, ones: ones, dc: dc };
-    if (!ones.length) { r.terms = []; r.nTerms = 0; r.nLits = 0; r.konst = 0; r.primes = []; return r; }
+    if (!ones.length) { r.terms = []; r.nTerms = 0; r.nLits = 0; r.minLits = 0; r.konst = 0; r.primes = []; return r; }
     var primes = qmcPrimes(n, ones, dc); r.primes = primes;
     var all = ones.length === N || primes.some(function (p) { return popcount(p.mask) === n; });
-    if (all) { r.terms = [{ mask: N - 1, val: 0 }]; r.nTerms = 1; r.nLits = 0; r.konst = 1; return r; }
+    if (all) { r.terms = [{ mask: N - 1, val: 0 }]; r.nTerms = 1; r.nLits = 0; r.minLits = 0; r.konst = 1; return r; }
     r.terms = bestCover(n, ones, primes, function (ch) { return ch.length * 1000 + ch.reduce(function (s, p) { return s + litsOf(n, p); }, 0); });
     r.nTerms = r.terms.length; r.nLits = r.terms.reduce(function (s, p) { return s + litsOf(n, p); }, 0);
     r.minLits = bestCover(n, ones, primes, function (ch) { return ch.reduce(function (s, p) { return s + litsOf(n, p); }, 0); }).reduce(function (s, p) { return s + litsOf(n, p); }, 0);
@@ -96,7 +96,7 @@
     var ts = m.terms.map(function (p) { return P.termAst(m.n, p); }).sort(function (a, b) { return B.fmtText(a) < B.fmtText(b) ? -1 : 1; });
     return ts.length === 1 ? ts[0] : { op: 'or', args: ts };
   };
-  P.minimalText = function (n, ones, dc) { return B.fmtText(P.minimalAst(P.minimal(n, ones, dc))); };
+  P.minimalText = function (n, ones, dc, nm) { return B.fmtText(P.minimalAst(P.minimal(n, ones, dc)), nm); };
 
   /* ---------- Ausdrücke ---------- */
   function litCount(ast) { if (ast.op === 'var') return 1; if (ast.op === 'const') return 0; if (ast.op === 'not') return litCount(ast.a); return ast.args.reduce(function (s, a) { return s + litCount(a); }, 0); }
@@ -107,13 +107,15 @@
   function isPos(a) { return isSum(a) || (a.op === 'and' && a.args.every(isSum)); }
   function termCount(a) { return a.op === 'or' ? a.args.length : 1; }
   P.litCount = litCount; P.isSop = isSop; P.isPos = isPos;
-  function eName(i) { return 'e' + (i + 1); }
-  function kText(n, k) { var s = []; for (var i = 0; i < n; i++) s.push(eName(i) + ' = ' + (k >> i & 1)); return s.join(', '); }
+  /* Namen der Eingänge: e1, e2 … oder, wenn die Aufgabe buchstaben hat (z. B. 'abcdef' oder 'ABCD'), diese Buchstaben; der erste Buchstabe ist das niederwertigste Bit (a = Eingang 1) */
+  P.namen = function (a) { return a && a.buchstaben ? B.letterNames(a.buchstaben) : function (n) { return 'e' + n; }; };
+  function parseA(a, text) { return B.parse(text, a && a.buchstaben ? { letters: a.buchstaben } : undefined); }
+  function kText(n, k, nm) { nm = nm || P.namen(null); var s = []; for (var i = 0; i < n; i++) s.push(nm(i + 1) + ' = ' + (k >> i & 1)); return s.join(', '); }
   P.kText = kText;
   function evalK(ast, n, k) { var v = {}; for (var i = 0; i < n; i++) v[i + 1] = k >> i & 1; return B.evalAst(ast, v); }
   /* Wahrheitswerte der Aufgabe: ref (Text) oder n + ones */
   function refOf(a) {
-    if (a.ref || a.gegeben) { var p = B.parse(a.ref || a.gegeben), vs = B.varsOf(p.exprs[0]), n = a.n || (vs.length ? Math.max.apply(null, vs) : 1), ones = []; for (var k = 0; k < (1 << n); k++) if (evalK(p.exprs[0], n, k)) ones.push(k); return { n: n, ones: ones, dc: a.dc || [] }; }
+    if (a.ref || a.gegeben) { var p = parseA(a, a.ref || a.gegeben), vs = B.varsOf(p.exprs[0]), n = a.n || (vs.length ? Math.max.apply(null, vs) : 1), ones = []; for (var k = 0; k < (1 << n); k++) if (evalK(p.exprs[0], n, k)) ones.push(k); return { n: n, ones: ones, dc: a.dc || [] }; }
     return { n: a.n, ones: a.ones || [], dc: a.dc || [] };
   }
   P.refOf = refOf;
@@ -128,24 +130,27 @@
   P.pruefeAusdruck = function (a, text) {
     var r = refOf(a), n = r.n, p;
     if (!String(text || '').trim()) return bad('Noch nichts eingegeben.');
-    try { p = B.parse(text); } catch (e) { return bad(e.message); }
+    var nm = P.namen(a); try { p = parseA(a, text); } catch (e) { return bad(e.message); }
     var ast = B.clean(p.exprs[p.exprs.length - 1]), vs = B.varsOf(ast);
-    var big = vs.filter(function (v) { return v > n; }); if (big.length) return bad('e' + big[0] + ' gibt es in dieser Aufgabe nicht (nur e1 bis e' + n + ').');
+    var big = vs.filter(function (v) { return v > n; }); if (big.length) return bad(nm(big[0]) + ' gibt es in dieser Aufgabe nicht (nur ' + nm(1) + ' bis ' + nm(n) + ').');
     for (var k = 0; k < (1 << n); k++) {
       if (r.dc.indexOf(k) >= 0) continue; var want = r.ones.indexOf(k) >= 0 ? 1 : 0, got = evalK(ast, n, k);
-      if (got !== want) return bad('Nicht gleichwertig: Bei ' + kText(n, k) + ' liefert dein Ausdruck ' + got + ', verlangt ist ' + want + '.');
+      if (got !== want) return bad('Nicht gleichwertig: Bei ' + kText(n, k, nm) + ' liefert dein Ausdruck ' + got + ', verlangt ist ' + want + '.');
     }
     var forms = a.form;
-    if (forms === 'dnf' && !(isSop(ast) && kanonischDnf(ast, n))) return bad('Gleichwertig – aber verlangt ist die disjunktive Normalform: ODER von UND-Gliedern, in jedem Glied kommen alle Eingänge vor (e1 bis e' + n + ').');
+    if (forms === 'dnf' && !(isSop(ast) && kanonischDnf(ast, n))) return bad('Gleichwertig – aber verlangt ist die disjunktive Normalform: ODER von UND-Gliedern, in jedem Glied kommen alle Eingänge vor (' + nm(1) + ' bis ' + nm(n) + ').');
     if (forms === 'dnf' && termCount(ast) !== r.ones.length) return bad('Die disjunktive Normalform hat je Zeile mit Ausgang 1 genau ein Glied (hier ' + r.ones.length + '), du hast ' + termCount(ast) + '.');
     if (forms === 'knf') {
-      if (!(isPos(ast) && kanonischKnf(ast, n))) return bad('Gleichwertig – aber verlangt ist die konjunktive Normalform: UND von ODER-Klammern, in jeder Klammer kommen alle Eingänge vor (e1 bis e' + n + ').');
+      if (!(isPos(ast) && kanonischKnf(ast, n))) return bad('Gleichwertig – aber verlangt ist die konjunktive Normalform: UND von ODER-Klammern, in jeder Klammer kommen alle Eingänge vor (' + nm(1) + ' bis ' + nm(n) + ').');
       var zeros = (1 << n) - r.ones.length - r.dc.length; if (ast.op === 'and' ? ast.args.length !== zeros : zeros !== 1) return bad('Die konjunktive Normalform hat je Zeile mit Ausgang 0 genau eine Klammer (hier ' + zeros + ').');
     }
+    if (forms === 'pos') { if (!isPos(ast) || ast.op === 'const') return bad('Gleichwertig – aber verlangt ist die Produktform: UND von ODER-Klammern, zum Beispiel (a + b)(b + c).'); if (a.maxBuchstaben && litCount(ast) > a.maxBuchstaben) return bad('Gleichwertig und in Produktform – aber mit ' + litCount(ast) + ' Buchstaben noch zu lang, es geht mit ' + a.maxBuchstaben + '.'); return ok('Richtig: gleichwertig und in Produktform.'); }
     if (a.nurGleich || forms) return ok('Richtig: gleichwertig' + (forms ? ' und in der verlangten Form.' : '.'));
     var m = P.minimal(n, r.ones, r.dc), lits = litCount(ast), sop = isSop(ast), terms = termCount(ast);
-    if (lits > m.minLits) return bad('Gleichwertig – aber noch nicht einfach genug: ' + lits + ' Buchstaben, es geht mit höchstens ' + m.nLits + '.', { gleich: true });
-    if (sop && terms > m.nTerms) return bad('Gleichwertig – aber noch nicht einfach genug: ' + terms + ' Glieder, es geht mit ' + m.nTerms + '.', { gleich: true });
+    // Vorgabe: Termzahl und Buchstabenzahl der Minimalform (a.erwartet aus Stevens Serie, sonst gerechnet); eine andere, gleich kurze Lösung ist richtig
+    var maxL = a.erwartet ? a.erwartet.buchstaben : m.minLits, maxT = a.erwartet ? a.erwartet.terme : m.nTerms;
+    if (lits > maxL) return bad('Gleichwertig – aber noch nicht einfach genug: ' + lits + ' Buchstaben, es geht mit höchstens ' + maxL + '.', { gleich: true });
+    if (sop && terms > maxT) return bad('Gleichwertig – aber noch nicht einfach genug: ' + terms + ' Glieder, es geht mit ' + maxT + '.', { gleich: true });
     return ok('Richtig: gleichwertig und einfach genug (' + lits + ' Buchstaben' + (sop ? ', ' + terms + ' Glied' + (terms === 1 ? '' : 'er') : '') + ').');
   };
 
@@ -299,10 +304,10 @@
       if (gr.length > m.nTerms) return bad('Es geht mit weniger Päckchen: ' + gr.length + ' eingezeichnet, ' + m.nTerms + ' reichen.');
       var lits = cubes.reduce(function (s, p) { return s + litsOf(n, p); }, 0); if (lits > m.nLits) return bad('Mit denselben ' + gr.length + ' Päckchen geht es einfacher: andere Päckchen wählen (zählt ' + lits + ' Buchstaben, Ziel ' + m.nLits + ').');
     }
-    if (a.ausdruck !== false) { var r = P.pruefeAusdruck({ n: n, ones: ones, dc: dc }, antwort.ausdruck); if (!r.ok) return bad((a.gruppen !== false ? 'Päckchen stimmen. ' : '') + 'Minimalform: ' + r.meldung); }
+    if (a.ausdruck !== false) { var r = P.pruefeAusdruck({ n: n, ones: ones, dc: dc, buchstaben: a.buchstaben, erwartet: a.erwartet }, antwort.ausdruck); if (!r.ok) return bad((a.gruppen !== false ? 'Päckchen stimmen. ' : '') + 'Minimalform: ' + r.meldung); }
     return ok('Richtig: Päckchen und Minimalform stimmen.');
   };
-  P.musterKV = function (a) { var m = P.minimal(a.n, a.ones, a.dc || []); return { gruppen: m.terms.map(function (p) { return cellsOf(a.n, p); }), ausdruck: B.fmtText(P.minimalAst(m)) }; };
+  P.musterKV = function (a) { var m = P.minimal(a.n, a.ones, a.dc || []); return { gruppen: m.terms.map(function (p) { return cellsOf(a.n, p); }), ausdruck: B.fmtText(P.minimalAst(m), P.namen(a)) }; };
 
   /* ---------- Prüfart folge ---------- */
   /* start: Layout mit Pegelschaltern (E…), Takteingang (a.takt, ein Pegelschalter) und Logikanzeigen; schritte: [{set:{E1:1}, takte:n, erwartet:[…Werte von lesen…]}]
@@ -385,7 +390,7 @@
     if (a.muster !== undefined) return a.muster;
     switch (a.art) {
       case 'tabelle': return P.musterTabelle(a);
-      case 'ausdruck': var r = refOf(a); return a.form === 'dnf' ? dnfText(r) : a.form === 'knf' ? knfText(r) : P.minimalText(r.n, r.ones, r.dc);
+      case 'ausdruck': var r = refOf(a); return a.form === 'dnf' ? dnfText(r, P.namen(a)) : a.form === 'knf' ? knfText(r, P.namen(a)) : P.minimalText(r.n, r.ones, r.dc, P.namen(a));
       case 'kv': return P.musterKV(a);
       case 'fragen': return a.fragen.map(function (q) { return q.richtig; });
       case 'schaltung': // ohne eigene Musterlösung: Minimalform als UND-ODER-Schaltung (nur wenn nichts anderes verlangt ist)
@@ -397,8 +402,8 @@
     }
     return null;
   };
-  function dnfText(r) { return r.ones.map(function (k) { var s = []; for (var i = 0; i < r.n; i++) s.push((k >> i & 1 ? '' : '/') + 'e' + (i + 1)); return s.join(''); }).join(' v ') || '0'; }
-  function knfText(r) { var zs = []; for (var k = 0; k < (1 << r.n); k++) if (r.ones.indexOf(k) < 0 && r.dc.indexOf(k) < 0) zs.push(k); return zs.map(function (k) { var s = []; for (var i = 0; i < r.n; i++) s.push((k >> i & 1 ? '/' : '') + 'e' + (i + 1)); return '(' + s.join(' v ') + ')'; }).join('') || '1'; }
+  function dnfText(r, nm) { return r.ones.map(function (k) { var s = []; for (var i = 0; i < r.n; i++) s.push((k >> i & 1 ? '' : '/') + nm(i + 1)); return s.join(''); }).join(' v ') || '0'; }
+  function knfText(r, nm) { var zs = []; for (var k = 0; k < (1 << r.n); k++) if (r.ones.indexOf(k) < 0 && r.dc.indexOf(k) < 0) zs.push(k); return zs.map(function (k) { var s = []; for (var i = 0; i < r.n; i++) s.push((k >> i & 1 ? '/' : '') + nm(i + 1)); return '(' + s.join(' v ') + ')'; }).join('') || '1'; }
 
   /* ---------- Schaltungen aus einer Beschreibung (Musterlösungen, Startvorlagen) ----------
    * netz({n, gatter:[['U1','nand',['E1','E2']], …], aus:{L1:'U3'}}) – Gatterliste, Eingänge E1…En, Ausgänge L1…; Positionen nach Tiefe. Quellen: 'E1' = E1.out, 'U1' = U1.out, 'U1.out2' (anderer Anschluss) wörtlich. */

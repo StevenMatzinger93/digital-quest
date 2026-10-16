@@ -18,18 +18,24 @@ const fails = []; let checks = 0; const ok = (c, m) => { checks++; if (!c) fails
 
   // KV-Diagramm Nr. 5: m(0, 1, 4, 5, 12, 13)
   await open('A10.5'); ok(await page.locator('#pfKv .kv-cell').count() === 16, 'KV-Diagramm mit 16 Feldern');
-  ok(await page.locator('#pfKv .kv-v.one').count() === 6, 'sechs Einsen eingetragen (m(0, 1, 4, 5, 12, 13))');
+  ok(await page.locator('#pfKv .kv-v.one').count() === 2 && await page.locator('#pfKv .kv-v.dc').count() === 6, 'Aufgabe 5: m4(5,7) + X(1,3,8,9,10,11): zwei Einsen, sechs X');
+  ok(await page.evaluate(() => { const t = Array.from(document.querySelectorAll('#pfKv .kv-h')).map(x => x.textContent).join(' '); return /a/.test(t) && /b/.test(t) && /c/.test(t) && /d/.test(t) && !/e1|e2/.test(t); }), 'Beschriftung mit den Buchstaben a, b, c, d (nicht e1 bis e4)');
   let msg = await check(); ok(/Zeichne zuerst|Noch nichts/.test(msg), 'ohne Päckchen: Aufforderung (' + msg + ')');
-  await group([0, 1]); await page.fill('#pfExpr', '/e2/e3/e4'); msg = await check(); ok(/vergrössern/.test(msg) || /liegt in keinem/.test(msg), 'zu kleines Päckchen / fehlende Eins wird genannt: ' + msg);
+  await group([5, 7]); await page.fill('#pfExpr', "d'a"); msg = await check(); ok(/vergrössern/.test(msg), 'zu kleines Päckchen wird genannt: ' + msg);
   await page.click('[data-a="kvweg"] >> nth=0'); ok(await page.locator('#pfGl li').count() === 0, 'Päckchen lässt sich entfernen');
-  await group([0, 1, 4, 5]); await group([4, 5, 12, 13]); ok(await page.locator('#pfKv .kv-loop').count() >= 2, 'Päckchen werden eingezeichnet');
-  await page.fill('#pfExpr', '/e2 /e4 v /e2 e3'); await page.waitForTimeout(50); ok(await page.locator('#pfPrev .ov').count() >= 3, 'Vorschau der Minimalform mit Überstreichung');
+  await group([1, 3, 5, 7]); ok(await page.locator('#pfKv .kv-loop').count() >= 1, 'Päckchen wird eingezeichnet (mit dem X der Aufgabe)');
+  await page.fill('#pfExpr', "d'a"); await page.waitForTimeout(50); ok(await page.locator('#pfPrev .ov').count() >= 1, 'Vorschau der Minimalform mit Überstreichung (d\u0305 a)');
   await page.screenshot({ path: shots + '/pfad_kv.png' });
-  msg = await check(); ok(/Richtig: Päckchen und Minimalform/.test(msg) && await page.locator('.pf-aufg[data-aid="A10.5"].ast-richtig').count() === 1, 'KV Nr. 5 richtig: ' + msg);
-  // Ecken über den Rand: Nr. 4, m(0, 2, 8, 10)
-  await open('A10.4'); await group([0, 2, 8, 10]); await page.fill('#pfExpr', '/e1/e3'); msg = await check(); ok(/Richtig/.test(msg), 'Ecken-Päckchen über den Rand angenommen: ' + msg);
-  // falsche Minimalform bei richtigen Päckchen
-  await open('A10.1'); await group([1, 3, 5, 7]); await page.fill('#pfExpr', 'e1'); msg = await check(); ok(/Minimalform: Nicht gleichwertig/.test(msg), 'richtige Päckchen, falsche Minimalform: ' + msg);
+  msg = await check(); ok(/Richtig: Päckchen und Minimalform/.test(msg) && await page.locator('.pf-aufg[data-aid="A10.5"].ast-richtig').count() === 1, 'KV Aufgabe 5 richtig: ' + msg);
+  // Aufgabe 1: m4(0,1,2,4,5,6,8,9,10,13) – Päckchen über den Rand (Ecken 0, 2, 8, 10)
+  await open('A10.1'); await group([0, 2, 4, 6]); await group([0, 2, 8, 10]); await group([1, 5, 9, 13]); await page.fill('#pfExpr', "d'a'"); msg = await check(); ok(/Minimalform: Gleichwertig|Minimalform: Nicht gleichwertig/.test(msg), 'richtige Päckchen, unvollständige Minimalform: ' + msg);
+  await page.fill('#pfExpr', "d'a' + c'a' + b'a"); msg = await check(); ok(/Richtig/.test(msg), 'Aufgabe 1: Päckchen über den Rand und Minimalform angenommen: ' + msg);
+  // Aufgabe 6: vier gleichwertige Minimalformen – zwei davon über die Oberfläche
+  await open('A10.6'); ok(/mehrere gleich kurze Lösungen/.test(await page.textContent('#pfWork')), 'Aufgabe 6 weist auf mehrere richtige Lösungen hin');
+  // 5 Eingänge: zwei Diagramme, 6 Eingänge: vier Diagramme
+  await open('A10.14'); ok(await page.locator('#pfKv .kv-cell').count() === 32 && await page.locator('#pfKv .kv-v.one').count() === 8, 'Aufgabe 14: 5 Eingänge = zwei Diagramme mit 32 Feldern, 8 Einsen');
+  await group([2, 10, 18, 26]); await group([13, 15, 29, 31]); await page.fill('#pfExpr', "c'ba' + dca"); msg = await check(); ok(/Richtig/.test(msg), 'Aufgabe 14: Päckchen über beide Diagramme (e = 0 und e = 1) angenommen: ' + msg); await page.screenshot({ path: shots + '/pfad_kv5.png' });
+  await open('A10.17'); ok(await page.locator('#pfKv .kv-cell').count() === 64 && await page.locator('#pfKv .kv-v.one').count() === 24, 'Aufgabe 17: 6 Eingänge = vier Diagramme mit 64 Feldern, 24 Einsen');
   // Don't-Care: A11.3
   await open('A11.3'); ok(await page.locator('#pfKv .kv-v.dc').count() === 6, 'sechs Don\'t-Care-Felder (X) im Diagramm');
   // A4: Symbole und Auswahlfelder

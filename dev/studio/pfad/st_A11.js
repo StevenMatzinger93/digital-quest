@@ -8,14 +8,14 @@
   // Aufgabe 1: Codetabelle 0…9
   var codes = { kopf: ['Dezimal', 'BCD', '3-Exzess', 'Gray'], zeilen: [] };
   for (var d = 0; d <= 9; d++) codes.zeilen.push([String(d), { a: D(d, 4), typ: 'bin' }, { a: D(d + 3, 4), typ: 'bin' }, { a: D(P.gray(d), 4), typ: 'bin' }]);
-  // Aufgabe 2: Wahrheitstabelle 3-Exzess → BCD. Tabelle: Wort w = [e4 e3 e2 e1] (MSB zuerst); Ausgänge A4 … A1
-  var wt = P.wahrheit({ ein: ['e4', 'e3', 'e2', 'e1'], aus: ['A4', 'A3', 'A2', 'A1'], f: function (e) { var v = bcd(P.wertMSB(e)); return v === 'X' ? ['X', 'X', 'X', 'X'] : [v >> 3 & 1, v >> 2 & 1, v >> 1 & 1, v & 1]; } });
+  // Aufgabe 2: Wahrheitstabelle 3-Exzess → BCD. Tabelle: Wort w = [d c b a] (MSB zuerst); Ausgänge A4 … A1
+  var wt = P.wahrheit({ ein: ['d', 'c', 'b', 'a'], aus: ['A4', 'A3', 'A2', 'A1'], f: function (e) { var v = bcd(P.wertMSB(e)); return v === 'X' ? ['X', 'X', 'X', 'X'] : [v >> 3 & 1, v >> 2 & 1, v >> 1 & 1, v & 1]; } });
   // Soll für die Schaltung (e1 = Bit 0): Ausgang j = Bit j der Ziffer
   var sollF = function (e) { var v = bcd(P.wertLSB(e)); return v === 'X' ? ['X', 'X', 'X', 'X'] : [v & 1, v >> 1 & 1, v >> 2 & 1, v >> 3 & 1]; };
   var kvs = [1, 2, 4, 8].map(function (wert, j) {
     var ones = P.einsen(4, sollF, j), dc = P.dcs(4, sollF, j);
-    return { id: 'A11.' + (3 + j), titel: 'KV-Diagramm für A' + wert, art: 'kv', n: 4, ones: ones, dc: dc,
-      text: '<p>Der Codewandler 3-Exzess → BCD hat für das Ausgangsbit <b>A' + wert + '</b> (Wertigkeit ' + wert + ') die Einsen <b>m(' + ones.join(', ') + ')</b>. Die Codewörter 0, 1, 2 und 13, 14, 15 kommen im 3-Exzess-Code nicht vor: Das sind die <b>Don\'t-Care</b> <b>d(' + dc.join(', ') + ')</b>. Zeichne die Päckchen (X darfst du dazunehmen) und gib die Minimalform an. e1 ist das niedrigste Bit des Codeworts.</p>',
+    return { id: 'A11.' + (3 + j), titel: 'KV-Diagramm für A' + wert, art: 'kv', n: 4, ones: ones, dc: dc, buchstaben: P.KONV.buchstaben.slice(0, 4),
+      text: '<p>Der Codewandler 3-Exzess → BCD hat für das Ausgangsbit <b>A' + wert + '</b> (Wertigkeit ' + wert + ') die Einsen <b>m(' + ones.join(', ') + ')</b>. Die Codewörter 0, 1, 2 und 13, 14, 15 kommen im 3-Exzess-Code nicht vor: Das sind die <b>Don\'t-Care</b> <b>d(' + dc.join(', ') + ')</b>. Zeichne die Päckchen (X darfst du dazunehmen) und gib die Minimalform an. a ist das niedrigste, d das höchste Bit des Codeworts.</p>',
       hilfe: 'Ein X darfst du in ein Päckchen aufnehmen, wenn es dadurch grösser wird. Musst du aber nicht.' };
   });
   var gr = P.wahrheit({ ein: ['b3', 'b2', 'b1', 'b0'], aus: ['g3', 'g2', 'g1', 'g0'], f: function (e) { var g = P.gray(P.wertMSB(e)); return [g >> 3 & 1, g >> 2 & 1, g >> 1 & 1, g & 1]; } });
@@ -27,7 +27,7 @@
     aufgaben: [
       { id: 'A11.1', titel: 'Codetabelle 0 bis 9', art: 'tabelle', kopf: codes.kopf, zeilen: codes.zeilen, text: '<p>Fülle BCD, 3-Exzess und Gray (alle vierstellig) für die Dezimalziffern 0 bis 9 aus.</p>', hilfe: 'BCD = die Dualzahl. 3-Exzess: Ziffer plus 3, dann dual. Gray: Das höchste Bit bleibt, jedes weitere Bit = Dualbit XOR das Dualbit links davon.' },
       { id: 'A11.2', titel: 'Wahrheitstabelle 3-Exzess → BCD', art: 'tabelle', kopf: wt.kopf, zeilen: wt.zeilen,
-        text: '<p>Eingang ist ein Codewort im <b>3-Exzess-Code</b> (e4 e3 e2 e1, e4 hat die Wertigkeit 8), Ausgang ist die Ziffer als <b>BCD</b> (A4 A3 A2 A1). Für Codewörter, die im 3-Exzess nicht vorkommen (0000 bis 0010 und 1101 bis 1111), schreibst du <b>X</b> (beliebig).</p>', hilfe: 'Codewort 0011 ist die Ziffer 0, also BCD 0000. Codewort 1100 ist die Ziffer 9, also BCD 1001.' }
+        text: '<p>Eingang ist ein Codewort im <b>3-Exzess-Code</b> (d c b a, d hat die Wertigkeit 8), Ausgang ist die Ziffer als <b>BCD</b> (A4 A3 A2 A1). Für Codewörter, die im 3-Exzess nicht vorkommen (0000 bis 0010 und 1101 bis 1111), schreibst du <b>X</b> (beliebig).</p>', hilfe: 'Codewort 0011 ist die Ziffer 0, also BCD 0000. Codewort 1100 ist die Ziffer 9, also BCD 1001.' }
     ].concat(kvs, [
       { id: 'A11.7', titel: 'Schaltung 3-Exzess → BCD', art: 'schaltung', n: 4, ausgaenge: 4, soll: P.sollAus(4, sollF), start: P.startNetz(4, 4),
         muster: P.netzMinimal(4, [1, 2, 4, 8].map(function (w, j) { return { ones: P.einsen(4, sollF, j), dc: P.dcs(4, sollF, j) }; })),

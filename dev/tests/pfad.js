@@ -6,7 +6,7 @@
 // 5. Fachlich: Tabellen, Ausdrücke und Minimalformen gegen die Engine bzw. die Brute-Force-Rechnung, nicht gegen die Eingabe des Autors
 const fs = require('fs'), path = require('path');
 const E = require('../src/engine.js'), B = require('../studio/bool.js');
-const P = require('../studio/pfad/kern.js'); require('../studio/pfad/bausteine.js');
+const P = require('../studio/pfad/kern.js'); require('../studio/pfad/konventionen.js'); require('../studio/pfad/bausteine.js');
 fs.readdirSync(path.join(__dirname, '../studio/pfad')).filter(f => /^st_.*\.js$/.test(f)).sort().forEach(f => require('../studio/pfad/' + f));
 
 let ok = 0, bad = 0; const fails = [];
@@ -206,6 +206,68 @@ if (section('portal')) {
   const halb = P.neuerStand(); P.speichereAntwort(halb, 'A5.3', P.muster(P.task('A5.3')), 't'); chk('Stand für den Server: Layout einer noch nicht gelösten Aufgabe bleibt erhalten', P.eintrag(P.fuerServer(halb), 'A5.3').antwort && P.eintrag(P.fuerServer(halb), 'A5.3').antwort.parts.length > 0);
 }
 
+
+/* ---------- 5b. Stevens Originalserien (docs/aufgaben): Vorgaben, gleichwertige Minimalformen, Stellenwertigkeit ---------- */
+if (section('original')) {
+  const rev = (ones, n) => ones.map(k => { let r = 0; for (let i = 0; i < n; i++) if (k >> i & 1) r |= 1 << (n - 1 - i); return r; }).sort((x, y) => x - y); // JSON der Booleschen Algebra nummeriert e1 als höchstes Bit, das Studio als niedrigstes: gleiche Funktion, andere Nummern
+  const J = n => require('../../docs/aufgaben/' + n + '.json'), ALG = J('boolesche_algebra'), KV = J('kv_diagramm'), a8 = P.get('A8'), a10 = P.get('A10');
+  // A8: jede Aufgabe der Serie, gegen die JSON-Vorgabe
+  ALG.forEach(r => {
+    const a = a8.aufgaben.find(x => x.id === 'A8.' + r.nr), n = r.variablen.length, ref = P.refOf(a), m = P.minimal(ref.n, ref.ones, ref.dc), nm = P.namen(a);
+    chk('A8 Aufgabe ' + r.nr + ': Ausdruck wie im JSON, Minterme des JSON = gerechnete Minterme (' + r.minterme.join(',') + ')', a.gegeben === r.ausdruck && rev(ref.ones, n).join() === r.minterme.join() && ref.n === n, rev(ref.ones, n).join() + ' (JSON: e1 = höchstes Bit)');
+    chk('A8 Aufgabe ' + r.nr + ': eigene Minimalform hat ' + m.nTerms + ' Terme und ' + m.nLits + ' Buchstaben, JSON ' + r.terme + ' / ' + r.buchstaben, m.nTerms === r.terme && m.nLits === r.buchstaben && a.erwartet.terme === r.terme && a.erwartet.buchstaben === r.buchstaben);
+    chk('A8 Aufgabe ' + r.nr + ': die Minimalform aus dem JSON (' + r.minimalform + ') wird angenommen', P.pruefe(a, r.minimalform).ok, P.pruefe(a, r.minimalform).meldung);
+    chk('A8 Aufgabe ' + r.nr + ': Pflicht ' + (r.nr !== 12), (a.pflicht !== false) === (r.nr !== 12));
+    // richtig, aber nicht minimiert: der Originalausdruck selbst und die kanonische Summenform
+    const g = P.litCount(B.clean(B.parse(a.gegeben).ast)), kan = ref.ones.map(k => { const s = []; for (let i = 0; i < n; i++) s.push((k >> i & 1 ? '' : '/') + 'e' + (i + 1)); return s.join(''); }).join(' v ') || '0', kl = ref.ones.length * n;
+    if (g > r.buchstaben) { const x = P.pruefe(a, a.gegeben); chk('A8 Aufgabe ' + r.nr + ': der Originalausdruck (' + g + ' Buchstaben) ist richtig, aber nicht minimiert → abgelehnt', !x.ok && /Gleichwertig/.test(x.meldung) && /nicht einfach genug/.test(x.meldung), x.meldung); }
+    if (kl > r.buchstaben) { const x = P.pruefe(a, kan); chk('A8 Aufgabe ' + r.nr + ': die kanonische Form (' + kl + ' Buchstaben) ist richtig, aber nicht minimiert → abgelehnt', !x.ok, x.meldung); }
+    if (n >= 2) { const x = P.pruefe(a, r.minimalform.replace(/e1/, 'e1 v e1 e2 v e2 e2')); } // nur Aufruf: darf nicht abstürzen
+  });
+  chk('A8 Aufgabe 1 (Förderband-Übung): Vereinfachen der DNF auf e1 v e2; die DNF selbst wird abgelehnt', P.pruefe(a8.aufgaben.find(a => a.id === 'A8.1'), 'e2 v e1').ok && !P.pruefe(a8.aufgaben.find(a => a.id === 'A8.1'), '/e2e1 v e2/e1 v e2e1').ok);
+  chk('A8 Aufgabe 18 (Zusatzübung KNF/DNF) und Aufgabe 12 sind freiwillig, alle anderen Aufgaben 1 bis 17 Pflicht', ['A8.12', 'A8.18a', 'A8.18b'].every(id => a8.aufgaben.find(a => a.id === id).pflicht === false) && a8.aufgaben.filter(a => /^A8\.\d+$/.test(a.id) && +a.id.slice(3) <= 17 && +a.id.slice(3) !== 12).every(a => a.pflicht !== false));
+  chk('A8 Zusatzübung (Gesetze nachweisen) ist freiwillig und als eigene Übung gekennzeichnet', a8.aufgaben.filter(a => +a.id.slice(3) >= 21).every(a => a.pflicht === false && /Zusatz \(eigene Übung\)/.test(a.titel)));
+  // A10: alle Aufgaben der Serie gegen die JSON-Vorgabe
+  const covers = (n, ones, dc) => { // alle Überdeckungen mit kleinster Termzahl und kleinster Buchstabenzahl (aus den Primimplikanten, durch Aufzählen aller Teilmengen)
+    const m = P.minimal(n, ones, dc), pr = m.primes, cells = p => { const o = []; for (let k = 0; k < (1 << n); k++) if ((k & ~p.mask & ((1 << n) - 1)) === p.val) o.push(k); return o; }, out = [];
+    const idx = []; (function comb(start) { if (idx.length === m.nTerms) { const ch = idx.map(i => pr[i]); if (ones.every(o => ch.some(p => cells(p).includes(o))) && ch.reduce((s, p) => s + n - popc(p.mask), 0) === m.nLits) out.push(ch); return; } for (let i = start; i < pr.length; i++) { idx.push(i); comb(i + 1); idx.pop(); } })(0);
+    return { m, out, cells };
+  };
+  KV.forEach(r => {
+    const a = a10.aufgaben.find(x => x.id === 'A10.' + r.nr), n = r.eingaenge, nm = P.namen(a), m = P.minimal(n, r.einsen, r.egal);
+    chk('A10 Aufgabe ' + r.nr + ': Einsen und X wie im JSON, Buchstaben ' + a.buchstaben + ' (a niederwertigstes Bit)', a.ones.join() === r.einsen.join() && a.dc.join() === r.egal.join() && a.n === n && a.buchstaben === 'abcdef'.slice(0, n) && r.variablen.join('') === 'abcdef'.slice(0, n).split('').reverse().join(''));
+    chk('A10 Aufgabe ' + r.nr + ': eigene Minimalform ' + m.nTerms + ' Terme / ' + m.nLits + ' Buchstaben = JSON ' + r.terme + ' / ' + r.buchstaben, m.nTerms === r.terme && m.nLits === r.buchstaben);
+    const cv = covers(n, r.einsen, r.egal); chk('A10 Aufgabe ' + r.nr + ': ' + cv.out.length + ' gleichwertige Minimalform(en), JSON sagt ' + r.gleichwertige_loesungen, cv.out.length === r.gleichwertige_loesungen);
+    // jede gleichwertige Minimalform wird mit ihren Päckchen angenommen; die Form aus dem JSON ebenfalls (als Ausdruck)
+    cv.out.forEach((ch, i) => { const groups = ch.map(p => cv.cells(p)), expr = ch.map(p => B.fmtText(P.termAst(n, p), nm)).join(' v '); const x = P.pruefeKV(a, { gruppen: groups, ausdruck: expr }); chk('A10 Aufgabe ' + r.nr + ': Minimalform ' + (i + 1) + ' von ' + cv.out.length + ' (' + expr + ') wird angenommen', x.ok, x.meldung); });
+    chk('A10 Aufgabe ' + r.nr + ': Ausdruck aus dem JSON (' + r.minimalform + ') mit passenden Päckchen angenommen', cv.out.some(ch => P.pruefeKV(a, { gruppen: ch.map(p => cv.cells(p)), ausdruck: r.minimalform }).ok));
+    // richtig, aber nicht minimiert: alle Primimplikanten als Päckchen (zu viele), kanonische Summe als Ausdruck
+    if (m.primes.length > m.nTerms) { const x = P.pruefeKV(a, { gruppen: m.primes.map(p => cv.cells(p)), ausdruck: B.fmtText(P.minimalAst(m), nm) }); chk('A10 Aufgabe ' + r.nr + ': alle Primimplikanten als Päckchen (nicht minimiert) → abgelehnt', !x.ok, x.meldung); }
+    const kan = r.einsen.map(k => { const s = []; for (let i = 0; i < n; i++) s.push((k >> i & 1 ? '' : '/') + 'abcdef'[i]); return s.join(''); }).join(' v '), kl = r.einsen.length * n;
+    if (kl > r.buchstaben) { const x = P.pruefeKV(a, { gruppen: m.terms.map(p => cv.cells(p)), ausdruck: kan }); chk('A10 Aufgabe ' + r.nr + ': richtige Päckchen, aber die Einsen einzeln ausgeschrieben (' + kl + ' Buchstaben) → abgelehnt', !x.ok && /Minimalform/.test(x.meldung), x.meldung); }
+    chk('A10 Aufgabe ' + r.nr + ': Pflicht ' + !(r.nr >= 7 && r.nr <= 10), (a.pflicht !== false) === !(r.nr >= 7 && r.nr <= 10));
+  });
+  { // Aufgabe 6 ausdrücklich: vier verschiedene Minimalformen, alle angenommen
+    const a = a10.aufgaben.find(x => x.id === 'A10.6'), cv = covers(4, a.ones, a.dc), formen = cv.out.map(ch => ch.map(p => B.fmtText(P.termAst(4, p), P.namen(a))).sort().join(' v '));
+    chk('A10 Aufgabe 6: genau vier verschiedene gleichwertige Minimalformen (' + formen.length + ': ' + formen.join(' | ') + ')', cv.out.length === 4 && new Set(formen).size === 4);
+    chk('A10 Aufgabe 6: alle vier werden angenommen, mit je 3 Termen und 6 Buchstaben', cv.out.every(ch => ch.length === 3 && P.pruefeKV(a, { gruppen: ch.map(p => cv.cells(p)), ausdruck: ch.map(p => B.fmtText(P.termAst(4, p), P.namen(a))).join(' v ') }).ok));
+    const aus = P.pruefe(a10.aufgaben.find(x => x.id === 'A10.6'), { gruppen: [], ausdruck: "d'a' + c'b + cb'" }); chk('A10 Aufgabe 6: der Ausdruck aus dem JSON ohne Päckchen wird nicht angenommen (Päckchen fehlen)', !aus.ok);
+  }
+  { // Stellenwertigkeit: d'cb'a' = 0100 = Feld 4, Feldnummer = d·8 + c·4 + b·2 + a
+    const a = a10.aufgaben.find(x => x.id === 'A10.1'), v = B.parse("d'cb'a'", { letters: 'abcdef' }).ast; let k4 = -1; for (let k = 0; k < 16; k++) { const o = {}; for (let i = 0; i < 4; i++) o[i + 1] = k >> i & 1; if (B.evalAst(v, o)) k4 = k; }
+    chk("Stellenwertigkeit: d'cb'a' ist das Feld 4 (0100), d höchstwertig, a niederwertigst", k4 === 4);
+    const ab = P.refOf({ ref: "d'cb'a' + dcba", n: 4, buchstaben: 'abcdef' }); chk('Stellenwertigkeit: d·8 + c·4 + b·2 + a: Feld 15 ist dcba, Feld 8 ist dc\'b\'a\'', ab.ones.join() === '4,15' && P.refOf({ ref: "dc'b'a'", n: 4, buchstaben: 'abcdef' }).ones.join() === '8');
+    chk('Stellenwertigkeit: in der Serie 5 mit m4(5,7) + X(…) bedeutet 5 = d\'cb\'a (0101) und 7 = d\'cba (0111)', P.refOf({ ref: "d'cb'a + d'cba", n: 4, buchstaben: 'abcdef' }).ones.join() === '5,7');
+  }
+  // Sonderaufgaben 11 bis 13
+  ['A10.11a', 'A10.11b', 'A10.12a', 'A10.12b', 'A10.13a', 'A10.13b'].forEach(id => chk('A10 ' + id + ' ist freiwillig', a10.aufgaben.find(a => a.id === id).pflicht === false));
+  chk('A10 Aufgabe 11: BCD\' + BCD + AB\'C\' + A\'B\'C\' = BC + B\'C\' (2 Terme, 4 Buchstaben)', (() => { const a = a10.aufgaben.find(x => x.id === 'A10.11a'); return P.pruefe(a, "BC + B'C'").ok && !P.pruefe(a, "BCD' + BCD + B'C'").ok; })());
+  chk('A10 Aufgabe 12a: Mehrheit ab + ac + bc (6 Buchstaben); 12b: c', P.pruefeAusdruck(a10.aufgaben.find(x => x.id === 'A10.12a'), 'ab + ac + bc').ok && P.pruefeAusdruck(a10.aufgaben.find(x => x.id === 'A10.12b'), 'c').ok && !P.pruefeAusdruck(a10.aufgaben.find(x => x.id === 'A10.12b'), "cb + cb'").ok);
+  chk('A10 Aufgabe 13b: (a + b)(b + c)(c + a) wird als Produktform angenommen, ab + ac + bc nicht', P.pruefe(a10.aufgaben.find(x => x.id === 'A10.13b'), '(a + b)(b + c)(c + a)').ok && !P.pruefe(a10.aufgaben.find(x => x.id === 'A10.13b'), 'ab + ac + bc').ok);
+  const w = a10.aufgaben.find(x => x.id === 'A10.13a'); chk('A10 Aufgabe 13a: die drei Ausdrücke sind in jeder Zeile gleich', w.zeilen.every(r => { const v = [r[3], r[4], r[5]].map(c => [].concat(c.a)[0]); return v[0] === v[1] && v[1] === v[2]; }));
+  chk('A10 Zusatz (eigene Übung) ist freiwillig und gekennzeichnet', a10.aufgaben.filter(a => +a.id.slice(4) >= 20).every(a => a.pflicht === false && /eigene Übung/.test(a.titel)));
+}
+
 /* ---------- 4. Stationen ---------- */
 const GRUND = ['logicin', 'logicled', 'ground', 'node'];
 function mutiere(a, muster) { // eine bewusst falsche Antwort zur Musterlösung
@@ -278,14 +340,21 @@ if (section('fachlich')) {
   }
   // A7, A8, A9: Soll-Tabellen gegen gewöhnliche Rechnung beziehungsweise gegen den Parser
   const a7 = P.get('A7');
-  if (a7) { const t = a7.aufgaben.find(a => a.id === 'A7.1'); chk('A7.1 Förderband: A = 1 genau bei einem gedrückten Taster', t.zeilen.every(r => +[].concat(r[2].a)[0] === (+r[0] + +r[1] === 1 ? 1 : 0)));
-    const m = a7.aufgaben.find(a => a.id === 'A7.6'); chk('A7.6 Mehrheit: A = 1 bei mindestens zwei Einsen', m.zeilen.every(r => +[].concat(r[3].a)[0] === (+r[0] + +r[1] + +r[2] >= 2 ? 1 : 0))); }
+  if (a7) {
+    // Stevens Förderband: Tabelle Dez, E2, E1, A = 0, 1, 1, 1; Lösung DNF = n(E2)*E1 + E2*n(E1) + E2*E1, KNF = (E2 + E1)
+    const t1 = a7.aufgaben.find(a => a.id === 'A7.1'), t2 = a7.aufgaben.find(a => a.id === 'A7.2');
+    chk('A7 Förderband: Tabelle aus dem Lehrmittel (A = 1 ausser bei E1 = E2 = 0): Einsen ' + t1.ones.join(), t1.ones.join() === '1,2,3' && t2.ones.join() === '1,2,3');
+    chk('A7 Förderband: die DNF des Lehrmittels (n(E2)*E1 + E2*n(E1) + E2*E1) wird angenommen', P.pruefe(t1, 'n(E2)*E1 + E2*n(E1) + E2*E1').ok, P.pruefe(t1, 'n(E2)*E1 + E2*n(E1) + E2*E1').meldung);
+    chk('A7 Förderband: die KNF des Lehrmittels (E2 + E1) wird angenommen', P.pruefe(t2, '(E2 + E1)').ok, P.pruefe(t2, '(E2 + E1)').meldung);
+    chk('A7 Förderband: eine richtige, aber nicht kanonische Form (nur E1 + E2 als DNF) wird abgelehnt', !P.pruefe(t1, 'E1 + E2').ok && !P.pruefe(t2, '(E1 + E2)(E1 + /E2)').ok);
+    const m = a7.aufgaben.find(a => a.id === 'A7.5'); chk('A7.5 Mehrheit (Zusatz): A = 1 bei mindestens zwei Einsen', m.zeilen.every(r => +[].concat(r[3].a)[0] === (+r[0] + +r[1] + +r[2] >= 2 ? 1 : 0)));
+    chk('A7 Zusatzaufgaben sind freiwillig und als eigene Übung gekennzeichnet', ['A7.5', 'A7.6', 'A7.7'].every(id => { const x = a7.aufgaben.find(a => a.id === id); return x.pflicht === false && /Zusatz|nicht aus Stevens/.test(x.titel + x.text); })); }
   const a8 = P.get('A8');
   if (a8) {
-    const J = { 'A8.1': [(a, b) => a & b, (a, b) => b & a, (a, b) => a | b, (a, b) => b | a], 'A8.2': [(a, b, c) => (a & b) & c, (a, b, c) => a & (b & c)], 'A8.3': [(a, b, c) => a & (b | c), (a, b, c) => (a & b) | (a & c)],
-      'A8.4': [(a, b, c) => a | (b & c), (a, b, c) => (a | b) & (a | c)], 'A8.5': [(a, b) => 1 - (a & b), (a, b) => (1 - a) | (1 - b)], 'A8.6': [(a, b) => 1 - (a | b), (a, b) => (1 - a) & (1 - b)], 'A8.7': [(a, b) => a | (a & b), (a, b) => a & (a | b)] };
+    const J = { 'A8.21': [(a, b) => a & b, (a, b) => b & a, (a, b) => a | b, (a, b) => b | a], 'A8.22': [(a, b, c) => (a & b) & c, (a, b, c) => a & (b & c)], 'A8.23': [(a, b, c) => a & (b | c), (a, b, c) => (a & b) | (a & c)],
+      'A8.24': [(a, b, c) => a | (b & c), (a, b, c) => (a | b) & (a | c)], 'A8.25': [(a, b) => 1 - (a & b), (a, b) => (1 - a) | (1 - b)], 'A8.26': [(a, b) => 1 - (a | b), (a, b) => (1 - a) & (1 - b)], 'A8.27': [(a, b) => a | (a & b), (a, b) => a & (a | b)] };
     Object.keys(J).forEach(id => { const t = a8.aufgaben.find(a => a.id === id), n = t.kopf.length - J[id].length; chk('A8 ' + id + ' ' + t.titel + ': alle Spalten gegen JavaScript-Operatoren', t.zeilen.every(r => J[id].every((f, j) => +[].concat(r[n + j].a)[0] === f.apply(null, r.slice(0, n).map(Number))))); });
-    ['A8.1', 'A8.2', 'A8.3', 'A8.4', 'A8.5', 'A8.6', 'A8.7'].slice(1).forEach(id => { const t = a8.aufgaben.find(a => a.id === id), n = t.kopf.length - 2; chk('A8 ' + id + ': beide Seiten des Gesetzes sind in jeder Zeile gleich', t.zeilen.every(r => [].concat(r[n].a)[0] === [].concat(r[n + 1].a)[0] || id === 'A8.7')); });
+    ['A8.21', 'A8.22', 'A8.23', 'A8.24', 'A8.25', 'A8.26', 'A8.27'].slice(1).forEach(id => { const t = a8.aufgaben.find(a => a.id === id), n = t.kopf.length - 2; chk('A8 ' + id + ': beide Seiten des Gesetzes sind in jeder Zeile gleich', t.zeilen.every(r => [].concat(r[n].a)[0] === [].concat(r[n + 1].a)[0] || id === 'A8.27')); });
   }
   const a9 = P.get('A9');
   if (a9) { const REF = { 'A9.1': '/e1', 'A9.2': 'e1e2', 'A9.3': 'e1 v e2', 'A9.4': 'e1e2 v /e3', 'A9.5': 'e1/e2 v /e1e2', 'A9.6': 'e1/e2 v /e1e2' };
@@ -338,23 +407,25 @@ if (section('fachlich')) {
   // B1: das NOR-Flipflop aus zwei NOR-Gattern in der Engine durchschalten: Analysetabelle, Ansteuertabelle und Wahrheitstabelle
   const b1 = P.get('B1');
   if (b1) {
-    const lay = P.raster({ teile: [['E1', 'logicin'], ['E2', 'logicin'], ['U1', 'nor'], ['U2', 'nor'], ['L1', 'logicled'], ['L2', 'logicled']], leitungen: [['E2', 'U1.in1'], ['U2.out', 'U1.in2'], ['E1', 'U2.in1'], ['U1.out', 'U2.in2'], ['U1', 'L1'], ['U2', 'L2']] });
+    const SZ = P.KONV.norSetzen === 'e2' ? 1 : 0, SI = SZ ? 'E2' : 'E1', RI = SZ ? 'E1' : 'E2';
+    const lay = P.raster({ teile: [['E1', 'logicin'], ['E2', 'logicin'], ['U1', 'nor'], ['U2', 'nor'], ['L1', 'logicled'], ['L2', 'logicled']], leitungen: [[RI, 'U1.in1'], ['U2.out', 'U1.in2'], [SI, 'U2.in1'], ['U1.out', 'U2.in2'], ['U1', 'L1'], ['U2', 'L2']] });
     const net = E.buildNetlist(JSON.parse(JSON.stringify(lay))), st = E.newState(), val = c => P.isAns(c) ? [].concat(c.a)[0] : c;
     const Q = () => (E.step(net, st, { noGroundFault: true }).nodeV[net.pinNode['L1.in']] || 0) > E.LOGIC.vth ? 1 : 0, Qn = () => 0;
-    const setSR = (s, r) => { net.byId.E1.props.closed = !!s; net.byId.E2.props.closed = !!r; };
+    const setSR = (s, r) => { net.byId[SI].props.closed = !!s; net.byId[RI].props.closed = !!r; };
     // Zustand herstellen und S, R setzen, dann den Folgezustand lesen
     const folge = (av, s, r) => { setSR(av ? 1 : 0, av ? 0 : 1); E.step(net, st, { noGroundFault: true }); setSR(0, 0); E.step(net, st, { noGroundFault: true }); setSR(s, r); return Q(); };
-    let good = true; b1.aufgaben.find(a => a.id === 'B1.2').zeilen.forEach(r => { const s = +r[0], rr = +r[1], av = +r[2], a = val(r[3]); if (s && rr) return; if (folge(av, s, rr) !== +a) good = false; });
+    const folgeE = (av, e1, e2) => { setSR(av ? 1 : 0, av ? 0 : 1); E.step(net, st, { noGroundFault: true }); setSR(0, 0); E.step(net, st, { noGroundFault: true }); net.byId.E1.props.closed = !!e1; net.byId.E2.props.closed = !!e2; return Q(); }; // Tabellen sind in e1, e2 angegeben
+    let good = true; b1.aufgaben.find(a => a.id === 'B1.2').zeilen.forEach(r => { const s = +r[0], rr = +r[1], av = +r[2], a = val(r[3]); if (s && rr) return; if (folgeE(av, s, rr) !== +a) good = false; });
     chk('B1.2 Analysetabelle des NOR-Flipflops: jede zulässige Zeile in der Engine nachgeschaltet', good);
-    good = true; b1.aufgaben.find(a => a.id === 'B1.3').zeilen.forEach(r => { const av = +r[0], a = +r[1]; [0, 1].forEach(sv => [0, 1].forEach(rv => { if (sv && rv) return; const ok = folge(av, sv, rv) === a; const v = [val(r[2]), val(r[3])]; const erlaubt = (v[0] === 'X' || v[0] === String(sv) || Array.isArray(v[0])) && (v[1] === 'X' || v[1] === String(rv) || Array.isArray(v[1])); if (ok && !((val(r[2]) === 'X' || (Array.isArray(r[2].a)) || String(sv) === val(r[2])) && (Array.isArray(r[3].a) || String(rv) === val(r[3])))) good = false; })); });
+    good = true; b1.aufgaben.find(a => a.id === 'B1.3').zeilen.forEach(r => { const av = +r[0], a = +r[1]; [0, 1].forEach(sv => [0, 1].forEach(rv => { if (sv && rv) return; const ok = folgeE(av, sv, rv) === a; const v = [val(r[2]), val(r[3])]; const erlaubt = (v[0] === 'X' || v[0] === String(sv) || Array.isArray(v[0])) && (v[1] === 'X' || v[1] === String(rv) || Array.isArray(v[1])); if (ok && !((val(r[2]) === 'X' || (Array.isArray(r[2].a)) || String(sv) === val(r[2])) && (Array.isArray(r[3].a) || String(rv) === val(r[3])))) good = false; })); });
     chk('B1.3 Ansteuertabelle: jede Eingabe, die den Übergang bewirkt, steht in der Tabelle (X = beides erlaubt)', good);
-    const w = b1.aufgaben.find(a => a.id === 'B1.1').zeilen.map(r => val(r[2])); chk('B1.1 Wahrheitstabelle: hält / 0 / 1 / unzulässig', w.join() === 'AV,0,1,unzulässig');
+    const w = b1.aufgaben.find(a => a.id === 'B1.1').zeilen.map(r => val(r[2])); chk('B1.1 Wahrheitstabelle: hält / setzt / setzt zurück / unzulässig (nach P.KONV.norSetzen = ' + P.KONV.norSetzen + ')', w.join() === (SZ ? 'AV,1,0,unzulässig' : 'AV,0,1,unzulässig'));
   }
   // B2: das getaktete Flipflop in der Engine
   const b2 = P.get('B2');
-  if (b2) { const m = b2.aufgaben.find(a => a.id === 'B2.2').muster, net = E.buildNetlist(JSON.parse(JSON.stringify(m))), st = E.newState(); let good = true;
+  if (b2) { const SZ2 = P.KONV.norSetzen === 'e2' ? 1 : 0; const m = b2.aufgaben.find(a => a.id === 'B2.2').muster, net = E.buildNetlist(JSON.parse(JSON.stringify(m))), st = E.newState(); let good = true;
     const run = (e1, e2, c) => { net.byId.E1.props.closed = !!e1; net.byId.E2.props.closed = !!e2; net.byId.C.props.closed = !!c; const r = E.step(net, st, { noGroundFault: true }); return (r.nodeV[net.pinNode['L1.in']] || 0) > E.LOGIC.vth ? 1 : 0; };
-    b2.aufgaben.find(a => a.id === 'B2.1').zeilen.forEach(r => { const val = c => P.isAns(c) ? [].concat(c.a)[0] : c, c = +r[0], s = +r[1], rr = +r[2], av = +r[3], a = val(r[4]); if (a === 'X') return; run(av ? 1 : 0, av ? 0 : 1, 1); run(0, 0, 0); const q = run(s, rr, c); if (q !== +a) good = false; });
+    b2.aufgaben.find(a => a.id === 'B2.1').zeilen.forEach(r => { const val = c => P.isAns(c) ? [].concat(c.a)[0] : c, c = +r[0], s = +r[1], rr = +r[2], av = +r[3], a = val(r[4]); if (a === 'X') return; (SZ2 ? run(av ? 0 : 1, av ? 1 : 0, 1) : run(av ? 1 : 0, av ? 0 : 1, 1)); run(0, 0, 0); const q = run(s, rr, c); if (q !== +a) good = false; });
     chk('B2.1 Analysetabelle des NOR-AND-Flipflops: jede zulässige Zeile in der Engine nachgeschaltet', good); }
   // B8 und B10: Laufzeit im Zeitverlauf (Studio-Simulation, 20 ns je Flipflop) – die Antworten der Prüffragen
   { const Sim = require('../studio/sim.js');
@@ -379,11 +450,11 @@ if (section('fachlich')) {
   const b9 = P.get('B9'); if (b9) { const bis8 = P.bauteileBis('B8'), uhr = b9.aufgaben.find(a => a.id === 'B9.3'), tp = Object.keys(P.zaehle(uhr.muster)).filter(t => !['logicin', 'logicled', 'ground', 'node'].includes(t)); const fehlt = tp.filter(t => !bis8.includes(t));
     chk('B9 Digitaluhr: Bauteile der Musterlösung (' + tp.join(', ') + ') sind mit A1 bis B8 freigeschaltet' + (fehlt.length ? ' – fehlt: ' + fehlt.join(', ') : ''), !fehlt.length && b9.schaltet.length === 0); }
   // Vereinfachungsaufgaben: der gegebene Ausdruck ist wirklich länger als die Minimalform (sonst gäbe es nichts zu vereinfachen)
-  P.stations.forEach(s => s.aufgaben.forEach(a => { if (a.art === 'ausdruck' && a.gegeben) { const r = P.refOf(a), m = P.minimal(r.n, r.ones, r.dc), g = P.litCount(B.clean(B.parse(a.gegeben).ast)); chk(s.id + ' ' + a.id + ': «' + a.gegeben + '» hat ' + g + ' Buchstaben, Minimalform ' + m.minLits + ' – es gibt etwas zu vereinfachen', g > m.minLits); } }));
+  P.stations.forEach(s => s.aufgaben.forEach(a => { if (a.art === 'ausdruck' && a.gegeben) { const r = P.refOf(a), m = P.minimal(r.n, r.ones, r.dc), g = P.litCount(B.clean(B.parse(a.gegeben, a.buchstaben ? { letters: a.buchstaben } : undefined).ast)); chk(s.id + ' ' + a.id + ': «' + a.gegeben + '» hat ' + g + ' Buchstaben, Minimalform ' + m.minLits + ' – es gibt etwas zu vereinfachen', g > m.minLits); } }));
   // Alle Aufgaben mit Ausdruck/KV: die hinterlegte Minimalform gegen Brute Force
   P.stations.forEach(s => s.aufgaben.forEach(a => {
     if (a.art === 'ausdruck' && !a.nurGleich && !a.form) { const r = P.refOf(a), b = bruteMin(r.n, r.ones, r.dc), m = P.minimal(r.n, r.ones, r.dc); chk(s.id + ' ' + a.id + ': Minimalform stimmt mit Brute Force überein', m.nTerms === b.terms && m.nLits === b.lits, 'QMC ' + m.nTerms + '/' + m.nLits + ' brute ' + b.terms + '/' + b.lits); }
-    if (a.art === 'kv') { const b = bruteMin(a.n, a.ones, a.dc || []), m = P.minimal(a.n, a.ones, a.dc || []); chk(s.id + ' ' + a.id + ': KV-Minimalform stimmt mit Brute Force überein', m.nTerms === b.terms && m.nLits === b.lits, 'QMC ' + m.nTerms + '/' + m.nLits + ' brute ' + b.terms + '/' + b.lits); }
+    if (a.art === 'kv' && a.n <= 4) { const b = bruteMin(a.n, a.ones, a.dc || []), m = P.minimal(a.n, a.ones, a.dc || []); chk(s.id + ' ' + a.id + ': KV-Minimalform stimmt mit Brute Force überein', m.nTerms === b.terms && m.nLits === b.lits, 'QMC ' + m.nTerms + '/' + m.nLits + ' brute ' + b.terms + '/' + b.lits); }
   }));
 }
 

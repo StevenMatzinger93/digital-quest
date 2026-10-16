@@ -4134,12 +4134,14 @@ body.beamer .dr text { font-size: inherit; }
 
   /* ---------- Eingabe: Zeichen → Ausdrucksbaum ----------
    * Knoten: {op:'var', n} | {op:'const', v} | {op:'not', a} | {op:'and', args} | {op:'or', args} */
-  function tokenize(src) {
+  function tokenize(src, letters) { // letters: Buchstaben, die Eingänge sind (z. B. 'abcdef': a = Eingang 1 = niederwertigstes Bit); sonst e1, e2 …
     var s = String(src), t = [], i = 0, m;
     while (i < s.length) {
       var c = s[i];
       if (/\s/.test(c)) { i++; continue; }
-      if ((m = /^[eE](\d+)/.exec(s.slice(i)))) { t.push({ k: 'var', n: +m[1], pos: i }); i += m[0].length; continue; }
+      if (letters && letters.indexOf(c) >= 0) { t.push({ k: 'var', n: letters.indexOf(c) + 1, pos: i }); i++; continue; }
+      if (c === 'n' && s[i + 1] === '(') { t.push({ k: 'not', pos: i }); i++; continue; } // n(…) = Überstreichung über der Klammer
+      if (!letters && (m = /^[eE](\d+)/.exec(s.slice(i)))) { t.push({ k: 'var', n: +m[1], pos: i }); i += m[0].length; continue; }
       if (c === 'v' || c === 'V' || c === '+' || c === '∨' || c === '|') { t.push({ k: 'or', pos: i }); i++; continue; }
       if (c === '*' || c === '·' || c === '∧' || c === '&' || c === '•') { t.push({ k: 'and', pos: i }); i++; continue; }
       if (c === '/' || c === '!' || c === '¬' || c === '~') { t.push({ k: 'not', pos: i }); i++; continue; }
@@ -4178,8 +4180,8 @@ body.beamer .dr text { font-size: inherit; }
   }
   function flat(op, args) { var out = []; args.forEach(function (a) { if (a.op === op) out = out.concat(a.args); else out.push(a); }); return { op: op, args: out }; }
   /* Eine Gleichung «A = e1 ( e2 v e3 ) = e1e2 v e1e3» liefert mehrere Ausdrücke; der Ausgangsname links steht in name */
-  function parse(src) {
-    var t = tokenize(src), parts = [[]]; t.forEach(function (x) { if (x.k === 'eq') parts.push([]); else parts[parts.length - 1].push(x); });
+  function parse(src, opts) {
+    var t = tokenize(src, opts && opts.letters), parts = [[]]; t.forEach(function (x) { if (x.k === 'eq') parts.push([]); else parts[parts.length - 1].push(x); });
     var name = null; if (parts.length > 1 && parts[0].length === 1 && parts[0][0].k === 'name') { name = parts[0][0].v; parts.shift(); }
     else if (parts.length > 1 && parts[0].length && parts[0][0].k === 'name' && parts[0].length > 1) throw new Error('Links vom Gleichheitszeichen darf nur der Ausgang (A) stehen.');
     parts.forEach(function (x) { if (x.some(function (y) { return y.k === 'name'; })) throw new Error('Nur e1, e2 … sind Eingänge. Der Ausgang A steht links vom Gleichheitszeichen.'); });
@@ -4211,22 +4213,23 @@ body.beamer .dr text { font-size: inherit; }
   /* ---------- Anzeige in der Schreibweise des Lehrmittels ---------- */
   function vname(n) { return 'e' + n; }
   /* HTML: Überstreichung als <span class="ov">, ODER als « v », UND ohne Zeichen, Klammern bei ODER in UND */
-  function fmtHtml(ast, ctx) {
-    ctx = ctx || 0; // 0 oben, 1 in UND
+  function fmtHtml(ast, ctx, nm) {
+    ctx = ctx || 0; nm = nm || vname; // 0 oben, 1 in UND; nm: Name der Eingänge
     switch (ast.op) {
-      case 'var': return vname(ast.n); case 'const': return String(ast.v);
-      case 'not': var inner = ast.a.op === 'var' ? vname(ast.a.n) : ast.a.op === 'const' ? String(ast.a.v) : fmtHtml(ast.a, 0); return '<span class="ov">' + inner + '</span>';
-      case 'and': return ast.args.map(function (a) { return a.op === 'or' ? ' ( ' + fmtHtml(a, 0) + ' ) ' : fmtHtml(a, 1); }).join('').replace(/\s+/g, ' ').trim();
-      case 'or': return ast.args.map(function (a) { return fmtHtml(a, 0); }).join(' v ');
+      case 'var': return nm(ast.n); case 'const': return String(ast.v);
+      case 'not': var inner = ast.a.op === 'var' ? nm(ast.a.n) : ast.a.op === 'const' ? String(ast.a.v) : fmtHtml(ast.a, 0, nm); return '<span class="ov">' + inner + '</span>';
+      case 'and': return ast.args.map(function (a) { return a.op === 'or' ? ' ( ' + fmtHtml(a, 0, nm) + ' ) ' : fmtHtml(a, 1, nm); }).join('').replace(/\s+/g, ' ').trim();
+      case 'or': return ast.args.map(function (a) { return fmtHtml(a, 0, nm); }).join(' v ');
     }
   }
   /* Nur Text (zum Kopieren und Prüfen): NICHT als /, UND ohne Zeichen zwischen Gliedern, ODER « v » */
-  function fmtText(ast) {
+  function fmtText(ast, nm) {
+    nm = nm || vname;
     switch (ast.op) {
-      case 'var': return vname(ast.n); case 'const': return String(ast.v);
-      case 'not': return '/' + (ast.a.op === 'var' || ast.a.op === 'const' ? fmtText(ast.a) : '(' + fmtText(ast.a) + ')');
-      case 'and': return ast.args.map(function (a) { return a.op === 'or' ? '(' + fmtText(a) + ')' : fmtText(a); }).join('');
-      case 'or': return ast.args.map(fmtText).join(' v ');
+      case 'var': return nm(ast.n); case 'const': return String(ast.v);
+      case 'not': return '/' + (ast.a.op === 'var' || ast.a.op === 'const' ? fmtText(ast.a, nm) : '(' + fmtText(ast.a, nm) + ')');
+      case 'and': return ast.args.map(function (a) { return a.op === 'or' ? '(' + fmtText(a, nm) + ')' : fmtText(a, nm); }).join('');
+      case 'or': return ast.args.map(function (a) { return fmtText(a, nm); }).join(' v ');
     }
   }
 
@@ -4346,7 +4349,8 @@ body.beamer .dr text { font-size: inherit; }
     return res;
   }
 
-  var api = { parse: parse, tokenize: tokenize, varsOf: varsOf, evalAst: evalAst, truth: truth, equivalent: equivalent, clean: clean, fmtHtml: fmtHtml, fmtText: fmtText, minimalExpr: minimalExpr,
+  function letterNames(letters) { return function (n) { return letters.charAt(n - 1); }; }
+  var api = { letterNames: letterNames, parse: parse, tokenize: tokenize, varsOf: varsOf, evalAst: evalAst, truth: truth, equivalent: equivalent, clean: clean, fmtHtml: fmtHtml, fmtText: fmtText, minimalExpr: minimalExpr,
     buildCircuit: buildCircuit, readCircuit: readCircuit, circuitTable: circuitTable, inputsOf: inputsOf, outputsOf: outputsOf };
   root.DQStudioBool = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -6652,10 +6656,10 @@ body.beamer .dr text { font-size: inherit; }
   P.minimal = function (n, ones, dc) {
     ones = (ones || []).slice().sort(function (a, b) { return a - b; }); dc = (dc || []).filter(function (m) { return ones.indexOf(m) < 0; });
     var N = 1 << n, r = { n: n, ones: ones, dc: dc };
-    if (!ones.length) { r.terms = []; r.nTerms = 0; r.nLits = 0; r.konst = 0; r.primes = []; return r; }
+    if (!ones.length) { r.terms = []; r.nTerms = 0; r.nLits = 0; r.minLits = 0; r.konst = 0; r.primes = []; return r; }
     var primes = qmcPrimes(n, ones, dc); r.primes = primes;
     var all = ones.length === N || primes.some(function (p) { return popcount(p.mask) === n; });
-    if (all) { r.terms = [{ mask: N - 1, val: 0 }]; r.nTerms = 1; r.nLits = 0; r.konst = 1; return r; }
+    if (all) { r.terms = [{ mask: N - 1, val: 0 }]; r.nTerms = 1; r.nLits = 0; r.minLits = 0; r.konst = 1; return r; }
     r.terms = bestCover(n, ones, primes, function (ch) { return ch.length * 1000 + ch.reduce(function (s, p) { return s + litsOf(n, p); }, 0); });
     r.nTerms = r.terms.length; r.nLits = r.terms.reduce(function (s, p) { return s + litsOf(n, p); }, 0);
     r.minLits = bestCover(n, ones, primes, function (ch) { return ch.reduce(function (s, p) { return s + litsOf(n, p); }, 0); }).reduce(function (s, p) { return s + litsOf(n, p); }, 0);
@@ -6670,7 +6674,7 @@ body.beamer .dr text { font-size: inherit; }
     var ts = m.terms.map(function (p) { return P.termAst(m.n, p); }).sort(function (a, b) { return B.fmtText(a) < B.fmtText(b) ? -1 : 1; });
     return ts.length === 1 ? ts[0] : { op: 'or', args: ts };
   };
-  P.minimalText = function (n, ones, dc) { return B.fmtText(P.minimalAst(P.minimal(n, ones, dc))); };
+  P.minimalText = function (n, ones, dc, nm) { return B.fmtText(P.minimalAst(P.minimal(n, ones, dc)), nm); };
 
   /* ---------- Ausdrücke ---------- */
   function litCount(ast) { if (ast.op === 'var') return 1; if (ast.op === 'const') return 0; if (ast.op === 'not') return litCount(ast.a); return ast.args.reduce(function (s, a) { return s + litCount(a); }, 0); }
@@ -6681,13 +6685,15 @@ body.beamer .dr text { font-size: inherit; }
   function isPos(a) { return isSum(a) || (a.op === 'and' && a.args.every(isSum)); }
   function termCount(a) { return a.op === 'or' ? a.args.length : 1; }
   P.litCount = litCount; P.isSop = isSop; P.isPos = isPos;
-  function eName(i) { return 'e' + (i + 1); }
-  function kText(n, k) { var s = []; for (var i = 0; i < n; i++) s.push(eName(i) + ' = ' + (k >> i & 1)); return s.join(', '); }
+  /* Namen der Eingänge: e1, e2 … oder, wenn die Aufgabe buchstaben hat (z. B. 'abcdef' oder 'ABCD'), diese Buchstaben; der erste Buchstabe ist das niederwertigste Bit (a = Eingang 1) */
+  P.namen = function (a) { return a && a.buchstaben ? B.letterNames(a.buchstaben) : function (n) { return 'e' + n; }; };
+  function parseA(a, text) { return B.parse(text, a && a.buchstaben ? { letters: a.buchstaben } : undefined); }
+  function kText(n, k, nm) { nm = nm || P.namen(null); var s = []; for (var i = 0; i < n; i++) s.push(nm(i + 1) + ' = ' + (k >> i & 1)); return s.join(', '); }
   P.kText = kText;
   function evalK(ast, n, k) { var v = {}; for (var i = 0; i < n; i++) v[i + 1] = k >> i & 1; return B.evalAst(ast, v); }
   /* Wahrheitswerte der Aufgabe: ref (Text) oder n + ones */
   function refOf(a) {
-    if (a.ref || a.gegeben) { var p = B.parse(a.ref || a.gegeben), vs = B.varsOf(p.exprs[0]), n = a.n || (vs.length ? Math.max.apply(null, vs) : 1), ones = []; for (var k = 0; k < (1 << n); k++) if (evalK(p.exprs[0], n, k)) ones.push(k); return { n: n, ones: ones, dc: a.dc || [] }; }
+    if (a.ref || a.gegeben) { var p = parseA(a, a.ref || a.gegeben), vs = B.varsOf(p.exprs[0]), n = a.n || (vs.length ? Math.max.apply(null, vs) : 1), ones = []; for (var k = 0; k < (1 << n); k++) if (evalK(p.exprs[0], n, k)) ones.push(k); return { n: n, ones: ones, dc: a.dc || [] }; }
     return { n: a.n, ones: a.ones || [], dc: a.dc || [] };
   }
   P.refOf = refOf;
@@ -6702,24 +6708,27 @@ body.beamer .dr text { font-size: inherit; }
   P.pruefeAusdruck = function (a, text) {
     var r = refOf(a), n = r.n, p;
     if (!String(text || '').trim()) return bad('Noch nichts eingegeben.');
-    try { p = B.parse(text); } catch (e) { return bad(e.message); }
+    var nm = P.namen(a); try { p = parseA(a, text); } catch (e) { return bad(e.message); }
     var ast = B.clean(p.exprs[p.exprs.length - 1]), vs = B.varsOf(ast);
-    var big = vs.filter(function (v) { return v > n; }); if (big.length) return bad('e' + big[0] + ' gibt es in dieser Aufgabe nicht (nur e1 bis e' + n + ').');
+    var big = vs.filter(function (v) { return v > n; }); if (big.length) return bad(nm(big[0]) + ' gibt es in dieser Aufgabe nicht (nur ' + nm(1) + ' bis ' + nm(n) + ').');
     for (var k = 0; k < (1 << n); k++) {
       if (r.dc.indexOf(k) >= 0) continue; var want = r.ones.indexOf(k) >= 0 ? 1 : 0, got = evalK(ast, n, k);
-      if (got !== want) return bad('Nicht gleichwertig: Bei ' + kText(n, k) + ' liefert dein Ausdruck ' + got + ', verlangt ist ' + want + '.');
+      if (got !== want) return bad('Nicht gleichwertig: Bei ' + kText(n, k, nm) + ' liefert dein Ausdruck ' + got + ', verlangt ist ' + want + '.');
     }
     var forms = a.form;
-    if (forms === 'dnf' && !(isSop(ast) && kanonischDnf(ast, n))) return bad('Gleichwertig – aber verlangt ist die disjunktive Normalform: ODER von UND-Gliedern, in jedem Glied kommen alle Eingänge vor (e1 bis e' + n + ').');
+    if (forms === 'dnf' && !(isSop(ast) && kanonischDnf(ast, n))) return bad('Gleichwertig – aber verlangt ist die disjunktive Normalform: ODER von UND-Gliedern, in jedem Glied kommen alle Eingänge vor (' + nm(1) + ' bis ' + nm(n) + ').');
     if (forms === 'dnf' && termCount(ast) !== r.ones.length) return bad('Die disjunktive Normalform hat je Zeile mit Ausgang 1 genau ein Glied (hier ' + r.ones.length + '), du hast ' + termCount(ast) + '.');
     if (forms === 'knf') {
-      if (!(isPos(ast) && kanonischKnf(ast, n))) return bad('Gleichwertig – aber verlangt ist die konjunktive Normalform: UND von ODER-Klammern, in jeder Klammer kommen alle Eingänge vor (e1 bis e' + n + ').');
+      if (!(isPos(ast) && kanonischKnf(ast, n))) return bad('Gleichwertig – aber verlangt ist die konjunktive Normalform: UND von ODER-Klammern, in jeder Klammer kommen alle Eingänge vor (' + nm(1) + ' bis ' + nm(n) + ').');
       var zeros = (1 << n) - r.ones.length - r.dc.length; if (ast.op === 'and' ? ast.args.length !== zeros : zeros !== 1) return bad('Die konjunktive Normalform hat je Zeile mit Ausgang 0 genau eine Klammer (hier ' + zeros + ').');
     }
+    if (forms === 'pos') { if (!isPos(ast) || ast.op === 'const') return bad('Gleichwertig – aber verlangt ist die Produktform: UND von ODER-Klammern, zum Beispiel (a + b)(b + c).'); if (a.maxBuchstaben && litCount(ast) > a.maxBuchstaben) return bad('Gleichwertig und in Produktform – aber mit ' + litCount(ast) + ' Buchstaben noch zu lang, es geht mit ' + a.maxBuchstaben + '.'); return ok('Richtig: gleichwertig und in Produktform.'); }
     if (a.nurGleich || forms) return ok('Richtig: gleichwertig' + (forms ? ' und in der verlangten Form.' : '.'));
     var m = P.minimal(n, r.ones, r.dc), lits = litCount(ast), sop = isSop(ast), terms = termCount(ast);
-    if (lits > m.minLits) return bad('Gleichwertig – aber noch nicht einfach genug: ' + lits + ' Buchstaben, es geht mit höchstens ' + m.nLits + '.', { gleich: true });
-    if (sop && terms > m.nTerms) return bad('Gleichwertig – aber noch nicht einfach genug: ' + terms + ' Glieder, es geht mit ' + m.nTerms + '.', { gleich: true });
+    // Vorgabe: Termzahl und Buchstabenzahl der Minimalform (a.erwartet aus Stevens Serie, sonst gerechnet); eine andere, gleich kurze Lösung ist richtig
+    var maxL = a.erwartet ? a.erwartet.buchstaben : m.minLits, maxT = a.erwartet ? a.erwartet.terme : m.nTerms;
+    if (lits > maxL) return bad('Gleichwertig – aber noch nicht einfach genug: ' + lits + ' Buchstaben, es geht mit höchstens ' + maxL + '.', { gleich: true });
+    if (sop && terms > maxT) return bad('Gleichwertig – aber noch nicht einfach genug: ' + terms + ' Glieder, es geht mit ' + maxT + '.', { gleich: true });
     return ok('Richtig: gleichwertig und einfach genug (' + lits + ' Buchstaben' + (sop ? ', ' + terms + ' Glied' + (terms === 1 ? '' : 'er') : '') + ').');
   };
 
@@ -6873,10 +6882,10 @@ body.beamer .dr text { font-size: inherit; }
       if (gr.length > m.nTerms) return bad('Es geht mit weniger Päckchen: ' + gr.length + ' eingezeichnet, ' + m.nTerms + ' reichen.');
       var lits = cubes.reduce(function (s, p) { return s + litsOf(n, p); }, 0); if (lits > m.nLits) return bad('Mit denselben ' + gr.length + ' Päckchen geht es einfacher: andere Päckchen wählen (zählt ' + lits + ' Buchstaben, Ziel ' + m.nLits + ').');
     }
-    if (a.ausdruck !== false) { var r = P.pruefeAusdruck({ n: n, ones: ones, dc: dc }, antwort.ausdruck); if (!r.ok) return bad((a.gruppen !== false ? 'Päckchen stimmen. ' : '') + 'Minimalform: ' + r.meldung); }
+    if (a.ausdruck !== false) { var r = P.pruefeAusdruck({ n: n, ones: ones, dc: dc, buchstaben: a.buchstaben, erwartet: a.erwartet }, antwort.ausdruck); if (!r.ok) return bad((a.gruppen !== false ? 'Päckchen stimmen. ' : '') + 'Minimalform: ' + r.meldung); }
     return ok('Richtig: Päckchen und Minimalform stimmen.');
   };
-  P.musterKV = function (a) { var m = P.minimal(a.n, a.ones, a.dc || []); return { gruppen: m.terms.map(function (p) { return cellsOf(a.n, p); }), ausdruck: B.fmtText(P.minimalAst(m)) }; };
+  P.musterKV = function (a) { var m = P.minimal(a.n, a.ones, a.dc || []); return { gruppen: m.terms.map(function (p) { return cellsOf(a.n, p); }), ausdruck: B.fmtText(P.minimalAst(m), P.namen(a)) }; };
 
   /* ---------- Prüfart folge ---------- */
   /* start: Layout mit Pegelschaltern (E…), Takteingang (a.takt, ein Pegelschalter) und Logikanzeigen; schritte: [{set:{E1:1}, takte:n, erwartet:[…Werte von lesen…]}]
@@ -6959,7 +6968,7 @@ body.beamer .dr text { font-size: inherit; }
     if (a.muster !== undefined) return a.muster;
     switch (a.art) {
       case 'tabelle': return P.musterTabelle(a);
-      case 'ausdruck': var r = refOf(a); return a.form === 'dnf' ? dnfText(r) : a.form === 'knf' ? knfText(r) : P.minimalText(r.n, r.ones, r.dc);
+      case 'ausdruck': var r = refOf(a); return a.form === 'dnf' ? dnfText(r, P.namen(a)) : a.form === 'knf' ? knfText(r, P.namen(a)) : P.minimalText(r.n, r.ones, r.dc, P.namen(a));
       case 'kv': return P.musterKV(a);
       case 'fragen': return a.fragen.map(function (q) { return q.richtig; });
       case 'schaltung': // ohne eigene Musterlösung: Minimalform als UND-ODER-Schaltung (nur wenn nichts anderes verlangt ist)
@@ -6971,8 +6980,8 @@ body.beamer .dr text { font-size: inherit; }
     }
     return null;
   };
-  function dnfText(r) { return r.ones.map(function (k) { var s = []; for (var i = 0; i < r.n; i++) s.push((k >> i & 1 ? '' : '/') + 'e' + (i + 1)); return s.join(''); }).join(' v ') || '0'; }
-  function knfText(r) { var zs = []; for (var k = 0; k < (1 << r.n); k++) if (r.ones.indexOf(k) < 0 && r.dc.indexOf(k) < 0) zs.push(k); return zs.map(function (k) { var s = []; for (var i = 0; i < r.n; i++) s.push((k >> i & 1 ? '/' : '') + 'e' + (i + 1)); return '(' + s.join(' v ') + ')'; }).join('') || '1'; }
+  function dnfText(r, nm) { return r.ones.map(function (k) { var s = []; for (var i = 0; i < r.n; i++) s.push((k >> i & 1 ? '' : '/') + nm(i + 1)); return s.join(''); }).join(' v ') || '0'; }
+  function knfText(r, nm) { var zs = []; for (var k = 0; k < (1 << r.n); k++) if (r.ones.indexOf(k) < 0 && r.dc.indexOf(k) < 0) zs.push(k); return zs.map(function (k) { var s = []; for (var i = 0; i < r.n; i++) s.push((k >> i & 1 ? '/' : '') + nm(i + 1)); return '(' + s.join(' v ') + ')'; }).join('') || '1'; }
 
   /* ---------- Schaltungen aus einer Beschreibung (Musterlösungen, Startvorlagen) ----------
    * netz({n, gatter:[['U1','nand',['E1','E2']], …], aus:{L1:'U3'}}) – Gatterliste, Eingänge E1…En, Ausgänge L1…; Positionen nach Tiefe. Quellen: 'E1' = E1.out, 'U1' = U1.out, 'U1.out2' (anderer Anschluss) wörtlich. */
@@ -7126,6 +7135,10 @@ body.beamer .dr text { font-size: inherit; }
   if (typeof module !== 'undefined' && module.exports) module.exports = P;
 })(typeof window !== 'undefined' ? window : globalThis);
 
+/* ==== studio/pfad/serien.js ==== */
+/* ERZEUGT von build.js aus docs/aufgaben/*.json – nicht von Hand ändern */
+(function (root) { var P = root.DQPfad = root.DQPfad || {}; P.SERIEN = {"algebra":[{"nr":2,"ausdruck":"e1 + n(e1)*e2 + e1*e2","variablen":["e1","e2"],"minterme":[1,2,3],"minimalform":"e2 + e1","terme":2,"buchstaben":2},{"nr":3,"ausdruck":"e1*n(e2) + n(e1)*e2 + e1*e2 + n(e1)*n(e2)","variablen":["e1","e2"],"minterme":[0,1,2,3],"minimalform":"1","terme":1,"buchstaben":0},{"nr":4,"ausdruck":"e1*n(e2)*(e1+e3) + e1*e3*(n(e1)+n(e2))","variablen":["e1","e2","e3"],"minterme":[4,5],"minimalform":"e1*n(e2)","terme":1,"buchstaben":2},{"nr":5,"ausdruck":"(e1*e2 + e3)*(e1*e2 + e4)","variablen":["e1","e2","e3","e4"],"minterme":[3,7,11,12,13,14,15],"minimalform":"e3*e4 + e1*e2","terme":2,"buchstaben":4},{"nr":6,"ausdruck":"e1*n(e2)*e3 + n(e1)*n(e2)*e3","variablen":["e1","e2","e3"],"minterme":[1,5],"minimalform":"n(e2)*e3","terme":1,"buchstaben":2},{"nr":7,"ausdruck":"(1 + e2)*(e1*e2*e3)","variablen":["e1","e2","e3"],"minterme":[7],"minimalform":"e1*e2*e3","terme":1,"buchstaben":3},{"nr":8,"ausdruck":"(n(e1)*e2)*(e1*e2) + e1*e2","variablen":["e1","e2"],"minterme":[3],"minimalform":"e1*e2","terme":1,"buchstaben":2},{"nr":9,"ausdruck":"(e1*n(e2) + e1*n(e3))*(e2*e3 + e2*n(e3))*(e1*e2*e3)","variablen":["e1","e2","e3"],"minterme":[],"minimalform":"0","terme":0,"buchstaben":0},{"nr":10,"ausdruck":"e1 + n(e2)*e3*(e1 + n(n(e2*e3)))","variablen":["e1","e2","e3"],"minterme":[4,5,6,7],"minimalform":"e1","terme":1,"buchstaben":1},{"nr":11,"ausdruck":"e3*(n(e1*e2*e3) + e1*n(e2)*n(e3))","variablen":["e1","e2","e3"],"minterme":[1,3,5],"minimalform":"n(e1)*e3 + n(e2)*e3","terme":2,"buchstaben":4},{"nr":12,"ausdruck":"n(e1*e2*e3 + n(e1)*n(e2)) + e2*n(e3)","variablen":["e1","e2","e3"],"minterme":[2,3,4,5,6],"minimalform":"n(e1)*e2 + e1*n(e2) + e2*n(e3)","terme":3,"buchstaben":6},{"nr":13,"ausdruck":"e1*n(e2 + e3*(e1*e2 + e1*e3))","variablen":["e1","e2","e3"],"minterme":[4],"minimalform":"e1*n(e2)*n(e3)","terme":1,"buchstaben":3},{"nr":14,"ausdruck":"e1*e2 + e1*n(e2 + e3)","variablen":["e1","e2","e3"],"minterme":[4,6,7],"minimalform":"e1*n(e3) + e1*e2","terme":2,"buchstaben":4},{"nr":15,"ausdruck":"n(e1*e2*e3*(e1 + e2 + e3))","variablen":["e1","e2","e3"],"minterme":[0,1,2,3,4,5,6],"minimalform":"n(e1) + n(e2) + n(e3)","terme":3,"buchstaben":3},{"nr":16,"ausdruck":"n((n(e1*e2) + e1*e2*e3)*(e1*n(e2)*e3))","variablen":["e1","e2","e3"],"minterme":[0,1,2,3,4,6,7],"minimalform":"n(e1) + n(e3) + e2","terme":3,"buchstaben":3},{"nr":17,"ausdruck":"e1*e2*e3 + e1*e2*n(e3) + n(e1)*e2*e3 + n(e1)*n(e2)*n(e3)","variablen":["e1","e2","e3"],"minterme":[0,3,6,7],"minimalform":"n(e1)*n(e2)*n(e3) + e2*e3 + e1*e2","terme":3,"buchstaben":7}],"kv":[{"nr":1,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[0,1,2,4,5,6,8,9,10,13],"egal":[],"minimalform":"d'a' + c'a' + b'a","terme":3,"buchstaben":6,"gleichwertige_loesungen":1},{"nr":2,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[1,5,7,12,13,14,15],"egal":[],"minimalform":"d'b'a + ca + dc","terme":3,"buchstaben":7,"gleichwertige_loesungen":1},{"nr":3,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[1,2,3,5,6,7,9,11,12,13,14,15],"egal":[],"minimalform":"a + d'b + dc","terme":3,"buchstaben":5,"gleichwertige_loesungen":1},{"nr":4,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[0,1,2,3,4,5,6,7,9,11,12,13,14,15],"egal":[],"minimalform":"d' + a + c","terme":3,"buchstaben":3,"gleichwertige_loesungen":1},{"nr":5,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[5,7],"egal":[1,3,8,9,10,11],"minimalform":"d'a","terme":1,"buchstaben":2,"gleichwertige_loesungen":1},{"nr":6,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[0,2,6,10,11,12,13],"egal":[3,4,5,14,15],"minimalform":"d'a' + c'b + cb'","terme":3,"buchstaben":6,"gleichwertige_loesungen":4},{"nr":7,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[0,3,4,6,8,10,11],"egal":[1,5,7,9,12,13,15],"minimalform":"b' + a + d'c + dc'","terme":4,"buchstaben":6,"gleichwertige_loesungen":1},{"nr":8,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[0,2],"egal":[4,5,6],"minimalform":"d'a'","terme":1,"buchstaben":2,"gleichwertige_loesungen":1},{"nr":9,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[0,6,8,10,11],"egal":[1,3,5,7,13,15],"minimalform":"d'cb + c'b'a' + dc'b","terme":3,"buchstaben":9,"gleichwertige_loesungen":1},{"nr":10,"eingaenge":4,"variablen":["d","c","b","a"],"einsen":[3,6,10,11,12,14],"egal":[1,4,5,7,9,13,15],"minimalform":"a + c + db","terme":3,"buchstaben":4,"gleichwertige_loesungen":1},{"nr":14,"eingaenge":5,"variablen":["e","d","c","b","a"],"einsen":[2,10,13,15,18,26,29,31],"egal":[],"minimalform":"c'ba' + dca","terme":2,"buchstaben":6,"gleichwertige_loesungen":1},{"nr":15,"eingaenge":5,"variablen":["e","d","c","b","a"],"einsen":[0,1,7,15,16,17,23,25,27,29,31],"egal":[],"minimalform":"d'c'b' + cba + eda","terme":3,"buchstaben":9,"gleichwertige_loesungen":1},{"nr":16,"eingaenge":5,"variablen":["e","d","c","b","a"],"einsen":[3,4,5,10,12,19,20,21,22,26,30],"egal":[],"minimalform":"d'c'ba + d'cb' + dc'ba' + e'cb'a' + ecba'","terme":5,"buchstaben":19,"gleichwertige_loesungen":1},{"nr":17,"eingaenge":6,"variablen":["f","e","d","c","b","a"],"einsen":[1,3,6,7,9,11,15,17,19,22,23,25,27,31,33,35,38,41,43,49,51,54,57,59],"egal":[],"minimalform":"c'a + f'ba + d'cba'","terme":3,"buchstaben":9,"gleichwertige_loesungen":1}]}; })(typeof window !== 'undefined' ? window : globalThis);
+
 /* ==== studio/pfad/bausteine.js ==== */
 /* Lernpfad: Bausteine für die Stationsdaten (Nachtlauf 2). Die Stationen beschreiben nur, WAS gilt; Tabellen, Soll-Werte und Musterschaltungen
  * werden daraus gerechnet, nicht von Hand abgetippt. Schreibweise: Eingang e1 = niederwertigstes Bit eines Minterms (wie KV-Diagramm und Prüfmaschine),
@@ -7133,8 +7146,14 @@ body.beamer .dr text { font-size: inherit; }
 (function (root) {
   'use strict';
   var P = root.DQPfad;
+  /* Stevens Originalserien (docs/aufgaben/*.json): im Browser von studio/pfad/serien.js (vom Build aus den JSON-Dateien erzeugt), in Node direkt aus den Dateien */
+  P.serie = function (name) {
+    if (P.SERIEN && P.SERIEN[name]) return P.SERIEN[name];
+    if (typeof require !== 'undefined') return require('../../../docs/aufgaben/' + (name === 'algebra' ? 'boolesche_algebra' : 'kv_diagramm') + '.json');
+    throw new Error('Serie ' + name + ' fehlt');
+  };
   /* Ausdruck (Text, Schreibweise des Lehrmittels) → Funktion e → 0/1 mit e = [e1, e2, …]; gerechnet vom Parser, nicht von Hand */
-  P.formel = function (text) { var B = root.DQStudioBool, ast = B.clean(B.parse(text).exprs[0]); return function (e) { var v = {}; e.forEach(function (x, i) { v[i + 1] = x; }); return B.evalAst(ast, v); }; };
+  P.formel = function (text, buchstaben) { var B = root.DQStudioBool, ast = B.clean(B.parse(text, buchstaben ? { letters: buchstaben } : undefined).exprs[0]); return function (e) { var v = {}; e.forEach(function (x, i) { v[i + 1] = x; }); return B.evalAst(ast, v); }; };
   P.wertMSB = function (e) { var v = 0; e.forEach(function (x) { v = v * 2 + x; }); return v; };            // e = [höchstes Bit … niedrigstes]
   P.wertLSB = function (e) { var v = 0; e.forEach(function (x, i) { v += x << i; }); return v; };            // e = [niedrigstes Bit … höchstes] (e1 = Bit 0)
   /* Wahrheitstabelle als Tabellenaufgabe: ein = Namen der Eingänge links, aus = Namen der Ausgänge (auszufüllen), f(e) → Liste der Ausgänge (0/1/'X'), e = [e1, e2, …] */
@@ -7507,83 +7526,83 @@ body.beamer .dr text { font-size: inherit; }
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* ==== studio/pfad/st_A07.js ==== */
-/* Lernpfad Station A7 – DNF und KNF. Förderband mit zwei Tastern; die Tabelle wird aus der Aufgabe gerechnet, beide Normalformen und beide Schaltungen
- * aus der Tabelle (kanonisch). Freiwillig: Mehrheitsentscheid mit drei Tastern. */
+/* Lernpfad Station A7 – DNF und KNF: Förderband-Aufgabe aus Stevens Lehrmittel (docs/aufgaben/AUFGABEN_ORIGINAL.md, Wortlaut). Eingänge E1 (niederwertig) und E2, Ausgang A.
+ * Die Zusatzaufgabe «Mehrheitsentscheid» ist EIGEN (nicht aus Stevens Serie) und ausdrücklich freiwillig. */
 (function (root) {
   'use strict';
   var P = root.DQPfad;
-  var fb = function (e) { return e[0] ^ e[1]; };                               // Band läuft, wenn genau ein Taster gedrückt ist
-  var mj = function (e) { return (e[0] + e[1] + e[2]) >= 2 ? 1 : 0; };          // Mehrheit: mindestens zwei von drei
-  var w2 = P.wahrheit({ ein: ['e1', 'e2'], aus: ['A'], f: function (e) { return [fb(e)]; } }), ones2 = P.einsen(2, function (e) { return [fb(e)]; });
-  var ones3 = P.einsen(3, function (e) { return [mj(e)]; });
-  var w3 = P.wahrheit({ ein: ['e1', 'e2', 'e3'], aus: ['A'], f: function (e) { return [mj(e)]; } });
+  var tab = [[0, 0, 0, 0], [1, 0, 1, 1], [2, 1, 0, 1], [3, 1, 1, 1]]; // Dez, E2, E1, A
+  var ones2 = [1, 2, 3];
+  var tabelleHtml = '<table class="itab" style="width:auto;font-family:var(--font-ui)"><thead><tr><th>Dez</th><th>E2</th><th>E1</th><th>A</th></tr></thead><tbody>' + tab.map(function (r) { return '<tr>' + r.map(function (x) { return '<td>' + x + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>';
+  var mj = function (e) { return (e[0] + e[1] + e[2]) >= 2 ? 1 : 0; };
+  var w3 = P.wahrheit({ ein: ['e1', 'e2', 'e3'], aus: ['A'], f: function (e) { return [mj(e)]; } }), ones3 = P.einsen(3, function (e) { return [mj(e)]; });
+  var aufg = '<p><b>Aufgabe.</b> Ein Förderband (A) kann durch die Taster E1 bzw. E2 in Bewegung gesetzt werden. Beim Loslassen hält das Band wieder an.</p><p>Erstelle die Schaltung bzw. den logischen Ausdruck für die unten aufgeführte Wahrheitstabelle für die beiden Möglichkeiten DNF und KNF.</p>' + tabelleHtml;
   P.station({
-    id: 'A7', teil: 'A', nr: 7, titel: 'DNF und KNF', kurz: 'Aus der Wahrheitstabelle zur Schaltung – auf zwei Wegen',
-    einfuehrung: '<p>Aus jeder Wahrheitstabelle lässt sich ein Ausdruck gewinnen, ganz mechanisch:</p><ul><li><b>Disjunktive Normalform (DNF):</b> für jede Zeile mit <b>A = 1</b> ein UND-Glied, in dem <b>alle</b> Eingänge vorkommen (Eingang 1 → e, Eingang 0 → überstrichen). Alle Glieder werden mit ODER verbunden.</li><li><b>Konjunktive Normalform (KNF):</b> für jede Zeile mit <b>A = 0</b> eine ODER-Klammer, in der <b>alle</b> Eingänge vorkommen, aber umgekehrt (Eingang 0 → e, Eingang 1 → überstrichen). Alle Klammern werden mit UND verbunden.</li></ul><p>Beide Formen beschreiben dieselbe Funktion. Du baust beide Schaltungen und die Software prüft, dass sie dasselbe tun.</p>',
-    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    id: 'A7', teil: 'A', nr: 7, titel: 'DNF und KNF', kurz: 'Förderband: aus der Wahrheitstabelle zur Schaltung – auf zwei Wegen',
+    einfuehrung: '<p>Aus jeder Wahrheitstabelle lässt sich ein Ausdruck gewinnen, ganz mechanisch. So steht es im Lehrmittel:</p><ol><li><b>DNF</b> – Schaltung nach <b>positiver Logik</b> am Ausgang: Wenn A = 1, die Eingänge «verunden» und den Term mit jeder weiteren Möglichkeit «verodern».</li><li><b>KNF</b> – Schaltung nach <b>negativer Logik</b> am Ausgang: Wenn A = 0, die Eingänge «verodern» und jeden weiteren Ausgangsterm «verunden» (Klammern setzen). Zudem werden alle Eingänge negiert.</li></ol><p>Beide Formen beschreiben dieselbe Funktion. In der Übungsserie der Booleschen Algebra (A8, Aufgabe 1) zeigst du das durch Vereinfachen der DNF.</p><p>Schreibweise: ODER = <code>v</code> (auch <code>+</code>), UND = Nebeneinanderstellen (auch <code>*</code>), NICHT = Überstreichung (getippt <code>/e1</code>, <code>e1\'</code> oder <code>n(e1)</code>). In der Wahrheitstabelle ist E1 das niederwertige Bit (Dez = E2·2 + E1).</p>',
+    verweis: 'Aufgabe aus Stevens Lehrmittel «Digitaltechnik stationäre Vorgänge». Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
     aufgaben: [
-      { id: 'A7.1', titel: 'Förderband: Wahrheitstabelle', art: 'tabelle', kopf: w2.kopf, zeilen: w2.zeilen,
-        text: '<p><b>Förderband.</b> Ein Band wird von zwei Tastern bedient: e1 = Taster links, e2 = Taster rechts (gedrückt = 1). Das Band (A) soll nur laufen, wenn <b>genau ein</b> Taster gedrückt ist – damit niemand mit beiden Händen gleichzeitig am Band hantiert. Fülle die Wahrheitstabelle aus.</p>' },
-      { id: 'A7.2', titel: 'Förderband: disjunktive Normalform', art: 'ausdruck', n: 2, ones: ones2, form: 'dnf',
-        text: '<p>Schreibe die <b>DNF</b> des Förderbands: ein UND-Glied je Zeile mit A = 1, alle Glieder mit ODER.</p>', hilfe: 'Zeile e1 = 1, e2 = 0 wird zu e1/e2 (NICHT mit dem Schrägstrich).' },
-      { id: 'A7.3', titel: 'Förderband: konjunktive Normalform', art: 'ausdruck', n: 2, ones: ones2, form: 'knf',
-        text: '<p>Schreibe die <b>KNF</b> des Förderbands: eine ODER-Klammer je Zeile mit A = 0, die Klammern mit UND verbunden. Eingang 0 → e, Eingang 1 → überstrichen.</p>', hilfe: 'Zeile e1 = 0, e2 = 0 wird zur Klammer (e1 v e2).' },
-      { id: 'A7.4', titel: 'Förderband: beide Schaltungen bauen', art: 'schaltung', n: 2, ausgaenge: 2, f: function (e) { var x = fb(e); return [x, x]; }, getrennt: true, start: P.startNetz(2, 2), muster: P.netzDNFundKNF(2, ones2),
-        text: '<p>Baue <b>beide</b> Schaltungen: Die Anzeige <b>L1</b> hängt an der Schaltung der DNF, die Anzeige <b>L2</b> an der Schaltung der KNF. Beide Schaltungen haben ihre eigenen Gatter, nur die Pegelschalter sind gemeinsam. Beide Anzeigen müssen bei jeder Taster-Stellung dasselbe zeigen.</p>', hilfe: 'DNF: UND-Gatter für die Glieder, ein ODER dahinter. KNF: ODER-Gatter für die Klammern, ein UND dahinter. NICHT-Glieder für die überstrichenen Eingänge.' },
-      { id: 'A7.5', titel: 'Prüffragen Normalformen', art: 'fragen', text: '<p>Vier kurze Fragen.</p>', fragen: [
+      { id: 'A7.1', titel: 'Förderband: DNF', art: 'ausdruck', n: 2, ones: ones2, form: 'dnf', text: aufg + '<p><b>a)</b> Gib den Ausdruck als <b>DNF</b> an.</p>', hilfe: 'Eine Zeile mit A = 1 wird ein UND-Glied (Eingang 0 → überstrichen), alle Glieder mit ODER. Die Zeile Dez 1 (E2 = 0, E1 = 1) heisst E1 · /E2.' },
+      { id: 'A7.2', titel: 'Förderband: KNF', art: 'ausdruck', n: 2, ones: ones2, form: 'knf', text: aufg + '<p><b>b)</b> Gib den Ausdruck als <b>KNF</b> an.</p>', hilfe: 'Nur die Zeile Dez 0 hat A = 0. Eingang 0 → e (nicht überstrichen), Eingang 1 → überstrichen.' },
+      { id: 'A7.3', titel: 'Förderband: beide Schaltungen bauen', art: 'schaltung', n: 2, ausgaenge: 2, f: function (e) { var x = e[0] | e[1]; return [x, x]; }, getrennt: true, start: P.startNetz(2, 2), muster: P.netzDNFundKNF(2, ones2),
+        text: aufg + '<p><b>c)</b> Baue <b>beide</b> Schaltungen: <b>L1</b> hängt an der Schaltung der DNF, <b>L2</b> an der der KNF. Beide Schaltungen haben ihre eigenen Gatter, nur die Pegelschalter E1 und E2 sind gemeinsam. Die Software prüft, dass beide Anzeigen bei jeder Taster-Stellung dasselbe zeigen wie die Tabelle.</p>', hilfe: 'DNF: UND-Gatter für die Glieder (NICHT-Glieder für überstrichene Eingänge), ein ODER dahinter. KNF: ein ODER mit den Eingängen.' },
+      { id: 'A7.4', titel: 'Prüffragen Normalformen', art: 'fragen', text: '<p>Vier kurze Fragen.</p>', fragen: [
         { q: 'Eine Wahrheitstabelle mit drei Eingängen hat fünf Zeilen mit A = 1. Wie viele Glieder hat die DNF?', opt: ['3', '5', '8', '3 × 5'], richtig: 1, erkl: 'Ein Glied je Zeile mit A = 1.' },
         { q: 'Dieselbe Tabelle: Wie viele Klammern hat die KNF?', opt: ['3', '5', '8', '2'], richtig: 0, erkl: 'Eine Klammer je Zeile mit A = 0: 8 − 5 = 3.' },
         { q: 'Welche Form verwendet man, wenn es nur wenige Zeilen mit A = 1 gibt?', opt: ['DNF', 'KNF', 'Beide brauchen gleich viel', 'Keine'], richtig: 0, erkl: 'Die DNF hat ein Glied je Eins – bei wenigen Einsen wird sie kurz.' },
         { q: 'Was haben DNF und KNF derselben Funktion gemeinsam?', opt: ['Die Zahl der Glieder', 'Sie beschreiben dieselbe Wahrheitstabelle', 'Die Zahl der NICHT-Glieder', 'Nichts'], richtig: 1, erkl: 'Beide sind nur verschiedene Schreibweisen derselben Funktion.' }] },
-      { id: 'A7.6', titel: 'Mehrheitsentscheid: Tabelle', pflicht: false, art: 'tabelle', kopf: w3.kopf, zeilen: w3.zeilen,
-        text: '<p><b>Freiwillig.</b> Drei Taster entscheiden: Die Lampe A leuchtet, wenn <b>mindestens zwei</b> Taster gedrückt sind. Fülle die Wahrheitstabelle aus.</p>' },
-      { id: 'A7.7', titel: 'Mehrheitsentscheid: DNF', pflicht: false, art: 'ausdruck', n: 3, ones: ones3, form: 'dnf', text: '<p><b>Freiwillig.</b> Schreibe die DNF des Mehrheitsentscheids.</p>' },
-      { id: 'A7.8', titel: 'Mehrheitsentscheid: KNF', pflicht: false, art: 'ausdruck', n: 3, ones: ones3, form: 'knf', text: '<p><b>Freiwillig.</b> Schreibe die KNF des Mehrheitsentscheids.</p>' }
+      { id: 'A7.5', titel: 'Zusatz (eigene Übung, nicht aus der Serie): Mehrheitsentscheid, Tabelle', pflicht: false, art: 'tabelle', kopf: w3.kopf, zeilen: w3.zeilen,
+        text: '<p><b>Freiwillige Zusatzaufgabe, nicht aus Stevens Serie.</b> Drei Taster entscheiden: Die Lampe A leuchtet, wenn <b>mindestens zwei</b> Taster gedrückt sind. Fülle die Wahrheitstabelle aus.</p>' },
+      { id: 'A7.6', titel: 'Zusatz (eigene Übung): Mehrheitsentscheid, DNF', pflicht: false, art: 'ausdruck', n: 3, ones: ones3, form: 'dnf', text: '<p><b>Freiwillige Zusatzaufgabe, nicht aus Stevens Serie.</b> Schreibe die DNF des Mehrheitsentscheids.</p>' },
+      { id: 'A7.7', titel: 'Zusatz (eigene Übung): Mehrheitsentscheid, KNF', pflicht: false, art: 'ausdruck', n: 3, ones: ones3, form: 'knf', text: '<p><b>Freiwillige Zusatzaufgabe, nicht aus Stevens Serie.</b> Schreibe die KNF des Mehrheitsentscheids.</p>' }
     ]
   });
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* ==== studio/pfad/st_A08.js ==== */
-/* Lernpfad Station A8 – Boolesche Algebra. Gesetze mit Wahrheitstabellen nachweisen (die Spalten rechnet der Parser aus den Ausdrücken),
- * danach die Übungsserie: 18 Ausdrücke vereinfachen, Nr. 12 und 18 freiwillig. Die Ausdrücke sind hier SELBST gewählt (Stevens Serie liegt nicht vor, docs/FRAGEN_STUDIO.md);
- * der Test prüft, dass jeder wirklich kürzer wird, und rechnet die Minimalform unabhängig (Brute Force). */
+/* Lernpfad Station A8 – Übungsserie Boolesche Algebra: Stevens Originalaufgaben (docs/aufgaben/boolesche_algebra.json, Wortlaut in AUFGABEN_ORIGINAL.md).
+ * Aufgabe 1 = Förderband-Übung aus A7, 2 bis 17 die sechzehn Ausdrücke, 18 = Zusatzübung KNF/DNF; 12 und 18 sind freiwillig.
+ * Geprüft wird nie gegen eine aufgeschriebene Lösung, sondern: logisch gleichwertig mit dem Originalausdruck UND Termzahl und Buchstabenzahl nicht grösser als in der JSON-Vorgabe.
+ * Danach als ausdrücklich freiwillige Zusatzaufgaben (eigene Übung): die Gesetze mit Wahrheitstabellen nachweisen. */
 (function (root) {
   'use strict';
-  var P = root.DQPfad, T = [];
-  function nachweis(id, titel, ein, spalten, text, extra) {
-    var fs = spalten.map(P.formel), w = P.wahrheit({ ein: ein, aus: spalten.map(function (s) { return s; }), f: function (e) { return fs.map(function (f) { return f(e); }); } });
-    var a = { id: id, titel: titel, art: 'tabelle', kopf: w.kopf, zeilen: w.zeilen, text: text }; if (extra) Object.keys(extra).forEach(function (k) { a[k] = extra[k]; }); return a;
-  }
-  var as = [
-    nachweis('A8.1', 'Kommutativgesetz', ['e1', 'e2'], ['e1e2', 'e2e1', 'e1 v e2', 'e2 v e1'], '<p><b>Kommutativgesetz:</b> Die Reihenfolge der Eingänge spielt keine Rolle. Rechne die vier Spalten aus. Was fällt dir auf?</p>'),
-    nachweis('A8.2', 'Assoziativgesetz', ['e1', 'e2', 'e3'], ['(e1e2)e3', 'e1(e2e3)'], '<p><b>Assoziativgesetz:</b> Bei UND-Verknüpfungen darf man die Klammern verschieben. Rechne beide Seiten aus und vergleiche.</p>'),
-    nachweis('A8.3', 'Distributivgesetz (UND über ODER)', ['e1', 'e2', 'e3'], ['e1(e2 v e3)', 'e1e2 v e1e3'], '<p><b>Distributivgesetz:</b> Ausmultiplizieren wie in der Algebra. Rechne beide Seiten aus.</p>'),
-    nachweis('A8.4', 'Distributivgesetz (ODER über UND)', ['e1', 'e2', 'e3'], ['e1 v e2e3', '(e1 v e2)(e1 v e3)'], '<p>In der Schaltalgebra gilt das Distributivgesetz auch andersherum (anders als in der gewöhnlichen Algebra!). Rechne beide Seiten aus.</p>'),
-    nachweis('A8.5', 'De Morgan (1)', ['e1', 'e2'], ['/(e1e2)', '/e1 v /e2'], '<p><b>De Morgan:</b> Das Gegenteil eines UND ist ein ODER der Gegenteile. Rechne beide Seiten aus.</p>'),
-    nachweis('A8.6', 'De Morgan (2)', ['e1', 'e2'], ['/(e1 v e2)', '/e1/e2'], '<p>Das Gegenteil eines ODER ist ein UND der Gegenteile. Rechne beide Seiten aus.</p>'),
-    nachweis('A8.7', 'Absorption', ['e1', 'e2'], ['e1 v e1e2', 'e1(e1 v e2)'], '<p><b>Absorption:</b> Ein Glied, das e1 enthält, wird von e1 «aufgesaugt». Rechne beide Spalten aus und vergleiche mit der Spalte e1.</p>'),
-    { id: 'A8.8', titel: 'Prüffragen Gesetze', art: 'fragen', text: '<p>Fünf Fragen zu den Gesetzen.</p>', fragen: [
-      { q: 'Was ergibt e1 v /e1?', opt: ['0', '1', 'e1', '/e1'], richtig: 1, erkl: 'Einer der beiden Teile ist immer 1.' },
-      { q: 'Was ergibt e1 /e1?', opt: ['0', '1', 'e1', '/e1'], richtig: 0, erkl: 'Beide können nie gleichzeitig 1 sein.' },
-      { q: 'Wie lautet De Morgan für /(e1 e2)?', opt: ['/e1 /e2', '/e1 v /e2', 'e1 v e2', '/e1 e2'], richtig: 1, erkl: 'Das Gegenteil eines UND ist ein ODER der Gegenteile.' },
-      { q: 'Was ergibt e1 v e1 e2 (Absorption)?', opt: ['e1', 'e2', 'e1 e2', '1'], richtig: 0, erkl: 'Ist e1 = 1, so ist das Ergebnis 1; ist e1 = 0, so auch e1e2 = 0.' },
-      { q: 'Was ergibt e1 (e1 v e2)?', opt: ['e1 v e2', 'e2', 'e1', 'e1 e2'], richtig: 2, erkl: 'Ausmultipliziert: e1e1 v e1e2 = e1 v e1e2 = e1.' }] }
-  ];
-  // Übungsserie: [gegeben, freiwillig?]
-  var SERIE = [
-    ['e1e2 v e1/e2'], ['e1 v e1e2'], ['e1 (e1 v e2)'], ['/e1e2 v e1e2'], ['(e1 v e2)(e1 v /e2)'], ['e1 v /e1e2'], ['e1 (/e1 v e2)'], ['e1e2e3 v e1e2/e3'], ['/(e1e2) e1'],
-    ['e1/e2 v e1e2 v /e1e2'], ['e1e2 v /e1e3 v e2e3'], ['e1e2e3 v e1e2/e3 v e1/e2e3 v /e1e2e3', true], ['/(e1 v e2) v /(e1e2)'], ['/(e1e2) /(e1 v e3)'], ['(e1 v e2)(e1 v e3)'],
-    ['e1e2e3e4 v e1e2e3/e4'], ['/e1e2/e3 v /e1e2e3 v e1e2/e3 v e1e2e3'], ['e1e2 v /e1e3 v e2e3 v e1e4 v /e1/e3e4', true]
-  ];
-  SERIE.forEach(function (s, i) {
-    var n = Math.max.apply(null, (s[0].match(/e(\d)/g) || []).map(function (x) { return +x.slice(1); }));
-    as.push({ id: 'A8.' + (9 + i), titel: 'Vereinfachen Nr. ' + (i + 1), pflicht: !s[1], art: 'ausdruck', n: n, gegeben: s[0],
-      text: '<p>' + (s[1] ? '<b>Freiwillig.</b> ' : '') + 'Vereinfache den Ausdruck so weit wie möglich. Er soll am Ende gleichwertig sein, aber weniger Buchstaben haben. Das Ergebnis darfst du ausgeklammert oder ausmultipliziert schreiben.</p>', hilfe: 'Nützliche Regeln: Absorption (e1 v e1e2 = e1), e v /e = 1, e /e = 0, Ausklammern (e1e2 v e1/e2 = e1 (e2 v /e2) = e1), De Morgan.' });
+  var P = root.DQPfad, ALG = P.serie('algebra');
+  var HINWEIS = {
+    3: 'Bei dieser Aufgabe kommen alle vier Kombinationen von e1 und e2 vor.',
+    7: 'Was ergibt 1 + e2?', 9: 'Die Faktoren widersprechen einander: Was ergibt ein Produkt, das einen Faktor e und /e enthält?',
+    10: 'Absorption: e1 + e1 · irgendetwas.', 15: 'De Morgan auf die ganze Klammer anwenden.', 16: 'De Morgan auf die ganze Klammer anwenden, dann ausmultiplizieren.'
+  };
+  var GESETZE = 'Bei deinem Ausbildner kannst du eine Zusammenfassung der Gesetze abholen. Nützlich: Absorption (e1 + e1·e2 = e1), e + /e = 1, e · /e = 0, Ausklammern, De Morgan.';
+  var as = [];
+  as.push({ id: 'A8.1', titel: 'Aufgabe 1: Förderband – DNF und KNF sind dasselbe', art: 'ausdruck', n: 2, gegeben: '/e2 e1 + e2 /e1 + e2 e1', erwartet: { terme: 2, buchstaben: 2 },
+    text: '<p>Aufgabe 1 der Serie ist die Förderband-Übung aus A7: Die <b>DNF</b> des Förderbands lautet <b>E1·/E2 + /E1·E2 + E1·E2</b>, die <b>KNF</b> <b>(E2 + E1)</b>. Beweise, dass beide dasselbe ergeben, indem du die DNF <b>vereinfachst</b>.</p><p class="hint">Vereinfache so weit wie möglich; das Ergebnis muss gleichwertig sein und darf nicht länger sein als die KNF.</p>', hilfe: GESETZE });
+  ALG.forEach(function (r) {
+    var n = r.variablen.length, fw = r.nr === 12;
+    as.push({ id: 'A8.' + r.nr, titel: 'Aufgabe ' + r.nr + (fw ? ' (freiwillig)' : ''), pflicht: !fw, art: 'ausdruck', n: n, gegeben: r.ausdruck, erwartet: { terme: r.terme, buchstaben: r.buchstaben },
+      text: '<p>' + (fw ? '<b>Freiwillig.</b> ' : '') + 'Vereinfachen Sie folgenden Ausdruck. Das Ergebnis muss mit dem Ausdruck gleichwertig sein und höchstens so viele Terme und Buchstaben haben wie die Minimalform (eine andere, gleich kurze Lösung ist richtig).</p>' + (HINWEIS[r.nr] ? '<p class="hint">' + HINWEIS[r.nr] + '</p>' : ''), hilfe: GESETZE });
   });
+  // Aufgabe 18: Zusatzübung KNF/DNF – der Wortlaut liegt nicht vor (FRAGEN_STUDIO.md): hier DNF und KNF der Funktion aus Aufgabe 12
+  var f12 = ALG.filter(function (r) { return r.nr === 12; })[0];
+  as.push({ id: 'A8.18a', titel: 'Aufgabe 18 (freiwillig): Zusatzübung DNF', pflicht: false, art: 'ausdruck', n: 3, ones: f12.minterme, form: 'dnf', text: '<p><b>Freiwillig.</b> Zusatzübung KNF / DNF (Wortlaut siehe FRAGEN_STUDIO.md): Gib für die Funktion aus Aufgabe 12 die <b>DNF</b> an. Tipp: Die Wahrheitstabelle von Aufgabe 12 kannst du aus dem Ausdruck ausrechnen.</p>' });
+  as.push({ id: 'A8.18b', titel: 'Aufgabe 18 (freiwillig): Zusatzübung KNF', pflicht: false, art: 'ausdruck', n: 3, ones: f12.minterme, form: 'knf', text: '<p><b>Freiwillig.</b> Zusatzübung KNF / DNF: Gib für dieselbe Funktion die <b>KNF</b> an.</p>' });
+  // Zusatz: Gesetze nachweisen (eigene Übung)
+  function nachweis(id, titel, ein, spalten, text) {
+    var fs = spalten.map(function (sp) { return P.formel(sp); }), w = P.wahrheit({ ein: ein, aus: spalten, f: function (e) { return fs.map(function (f) { return f(e); }); } });
+    return { id: id, titel: 'Zusatz (eigene Übung): ' + titel, pflicht: false, art: 'tabelle', kopf: w.kopf, zeilen: w.zeilen, text: '<p><b>Freiwillige Zusatzaufgabe, nicht aus Stevens Serie.</b></p>' + text };
+  }
+  as.push(
+    nachweis('A8.21', 'Kommutativgesetz', ['e1', 'e2'], ['e1e2', 'e2e1', 'e1 v e2', 'e2 v e1'], '<p><b>Kommutativgesetz:</b> Die Reihenfolge der Eingänge spielt keine Rolle. Rechne die vier Spalten aus.</p>'),
+    nachweis('A8.22', 'Assoziativgesetz', ['e1', 'e2', 'e3'], ['(e1e2)e3', 'e1(e2e3)'], '<p><b>Assoziativgesetz:</b> Bei UND darf man die Klammern verschieben. Rechne beide Seiten aus.</p>'),
+    nachweis('A8.23', 'Distributivgesetz (UND über ODER)', ['e1', 'e2', 'e3'], ['e1(e2 v e3)', 'e1e2 v e1e3'], '<p><b>Distributivgesetz:</b> Ausmultiplizieren. Rechne beide Seiten aus.</p>'),
+    nachweis('A8.24', 'Distributivgesetz (ODER über UND)', ['e1', 'e2', 'e3'], ['e1 v e2e3', '(e1 v e2)(e1 v e3)'], '<p>In der Schaltalgebra gilt das Distributivgesetz auch andersherum. Rechne beide Seiten aus.</p>'),
+    nachweis('A8.25', 'De Morgan (1)', ['e1', 'e2'], ['/(e1e2)', '/e1 v /e2'], '<p><b>De Morgan:</b> Das Gegenteil eines UND ist ein ODER der Gegenteile.</p>'),
+    nachweis('A8.26', 'De Morgan (2)', ['e1', 'e2'], ['/(e1 v e2)', '/e1/e2'], '<p>Das Gegenteil eines ODER ist ein UND der Gegenteile.</p>'),
+    nachweis('A8.27', 'Absorption', ['e1', 'e2'], ['e1 v e1e2', 'e1(e1 v e2)'], '<p><b>Absorption:</b> Rechne beide Spalten aus und vergleiche mit e1.</p>')
+  );
   P.station({
-    id: 'A8', teil: 'A', nr: 8, titel: 'Boolesche Algebra', kurz: 'Gesetze nachweisen, Ausdrücke vereinfachen',
-    einfuehrung: '<p>Mit den <b>Gesetzen der Booleschen Algebra</b> lassen sich Ausdrücke umformen und vereinfachen – das spart Gatter. Du weist zuerst die wichtigsten Gesetze mit Wahrheitstabellen nach: Zwei Ausdrücke sind gleich, wenn ihre Spalten in jeder Zeile gleich sind. Danach vereinfachst du 18 Ausdrücke; Nummer 12 und 18 sind freiwillig.</p><p>Schreibweise wie im Lehrmittel: <b>ODER</b> = <code>v</code>, <b>UND</b> = Nebeneinanderstellen, <b>NICHT</b> = Überstreichung (getippt mit <code>/</code>). UND geht vor ODER.</p>',
-    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    id: 'A8', teil: 'A', nr: 8, titel: 'Boolesche Algebra', kurz: 'Übungsserie: 16 Ausdrücke vereinfachen (Stevens Originalaufgaben)',
+    einfuehrung: '<p>Mit den <b>Gesetzen der Booleschen Algebra</b> lassen sich Ausdrücke umformen und vereinfachen – das spart Gatter. Die Übungsserie hat 18 Aufgaben: Aufgabe 1 ist die Förderband-Übung aus A7, 2 bis 17 sind Ausdrücke zum Vereinfachen, 18 ist eine Zusatzübung. <b>Aufgaben 12 und 18 sind freiwillig.</b></p><p>Schreibweise wie im Lehrmittel: <b>ODER</b> = <code>v</code> (oder <code>+</code>), <b>UND</b> = Nebeneinanderstellen (oder <code>·</code>, <code>*</code>), <b>NICHT</b> = Überstreichung (getippt <code>/e1</code>, <code>e1\'</code> oder <code>n(…)</code> für eine ganze Klammer). UND geht vor ODER.</p><p>Die Software vergleicht deine Lösung nie mit einer aufgeschriebenen, sondern prüft, ob sie <b>gleichwertig</b> ist <b>und</b> nicht mehr Terme und Buchstaben hat als die Minimalform. Wer nur umschreibt, ohne zu kürzen, besteht die zweite Prüfung nicht.</p><p>Am Ende der Station stehen freiwillige Zusatzaufgaben (eigene Übung), mit denen du die Gesetze mit Wahrheitstabellen nachweisen kannst.</p>',
+    verweis: 'Aufgaben aus Stevens Lehrmittel «Digitaltechnik stationäre Vorgänge». Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
     aufgaben: as
   });
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -7624,33 +7643,55 @@ body.beamer .dr text { font-size: inherit; }
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* ==== studio/pfad/st_A10.js ==== */
-/* Lernpfad Station A10 – KV-Diagramm. 13 Funktionen mit vier Eingängen in Minterm-Schreibweise «A = m(…)», Nr. 7 bis 13 freiwillig (Nr. 11 bis 13 mit Don't-Care).
- * Die Funktionen sind HIER gewählt (Stevens Serie liegt nicht vor, docs/FRAGEN_STUDIO.md). Minterm k: e1 = niedrigstes Bit; die kleine Zahl im Diagramm ist die Feldnummer k.
- * Päckchen und Minimalform prüft die Software gegen Quine-McCluskey. */
+/* Lernpfad Station A10 – Übungsserie KV-Diagramm: Stevens Originalaufgaben (docs/aufgaben/kv_diagramm.json, Wortlaut in AUFGABEN_ORIGINAL.md).
+ * Stellenwertigkeit aus dem Lehrmittel: d'cb'a' = 0100, also ist d das höchstwertige und a das niederwertigste Bit; Feldnummer = d·8 + c·4 + b·2 + a. Mit 5 und 6 Eingängen zwei beziehungsweise vier Diagramme.
+ * Geprüft wird nie gegen eine aufgeschriebene Lösung: Päckchen gültig, so gross wie möglich, so wenige wie möglich, Termzahl und Buchstabenzahl wie in der JSON-Vorgabe; Aufgabe 6 hat vier gleichwertige Minimalformen und alle werden angenommen.
+ * Aufgaben 7 bis 13 sind freiwillig. Die selbst erfundenen Schaltungsaufgaben am Ende sind eine eigene, freiwillige Zusatzübung. */
 (function (root) {
   'use strict';
-  var P = root.DQPfad;
-  var SERIE = [
-    [[1, 3, 5, 7]], [[0, 1, 2, 3, 8, 9, 10, 11]], [[5, 7, 13, 15]], [[0, 2, 8, 10]], [[0, 1, 4, 5, 12, 13]], [[3, 5, 7, 11, 13, 15]],
-    [[0, 2, 3, 5, 7, 8, 10, 11]], [[1, 2, 3, 6, 7, 9, 11, 14]], [[0, 1, 3, 4, 5, 7, 12, 13, 15]], [[2, 3, 4, 5, 6, 7, 10, 11, 14, 15]],
-    [[1, 5, 6, 7, 9], [3, 13]], [[0, 2, 6, 8, 10], [4, 12]], [[1, 3, 5, 9, 13], [7, 15]]
-  ];
-  function mText(a) { return 'A = m(' + a.ones.join(', ') + ')' + (a.dc && a.dc.length ? ', Don\'t-Care: d(' + a.dc.join(', ') + ')' : ''); }
-  var as = SERIE.map(function (s, i) {
-    var fw = i >= 6, a = { id: 'A10.' + (i + 1), titel: 'KV-Diagramm Nr. ' + (i + 1), pflicht: !fw, art: 'kv', n: 4, ones: s[0], dc: s[1] || [] };
-    a.text = '<p>' + (fw ? '<b>Freiwillig.</b> ' : '') + '<b>' + mText(a) + '</b></p><p>Das Diagramm zeigt die Funktion: 1 = Ausgang 1, 0 = Ausgang 0' + (a.dc.length ? ', X = beliebig (darf zu einem Päckchen dazugenommen werden, muss aber nicht)' : '') + '. Zeichne die <b>Päckchen</b> ein (so wenige und so gross wie möglich) und gib die <b>Minimalform</b> an.</p>';
-    a.hilfe = 'Päckchen haben 1, 2, 4, 8 oder 16 Felder. Variablen, die sich im Päckchen ändern, fallen weg. Auch über den Rand des Diagramms darf ein Päckchen gehen.';
-    return a;
+  var P = root.DQPfad, KV = P.serie('kv');
+  var HILFE = 'Päckchen haben 1, 2, 4, 8, 16 … Felder. Variablen, die sich im Päckchen ändern, fallen weg. Auch über den Rand des Diagramms darf ein Päckchen gehen. X darfst du dazunehmen, musst es aber nicht.';
+  function mText(r) {
+    var n = r.eingaenge, m = (n === 4 ? 'Z = m4(' : 'Z = Σ m' + n + '(') + r.einsen.join(',') + ')';
+    return m + (r.egal.length ? ' + X(' + r.egal.join(',') + ')' : '');
+  }
+  var as = [];
+  function add(x) { as.push(x); }
+  KV.filter(function (r) { return r.nr <= 10; }).forEach(function (r) { add(einzel(r)); });
+  function einzel(r) {
+    var n = r.eingaenge, fw = r.nr >= 7 && r.nr <= 13, vier = r.gleichwertige_loesungen > 1;
+    return { id: 'A10.' + r.nr, titel: 'Aufgabe ' + r.nr + (fw ? ' (freiwillig)' : ''), pflicht: !fw, art: 'kv', n: n, ones: r.einsen, dc: r.egal, buchstaben: 'abcdef'.slice(0, n), erwartet: { terme: r.terme, buchstaben: r.buchstaben },
+      text: '<p>' + (fw ? '<b>Freiwillig.</b> ' : '') + 'Vereinfachen Sie folgenden Ausdruck mit einem KV-Diagramm:</p><p class="pf-gegeben">' + mText(r) + '</p><p>Zeichne die Päckchen ein und gib die Minimalform an (<code>a\'</code> bedeutet NICHT a, Beispiel <code>d\'a\' + c\'b</code>).' + (vier ? ' <b>Diese Aufgabe hat mehrere gleich kurze Lösungen; jede davon ist richtig.</b>' : '') + '</p>', hilfe: HILFE };
+  }
+  // Sonderaufgaben 11 bis 13 (kein m-Ausdruck), alle freiwillig
+  var ref11 = "BCD' + BCD + AB'C' + A'B'C'", r11 = P.refOf({ ref: ref11, n: 4, buchstaben: 'ABCD' });
+  add({ id: 'A10.11a', titel: 'Aufgabe 11a (freiwillig): algebraisch vereinfachen', pflicht: false, art: 'ausdruck', n: 4, buchstaben: 'ABCD', gegeben: ref11, erwartet: { terme: 2, buchstaben: 4 },
+    text: '<p><b>Freiwillig.</b> Gegeben: <b>Z = BCD\' + BCD + AB\'C\' + A\'B\'C\'</b>. a) Vereinfachen Sie algebraisch.</p>', hilfe: 'Ausklammern: BC(D\' + D) und B\'C\'(A + A\').' });
+  add({ id: 'A10.11b', titel: 'Aufgabe 11b (freiwillig): mit KV-Diagramm', pflicht: false, art: 'kv', n: 4, ones: r11.ones, dc: [], buchstaben: 'ABCD', erwartet: { terme: 2, buchstaben: 4 },
+    text: '<p><b>Freiwillig.</b> b) Vereinfachen Sie denselben Ausdruck mittels KV-Diagramm. (Im Diagramm ist A das niederwertigste Bit und D das höchstwertige, wie bei a, b, c, d.)</p>', hilfe: HILFE });
+  var ref12a = "a'bc + ab'c + abc' + abc", ref12b = "cba' + cb'a' + cb'a + cba' + cba";
+  [[ref12a, 'a', 3, 6], [ref12b, 'b', 1, 1]].forEach(function (x) {
+    var r = P.refOf({ ref: x[0], n: 3, buchstaben: 'abc' });
+    add({ id: 'A10.12' + x[1], titel: 'Aufgabe 12' + x[1] + ' (freiwillig)', pflicht: false, art: 'kv', n: 3, ones: r.ones, dc: [], buchstaben: 'abc', erwartet: { terme: x[2], buchstaben: x[3] },
+      text: '<p><b>Freiwillig.</b> Vereinfachung mittels KV-Diagramm: <b>' + x[1] + ') ' + x[0].replace(/'/g, '\'') + '</b></p>', hilfe: HILFE });
   });
-  [5, 6].forEach(function (nr, j) {
-    var s = SERIE[nr - 1], f = function (e) { var k = P.wertLSB(e); return s[0].indexOf(k) >= 0 ? 1 : 0; };
-    as.push({ id: 'A10.' + (14 + j), titel: 'Schaltung zu Nr. ' + nr, art: 'schaltung', n: 4, ausgaenge: 1, f: f, start: P.startNetz(4, 1),
-      text: '<p>Baue die Schaltung zur Minimalform von <b>Nr. ' + nr + '</b> (A = m(' + s[0].join(', ') + ')): mit UND-Gattern für die Päckchen, einem ODER dahinter und NICHT-Gliedern für die überstrichenen Eingänge.</p>', hilfe: 'Die Minimalform hat ein UND-Glied je Päckchen.' });
+  // 13: Beweisen Sie a'bc + ab'c + abc' + abc = ab + ac + bc = (a + b)(b + c)(c + a)
+  var f13 = ["a'bc + ab'c + abc' + abc", 'ab + ac + bc', '(a + b)(b + c)(c + a)'], fs13 = f13.map(function (t) { return P.formel(t, 'abc'); });
+  var w13 = P.wahrheit({ ein: ['a', 'b', 'c'], aus: f13, f: function (e) { var x = [e[2], e[1], e[0]]; return fs13.map(function (f) { return f(x); }); } }); // e = [a, b, c] von links; formel erwartet e[0] = a (niederwertig)
+  add({ id: 'A10.13a', titel: 'Aufgabe 13a (freiwillig): Beweisen Sie – Wahrheitstabelle', pflicht: false, art: 'tabelle', kopf: w13.kopf, zeilen: w13.zeilen, text: '<p><b>Freiwillig.</b> Beweisen Sie: <b>a\'bc + ab\'c + abc\' + abc = ab + ac + bc = (a + b)(b + c)(c + a)</b>. Rechne dazu die drei Ausdrücke in der Wahrheitstabelle aus: Sind die drei Spalten in jeder Zeile gleich, sind die Ausdrücke gleich.</p>' });
+  add({ id: 'A10.13b', titel: 'Aufgabe 13b (freiwillig): Produktform', pflicht: false, art: 'ausdruck', n: 3, buchstaben: 'abc', ref: ref12a, form: 'pos', maxBuchstaben: 6, muster: '(a + b)(b + c)(c + a)', text: '<p><b>Freiwillig.</b> Gib den Ausdruck von Aufgabe 12a als <b>Produkt von Summen</b> an (UND von ODER-Klammern, höchstens sechs Buchstaben).</p>', hilfe: 'Aus der Summenform ab + ac + bc ergibt sich (a + b)(b + c)(c + a).' });
+  KV.filter(function (r) { return r.nr >= 14; }).forEach(function (r) { add(einzel(r)); });
+  // Eigene, freiwillige Zusatzübung: Schaltung zur Minimalform
+  [1, 3].forEach(function (nr, j) {
+    var r = KV.filter(function (x) { return x.nr === nr; })[0], f = function (e) { return r.einsen.indexOf(P.wertLSB(e)) >= 0 ? 1 : 0; };
+    add({ id: 'A10.' + (20 + j), titel: 'Zusatz (eigene Übung): Schaltung zu Aufgabe ' + nr, pflicht: false, art: 'schaltung', n: 4, ausgaenge: 1, f: f, start: P.startNetz(4, 1),
+      text: '<p><b>Freiwillige Zusatzaufgabe, nicht aus Stevens Serie.</b> Baue die Schaltung zur Minimalform von Aufgabe ' + nr + ' (' + mText(r) + '). E1 bis E4 sind a bis d (E1 = a, das niederwertigste Bit), L1 ist Z.</p>' });
   });
   P.station({
-    id: 'A10', teil: 'A', nr: 10, titel: 'KV-Diagramm', kurz: 'Vereinfachen mit dem Karnaugh-Veitch-Diagramm',
-    einfuehrung: '<p>Das <b>KV-Diagramm</b> zeigt die Wahrheitstabelle als Feld, in dem benachbarte Felder sich in nur einer Variablen unterscheiden. Dadurch lassen sich Einsen zu <b>Päckchen</b> zusammenfassen, und jedes Päckchen wird zu einem einzigen UND-Glied:</p><ul><li>Päckchen aus <b>1, 2, 4, 8 oder 16</b> benachbarten Einsen (Rechteck, auch über den Rand);</li><li>möglichst <b>grosse</b> Päckchen und möglichst <b>wenige</b>;</li><li>Variablen, die sich im Päckchen ändern, <b>fallen weg</b>;</li><li>Felder mit <b>X</b> (Don\'t-Care) darfst du dazunehmen, wenn das Päckchen dadurch grösser wird.</li></ul><p>Die Funktionen sind in <b>Minterm-Schreibweise</b> gegeben: <code>A = m(1, 3, 5)</code> heisst, der Ausgang ist 1 in den Zeilen 1, 3 und 5. Die Zeilennummer ist die Dualzahl der Eingänge mit <b>e1 als niedrigster Stelle</b>; diese Nummer steht klein in jedem Feld.</p>',
-    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    id: 'A10', teil: 'A', nr: 10, titel: 'KV-Diagramm', kurz: 'Übungsserie: 14 Aufgaben mit KV-Diagrammen (Stevens Originalaufgaben)',
+    einfuehrung: '<p>Das <b>KV-Diagramm</b> zeigt die Wahrheitstabelle als Feld, in dem benachbarte Felder sich in nur einer Variablen unterscheiden. Einsen lassen sich zu <b>Päckchen</b> zusammenfassen, und jedes Päckchen wird zu einem einzigen UND-Glied:</p><ul><li>Päckchen aus <b>1, 2, 4, 8, 16 …</b> benachbarten Einsen (Rechteck, auch über den Rand);</li><li>möglichst <b>grosse</b> Päckchen und möglichst <b>wenige</b>;</li><li>Variablen, die sich im Päckchen ändern, <b>fallen weg</b>;</li><li>Felder mit <b>X</b> darfst du dazunehmen, wenn das Päckchen dadurch grösser wird.</li></ul>' +
+      '<p><b>Erklärungen (aus dem Lehrmittel):</b> <code>a\'</code> bedeutet NICHT a. <code>d\'cb\'a\'</code> bedeutet 0100. <code>m4</code> bedeutet 4 Eingänge: a, b, c, d. Beispiel: <code>Z = m4(0,5,8,9) + X(1,6)</code> – die Zahlen hinter <code>m4</code> entsprechen einer 1 im entsprechenden Feld, die Zahlen hinter dem <code>X</code> einem X.</p><p>Aus <code>d\'cb\'a\' = 0100</code> folgt: <b>d ist das höchstwertige, a das niederwertigste Bit</b>; Feldnummer = d·8 + c·4 + b·2 + a. Die Nummer steht klein in jedem Feld. Bei <b>5 Eingängen</b> gibt es zwei Diagramme (e = 0 und e = 1), bei <b>6 Eingängen</b> vier (f e = 00, 01, 10, 11); Päckchen dürfen sich über die Diagramme erstrecken, die Felder tragen dieselbe Nummer wie in der Aufgabe.</p><p><b>Aufgaben 7 bis 13 sind freiwillig.</b> Die Software prüft nicht gegen eine aufgeschriebene Lösung: Sie prüft, ob die Päckchen gültig, so gross und so wenige wie möglich sind und ob dein Ausdruck gleichwertig ist und nicht mehr Terme und Buchstaben hat als die Minimalform. Gibt es mehrere gleich kurze Lösungen (Aufgabe 6), ist jede richtig.</p>',
+    verweis: 'Aufgaben aus Stevens Lehrmittel «Digitaltechnik stationäre Vorgänge». Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
     aufgaben: as
   });
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -8307,10 +8348,10 @@ body.beamer .dr text { font-size: inherit; }
   var kv = null;    // KV-Zustand: {sel:[], gruppen:[]}
   function kopfHtml(a) {
     var e = P.eintrag(stand, a.id), h = '<h2>' + esc(a.titel) + (P.pflicht(a) ? '' : ' <span class="pf-tag fw">freiwillig</span>') + '</h2>' + a.text;
-    if (a.gegeben) h += '<p class="pf-gegeben"><b>A =</b> ' + fmt(a.gegeben) + '</p>';
+    if (a.gegeben) h += '<p class="pf-gegeben"><b>A =</b> ' + fmt(a.gegeben, a) + '</p>';
     return h;
   }
-  function fmt(text) { try { var p = B.parse(text); return B.fmtHtml(B.clean(p.exprs[p.exprs.length - 1])); } catch (e) { return esc(text); } }
+  function fmt(text, a) { try { var p = B.parse(text, a && a.buchstaben ? { letters: a.buchstaben } : undefined); return B.fmtHtml(B.clean(p.exprs[p.exprs.length - 1]), 0, P.namen(a)); } catch (e) { return esc(text); } }
   function mountTask(a) {
     var w = $('#pfWork'); if (!w || !a) return; var e = P.eintrag(stand, a.id), h = kopfHtml(a);
     draft = e && e.antwort != null ? clone(e.antwort) : null;
@@ -8366,9 +8407,9 @@ body.beamer .dr text { font-size: inherit; }
     return '<p><label for="pfText">Was hast du gefunden? (kurz aufschreiben, das Diagramm zeichnest du auf Papier)</label><br><textarea id="pfText" class="tin" rows="4" style="width:100%">' + esc(draft.text || '') + '</textarea></p>';
   }
   function previewExpr() {
-    var el = $('#pfExpr'), pv = $('#pfPrev'); if (!el || !pv) return; var v = el.value.trim();
+    var el = $('#pfExpr'), pv = $('#pfPrev'); if (!el || !pv) return; var v = el.value.trim(), t = P.task(cur.aid);
     if (!v) { pv.innerHTML = ''; return; }
-    try { var p = B.parse(v); pv.innerHTML = 'So liest die Software es: <b>' + B.fmtHtml(B.clean(p.exprs[p.exprs.length - 1])) + '</b>'; } catch (e) { pv.innerHTML = '<span class="bad">' + esc(e.message) + '</span>'; }
+    try { var p = B.parse(v, t && t.buchstaben ? { letters: t.buchstaben } : undefined); pv.innerHTML = 'So liest die Software es: <b>' + B.fmtHtml(B.clean(p.exprs[p.exprs.length - 1]), 0, P.namen(t)) + '</b>'; } catch (e) { pv.innerHTML = '<span class="bad">' + esc(e.message) + '</span>'; }
   }
 
   /* ---------- KV-Diagramm ---------- */
@@ -8377,27 +8418,34 @@ body.beamer .dr text { font-size: inherit; }
   function kvCellNr(n, r, c) { var L = kvLay(n), cv = L[1] === 1 ? c : GRAY[c], rv = L[0] === 1 ? r : GRAY[r]; return (rv << L[1]) | cv; }
   function kvHtml(a) {
     var d = draft && typeof draft === 'object' && !Array.isArray(draft) ? draft : {}; kv = { sel: [], gruppen: (d.gruppen || []).map(function (g) { return g.slice(); }) };
-    return '<div class="kvw"><div class="kv-svg" id="pfKv"></div><div class="kv-side"><p class="hint">Felder anklicken, dann «Päckchen bilden». Ein Päckchen darf auch über den Rand gehen. Die kleine Zahl im Feld ist die Feldnummer.</p>' +
+    return '<div class="kvw"><div class="kv-svg" id="pfKv" style="flex:1 1 ' + (a.n > 4 ? 100 : 0) + '%"></div><div class="kv-side"><p class="hint">Felder anklicken, dann «Päckchen bilden». Ein Päckchen darf auch über den Rand gehen. Die kleine Zahl im Feld ist die Feldnummer.</p>' +
       '<p><button class="tb" data-a="kvgruppe">Päckchen bilden</button> <button class="tb" data-a="kvleer">Auswahl aufheben</button></p><ul class="pf-gl" id="pfGl"></ul>' +
       (a.ausdruck === false ? '' : '<p><label for="pfExpr">Minimalform</label><br><input id="pfExpr" class="tin pf-expr" type="text" autocomplete="off" spellcheck="false" placeholder="A = …" value="' + esc(d.ausdruck || '') + '" style="width:100%"></p><p class="pf-prev" id="pfPrev"></p>') + '</div></div>';
   }
+  /* Bis 4 Eingänge ein Diagramm; 5 Eingänge zwei Diagramme (Schicht e = 0 | e = 1), 6 Eingänge vier (f e = 00, 01, 10, 11): Feldnummer = Schicht · 16 + Feld. Die Buchstaben a bis d sind die Eingänge 1 bis 4 (a = niederwertigstes Bit). */
   function kvDraw() {
-    var a = P.task(cur.aid), n = a.n, L = kvLay(n), R = 1 << L[0], C = 1 << L[1], cw = 58, ch = 44, ox = L[0] === 2 ? 104 : 74, oy = 40, names = ['e1', 'e2', 'e3', 'e4'];
+    var a = P.task(cur.aid), n = a.n, n4 = Math.min(n, 4), L = kvLay(n4), R = 1 << L[0], C = 1 << L[1], cw = 58, ch = 44, ox = L[0] === 2 ? 104 : 74, oy = 40, nm = P.namen(a), layers = n > 4 ? 1 << (n - 4) : 1;
     var on = {}, dc = {}; a.ones.forEach(function (m) { on[m] = 1; }); (a.dc || []).forEach(function (m) { dc[m] = 1; });
-    function lbl(b, k, first) { var g = b === 1 ? k : GRAY[k], s = []; for (var i = b - 1; i >= 0; i--) { var nm = names[first + i]; s.push(g >> i & 1 ? nm : '<tspan class="ovt">' + nm + '̅</tspan>'); } return s.join(' '); }
-    var s = '<svg class="kv" viewBox="0 0 ' + (ox + C * cw + 20) + ' ' + (oy + R * ch + 20) + '" role="img" aria-label="KV-Diagramm mit ' + n + ' Eingängen">', r, c;
-    for (c = 0; c < C; c++) s += '<text class="kv-h" x="' + (ox + c * cw + cw / 2) + '" y="' + (oy - 10) + '">' + lbl(L[1], c, 0) + '</text>';
-    for (r = 0; r < R; r++) s += '<text class="kv-h" x="' + (ox - 10) + '" y="' + (oy + r * ch + ch / 2 + 5) + '" style="text-anchor:end">' + lbl(L[0], r, L[1]) + '</text>';
-    for (r = 0; r < R; r++) for (c = 0; c < C; c++) {
-      var m = kvCellNr(n, r, c), v = on[m] ? '1' : dc[m] ? 'X' : '0', sel = kv.sel.indexOf(m) >= 0;
-      s += '<g class="kv-cell edit' + (sel ? ' sel' : '') + '" data-m="' + m + '" tabindex="0" role="button" aria-label="Feld ' + m + ' Wert ' + v + (sel ? ' ausgewählt' : '') + '"><rect x="' + (ox + c * cw) + '" y="' + (oy + r * ch) + '" width="' + cw + '" height="' + ch + '"/><text class="kv-v' + (v === '1' ? ' one' : v === 'X' ? ' dc' : '') + '" x="' + (ox + c * cw + cw / 2) + '" y="' + (oy + r * ch + ch / 2 + 7) + '">' + v + '</text><text class="kv-m" x="' + (ox + c * cw + 5) + '" y="' + (oy + r * ch + 12) + '">' + m + '</text></g>';
+    var gw = ox + C * cw + 20, gh = oy + R * ch + 20, cols = layers > 2 ? 2 : layers, rows = Math.ceil(layers / cols);
+    function lbl(b, k, first) { var g = b === 1 ? k : GRAY[k], s = []; for (var i = b - 1; i >= 0; i--) { var name = nm(first + i + 1); s.push(g >> i & 1 ? name : '<tspan class="ovt">' + name + '\u0305</tspan>'); } return s.join(' '); }
+    var s = '<svg class="kv" style="max-width:' + (layers > 1 ? 780 : 380) + 'px" viewBox="0 0 ' + (gw * cols) + ' ' + (gh * rows + (layers > 1 ? 18 * rows : 0)) + '" role="img" aria-label="KV-Diagramm mit ' + n + ' Eingängen">', r, c, ly;
+    for (ly = 0; ly < layers; ly++) {
+      var gx = (ly % cols) * gw, gy = Math.floor(ly / cols) * (gh + 18) + (layers > 1 ? 18 : 0);
+      if (layers > 1) { var sl = []; for (var q = n - 5; q >= 0; q--) { var nmq = nm(5 + q); sl.push(ly >> q & 1 ? nmq : '<tspan class="ovt">' + nmq + '\u0305</tspan>'); } s += '<text class="kv-h" x="' + (gx + gw / 2) + '" y="' + (gy - 4) + '">' + sl.join(' ') + '</text>'; }
+      for (c = 0; c < C; c++) s += '<text class="kv-h" x="' + (gx + ox + c * cw + cw / 2) + '" y="' + (gy + oy - 10) + '">' + lbl(L[1], c, 0) + '</text>';
+      for (r = 0; r < R; r++) s += '<text class="kv-h" x="' + (gx + ox - 10) + '" y="' + (gy + oy + r * ch + ch / 2 + 5) + '" style="text-anchor:end">' + lbl(L[0], r, L[1]) + '</text>';
+      for (r = 0; r < R; r++) for (c = 0; c < C; c++) {
+        var m = ly * 16 + kvCellNr(n4, r, c), v = on[m] ? '1' : dc[m] ? 'X' : '0', sel = kv.sel.indexOf(m) >= 0;
+        s += '<g class="kv-cell edit' + (sel ? ' sel' : '') + '" data-m="' + m + '" tabindex="0" role="button" aria-label="Feld ' + m + ' Wert ' + v + (sel ? ' ausgewählt' : '') + '"><rect x="' + (gx + ox + c * cw) + '" y="' + (gy + oy + r * ch) + '" width="' + cw + '" height="' + ch + '"/><text class="kv-v' + (v === '1' ? ' one' : v === 'X' ? ' dc' : '') + '" x="' + (gx + ox + c * cw + cw / 2) + '" y="' + (gy + oy + r * ch + ch / 2 + 7) + '">' + v + '</text><text class="kv-m" x="' + (gx + ox + c * cw + 5) + '" y="' + (gy + oy + r * ch + 12) + '">' + m + '</text></g>';
+      }
+      kv.gruppen.forEach(function (g, gi) {
+        var rows = {}, colsS = {}, col = LOOP[gi % LOOP.length], ins = 4 + (gi % 3) * 3, any = false;
+        for (var rr = 0; rr < R; rr++) for (var cc = 0; cc < C; cc++) if (g.indexOf(ly * 16 + kvCellNr(n4, rr, cc)) >= 0) { rows[rr] = 1; colsS[cc] = 1; any = true; }
+        if (!any) return;
+        function segs(set) { var ks = Object.keys(set).map(Number).sort(function (x, y) { return x - y; }), res = [], curS = null; ks.forEach(function (k) { if (curS && k === curS[1] + 1) curS[1] = k; else { curS = [k, k]; res.push(curS); } }); return res; }
+        segs(rows).forEach(function (rs) { segs(colsS).forEach(function (cs) { s += '<rect class="kv-loop" x="' + (gx + ox + cs[0] * cw + ins) + '" y="' + (gy + oy + rs[0] * ch + ins) + '" width="' + ((cs[1] - cs[0] + 1) * cw - 2 * ins) + '" height="' + ((rs[1] - rs[0] + 1) * ch - 2 * ins) + '" rx="14" style="stroke:' + col + '"/>'; }); });
+      });
     }
-    kv.gruppen.forEach(function (g, gi) {
-      var rows = {}, cols = {}, col = LOOP[gi % LOOP.length], ins = 4 + (gi % 3) * 3;
-      for (var rr = 0; rr < R; rr++) for (var cc = 0; cc < C; cc++) if (g.indexOf(kvCellNr(n, rr, cc)) >= 0) { rows[rr] = 1; cols[cc] = 1; }
-      function segs(set) { var ks = Object.keys(set).map(Number).sort(function (x, y) { return x - y; }), res = [], curS = null; ks.forEach(function (k) { if (curS && k === curS[1] + 1) curS[1] = k; else { curS = [k, k]; res.push(curS); } }); return res; }
-      segs(rows).forEach(function (rs) { segs(cols).forEach(function (cs) { s += '<rect class="kv-loop" x="' + (ox + cs[0] * cw + ins) + '" y="' + (oy + rs[0] * ch + ins) + '" width="' + ((cs[1] - cs[0] + 1) * cw - 2 * ins) + '" height="' + ((rs[1] - rs[0] + 1) * ch - 2 * ins) + '" rx="14" style="stroke:' + col + '"/>'; }); });
-    });
     $('#pfKv').innerHTML = s + '</svg>';
     $('#pfGl').innerHTML = kv.gruppen.map(function (g, gi) { return '<li><span class="pf-sw" style="background:' + LOOP[gi % LOOP.length] + '"></span> Päckchen ' + (gi + 1) + ': Felder ' + g.join(', ') + ' <button class="tb" data-a="kvweg" data-gi="' + gi + '" aria-label="Päckchen ' + (gi + 1) + ' entfernen">✕</button></li>'; }).join('');
     previewExpr();
@@ -8442,8 +8490,8 @@ body.beamer .dr text { font-size: inherit; }
     var box = $('#pfSol') || $('#pfpSol'); if (!box) return; var m = P.muster(a), h = '<div class="pf-sol"><h3>Lösung</h3>';
     switch (a.art) {
       case 'tabelle': h += '<div class="pf-tw"><table class="itab"><thead><tr>' + a.kopf.map(function (k) { return '<th>' + esc(k) + '</th>'; }).join('') + '</tr></thead><tbody>' + a.zeilen.map(function (row, r) { return '<tr>' + row.map(function (c, ci) { return '<td' + (P.isAns(c) ? ' class="act"' : '') + '>' + (P.isAns(c) ? esc([].concat(c.a)[0]) : c && typeof c === 'object' ? c.html : esc(c)) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>'; break;
-      case 'ausdruck': h += '<p class="pf-expr">' + fmt(m) + '</p>'; break;
-      case 'kv': h += '<p>Päckchen: ' + m.gruppen.map(function (g, i) { return (i + 1) + ': Felder ' + g.join(', '); }).join(' · ') + '</p><p class="pf-expr">' + fmt(m.ausdruck) + '</p>'; break;
+      case 'ausdruck': h += '<p class="pf-expr">' + fmt(m, a) + '</p>'; break;
+      case 'kv': h += '<p>Päckchen: ' + m.gruppen.map(function (g, i) { return (i + 1) + ': Felder ' + g.join(', '); }).join(' · ') + '</p><p class="pf-expr">' + fmt(m.ausdruck, a) + '</p>'; break;
       case 'fragen': h += '<ol>' + a.fragen.map(function (q, i) { return '<li>' + [].concat(q.richtig).map(function (j) { return q.opt[j]; }).join(' · ') + (q.erkl ? ' <span class="hint">' + esc(q.erkl) + '</span>' : '') + '</li>'; }).join('') + '</ol>'; break;
       case 'vergleich': h += (a.zeigeMuster || '') ; break;
       default: h += '<p>So kann die Lösung aussehen (die Schaltung öffnet sich im Editor – deine eigene bleibt unverändert):</p><p><button class="tb" data-a="musterladen">Musterlösung im Editor ansehen</button></p>';

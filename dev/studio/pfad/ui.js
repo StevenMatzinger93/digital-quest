@@ -96,10 +96,10 @@
   var kv = null;    // KV-Zustand: {sel:[], gruppen:[]}
   function kopfHtml(a) {
     var e = P.eintrag(stand, a.id), h = '<h2>' + esc(a.titel) + (P.pflicht(a) ? '' : ' <span class="pf-tag fw">freiwillig</span>') + '</h2>' + a.text;
-    if (a.gegeben) h += '<p class="pf-gegeben"><b>A =</b> ' + fmt(a.gegeben) + '</p>';
+    if (a.gegeben) h += '<p class="pf-gegeben"><b>A =</b> ' + fmt(a.gegeben, a) + '</p>';
     return h;
   }
-  function fmt(text) { try { var p = B.parse(text); return B.fmtHtml(B.clean(p.exprs[p.exprs.length - 1])); } catch (e) { return esc(text); } }
+  function fmt(text, a) { try { var p = B.parse(text, a && a.buchstaben ? { letters: a.buchstaben } : undefined); return B.fmtHtml(B.clean(p.exprs[p.exprs.length - 1]), 0, P.namen(a)); } catch (e) { return esc(text); } }
   function mountTask(a) {
     var w = $('#pfWork'); if (!w || !a) return; var e = P.eintrag(stand, a.id), h = kopfHtml(a);
     draft = e && e.antwort != null ? clone(e.antwort) : null;
@@ -155,9 +155,9 @@
     return '<p><label for="pfText">Was hast du gefunden? (kurz aufschreiben, das Diagramm zeichnest du auf Papier)</label><br><textarea id="pfText" class="tin" rows="4" style="width:100%">' + esc(draft.text || '') + '</textarea></p>';
   }
   function previewExpr() {
-    var el = $('#pfExpr'), pv = $('#pfPrev'); if (!el || !pv) return; var v = el.value.trim();
+    var el = $('#pfExpr'), pv = $('#pfPrev'); if (!el || !pv) return; var v = el.value.trim(), t = P.task(cur.aid);
     if (!v) { pv.innerHTML = ''; return; }
-    try { var p = B.parse(v); pv.innerHTML = 'So liest die Software es: <b>' + B.fmtHtml(B.clean(p.exprs[p.exprs.length - 1])) + '</b>'; } catch (e) { pv.innerHTML = '<span class="bad">' + esc(e.message) + '</span>'; }
+    try { var p = B.parse(v, t && t.buchstaben ? { letters: t.buchstaben } : undefined); pv.innerHTML = 'So liest die Software es: <b>' + B.fmtHtml(B.clean(p.exprs[p.exprs.length - 1]), 0, P.namen(t)) + '</b>'; } catch (e) { pv.innerHTML = '<span class="bad">' + esc(e.message) + '</span>'; }
   }
 
   /* ---------- KV-Diagramm ---------- */
@@ -166,27 +166,34 @@
   function kvCellNr(n, r, c) { var L = kvLay(n), cv = L[1] === 1 ? c : GRAY[c], rv = L[0] === 1 ? r : GRAY[r]; return (rv << L[1]) | cv; }
   function kvHtml(a) {
     var d = draft && typeof draft === 'object' && !Array.isArray(draft) ? draft : {}; kv = { sel: [], gruppen: (d.gruppen || []).map(function (g) { return g.slice(); }) };
-    return '<div class="kvw"><div class="kv-svg" id="pfKv"></div><div class="kv-side"><p class="hint">Felder anklicken, dann «Päckchen bilden». Ein Päckchen darf auch über den Rand gehen. Die kleine Zahl im Feld ist die Feldnummer.</p>' +
+    return '<div class="kvw"><div class="kv-svg" id="pfKv" style="flex:1 1 ' + (a.n > 4 ? 100 : 0) + '%"></div><div class="kv-side"><p class="hint">Felder anklicken, dann «Päckchen bilden». Ein Päckchen darf auch über den Rand gehen. Die kleine Zahl im Feld ist die Feldnummer.</p>' +
       '<p><button class="tb" data-a="kvgruppe">Päckchen bilden</button> <button class="tb" data-a="kvleer">Auswahl aufheben</button></p><ul class="pf-gl" id="pfGl"></ul>' +
       (a.ausdruck === false ? '' : '<p><label for="pfExpr">Minimalform</label><br><input id="pfExpr" class="tin pf-expr" type="text" autocomplete="off" spellcheck="false" placeholder="A = …" value="' + esc(d.ausdruck || '') + '" style="width:100%"></p><p class="pf-prev" id="pfPrev"></p>') + '</div></div>';
   }
+  /* Bis 4 Eingänge ein Diagramm; 5 Eingänge zwei Diagramme (Schicht e = 0 | e = 1), 6 Eingänge vier (f e = 00, 01, 10, 11): Feldnummer = Schicht · 16 + Feld. Die Buchstaben a bis d sind die Eingänge 1 bis 4 (a = niederwertigstes Bit). */
   function kvDraw() {
-    var a = P.task(cur.aid), n = a.n, L = kvLay(n), R = 1 << L[0], C = 1 << L[1], cw = 58, ch = 44, ox = L[0] === 2 ? 104 : 74, oy = 40, names = ['e1', 'e2', 'e3', 'e4'];
+    var a = P.task(cur.aid), n = a.n, n4 = Math.min(n, 4), L = kvLay(n4), R = 1 << L[0], C = 1 << L[1], cw = 58, ch = 44, ox = L[0] === 2 ? 104 : 74, oy = 40, nm = P.namen(a), layers = n > 4 ? 1 << (n - 4) : 1;
     var on = {}, dc = {}; a.ones.forEach(function (m) { on[m] = 1; }); (a.dc || []).forEach(function (m) { dc[m] = 1; });
-    function lbl(b, k, first) { var g = b === 1 ? k : GRAY[k], s = []; for (var i = b - 1; i >= 0; i--) { var nm = names[first + i]; s.push(g >> i & 1 ? nm : '<tspan class="ovt">' + nm + '̅</tspan>'); } return s.join(' '); }
-    var s = '<svg class="kv" viewBox="0 0 ' + (ox + C * cw + 20) + ' ' + (oy + R * ch + 20) + '" role="img" aria-label="KV-Diagramm mit ' + n + ' Eingängen">', r, c;
-    for (c = 0; c < C; c++) s += '<text class="kv-h" x="' + (ox + c * cw + cw / 2) + '" y="' + (oy - 10) + '">' + lbl(L[1], c, 0) + '</text>';
-    for (r = 0; r < R; r++) s += '<text class="kv-h" x="' + (ox - 10) + '" y="' + (oy + r * ch + ch / 2 + 5) + '" style="text-anchor:end">' + lbl(L[0], r, L[1]) + '</text>';
-    for (r = 0; r < R; r++) for (c = 0; c < C; c++) {
-      var m = kvCellNr(n, r, c), v = on[m] ? '1' : dc[m] ? 'X' : '0', sel = kv.sel.indexOf(m) >= 0;
-      s += '<g class="kv-cell edit' + (sel ? ' sel' : '') + '" data-m="' + m + '" tabindex="0" role="button" aria-label="Feld ' + m + ' Wert ' + v + (sel ? ' ausgewählt' : '') + '"><rect x="' + (ox + c * cw) + '" y="' + (oy + r * ch) + '" width="' + cw + '" height="' + ch + '"/><text class="kv-v' + (v === '1' ? ' one' : v === 'X' ? ' dc' : '') + '" x="' + (ox + c * cw + cw / 2) + '" y="' + (oy + r * ch + ch / 2 + 7) + '">' + v + '</text><text class="kv-m" x="' + (ox + c * cw + 5) + '" y="' + (oy + r * ch + 12) + '">' + m + '</text></g>';
+    var gw = ox + C * cw + 20, gh = oy + R * ch + 20, cols = layers > 2 ? 2 : layers, rows = Math.ceil(layers / cols);
+    function lbl(b, k, first) { var g = b === 1 ? k : GRAY[k], s = []; for (var i = b - 1; i >= 0; i--) { var name = nm(first + i + 1); s.push(g >> i & 1 ? name : '<tspan class="ovt">' + name + '\u0305</tspan>'); } return s.join(' '); }
+    var s = '<svg class="kv" style="max-width:' + (layers > 1 ? 780 : 380) + 'px" viewBox="0 0 ' + (gw * cols) + ' ' + (gh * rows + (layers > 1 ? 18 * rows : 0)) + '" role="img" aria-label="KV-Diagramm mit ' + n + ' Eingängen">', r, c, ly;
+    for (ly = 0; ly < layers; ly++) {
+      var gx = (ly % cols) * gw, gy = Math.floor(ly / cols) * (gh + 18) + (layers > 1 ? 18 : 0);
+      if (layers > 1) { var sl = []; for (var q = n - 5; q >= 0; q--) { var nmq = nm(5 + q); sl.push(ly >> q & 1 ? nmq : '<tspan class="ovt">' + nmq + '\u0305</tspan>'); } s += '<text class="kv-h" x="' + (gx + gw / 2) + '" y="' + (gy - 4) + '">' + sl.join(' ') + '</text>'; }
+      for (c = 0; c < C; c++) s += '<text class="kv-h" x="' + (gx + ox + c * cw + cw / 2) + '" y="' + (gy + oy - 10) + '">' + lbl(L[1], c, 0) + '</text>';
+      for (r = 0; r < R; r++) s += '<text class="kv-h" x="' + (gx + ox - 10) + '" y="' + (gy + oy + r * ch + ch / 2 + 5) + '" style="text-anchor:end">' + lbl(L[0], r, L[1]) + '</text>';
+      for (r = 0; r < R; r++) for (c = 0; c < C; c++) {
+        var m = ly * 16 + kvCellNr(n4, r, c), v = on[m] ? '1' : dc[m] ? 'X' : '0', sel = kv.sel.indexOf(m) >= 0;
+        s += '<g class="kv-cell edit' + (sel ? ' sel' : '') + '" data-m="' + m + '" tabindex="0" role="button" aria-label="Feld ' + m + ' Wert ' + v + (sel ? ' ausgewählt' : '') + '"><rect x="' + (gx + ox + c * cw) + '" y="' + (gy + oy + r * ch) + '" width="' + cw + '" height="' + ch + '"/><text class="kv-v' + (v === '1' ? ' one' : v === 'X' ? ' dc' : '') + '" x="' + (gx + ox + c * cw + cw / 2) + '" y="' + (gy + oy + r * ch + ch / 2 + 7) + '">' + v + '</text><text class="kv-m" x="' + (gx + ox + c * cw + 5) + '" y="' + (gy + oy + r * ch + 12) + '">' + m + '</text></g>';
+      }
+      kv.gruppen.forEach(function (g, gi) {
+        var rows = {}, colsS = {}, col = LOOP[gi % LOOP.length], ins = 4 + (gi % 3) * 3, any = false;
+        for (var rr = 0; rr < R; rr++) for (var cc = 0; cc < C; cc++) if (g.indexOf(ly * 16 + kvCellNr(n4, rr, cc)) >= 0) { rows[rr] = 1; colsS[cc] = 1; any = true; }
+        if (!any) return;
+        function segs(set) { var ks = Object.keys(set).map(Number).sort(function (x, y) { return x - y; }), res = [], curS = null; ks.forEach(function (k) { if (curS && k === curS[1] + 1) curS[1] = k; else { curS = [k, k]; res.push(curS); } }); return res; }
+        segs(rows).forEach(function (rs) { segs(colsS).forEach(function (cs) { s += '<rect class="kv-loop" x="' + (gx + ox + cs[0] * cw + ins) + '" y="' + (gy + oy + rs[0] * ch + ins) + '" width="' + ((cs[1] - cs[0] + 1) * cw - 2 * ins) + '" height="' + ((rs[1] - rs[0] + 1) * ch - 2 * ins) + '" rx="14" style="stroke:' + col + '"/>'; }); });
+      });
     }
-    kv.gruppen.forEach(function (g, gi) {
-      var rows = {}, cols = {}, col = LOOP[gi % LOOP.length], ins = 4 + (gi % 3) * 3;
-      for (var rr = 0; rr < R; rr++) for (var cc = 0; cc < C; cc++) if (g.indexOf(kvCellNr(n, rr, cc)) >= 0) { rows[rr] = 1; cols[cc] = 1; }
-      function segs(set) { var ks = Object.keys(set).map(Number).sort(function (x, y) { return x - y; }), res = [], curS = null; ks.forEach(function (k) { if (curS && k === curS[1] + 1) curS[1] = k; else { curS = [k, k]; res.push(curS); } }); return res; }
-      segs(rows).forEach(function (rs) { segs(cols).forEach(function (cs) { s += '<rect class="kv-loop" x="' + (ox + cs[0] * cw + ins) + '" y="' + (oy + rs[0] * ch + ins) + '" width="' + ((cs[1] - cs[0] + 1) * cw - 2 * ins) + '" height="' + ((rs[1] - rs[0] + 1) * ch - 2 * ins) + '" rx="14" style="stroke:' + col + '"/>'; }); });
-    });
     $('#pfKv').innerHTML = s + '</svg>';
     $('#pfGl').innerHTML = kv.gruppen.map(function (g, gi) { return '<li><span class="pf-sw" style="background:' + LOOP[gi % LOOP.length] + '"></span> Päckchen ' + (gi + 1) + ': Felder ' + g.join(', ') + ' <button class="tb" data-a="kvweg" data-gi="' + gi + '" aria-label="Päckchen ' + (gi + 1) + ' entfernen">✕</button></li>'; }).join('');
     previewExpr();
@@ -231,8 +238,8 @@
     var box = $('#pfSol') || $('#pfpSol'); if (!box) return; var m = P.muster(a), h = '<div class="pf-sol"><h3>Lösung</h3>';
     switch (a.art) {
       case 'tabelle': h += '<div class="pf-tw"><table class="itab"><thead><tr>' + a.kopf.map(function (k) { return '<th>' + esc(k) + '</th>'; }).join('') + '</tr></thead><tbody>' + a.zeilen.map(function (row, r) { return '<tr>' + row.map(function (c, ci) { return '<td' + (P.isAns(c) ? ' class="act"' : '') + '>' + (P.isAns(c) ? esc([].concat(c.a)[0]) : c && typeof c === 'object' ? c.html : esc(c)) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>'; break;
-      case 'ausdruck': h += '<p class="pf-expr">' + fmt(m) + '</p>'; break;
-      case 'kv': h += '<p>Päckchen: ' + m.gruppen.map(function (g, i) { return (i + 1) + ': Felder ' + g.join(', '); }).join(' · ') + '</p><p class="pf-expr">' + fmt(m.ausdruck) + '</p>'; break;
+      case 'ausdruck': h += '<p class="pf-expr">' + fmt(m, a) + '</p>'; break;
+      case 'kv': h += '<p>Päckchen: ' + m.gruppen.map(function (g, i) { return (i + 1) + ': Felder ' + g.join(', '); }).join(' · ') + '</p><p class="pf-expr">' + fmt(m.ausdruck, a) + '</p>'; break;
       case 'fragen': h += '<ol>' + a.fragen.map(function (q, i) { return '<li>' + [].concat(q.richtig).map(function (j) { return q.opt[j]; }).join(' · ') + (q.erkl ? ' <span class="hint">' + esc(q.erkl) + '</span>' : '') + '</li>'; }).join('') + '</ol>'; break;
       case 'vergleich': h += (a.zeigeMuster || '') ; break;
       default: h += '<p>So kann die Lösung aussehen (die Schaltung öffnet sich im Editor – deine eigene bleibt unverändert):</p><p><button class="tb" data-a="musterladen">Musterlösung im Editor ansehen</button></p>';

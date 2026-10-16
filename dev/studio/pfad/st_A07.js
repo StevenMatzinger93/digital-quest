@@ -1,35 +1,32 @@
-/* Lernpfad Station A7 – DNF und KNF. Förderband mit zwei Tastern; die Tabelle wird aus der Aufgabe gerechnet, beide Normalformen und beide Schaltungen
- * aus der Tabelle (kanonisch). Freiwillig: Mehrheitsentscheid mit drei Tastern. */
+/* Lernpfad Station A7 – DNF und KNF: Förderband-Aufgabe aus Stevens Lehrmittel (docs/aufgaben/AUFGABEN_ORIGINAL.md, Wortlaut). Eingänge E1 (niederwertig) und E2, Ausgang A.
+ * Die Zusatzaufgabe «Mehrheitsentscheid» ist EIGEN (nicht aus Stevens Serie) und ausdrücklich freiwillig. */
 (function (root) {
   'use strict';
   var P = root.DQPfad;
-  var fb = function (e) { return e[0] ^ e[1]; };                               // Band läuft, wenn genau ein Taster gedrückt ist
-  var mj = function (e) { return (e[0] + e[1] + e[2]) >= 2 ? 1 : 0; };          // Mehrheit: mindestens zwei von drei
-  var w2 = P.wahrheit({ ein: ['e1', 'e2'], aus: ['A'], f: function (e) { return [fb(e)]; } }), ones2 = P.einsen(2, function (e) { return [fb(e)]; });
-  var ones3 = P.einsen(3, function (e) { return [mj(e)]; });
-  var w3 = P.wahrheit({ ein: ['e1', 'e2', 'e3'], aus: ['A'], f: function (e) { return [mj(e)]; } });
+  var tab = [[0, 0, 0, 0], [1, 0, 1, 1], [2, 1, 0, 1], [3, 1, 1, 1]]; // Dez, E2, E1, A
+  var ones2 = [1, 2, 3];
+  var tabelleHtml = '<table class="itab" style="width:auto;font-family:var(--font-ui)"><thead><tr><th>Dez</th><th>E2</th><th>E1</th><th>A</th></tr></thead><tbody>' + tab.map(function (r) { return '<tr>' + r.map(function (x) { return '<td>' + x + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>';
+  var mj = function (e) { return (e[0] + e[1] + e[2]) >= 2 ? 1 : 0; };
+  var w3 = P.wahrheit({ ein: ['e1', 'e2', 'e3'], aus: ['A'], f: function (e) { return [mj(e)]; } }), ones3 = P.einsen(3, function (e) { return [mj(e)]; });
+  var aufg = '<p><b>Aufgabe.</b> Ein Förderband (A) kann durch die Taster E1 bzw. E2 in Bewegung gesetzt werden. Beim Loslassen hält das Band wieder an.</p><p>Erstelle die Schaltung bzw. den logischen Ausdruck für die unten aufgeführte Wahrheitstabelle für die beiden Möglichkeiten DNF und KNF.</p>' + tabelleHtml;
   P.station({
-    id: 'A7', teil: 'A', nr: 7, titel: 'DNF und KNF', kurz: 'Aus der Wahrheitstabelle zur Schaltung – auf zwei Wegen',
-    einfuehrung: '<p>Aus jeder Wahrheitstabelle lässt sich ein Ausdruck gewinnen, ganz mechanisch:</p><ul><li><b>Disjunktive Normalform (DNF):</b> für jede Zeile mit <b>A = 1</b> ein UND-Glied, in dem <b>alle</b> Eingänge vorkommen (Eingang 1 → e, Eingang 0 → überstrichen). Alle Glieder werden mit ODER verbunden.</li><li><b>Konjunktive Normalform (KNF):</b> für jede Zeile mit <b>A = 0</b> eine ODER-Klammer, in der <b>alle</b> Eingänge vorkommen, aber umgekehrt (Eingang 0 → e, Eingang 1 → überstrichen). Alle Klammern werden mit UND verbunden.</li></ul><p>Beide Formen beschreiben dieselbe Funktion. Du baust beide Schaltungen und die Software prüft, dass sie dasselbe tun.</p>',
-    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    id: 'A7', teil: 'A', nr: 7, titel: 'DNF und KNF', kurz: 'Förderband: aus der Wahrheitstabelle zur Schaltung – auf zwei Wegen',
+    einfuehrung: '<p>Aus jeder Wahrheitstabelle lässt sich ein Ausdruck gewinnen, ganz mechanisch. So steht es im Lehrmittel:</p><ol><li><b>DNF</b> – Schaltung nach <b>positiver Logik</b> am Ausgang: Wenn A = 1, die Eingänge «verunden» und den Term mit jeder weiteren Möglichkeit «verodern».</li><li><b>KNF</b> – Schaltung nach <b>negativer Logik</b> am Ausgang: Wenn A = 0, die Eingänge «verodern» und jeden weiteren Ausgangsterm «verunden» (Klammern setzen). Zudem werden alle Eingänge negiert.</li></ol><p>Beide Formen beschreiben dieselbe Funktion. In der Übungsserie der Booleschen Algebra (A8, Aufgabe 1) zeigst du das durch Vereinfachen der DNF.</p><p>Schreibweise: ODER = <code>v</code> (auch <code>+</code>), UND = Nebeneinanderstellen (auch <code>*</code>), NICHT = Überstreichung (getippt <code>/e1</code>, <code>e1\'</code> oder <code>n(e1)</code>). In der Wahrheitstabelle ist E1 das niederwertige Bit (Dez = E2·2 + E1).</p>',
+    verweis: 'Aufgabe aus Stevens Lehrmittel «Digitaltechnik stationäre Vorgänge». Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
     aufgaben: [
-      { id: 'A7.1', titel: 'Förderband: Wahrheitstabelle', art: 'tabelle', kopf: w2.kopf, zeilen: w2.zeilen,
-        text: '<p><b>Förderband.</b> Ein Band wird von zwei Tastern bedient: e1 = Taster links, e2 = Taster rechts (gedrückt = 1). Das Band (A) soll nur laufen, wenn <b>genau ein</b> Taster gedrückt ist – damit niemand mit beiden Händen gleichzeitig am Band hantiert. Fülle die Wahrheitstabelle aus.</p>' },
-      { id: 'A7.2', titel: 'Förderband: disjunktive Normalform', art: 'ausdruck', n: 2, ones: ones2, form: 'dnf',
-        text: '<p>Schreibe die <b>DNF</b> des Förderbands: ein UND-Glied je Zeile mit A = 1, alle Glieder mit ODER.</p>', hilfe: 'Zeile e1 = 1, e2 = 0 wird zu e1/e2 (NICHT mit dem Schrägstrich).' },
-      { id: 'A7.3', titel: 'Förderband: konjunktive Normalform', art: 'ausdruck', n: 2, ones: ones2, form: 'knf',
-        text: '<p>Schreibe die <b>KNF</b> des Förderbands: eine ODER-Klammer je Zeile mit A = 0, die Klammern mit UND verbunden. Eingang 0 → e, Eingang 1 → überstrichen.</p>', hilfe: 'Zeile e1 = 0, e2 = 0 wird zur Klammer (e1 v e2).' },
-      { id: 'A7.4', titel: 'Förderband: beide Schaltungen bauen', art: 'schaltung', n: 2, ausgaenge: 2, f: function (e) { var x = fb(e); return [x, x]; }, getrennt: true, start: P.startNetz(2, 2), muster: P.netzDNFundKNF(2, ones2),
-        text: '<p>Baue <b>beide</b> Schaltungen: Die Anzeige <b>L1</b> hängt an der Schaltung der DNF, die Anzeige <b>L2</b> an der Schaltung der KNF. Beide Schaltungen haben ihre eigenen Gatter, nur die Pegelschalter sind gemeinsam. Beide Anzeigen müssen bei jeder Taster-Stellung dasselbe zeigen.</p>', hilfe: 'DNF: UND-Gatter für die Glieder, ein ODER dahinter. KNF: ODER-Gatter für die Klammern, ein UND dahinter. NICHT-Glieder für die überstrichenen Eingänge.' },
-      { id: 'A7.5', titel: 'Prüffragen Normalformen', art: 'fragen', text: '<p>Vier kurze Fragen.</p>', fragen: [
+      { id: 'A7.1', titel: 'Förderband: DNF', art: 'ausdruck', n: 2, ones: ones2, form: 'dnf', text: aufg + '<p><b>a)</b> Gib den Ausdruck als <b>DNF</b> an.</p>', hilfe: 'Eine Zeile mit A = 1 wird ein UND-Glied (Eingang 0 → überstrichen), alle Glieder mit ODER. Die Zeile Dez 1 (E2 = 0, E1 = 1) heisst E1 · /E2.' },
+      { id: 'A7.2', titel: 'Förderband: KNF', art: 'ausdruck', n: 2, ones: ones2, form: 'knf', text: aufg + '<p><b>b)</b> Gib den Ausdruck als <b>KNF</b> an.</p>', hilfe: 'Nur die Zeile Dez 0 hat A = 0. Eingang 0 → e (nicht überstrichen), Eingang 1 → überstrichen.' },
+      { id: 'A7.3', titel: 'Förderband: beide Schaltungen bauen', art: 'schaltung', n: 2, ausgaenge: 2, f: function (e) { var x = e[0] | e[1]; return [x, x]; }, getrennt: true, start: P.startNetz(2, 2), muster: P.netzDNFundKNF(2, ones2),
+        text: aufg + '<p><b>c)</b> Baue <b>beide</b> Schaltungen: <b>L1</b> hängt an der Schaltung der DNF, <b>L2</b> an der der KNF. Beide Schaltungen haben ihre eigenen Gatter, nur die Pegelschalter E1 und E2 sind gemeinsam. Die Software prüft, dass beide Anzeigen bei jeder Taster-Stellung dasselbe zeigen wie die Tabelle.</p>', hilfe: 'DNF: UND-Gatter für die Glieder (NICHT-Glieder für überstrichene Eingänge), ein ODER dahinter. KNF: ein ODER mit den Eingängen.' },
+      { id: 'A7.4', titel: 'Prüffragen Normalformen', art: 'fragen', text: '<p>Vier kurze Fragen.</p>', fragen: [
         { q: 'Eine Wahrheitstabelle mit drei Eingängen hat fünf Zeilen mit A = 1. Wie viele Glieder hat die DNF?', opt: ['3', '5', '8', '3 × 5'], richtig: 1, erkl: 'Ein Glied je Zeile mit A = 1.' },
         { q: 'Dieselbe Tabelle: Wie viele Klammern hat die KNF?', opt: ['3', '5', '8', '2'], richtig: 0, erkl: 'Eine Klammer je Zeile mit A = 0: 8 − 5 = 3.' },
         { q: 'Welche Form verwendet man, wenn es nur wenige Zeilen mit A = 1 gibt?', opt: ['DNF', 'KNF', 'Beide brauchen gleich viel', 'Keine'], richtig: 0, erkl: 'Die DNF hat ein Glied je Eins – bei wenigen Einsen wird sie kurz.' },
         { q: 'Was haben DNF und KNF derselben Funktion gemeinsam?', opt: ['Die Zahl der Glieder', 'Sie beschreiben dieselbe Wahrheitstabelle', 'Die Zahl der NICHT-Glieder', 'Nichts'], richtig: 1, erkl: 'Beide sind nur verschiedene Schreibweisen derselben Funktion.' }] },
-      { id: 'A7.6', titel: 'Mehrheitsentscheid: Tabelle', pflicht: false, art: 'tabelle', kopf: w3.kopf, zeilen: w3.zeilen,
-        text: '<p><b>Freiwillig.</b> Drei Taster entscheiden: Die Lampe A leuchtet, wenn <b>mindestens zwei</b> Taster gedrückt sind. Fülle die Wahrheitstabelle aus.</p>' },
-      { id: 'A7.7', titel: 'Mehrheitsentscheid: DNF', pflicht: false, art: 'ausdruck', n: 3, ones: ones3, form: 'dnf', text: '<p><b>Freiwillig.</b> Schreibe die DNF des Mehrheitsentscheids.</p>' },
-      { id: 'A7.8', titel: 'Mehrheitsentscheid: KNF', pflicht: false, art: 'ausdruck', n: 3, ones: ones3, form: 'knf', text: '<p><b>Freiwillig.</b> Schreibe die KNF des Mehrheitsentscheids.</p>' }
+      { id: 'A7.5', titel: 'Zusatz (eigene Übung, nicht aus der Serie): Mehrheitsentscheid, Tabelle', pflicht: false, art: 'tabelle', kopf: w3.kopf, zeilen: w3.zeilen,
+        text: '<p><b>Freiwillige Zusatzaufgabe, nicht aus Stevens Serie.</b> Drei Taster entscheiden: Die Lampe A leuchtet, wenn <b>mindestens zwei</b> Taster gedrückt sind. Fülle die Wahrheitstabelle aus.</p>' },
+      { id: 'A7.6', titel: 'Zusatz (eigene Übung): Mehrheitsentscheid, DNF', pflicht: false, art: 'ausdruck', n: 3, ones: ones3, form: 'dnf', text: '<p><b>Freiwillige Zusatzaufgabe, nicht aus Stevens Serie.</b> Schreibe die DNF des Mehrheitsentscheids.</p>' },
+      { id: 'A7.7', titel: 'Zusatz (eigene Übung): Mehrheitsentscheid, KNF', pflicht: false, art: 'ausdruck', n: 3, ones: ones3, form: 'knf', text: '<p><b>Freiwillige Zusatzaufgabe, nicht aus Stevens Serie.</b> Schreibe die KNF des Mehrheitsentscheids.</p>' }
     ]
   });
 })(typeof window !== 'undefined' ? window : globalThis);

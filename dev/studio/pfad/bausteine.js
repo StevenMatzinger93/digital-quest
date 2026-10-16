@@ -4,8 +4,14 @@
 (function (root) {
   'use strict';
   var P = root.DQPfad;
+  /* Stevens Originalserien (docs/aufgaben/*.json): im Browser von studio/pfad/serien.js (vom Build aus den JSON-Dateien erzeugt), in Node direkt aus den Dateien */
+  P.serie = function (name) {
+    if (P.SERIEN && P.SERIEN[name]) return P.SERIEN[name];
+    if (typeof require !== 'undefined') return require('../../../docs/aufgaben/' + (name === 'algebra' ? 'boolesche_algebra' : 'kv_diagramm') + '.json');
+    throw new Error('Serie ' + name + ' fehlt');
+  };
   /* Ausdruck (Text, Schreibweise des Lehrmittels) → Funktion e → 0/1 mit e = [e1, e2, …]; gerechnet vom Parser, nicht von Hand */
-  P.formel = function (text) { var B = root.DQStudioBool, ast = B.clean(B.parse(text).exprs[0]); return function (e) { var v = {}; e.forEach(function (x, i) { v[i + 1] = x; }); return B.evalAst(ast, v); }; };
+  P.formel = function (text, buchstaben) { var B = root.DQStudioBool, ast = B.clean(B.parse(text, buchstaben ? { letters: buchstaben } : undefined).exprs[0]); return function (e) { var v = {}; e.forEach(function (x, i) { v[i + 1] = x; }); return B.evalAst(ast, v); }; };
   P.wertMSB = function (e) { var v = 0; e.forEach(function (x) { v = v * 2 + x; }); return v; };            // e = [höchstes Bit … niedrigstes]
   P.wertLSB = function (e) { var v = 0; e.forEach(function (x, i) { v += x << i; }); return v; };            // e = [niedrigstes Bit … höchstes] (e1 = Bit 0)
   /* Wahrheitstabelle als Tabellenaufgabe: ein = Namen der Eingänge links, aus = Namen der Ausgänge (auszufüllen), f(e) → Liste der Ausgänge (0/1/'X'), e = [e1, e2, …] */
