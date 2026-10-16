@@ -86,6 +86,7 @@ async function route(req, env, url, ctx){
   if((mm = p.match(/^\/api\/classes\/(\d+)\/students$/)) && m === 'POST') return createStudents(C, +mm[1]);
   if((mm = p.match(/^\/api\/students\/(\d+)\/reset$/)) && m === 'POST') return resetPassword(C, +mm[1], 'student');
   if((mm = p.match(/^\/api\/students\/(\d+)\/progress\/([a-z]+)$/)) && m === 'GET') return studentProgress(C, +mm[1], mm[2]);
+  if((mm = p.match(/^\/api\/students\/(\d+)\/progress\/([a-z]+)\/reset$/)) && m === 'POST') return resetStation(C, +mm[1], mm[2]);
   if((mm = p.match(/^\/api\/students\/(\d+)$/)) && m === 'DELETE') return deleteStudent(C, +mm[1]);
   fail(404, 'Unbekannte Adresse.');
 }
@@ -480,6 +481,28 @@ async function studentProgress(C, id, quest){
   const s = await studentOf(C, id);
   const r = await C.db.prepare('SELECT state, summary, updated_at FROM progress WHERE user_id = ? AND quest = ?').bind(s.id, quest).first();
   return json({ student: { id: s.id, username: s.username, noticeAck: !!s.notice_ack }, state: r ? JSON.parse(r.state) : null, summary: r ? JSON.parse(r.summary || '{}') : null, updatedAt: r ? r.updated_at : 0 });
+}
+/* Station zurücksetzen (Lehrperson der eigenen Klasse oder Admin): done, doneInfo, Marken «Lösung angesehen/aufgedeckt», Entwurf und
+   Theorie-Ergebnis der Station löschen; resets[id] = Zeitpunkt, damit ein Gerät mit älterem Stand die Station beim Abgleich nicht
+   zurückbringt; Ereignis station_reset. updated_at steigt, die Geräte übernehmen den neuen Stand beim nächsten Abgleich. */
+async function resetStation(C, id, quest){
+  checkQuest(quest);
+  const s = await studentOf(C, id);
+  const station = String((C.body && C.body.station) || '');
+  if(!/^[A-Za-z0-9.]{1,12}$/.test(station)) fail(400, 'Station fehlt.');
+  const r = await C.db.prepare('SELECT state, summary, updated_at FROM progress WHERE user_id = ? AND quest = ?').bind(s.id, quest).first();
+  if(!r) fail(404, 'Kein Spielstand vorhanden.');
+  let st; try{ st = JSON.parse(r.state); }catch(e){ fail(500, 'Spielstand nicht lesbar.'); }
+  const t = Math.max(now(), r.updated_at + 1);
+  const had = !!((st.done || {})[station] || (st.doneInfo || {})[station] || (st.marks || {})[station] || (st.drafts || {})[station] || (st.theory || {})[station]);
+  ['done', 'doneInfo', 'marks', 'drafts', 'theory'].forEach(k => { if(st[k] && typeof st[k] === 'object') delete st[k][station]; });
+  st.resets = Object.assign({}, st.resets && typeof st.resets === 'object' ? st.resets : {}, { [station]: t });
+  st.events = (Array.isArray(st.events) ? st.events : []).concat([{ t, type: 'station_reset', id: station, by: C.user.username }]);
+  let sum = {}; try{ sum = JSON.parse(r.summary || '{}') || {}; }catch(e){ sum = {}; }
+  if(Array.isArray(sum.done)) sum.done = sum.done.filter(x => x !== station);
+  const text = JSON.stringify(st); if(text.length > MAX_STATE) fail(413, 'Spielstand zu gross.');
+  await C.db.prepare('UPDATE progress SET state = ?, summary = ?, updated_at = ? WHERE user_id = ? AND quest = ?').bind(text, JSON.stringify(sanitizeSummary(sum)), t, s.id, quest).run();
+  return json({ ok: true, station, had, updatedAt: t });
 }
 async function deleteStudent(C, id){
   const s = await studentOf(C, id);

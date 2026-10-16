@@ -32,6 +32,7 @@
     Object.keys(s.doneInfo).forEach(function (id) { var di = s.doneInfo[id]; if (di && (di.solution || di.revealed)) { var mk = s.marks[id] = s.marks[id] || {}; if (di.solution) mk.solution = true; if (di.revealed) mk.revealed = Math.max(mk.revealed || 0, di.revealed); } });
     if (!Array.isArray(s.events)) s.events = [];
     if (!Array.isArray(s.setups)) s.setups = [];   // Testlauf 2 (5.3): benannte Aufbauten der Freien Werkbank
+    if (!s.resets || typeof s.resets !== 'object') s.resets = {};   // Station von der Lehrperson zurückgesetzt: {id: Zeitpunkt}
     s.settings = Object.assign({ theme: 'dark', zoom: 1 }, s.settings || {}); delete s.settings.teacher;
     if (!s.profile || !s.profile.id) s.profile = fresh().profile;
     ['vorname', 'nachname', 'pseudonym'].forEach(function (k) { if (typeof s.profile[k] !== 'string') s.profile[k] = ''; });
@@ -1315,7 +1316,7 @@
     return L;
   }
   /* «Lösung angesehen» / «Wert aufgedeckt» bleibt an der Station (höchstens 1 Stern, auch nach «Neu») */
-  function markLow(id, kind) { var mk = S.marks[id] = S.marks[id] || {}; if (kind === 'solution') mk.solution = true; else mk.revealed = (mk.revealed || 0) + 1; }
+  function markLow(id, kind) { var mk = S.marks[id] = S.marks[id] || {}; mk.t = Date.now(); if (kind === 'solution') mk.solution = true; else mk.revealed = (mk.revealed || 0) + 1; }
   /* Klartext-Hinweise nach dem Prüfen: offener Kreis bei Strommessung, nicht angeschlossene Bauteile, aufgabeneigene Hinweise (diag) */
   function checkNotes(t, gl, testsOk) {
     var notes = [], net; try { net = E.buildNetlist(E.clone(gl)); } catch (e) { return notes; }

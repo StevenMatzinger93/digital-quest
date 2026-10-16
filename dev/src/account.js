@@ -53,6 +53,14 @@
     var names = {}; m.setups = (b.setups || []).concat(a.setups || []).filter(function (x) { if (!x || names[x.name]) return false; names[x.name] = 1; return true; });
     var seen = {}; m.events = (a.events || []).concat(b.events || []).filter(function (e) { var k = JSON.stringify(e); if (seen[k]) return false; seen[k] = 1; return true; }).sort(function (x, y) { return (x.t || 0) - (y.t || 0); });
     if (m.events.length > 5000) m.events = m.events.slice(-5000);
+    // von der Lehrperson zurückgesetzte Stationen: alles, was älter als das Zurücksetzen ist, bleibt weg (auch vom Gerät, das offline war)
+    m.resets = Object.assign({}, a.resets || {}); Object.keys(b.resets || {}).forEach(function (id) { m.resets[id] = Math.max(m.resets[id] || 0, b.resets[id]); });
+    Object.keys(m.resets).forEach(function (id) {
+      var rt = m.resets[id], di = m.doneInfo[id], mk = m.marks[id], dr = m.drafts[id];
+      if (!di || (di.at || 0) <= rt) { delete m.done[id]; delete m.doneInfo[id]; if (m.theory[id] && !(m.theory[id].at > rt)) delete m.theory[id]; }
+      if (mk && !((mk.t || 0) > rt)) delete m.marks[id];
+      if (dr && !((dr.t || 0) > rt)) delete m.drafts[id];
+    });
     return m;
   }
   function adopt(state, updatedAt) {

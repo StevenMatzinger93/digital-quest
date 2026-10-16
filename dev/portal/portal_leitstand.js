@@ -184,8 +184,23 @@ async function viewStudent(id){
       '<p class="muted small">' + (d ? 'gelöst' + (d.at ? ' ' + fmtDate(d.at) : '') + ' · ' + (d.stars || 1) + '★ · ' + Math.max(0, (d.tries || 1) - 1) + ' Fehlversuche · ' + (d.hints || 0) + ' Tipps' + (d.solution ? ' · <b>Lösung angesehen</b>' : '') + (d.revealed ? ' · <b>' + d.revealed + ' Wert(e) aufgedeckt</b>' : '') : draft ? 'noch nicht gelöst · Entwurf' : 'noch nicht begonnen') + '</p>' +
       '<div id="stCircuit"></div>' +
       (ans.length ? '<h4 style="margin:12px 0 4px">Messprotokoll</h4><table class="tbl"><tbody>' + ans.map(k => '<tr><td class="muted">' + esc(k) + '</td><td class="num">' + esc(draft.answers[k]) + '</td></tr>').join('') + '</tbody></table>' : ''),
-      [{ label:'Schliessen', value:true, cls:'pri' }], { wide:true, onOpen: () => circuitView($('stCircuit'), draft && draft.layout), onClose: () => { if(MINI){ try{ MINI.destroy(); }catch(e){} MINI = null; } } });
+      (d || draft || (st.marks || {})[x] ? [{ label:'Station zurücksetzen', value:'reset', cls:'dan' }] : []).concat([{ label:'Schliessen', value:true, cls:'pri' }]), { wide:true, onOpen: () => circuitView($('stCircuit'), draft && draft.layout), onClose: () => { if(MINI){ try{ MINI.destroy(); }catch(e){} MINI = null; } } })
+      .then(v => { if(v === 'reset') resetStation(id, r.student.username, x, t.title); });
   });
+  v.querySelectorAll('[data-th]').forEach(b => b.onclick = () => {
+    const x = b.dataset.th, t = meta.theory.find(y => y.id === x);
+    dialog(x + ': ' + t.title, '<p class="muted small">' + (done[x] ? 'bestanden' + (th[x] ? ' mit ' + Math.round(100 * (th[x].best || 0)) + ' %' : '') : 'offen') + '</p>',
+      (done[x] || th[x] ? [{ label:'Station zurücksetzen', value:'reset', cls:'dan' }] : []).concat([{ label:'Schliessen', value:true, cls:'pri' }]))
+      .then(v => { if(v === 'reset') resetStation(id, r.student.username, x, t.title); });
+  });
+}
+/* Station zurücksetzen (nur Lehrperson der eigenen Klasse und Admin – der Server prüft): gelöst, Sterne, «Lösung angesehen» und aufgedeckte Werte */
+async function resetStation(sid, name, x, title){
+  const ok = await dialog('Station zurücksetzen?', '<p><b>' + esc(x + ' ' + title) + '</b> bei <b>' + esc(name) + '</b>: «gelöst», Sterne, «Lösung angesehen» und aufgedeckte Werte werden gelöscht. Die Station kann danach wieder mit allen Sternen gelöst werden.</p><p class="muted small">Coins bleiben. Das Zurücksetzen wird im Spielstand vermerkt.</p>',
+    [{ label:'Abbrechen', value:false }, { label:'Zurücksetzen', value:true, cls:'dan' }]);
+  if(!ok) return;
+  try{ await api('POST', 'students/' + sid + '/progress/' + Q + '/reset', { station: x }); toast('Station ' + x + ' zurückgesetzt.'); viewStudent(sid); }
+  catch(err){ toast(err.message, true); }
 }
 
 P.leitstand = { targetItems, targetLabel, itemLabel, itemOf, chapterOf, fmtDue, today, leadLinks: LEAD_LINKS, classExtra: CLASS_EXTRA, classBind: CLASS_BIND };

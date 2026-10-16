@@ -223,6 +223,61 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     await ctx.close();
   }
 
+  /* ================= D: Station zurücksetzen (Leitstand, Auftrag 16.10.2026) ================= */
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } }); const site = await attachSite(ctx), R = site.env.DB.raw;
+    const tA = await site.addUser('frau.reset', 'lehrerin-1', 'teacher'), tB = await site.addUser('herr.andere', 'lehrer-2', 'teacher');
+    const cA = site.addClass('RS 1', tA, 'RESET1'); site.addClass('RS 2', tB, 'RESET2');
+    const sid = await site.addUser('resetfuchs', 'geheim1', 'student', cA);
+    const T0 = Date.now() - 86400000;
+    const st0 = { version: 1, created: T0, profile: { id: 'r1' }, done: { '1.1': true, '1.6': true, T1A: true }, doneInfo: { '1.1': { at: T0, tries: 1, hints: 0, stars: 3 }, '1.6': { at: T0, tries: 4, hints: 0, stars: 1, solution: true } },
+      marks: { '1.6': { solution: true, t: T0 } }, drafts: { '1.6': { layout: { parts: [], wires: [] }, answers: { i: '21' }, t: T0, sol: true } }, theory: { T1A: { best: 1 } }, events: [], settings: { theme: 'dark' } };
+    R.prepare('INSERT INTO progress (user_id, quest, state, summary, updated_at) VALUES (?, ?, ?, ?, ?)').run(sid, 'dq', JSON.stringify(st0), JSON.stringify({ done: ['1.1', '1.6', 'T1A'] }), T0);
+    const state = () => JSON.parse(R.prepare('SELECT state FROM progress WHERE user_id = ?').get(sid).state);
+    const p = await ctx.newPage(); watch(p, 'Station zurücksetzen');
+    const post = (pg, station) => pg.evaluate(([id, s]) => fetch('/api/students/' + id + '/progress/dq/reset', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json', 'x-dquest': '1' }, body: JSON.stringify({ station: s }) }).then(r => r.status), [sid, station]);
+    // Lehrperson der eigenen Klasse: Knopf in der Detailansicht, mit Rückfrage
+    await loginUi(p, 'frau.reset', 'lehrerin-1'); await p.goto(SITE + '/#/leitstand/schueler/' + sid); await p.waitForSelector('[data-task="1.6"]');
+    await p.click('[data-task="1.6"]'); await p.waitForSelector('#dlgActions');
+    const btns = await p.$$eval('#dlgActions button', l => l.map(b => b.textContent));
+    if (!btns.includes('Station zurücksetzen')) errors.push('Reset: Knopf «Station zurücksetzen» fehlt: ' + btns.join(','));
+    else {
+      await p.click('#dlgActions button.dan'); await p.waitForSelector('#dlgTitle'); await p.waitForTimeout(100);
+      if (!/Station zurücksetzen\?/.test(await p.textContent('#dlgTitle'))) errors.push('Reset: keine Rückfrage');
+      await p.click('#dlgActions button:has-text("Abbrechen")'); await p.waitForTimeout(150);
+      if (!state().done['1.6']) errors.push('Reset: «Abbrechen» hat trotzdem zurückgesetzt');
+      await p.click('[data-task="1.6"]'); await p.waitForSelector('#dlgActions button.dan'); await p.click('#dlgActions button.dan'); await p.waitForTimeout(100);
+      await p.click('#dlgActions button:has-text("Zurücksetzen")'); await p.waitForTimeout(400);
+      const s1 = state(), ev = (s1.events || []).find(e => e.type === 'station_reset' && e.id === '1.6');
+      if (s1.done['1.6'] || s1.doneInfo['1.6'] || (s1.marks || {})['1.6'] || (s1.drafts || {})['1.6'] || !(s1.resets || {})['1.6']) errors.push('Reset 1.6: Stand nicht zurückgesetzt: ' + JSON.stringify({ done: s1.done, marks: s1.marks, resets: s1.resets }));
+      if (!ev || ev.by !== 'frau.reset') errors.push('Reset: Ereignis station_reset fehlt oder ohne Lehrperson');
+      if (!s1.done['1.1'] || s1.doneInfo['1.1'].stars !== 3) errors.push('Reset: andere Station verändert');
+      if (!/1\.6 zurückgesetzt/.test(await p.textContent('#toast').catch(() => ''))) errors.push('Reset: keine Bestätigung');
+      if (await p.$eval('[data-task="1.6"]', b => /s\d/.test(b.className))) errors.push('Reset: Detailansicht zeigt 1.6 noch als gelöst');
+    }
+    // Theorie-Station
+    await p.click('[data-th="T1A"]'); await p.waitForSelector('#dlgActions button.dan'); await p.click('#dlgActions button.dan'); await p.waitForTimeout(100); await p.click('#dlgActions button:has-text("Zurücksetzen")'); await p.waitForTimeout(400);
+    if (state().done.T1A || state().theory.T1A) errors.push('Reset: Theorie T1A nicht zurückgesetzt');
+    await p.screenshot({ path: shots + '/p15_station_reset.png' });
+    await p.evaluate(() => fetch('/api/logout', { method: 'POST', headers: { 'x-dquest': '1', 'content-type': 'application/json' }, body: '{}' }));
+    // Lehrperson einer anderen Klasse und Lernende: nicht erlaubt; Admin: erlaubt
+    await loginUi(p, 'herr.andere', 'lehrer-2'); if (await post(p, '1.1') !== 404) errors.push('Reset: Lehrperson einer anderen Klasse darf zurücksetzen');
+    await p.evaluate(() => fetch('/api/logout', { method: 'POST', headers: { 'x-dquest': '1', 'content-type': 'application/json' }, body: '{}' }));
+    await loginUi(p, 'resetfuchs', 'geheim1'); if (await post(p, '1.1') !== 403) errors.push('Reset: Lernende dürfen zurücksetzen');
+    // Gerät der lernenden Person war offline und hat 1.6 noch als gelöst: Abgleich bringt die Station nicht zurück, neue Lösung zählt wieder
+    const sy = await p.evaluate(() => fetch('/api/progress/dq', { credentials: 'same-origin' }).then(r => r.json()));
+    const old = Object.assign({}, st0, { done: Object.assign({}, st0.done, { '1.2': true }), doneInfo: Object.assign({}, st0.doneInfo, { '1.2': { at: Date.now(), tries: 1, hints: 0, stars: 3 } }) });
+    await p.goto(SITE + '/labor/'); await p.waitForTimeout(300);
+    await p.evaluate(([st, base]) => { localStorage.setItem('digitalquest_state_v1', JSON.stringify(st)); localStorage.setItem('dquest_sync_dq', JSON.stringify({ user: 'resetfuchs', base: base - 1, dirty: true, role: 'student' })); }, [old, sy.updatedAt]);
+    await p.reload(); await p.waitForTimeout(4500);
+    const loc = await p.evaluate(() => ({ d16: !!DigitalQuest.state.done['1.6'], m16: !!(DigitalQuest.state.marks || {})['1.6'], d12: !!DigitalQuest.state.done['1.2'] })), s2 = state();
+    if (loc.d16 || loc.m16 || s2.done['1.6']) errors.push('Reset: Gerät mit altem Stand bringt 1.6 zurück: ' + JSON.stringify(loc));
+    if (!loc.d12 || !s2.done['1.2']) errors.push('Reset: Fortschritt des Geräts (1.2) geht beim Abgleich verloren');
+    await p.evaluate(() => fetch('/api/logout', { method: 'POST', headers: { 'x-dquest': '1', 'content-type': 'application/json' }, body: '{}' }));
+    await loginUi(p, 'chef', 'admin-test'); if (await post(p, '1.1') !== 200 || state().done['1.1']) errors.push('Reset: Admin darf nicht zurücksetzen');
+    await ctx.close();
+  }
+
   await browser.close();
   if (errors.length) { console.log('FEHLER:\n' + errors.join('\n')); process.exit(1); }
   console.log('Portal-Durchlauf OK');
