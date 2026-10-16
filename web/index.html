@@ -604,6 +604,7 @@ body.beamer-mode main{ min-height:100vh; }
   .ww-cards{ grid-template-columns:1fr 1fr; gap:8px; } .ww-act{ display:none; } .ww-foot{ display:block; color:#333; margin-top:12px; } .ww-sect h2 .tag{ display:none; } .ww-wege{ border:1px solid #999; }
 }
 .xz-ok { color: var(--ok, #22c55e); } .xz-bad { color: var(--bad, #ff4d4d); } /* Testlauf 2 (2.7): Rückmeldung zum Prüfungscode */
+.av-debt{ color:var(--warn); margin:6px 0 0; } /* Coins im Minus nach «Station zurücksetzen» */
 
 /* ==== Gemeinsame Kopfzeile (Testlauf 2, Phase 4) – EIN Baustein für Labor (header.top) und Portal (header.topbar) ====
  * build.js hängt diese Datei an style.css (Labor, Werkstatt, Freie Werkbank, Live-Challenge, Prüfung) und an portal.css an.
@@ -3772,7 +3773,10 @@ function owns(id, owned, ctx){
 function balance(progress, meta, ledger, certs, stats){
   const e = earned(progress, meta), L = ledger || [];
   const bonus = L.filter(x => x.amount > 0).reduce((a, x) => a + x.amount, 0), spent = -L.filter(x => x.amount < 0).reduce((a, x) => a + x.amount, 0);
-  return { earned: e, speedrun: bonus, spent, balance: e.total + bonus - spent, owned: L.filter(x => x.source === 'kauf').map(x => x.ref), ctx: unlockCtx(e, L, certs, stats, meta) };
+  // Verdient wird aus dem Spielstand berechnet – setzt eine Lehrperson eine Station zurück, sinkt «verdient», Gekauftes bleibt im Besitz.
+  // Angezeigt wird nie weniger als 0; ein Fehlbetrag (debt) steht getrennt, und solange er besteht, kann nichts gekauft werden.
+  const raw = e.total + bonus - spent;
+  return { earned: e, speedrun: bonus, spent, balance: Math.max(0, raw), debt: Math.max(0, -raw), owned: L.filter(x => x.source === 'kauf').map(x => x.ref), ctx: unlockCtx(e, L, certs, stats, meta) };
 }
 // Wirtschaft (A4): Katalogsumme je Stufe und Coins je Quest (Obergrenze: alle Aufgaben 3★, alle Bosse, Final Bosse, Theorien)
 function economy(meta){
@@ -4525,6 +4529,7 @@ function render(){
       (setK ? '<div class="small av-set">✨ Kollektion „' + esc(A.SETS[setK].name) + '“ komplett: ' + esc(A.SETS[setK].bonus) + '</div>' : '') +
       '<div class="av-poses" role="group" aria-label="Pose ansehen">' + [['idle', 'Stehen'], ['wave', 'Winken'], ['jubel', 'Jubeln'], ['dance', 'Siegestanz'], ['sad', 'Traurig']].map(([k, n]) => '<button type="button" class="btn sm' + (POSE === k ? ' pri' : '') + '" data-pose="' + k + '" aria-pressed="' + (POSE === k) + '">' + n + '</button>').join('') + '</div>' +
       '<div class="av-coins"><span class="coin">●</span> <b id="avBal">' + c.balance + '</b> Coins</div>' +
+      (c.debt > 0 ? '<p class="small av-debt" role="status">Eine Station wurde zurückgesetzt: Es fehlen noch ' + c.debt + ' Coins, bis du wieder einkaufen kannst. Gekauftes bleibt dir.</p>' : '') +
       '<button class="btn pri" id="avSave">Speichern</button><p class="muted small" id="avMsg" role="status"></p></div>' +
     '<div class="panel"><h2>Tier</h2><div class="av-animals">' + Object.keys(A.ANIMALS).map(k => '<button type="button" class="av-pick' + (draft.animal === k ? ' on' : '') + '" data-animal="' + k + '" aria-pressed="' + (draft.animal === k) + '">' + A.svg({ animal: k, color: draft.color, equip: {} }, { size: 'card' }) + '<span>' + esc(A.ANIMALS[k].name) + '</span></button>').join('') + '</div>' +
       '<h2>Farbe</h2><div class="av-colors">' + A.COLORS.map(col => '<button type="button" class="av-col' + (draft.color === col ? ' on' : '') + '" data-color="' + col + '" style="background:' + col + '" aria-label="Farbe ' + col + '" aria-pressed="' + (draft.color === col) + '"></button>').join('') + '</div>' +
@@ -4543,6 +4548,7 @@ function render(){
       '<tr><td>Bestandene Theorie</td><td class="num">' + R.theory + '</td><td class="num"><b>' + e.theory + '</b></td></tr>' +
       '<tr><td>Live-Challenge (Platz 1 / 2 / 3 / gelöst · Teilnahme) und Zertifikat (bestanden / mit Auszeichnung)</td><td class="num">' + R.speedrun[1] + ' / ' + R.speedrun[2] + ' / ' + R.speedrun[3] + ' / ' + R.speedrun.solved + ' · ' + (R.speedrun.teilnahme || 5) + (R.cert ? ' · ' + R.cert.pass + ' / ' + R.cert.distinction : '') + '</td><td class="num"><b>' + c.speedrun + '</b></td></tr>' +
       '<tr><td>Ausgegeben</td><td></td><td class="num">−' + c.spent + '</td></tr>' +
+      (c.debt > 0 ? '<tr><td>Noch auszugleichen (Station zurückgesetzt)</td><td></td><td class="num">−' + c.debt + '</td></tr>' : '') +
       '<tr><td><b>Stand</b></td><td></td><td class="num"><b>' + c.balance + '</b></td></tr></tbody></table></div>' +
       '<h2>Kollektionen <span class="tag">gelöste Aufgaben je Teil</span></h2><div class="av-colls">' + sets + '</div>' +
       '<p class="muted small">Gezählt wird der Spielstand, der mit deinem Konto gespeichert ist (Labor mit Konto). Boss-Teile gibt der Server erst frei, wenn deine gespeicherte Lösung die Tests besteht. Challenges zählen ab ' + ((ST.chRules || {}).minPlayers || 3) + ' Teilnehmenden und ' + Math.round(((ST.chRules || {}).minMs || 120000) / 60000) + ' Minuten Laufzeit.</p></div></div>';
@@ -4571,6 +4577,7 @@ function bind(){
     if(!owns(id)){
       const it = A.item(id);
       if(it.earnOnly || !A.isUnlocked(id, ST.unlock)){ P.toast('Noch gesperrt – ' + it.name + ': ' + A.unlockText(id, ST.unlock) + '.', true); return; }
+      if(ST.coins.debt > 0){ P.toast('Erst wieder einkaufen, wenn die ' + ST.coins.debt + ' fehlenden Coins verdient sind (Station zurückgesetzt).', true); return; }
       if(ST.coins.balance < it.price){ P.toast('Dafür reichen deine Coins noch nicht (' + ST.coins.balance + ' von ' + it.price + ').', true); return; }
       if(!await P.confirmDlg('Kaufen?', '<p>„' + esc(it.name) + '“ für <b>' + it.price + ' Coins</b> kaufen? Coins sind nur verdient, nicht gekauft – und du behältst den Gegenstand.</p>', 'Kaufen')) return;
       try{ const r = await P.api('POST', 'avatar/buy', { item: id }); ST.owned.push(id); ST.coins.balance = r.balance; ST.coins.spent += it.price; }
@@ -4798,7 +4805,7 @@ async function viewStudent(id){
 }
 /* Station zurücksetzen (nur Lehrperson der eigenen Klasse und Admin – der Server prüft): gelöst, Sterne, «Lösung angesehen» und aufgedeckte Werte */
 async function resetStation(sid, name, x, title){
-  const ok = await dialog('Station zurücksetzen?', '<p><b>' + esc(x + ' ' + title) + '</b> bei <b>' + esc(name) + '</b>: «gelöst», Sterne, «Lösung angesehen» und aufgedeckte Werte werden gelöscht. Die Station kann danach wieder mit allen Sternen gelöst werden.</p><p class="muted small">Coins bleiben. Das Zurücksetzen wird im Spielstand vermerkt.</p>',
+  const ok = await dialog('Station zurücksetzen?', '<p><b>' + esc(x + ' ' + title) + '</b> bei <b>' + esc(name) + '</b>: «gelöst», «Lösung angesehen» und aufgedeckte Werte werden gelöscht. Sterne und Coins dieser Station werden entfernt und können durch erneutes Lösen wieder verdient werden.</p><p class="muted small">Gekaufte Avatar-Teile bleiben. Das Zurücksetzen wird im Spielstand vermerkt.</p>',
     [{ label:'Abbrechen', value:false }, { label:'Zurücksetzen', value:true, cls:'dan' }]);
   if(!ok) return;
   try{ await api('POST', 'students/' + sid + '/progress/' + Q + '/reset', { station: x }); toast('Station ' + x + ' zurückgesetzt.'); viewStudent(sid); }

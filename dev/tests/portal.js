@@ -244,6 +244,7 @@ const shots = process.argv[2] || path.join(__dirname, 'shots');
     else {
       await p.click('#dlgActions button.dan'); await p.waitForSelector('#dlgTitle'); await p.waitForTimeout(100);
       if (!/Station zurücksetzen\?/.test(await p.textContent('#dlgTitle'))) errors.push('Reset: keine Rückfrage');
+      if (!/Sterne und Coins dieser Station werden entfernt und können durch erneutes Lösen wieder verdient werden\./.test(await p.textContent('#dlgBody'))) errors.push('Reset: Rückfrage nennt die Folgen für Sterne und Coins nicht');
       await p.click('#dlgActions button:has-text("Abbrechen")'); await p.waitForTimeout(150);
       if (!state().done['1.6']) errors.push('Reset: «Abbrechen» hat trotzdem zurückgesetzt');
       await p.click('[data-task="1.6"]'); await p.waitForSelector('#dlgActions button.dan'); await p.click('#dlgActions button.dan'); await p.waitForTimeout(100);

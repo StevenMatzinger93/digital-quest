@@ -196,7 +196,7 @@ async function viewStudent(id){
 }
 /* Station zurücksetzen (nur Lehrperson der eigenen Klasse und Admin – der Server prüft): gelöst, Sterne, «Lösung angesehen» und aufgedeckte Werte */
 async function resetStation(sid, name, x, title){
-  const ok = await dialog('Station zurücksetzen?', '<p><b>' + esc(x + ' ' + title) + '</b> bei <b>' + esc(name) + '</b>: «gelöst», Sterne, «Lösung angesehen» und aufgedeckte Werte werden gelöscht. Die Station kann danach wieder mit allen Sternen gelöst werden.</p><p class="muted small">Coins bleiben. Das Zurücksetzen wird im Spielstand vermerkt.</p>',
+  const ok = await dialog('Station zurücksetzen?', '<p><b>' + esc(x + ' ' + title) + '</b> bei <b>' + esc(name) + '</b>: «gelöst», «Lösung angesehen» und aufgedeckte Werte werden gelöscht. Sterne und Coins dieser Station werden entfernt und können durch erneutes Lösen wieder verdient werden.</p><p class="muted small">Gekaufte Avatar-Teile bleiben. Das Zurücksetzen wird im Spielstand vermerkt.</p>',
     [{ label:'Abbrechen', value:false }, { label:'Zurücksetzen', value:true, cls:'dan' }]);
   if(!ok) return;
   try{ await api('POST', 'students/' + sid + '/progress/' + Q + '/reset', { station: x }); toast('Station ' + x + ' zurückgesetzt.'); viewStudent(sid); }

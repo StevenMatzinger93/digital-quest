@@ -241,6 +241,22 @@ const imp = f => import(pathToFileURL(path.join(__dirname, '../worker/' + f)));
   r = await teacher('GET', '/api/classes/' + cls.id);
   const sO = r.data.students.find(s => s.username === 'Otter'), sL = r.data.students.find(s => s.username === 'Luchs');
   ok(sO && sO.avatar && sO.avatar.animal === 'wolf' && sL && sL.avatar === null, 'Klassenliste: Avatar für Otter, null für Luchs');
+  // Station zurücksetzen (Leitstand) nach einem Kauf: Stand nie unter 0, Fehlbetrag getrennt, kein Kauf, Gekauftes bleibt; erneut lösen gleicht aus
+  { const biber = client('10.0.0.7'); r = await biber('POST', '/api/register', { code: cls.code, username: 'Biber', password: 'geheim1' }); const bid = r.data.user.id; await biber('POST', '/api/me/notice', {});
+    const st3 = { done: { [T1[0]]: true, [T1[1]]: true }, doneInfo: { [T1[0]]: { stars: 3 }, [T1[1]]: { stars: 3 } }, theory: {}, drafts: {} };
+    await biber('PUT', '/api/progress/dq', { state: st3, summary: {}, base: 0, force: true });
+    const b0 = (await biber('GET', '/api/avatar')).data.coins; ok(b0.balance === 120 && b0.debt === 0, 'Biber: 2 × 3★ = 120 Coins', b0);
+    r = await biber('POST', '/api/avatar/buy', { item: 'hemd_kariert' }); ok(r.status === 200 && r.data.balance === 10, 'Biber kauft das Hemd (110), Stand 10', r.data);
+    r = await teacher('POST', '/api/students/' + bid + '/progress/dq/reset', { station: T1[0] }); ok(r.status === 200, 'Lehrperson setzt ' + T1[0] + ' zurück', r.data);
+    const b1 = (await biber('GET', '/api/avatar')).data;
+    ok(b1.coins.balance === 0 && b1.coins.debt === 50, 'nach dem Zurücksetzen: Stand 0 (nicht −50), Fehlbetrag 50', b1.coins);
+    ok(b1.owned.includes('hemd_kariert'), 'Gekauftes Hemd bleibt im Besitz');
+    r = await biber('POST', '/api/avatar/buy', { item: 'kappe_rot' }); ok(r.status === 400 && /Minus/.test(r.data.error), 'im Minus: kein Kauf (' + r.data.error + ')');
+    const A = require(path.join(__dirname, 'src/avatar_core.js')); ok(A.balance({ done: {}, doneInfo: {} }, null, [{ amount: -110, source: 'kauf', ref: 'x' }]).balance === 0, 'avatar_core.balance: nie negativ');
+    // erneut lösen: Fehlbetrag ausgeglichen, Stand wieder 10
+    const st4 = JSON.parse(JSON.stringify((await biber('GET', '/api/progress/dq')).data.state)); st4.done[T1[0]] = true; st4.doneInfo[T1[0]] = { stars: 3, at: Date.now() };
+    await biber('PUT', '/api/progress/dq', { state: st4, summary: {}, base: 0, force: true });
+    const b2 = (await biber('GET', '/api/avatar')).data.coins; ok(b2.balance === 10 && b2.debt === 0, 'erneut gelöst: Stand wieder 10, kein Fehlbetrag', b2); }
   // Konto löschen entfernt Avatar und Coin-Buch
   const cnt = () => env.DB.raw.prepare('SELECT (SELECT COUNT(*) FROM avatars WHERE user_id = ?) AS a, (SELECT COUNT(*) FROM coin_ledger WHERE user_id = ?) AS l').get(uid.Otter, uid.Otter);
   ok(cnt().a === 1 && cnt().l > 3, 'vor dem Löschen: Avatar und Einträge vorhanden', cnt());

@@ -48,6 +48,7 @@ function render(){
       (setK ? '<div class="small av-set">✨ Kollektion „' + esc(A.SETS[setK].name) + '“ komplett: ' + esc(A.SETS[setK].bonus) + '</div>' : '') +
       '<div class="av-poses" role="group" aria-label="Pose ansehen">' + [['idle', 'Stehen'], ['wave', 'Winken'], ['jubel', 'Jubeln'], ['dance', 'Siegestanz'], ['sad', 'Traurig']].map(([k, n]) => '<button type="button" class="btn sm' + (POSE === k ? ' pri' : '') + '" data-pose="' + k + '" aria-pressed="' + (POSE === k) + '">' + n + '</button>').join('') + '</div>' +
       '<div class="av-coins"><span class="coin">●</span> <b id="avBal">' + c.balance + '</b> Coins</div>' +
+      (c.debt > 0 ? '<p class="small av-debt" role="status">Eine Station wurde zurückgesetzt: Es fehlen noch ' + c.debt + ' Coins, bis du wieder einkaufen kannst. Gekauftes bleibt dir.</p>' : '') +
       '<button class="btn pri" id="avSave">Speichern</button><p class="muted small" id="avMsg" role="status"></p></div>' +
     '<div class="panel"><h2>Tier</h2><div class="av-animals">' + Object.keys(A.ANIMALS).map(k => '<button type="button" class="av-pick' + (draft.animal === k ? ' on' : '') + '" data-animal="' + k + '" aria-pressed="' + (draft.animal === k) + '">' + A.svg({ animal: k, color: draft.color, equip: {} }, { size: 'card' }) + '<span>' + esc(A.ANIMALS[k].name) + '</span></button>').join('') + '</div>' +
       '<h2>Farbe</h2><div class="av-colors">' + A.COLORS.map(col => '<button type="button" class="av-col' + (draft.color === col ? ' on' : '') + '" data-color="' + col + '" style="background:' + col + '" aria-label="Farbe ' + col + '" aria-pressed="' + (draft.color === col) + '"></button>').join('') + '</div>' +
@@ -66,6 +67,7 @@ function render(){
       '<tr><td>Bestandene Theorie</td><td class="num">' + R.theory + '</td><td class="num"><b>' + e.theory + '</b></td></tr>' +
       '<tr><td>Live-Challenge (Platz 1 / 2 / 3 / gelöst · Teilnahme) und Zertifikat (bestanden / mit Auszeichnung)</td><td class="num">' + R.speedrun[1] + ' / ' + R.speedrun[2] + ' / ' + R.speedrun[3] + ' / ' + R.speedrun.solved + ' · ' + (R.speedrun.teilnahme || 5) + (R.cert ? ' · ' + R.cert.pass + ' / ' + R.cert.distinction : '') + '</td><td class="num"><b>' + c.speedrun + '</b></td></tr>' +
       '<tr><td>Ausgegeben</td><td></td><td class="num">−' + c.spent + '</td></tr>' +
+      (c.debt > 0 ? '<tr><td>Noch auszugleichen (Station zurückgesetzt)</td><td></td><td class="num">−' + c.debt + '</td></tr>' : '') +
       '<tr><td><b>Stand</b></td><td></td><td class="num"><b>' + c.balance + '</b></td></tr></tbody></table></div>' +
       '<h2>Kollektionen <span class="tag">gelöste Aufgaben je Teil</span></h2><div class="av-colls">' + sets + '</div>' +
       '<p class="muted small">Gezählt wird der Spielstand, der mit deinem Konto gespeichert ist (Labor mit Konto). Boss-Teile gibt der Server erst frei, wenn deine gespeicherte Lösung die Tests besteht. Challenges zählen ab ' + ((ST.chRules || {}).minPlayers || 3) + ' Teilnehmenden und ' + Math.round(((ST.chRules || {}).minMs || 120000) / 60000) + ' Minuten Laufzeit.</p></div></div>';
@@ -94,6 +96,7 @@ function bind(){
     if(!owns(id)){
       const it = A.item(id);
       if(it.earnOnly || !A.isUnlocked(id, ST.unlock)){ P.toast('Noch gesperrt – ' + it.name + ': ' + A.unlockText(id, ST.unlock) + '.', true); return; }
+      if(ST.coins.debt > 0){ P.toast('Erst wieder einkaufen, wenn die ' + ST.coins.debt + ' fehlenden Coins verdient sind (Station zurückgesetzt).', true); return; }
       if(ST.coins.balance < it.price){ P.toast('Dafür reichen deine Coins noch nicht (' + ST.coins.balance + ' von ' + it.price + ').', true); return; }
       if(!await P.confirmDlg('Kaufen?', '<p>„' + esc(it.name) + '“ für <b>' + it.price + ' Coins</b> kaufen? Coins sind nur verdient, nicht gekauft – und du behältst den Gegenstand.</p>', 'Kaufen')) return;
       try{ const r = await P.api('POST', 'avatar/buy', { item: id }); ST.owned.push(id); ST.coins.balance = r.balance; ST.coins.spent += it.price; }

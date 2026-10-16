@@ -122,7 +122,7 @@ export async function avatarsFor(C, ids){
 }
 async function getOwn(C){
   const [av, coins] = await Promise.all([avatarOf(C, C.user.id), coinState(C, C.user.id)]);
-  return json({ avatar: av, chosen: !!av, coins: { balance: coins.balance, earned: coins.earned, speedrun: coins.speedrun, spent: coins.spent }, owned: coins.owned, unlock: coins.ctx, rules: Avatar.RULES,
+  return json({ avatar: av, chosen: !!av, coins: { balance: coins.balance, debt: coins.debt, earned: coins.earned, speedrun: coins.speedrun, spent: coins.spent }, owned: coins.owned, unlock: coins.ctx, rules: Avatar.RULES,
     shopSet: Avatar.shopSetOf(now()), chRules: CH_RULES, sets: Object.keys(AVATAR_META).map(q => ({ key: q, tasks: AVATAR_META[q].$.tasks, theory: AVATAR_META[q].$.theoryAll })) });
 }
 const owns = (id, coins) => Avatar.owns(id, coins.owned, coins.ctx);
@@ -149,6 +149,7 @@ async function buy(C){
   if(!Avatar.isUnlocked(id, coins.ctx)) fail(403, 'Noch gesperrt – ' + it.name + ': ' + Avatar.unlockText(id, coins.ctx) + '.');
   // Boss-Aufgaben: der lokale Spielstand allein reicht nicht – der gespeicherte Entwurf muss die Tests bestehen
   await checkBossUnlock(C, C.user.id, it);
+  if(coins.debt > 0) fail(400, 'Dein Coin-Stand ist im Minus (−' + coins.debt + '), weil eine Station zurückgesetzt wurde. Löse sie erneut – dann kannst du wieder einkaufen.');
   if(coins.balance < it.price) fail(400, 'Dafür reichen deine Coins noch nicht (' + coins.balance + ' von ' + it.price + ').');
   await C.db.prepare('INSERT OR IGNORE INTO coin_ledger (user_id, amount, source, ref, created_at) VALUES (?, ?, ?, ?, ?)').bind(C.user.id, -it.price, 'kauf', id, now()).run();
   return json({ ok: true, owned: true, balance: coins.balance - it.price });

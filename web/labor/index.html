@@ -9351,7 +9351,10 @@ function owns(id, owned, ctx){
 function balance(progress, meta, ledger, certs, stats){
   const e = earned(progress, meta), L = ledger || [];
   const bonus = L.filter(x => x.amount > 0).reduce((a, x) => a + x.amount, 0), spent = -L.filter(x => x.amount < 0).reduce((a, x) => a + x.amount, 0);
-  return { earned: e, speedrun: bonus, spent, balance: e.total + bonus - spent, owned: L.filter(x => x.source === 'kauf').map(x => x.ref), ctx: unlockCtx(e, L, certs, stats, meta) };
+  // Verdient wird aus dem Spielstand berechnet – setzt eine Lehrperson eine Station zurück, sinkt «verdient», Gekauftes bleibt im Besitz.
+  // Angezeigt wird nie weniger als 0; ein Fehlbetrag (debt) steht getrennt, und solange er besteht, kann nichts gekauft werden.
+  const raw = e.total + bonus - spent;
+  return { earned: e, speedrun: bonus, spent, balance: Math.max(0, raw), debt: Math.max(0, -raw), owned: L.filter(x => x.source === 'kauf').map(x => x.ref), ctx: unlockCtx(e, L, certs, stats, meta) };
 }
 // Wirtschaft (A4): Katalogsumme je Stufe und Coins je Quest (Obergrenze: alle Aufgaben 3★, alle Bosse, Final Bosse, Theorien)
 function economy(meta){
