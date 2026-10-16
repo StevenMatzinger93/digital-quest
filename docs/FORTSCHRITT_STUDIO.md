@@ -236,8 +236,11 @@ Alle in `ENTSCHEIDUNGEN_STUDIO.md` (Abschnitte «Nachtlauf 2», «Lernpfad», «
 ### Offene Fragen
 `docs/FRAGEN_STUDIO.md` (10 Punkte).
 
-### Testkette (Endstand dieses Berichts)
-Siehe den Abschnitt «Endstand Testkette» weiter unten.
+### Zusatzpunkte
+Beide umgesetzt, siehe Abschnitt «Zusatzpunkte» weiter unten: **Leistung** (Logik 50 → 100 Bauteile flüssig, gemischt 25 → 50) und **Lernpfad Stufe 2** (Fortschritt im Leitstand). Zur Stufe 2 gehört der Hinweis: Steven hat Stufe 1 noch nicht gesehen, der Auftrag wollte Stufe 2 erst danach; sie liegt nur auf dem Branch.
+
+### Endstand Testkette (frischer Auszug des letzten Commits, nichts parallel)
+`test_engine` 174 ok · `tests/kern.js` 60 Schaltungen, 924 Prüfwerte ok · `validate.js` OK · `validate_exam.js` OK · `tests/pfad.js` 809 ok · `robust.js` (beide Startzahlen) keine Befunde · `tests/studio.js` 421 ok · `pfad_browser` 47, `pfad_browser2` 28, `pfad_browser3` 16, `pfad_portal` 35 · `tests/netz.js` 37 · `smoke.js` OK · `tasks.js` 341 Durchläufe OK · `test_api` 128 · `test_exam_api` 89 · `test_avatar` 842 · `tests/portal.js` OK · `tests/avatar.js` 29. Einmal ist `tests/studio.js` unter Last (parallel laufende Messung) an einer Zeitkonstanten-Prüfung (2 %) gescheitert und lief allein und im Endlauf grün: zeitabhängig, kein Befund.
 
 ## Zusatzpunkte «Wenn Zeit übrig bleibt» (16.10.2026)
 
