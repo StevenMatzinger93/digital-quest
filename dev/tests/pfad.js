@@ -357,8 +357,32 @@ if (section('fachlich')) {
     ['A8.21', 'A8.22', 'A8.23', 'A8.24', 'A8.25', 'A8.26', 'A8.27'].slice(1).forEach(id => { const t = a8.aufgaben.find(a => a.id === id), n = t.kopf.length - 2; chk('A8 ' + id + ': beide Seiten des Gesetzes sind in jeder Zeile gleich', t.zeilen.every(r => [].concat(r[n].a)[0] === [].concat(r[n + 1].a)[0] || id === 'A8.27')); });
   }
   const a9 = P.get('A9');
-  if (a9) { const REF = { 'A9.1': '/e1', 'A9.2': 'e1e2', 'A9.3': 'e1 v e2', 'A9.4': 'e1e2 v /e3', 'A9.5': 'e1/e2 v /e1e2', 'A9.6': 'e1/e2 v /e1e2' };
-    Object.keys(REF).forEach(id => { const a = a9.aufgaben.find(x => x.id === id), r = P.refOf({ ref: REF[id], n: a.n }), so = P.sollOf(a); chk('A9 ' + id + ': Soll-Funktion entspricht dem Ausdruck ' + REF[id], so.every((row, k) => (r.ones.indexOf(k) >= 0 ? 1 : 0) === row[0])); }); }
+  if (a9) {
+    // Stevens Originalaufgaben (docs/aufgaben/A9_ORIGINAL.md): A = e1·e2·(e3+e4)·e5 nur mit NAND (auch NAND mit drei Eingängen); A1 = n(A+C)·B mit höchstens vier NOR und vier UND
+    const t1 = a9.aufgaben.find(x => x.id === 'A9.1'), t2 = a9.aufgaben.find(x => x.id === 'A9.2');
+    chk('A9 enthält genau die zwei Originalaufgaben (keine eigenen Beispiele mehr)', a9.aufgaben.length === 2 && a9.aufgaben.every(a => a.pflicht !== false));
+    const r1 = P.refOf({ ref: 'e1*e2*(e3+e4)*e5', n: 5 }), r2 = P.refOf({ ref: 'n(e1+e3)*e2', n: 3 });
+    chk('A9.1 Soll-Funktion = e1·e2·(e3+e4)·e5 über alle 32 Eingangskombinationen', P.sollOf(t1).every((row, k) => row[0] === (r1.ones.indexOf(k) >= 0 ? 1 : 0)) && r1.ones.length === 3, r1.ones.join());
+    chk('A9.2 Soll-Funktion = n(A+C)·B über alle 8 Eingangskombinationen (A = E1, B = E2, C = E3)', P.sollOf(t2).every((row, k) => row[0] === (r2.ones.indexOf(k) >= 0 ? 1 : 0)) && r2.ones.join() === '2', r2.ones.join());
+    chk('A9.1 Musterlösung: nur NAND, davon eines mit drei Eingängen, kein anderer Gattertyp', (() => { const c = P.zaehle(t1.muster); return Object.keys(c).every(k => ['nand', 'logicin', 'logicled', 'ground'].includes(k)) && t1.muster.parts.some(p => p.type === 'nand' && p.props && p.props.inputs === 3); })());
+    const mit = (lay, typ, id, ins, aus) => { const l = JSON.parse(JSON.stringify(lay)); l.parts.push({ id, type: typ, x: 0, y: 0, rot: 0 }); return l; };
+    // falsche Gattertypen werden abgelehnt (auch bei richtiger Funktion)
+    const mitAnd = P.netz({ n: 5, gatter: [['U1', 'and', ['E1', 'E2']], ['U2', 'or', ['E3', 'E4']], ['U3', 'and', ['U1', 'U2']], ['U4', 'and', ['U3', 'E5']]], aus: { L1: 'U4' } });
+    let x = P.pruefe(t1, mitAnd); chk('A9.1 richtige Funktion mit UND und ODER wird abgelehnt (nur NAND erlaubt)', !x.ok && /nur NAND erlaubt/.test(x.meldung), x.meldung);
+    const vier = P.netz({ n: 5, gatter: [['U1', 'nand', ['E1', 'E2']], ['U2', 'nand', ['U1', 'U1']], ['U3', 'nand', ['E3', 'E3']], ['U4', 'nand', ['E4', 'E4']], ['U5', 'nand', ['U3', 'U4']], ['U6', 'nand', ['U2', 'U5', 'E5', 'E5'], { inputs: 4 }], ['U7', 'nand', ['U6', 'U6']]], aus: { L1: 'U7' } });
+    x = P.pruefe(t1, vier); chk('A9.1 ein NAND mit vier Eingängen wird abgelehnt (das Lehrmittel erlaubt drei)', !x.ok && /mehr als 3 Eingänge/.test(x.meldung), x.meldung);
+    const falschF = P.netz({ n: 5, gatter: [['U1', 'nand', ['E1', 'E2']], ['U2', 'nand', ['U1', 'U1']], ['U3', 'nand', ['U2', 'E5']], ['U4', 'nand', ['U3', 'U3']]], aus: { L1: 'U4' } });
+    x = P.pruefe(t1, falschF); chk('A9.1 nur NAND, aber falsche Funktion (e3 und e4 fehlen) wird mit Zeile abgelehnt', !x.ok && /Bei e1 = 1, e2 = 1, e3 = 0, e4 = 0, e5 = 1 zeigt/.test(x.meldung), x.meldung);
+    // Aufgabe 2
+    const mitOr = P.netz({ n: 3, gatter: [['U1', 'or', ['E1', 'E3']], ['U2', 'not', ['U1']], ['U3', 'and', ['U2', 'E2']]], aus: { L1: 'U3' } });
+    x = P.pruefe(t2, mitOr); chk('A9.2 richtige Funktion mit ODER und NICHT wird abgelehnt (nur NOR und UND)', !x.ok && /nur NOR und UND erlaubt/.test(x.meldung), x.meldung);
+    const fuenf = P.netz({ n: 3, gatter: [['U1', 'nor', ['E1', 'E3']], ['U2', 'and', ['U1', 'E2']], ['U3', 'nor', ['E1', 'E1']], ['U4', 'nor', ['E2', 'E2']], ['U5', 'nor', ['E3', 'E3']], ['U6', 'nor', ['U3', 'U4']]], aus: { L1: 'U2' } });
+    x = P.pruefe(t2, fuenf); chk('A9.2 fünf NOR werden abgelehnt (ein 74HC02 hat vier)', !x.ok && /NOR: 5 verbaut, erlaubt sind höchstens 4/.test(x.meldung), x.meldung);
+    const nor3 = JSON.parse(JSON.stringify(t2.muster)); nor3.parts.find(p => p.id === 'U1').props = { inputs: 3 }; nor3.wires.push({ from: 'E2.out', to: 'U1.in3' });
+    x = P.pruefe(t2, nor3); chk('A9.2 ein NOR mit drei Eingängen wird abgelehnt (der IC hat Zweifach-Gatter)', !x.ok && /mehr als 2 Eingänge/.test(x.meldung), x.meldung);
+    const viernor = P.netz({ n: 3, gatter: [['U1', 'nor', ['E1', 'E3']], ['U2', 'nor', ['U1', 'U1']], ['U3', 'nor', ['E2', 'E2']], ['U4', 'nor', ['U2', 'U3']]], aus: { L1: 'U4' } }); // NOR(ODER(A,C), NICHT B): vier NOR
+    x = P.pruefe(t2, viernor); chk('A9.2 eine andere richtige Lösung nur aus NOR (n(A+C)·B = NOR(A+C, NICHT B) mit vier NOR) wird angenommen', x.ok, x.meldung);
+  }
   // A13: Musterschaltungen gegen gewöhnliche Arithmetik (durch die Engine gerechnet)
   if (P.A13_MUSTER) {
     const M = P.A13_MUSTER, tab = l => B.circuitTable(l).rows, bitsOf = (k, n) => Array.from({ length: n }, (_, i) => k >> i & 1);
@@ -404,28 +428,36 @@ if (section('fachlich')) {
     Object.keys(FFT).forEach(t => { const [m, n] = FFT[t]; let good = true;
       for (let q = 0; q < 2; q++) for (let k = 0; k < (1 << n); k++) { const e = Array.from({ length: n }, (_, i) => k >> (n - 1 - i) & 1), want = P.FF[m](q, e); if (want === 'X') continue; const got = E.PARTS[t].ff(!!q, e.map(Boolean)) ? 1 : 0; if (got !== want) good = false; }
       chk('B Folgefunktion ' + t + ' (Lehrbuch) = Engine für alle Zustände und Eingänge', good); }); }
-  // B1: das NOR-Flipflop aus zwei NOR-Gattern in der Engine durchschalten: Analysetabelle, Ansteuertabelle und Wahrheitstabelle
+  // B1: belegt aus dem Lehrmittel (docs/aufgaben/B1_NOR_FLIPFLOP.md): e2 setzt, e1 setzt zurück, bei e1 = e2 = 1 gewinnt e1. Spalten: Wahrheitstabelle e2 | e1 | AV | A, Analysetabelle e2 | e1 | A, Ansteuertabelle AV | A | e2 | e1
   const b1 = P.get('B1');
   if (b1) {
-    const SZ = P.KONV.norSetzen === 'e2' ? 1 : 0, SI = SZ ? 'E2' : 'E1', RI = SZ ? 'E1' : 'E2';
-    const lay = P.raster({ teile: [['E1', 'logicin'], ['E2', 'logicin'], ['U1', 'nor'], ['U2', 'nor'], ['L1', 'logicled'], ['L2', 'logicled']], leitungen: [[RI, 'U1.in1'], ['U2.out', 'U1.in2'], [SI, 'U2.in1'], ['U1.out', 'U2.in2'], ['U1', 'L1'], ['U2', 'L2']] });
-    const net = E.buildNetlist(JSON.parse(JSON.stringify(lay))), st = E.newState(), val = c => P.isAns(c) ? [].concat(c.a)[0] : c;
-    const Q = () => (E.step(net, st, { noGroundFault: true }).nodeV[net.pinNode['L1.in']] || 0) > E.LOGIC.vth ? 1 : 0, Qn = () => 0;
-    const setSR = (s, r) => { net.byId[SI].props.closed = !!s; net.byId[RI].props.closed = !!r; };
-    // Zustand herstellen und S, R setzen, dann den Folgezustand lesen
-    const folge = (av, s, r) => { setSR(av ? 1 : 0, av ? 0 : 1); E.step(net, st, { noGroundFault: true }); setSR(0, 0); E.step(net, st, { noGroundFault: true }); setSR(s, r); return Q(); };
-    const folgeE = (av, e1, e2) => { setSR(av ? 1 : 0, av ? 0 : 1); E.step(net, st, { noGroundFault: true }); setSR(0, 0); E.step(net, st, { noGroundFault: true }); net.byId.E1.props.closed = !!e1; net.byId.E2.props.closed = !!e2; return Q(); }; // Tabellen sind in e1, e2 angegeben
-    let good = true; b1.aufgaben.find(a => a.id === 'B1.2').zeilen.forEach(r => { const s = +r[0], rr = +r[1], av = +r[2], a = val(r[3]); if (s && rr) return; if (folgeE(av, s, rr) !== +a) good = false; });
-    chk('B1.2 Analysetabelle des NOR-Flipflops: jede zulässige Zeile in der Engine nachgeschaltet', good);
-    good = true; b1.aufgaben.find(a => a.id === 'B1.3').zeilen.forEach(r => { const av = +r[0], a = +r[1]; [0, 1].forEach(sv => [0, 1].forEach(rv => { if (sv && rv) return; const ok = folgeE(av, sv, rv) === a; const v = [val(r[2]), val(r[3])]; const erlaubt = (v[0] === 'X' || v[0] === String(sv) || Array.isArray(v[0])) && (v[1] === 'X' || v[1] === String(rv) || Array.isArray(v[1])); if (ok && !((val(r[2]) === 'X' || (Array.isArray(r[2].a)) || String(sv) === val(r[2])) && (Array.isArray(r[3].a) || String(rv) === val(r[3])))) good = false; })); });
-    chk('B1.3 Ansteuertabelle: jede Eingabe, die den Übergang bewirkt, steht in der Tabelle (X = beides erlaubt)', good);
-    const w = b1.aufgaben.find(a => a.id === 'B1.1').zeilen.map(r => val(r[2])); chk('B1.1 Wahrheitstabelle: hält / setzt / setzt zurück / unzulässig (nach P.KONV.norSetzen = ' + P.KONV.norSetzen + ')', w.join() === (SZ ? 'AV,1,0,unzulässig' : 'AV,0,1,unzulässig'));
+    const val = c => P.isAns(c) ? [].concat(c.a)[0] : c, DOC = ['000', '011', '100', '110'].length && [[0, 0, 0, 0], [0, 0, 1, 1], [0, 1, 0, 0], [0, 1, 1, 0], [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 0], [1, 1, 1, 0]]; // Tabelle aus dem Lehrmittel
+    chk('B1 Konvention: P.KONV.norSetzen = e2 (belegt)', P.KONV.norSetzen === 'e2');
+    const t1 = b1.aufgaben.find(a => a.id === 'B1.1'), t2 = b1.aufgaben.find(a => a.id === 'B1.2'), t3 = b1.aufgaben.find(a => a.id === 'B1.3');
+    chk('B1.1 Spaltenreihenfolge wie im Lehrmittel: e2 | e1 | AV | A', t1.kopf.join('|') === 'e2|e1|AV|A', t1.kopf.join('|'));
+    chk('B1.2 Spaltenreihenfolge: e2 | e1 | A (ohne AV)', t2.kopf.join('|') === 'e2|e1|A', t2.kopf.join('|'));
+    chk('B1.3 Spaltenreihenfolge: AV | A | e2 | e1 (AV und A vorn)', t3.kopf.join('|') === 'AV|A|e2|e1', t3.kopf.join('|'));
+    chk('B1.1 Wahrheitstabelle stimmt Zeile für Zeile mit dem Lehrmittel überein', t1.zeilen.length === 8 && t1.zeilen.every((r, i) => [+r[0], +r[1], +r[2], +val(r[3])].join() === DOC[i].join()), JSON.stringify(t1.zeilen.map(r => [r[0], r[1], r[2], val(r[3])].join(''))));
+    chk('B1.2 Analysetabelle: 00 → AV, 01 → 0 (Reset), 10 → 1 (Set), 11 → 0 (e1 gewinnt)', t2.zeilen.map(r => val(r[2])).join() === 'AV,0,1,0');
+    // Verkürzt gelesen im Lehrmittel: 00 speichern, 01 Reset, 10 Set, 11 Reset
+    // Engine: zwei NOR über Kreuz, e1 am oberen Gatter (Ausgang A)
+    const lay = P.raster({ teile: [['E1', 'logicin'], ['E2', 'logicin'], ['U1', 'nor'], ['U2', 'nor'], ['L1', 'logicled'], ['L2', 'logicled']], leitungen: [['E1', 'U1.in1'], ['U2.out', 'U1.in2'], ['E2', 'U2.in1'], ['U1.out', 'U2.in2'], ['U1', 'L1'], ['U2', 'L2']] });
+    const net = E.buildNetlist(JSON.parse(JSON.stringify(lay))), st = E.newState(), step = () => E.step(net, st, { noGroundFault: true });
+    const Q = () => (step().nodeV[net.pinNode['L1.in']] || 0) > E.LOGIC.vth ? 1 : 0, setIn = (e2, e1) => { net.byId.E2.props.closed = !!e2; net.byId.E1.props.closed = !!e1; };
+    const anwenden = (av, e2, e1) => { setIn(av, !av); step(); setIn(0, 0); step(); setIn(e2, e1); return Q(); };
+    chk('B1 Engine: das NOR-Flipflop aus zwei NOR liefert die Wahrheitstabelle des Lehrmittels in allen 8 Zeilen', DOC.every(r => anwenden(r[2], r[0], r[1]) === r[3]), DOC.map(r => anwenden(r[2], r[0], r[1])).join(''));
+    // Ansteuertabelle: die üblichen Werte (0 / 1 / X) bewirken den Übergang für jede erlaubte Eingabe (11 nicht benutzt)
+    let ok3 = true; t3.zeilen.forEach(r => { const av = +r[0], a = +r[1], std = [r[2], r[3]].map(c => { const v = [].concat(c.a)[0]; return v; });
+      [0, 1].forEach(e2 => [0, 1].forEach(e1 => { if (e2 && e1) return; const passt = (std[0] === 'X' || std[0] === String(e2)) && (std[1] === 'X' || std[1] === String(e1)); if (passt && anwenden(av, e2, e1) !== a) ok3 = false; })); });
+    chk('B1.3 Ansteuertabelle: jede Eingabe, die zu den Werten der Tabelle passt (X = beides), bewirkt den Übergang AV → A in der Engine', ok3);
+    chk('B1.3 Ansteuertabelle: AV A e2 e1 = 0 0 | 0 X, 0 1 | 1 0, 1 0 | 0 1, 1 1 | X 0 (übliche Werte, 11 nicht benutzt)', t3.zeilen.map(r => [r[0], r[1], [].concat(r[2].a)[0], [].concat(r[3].a)[0]].join('')).join() === '000X,0110,1001,11X0', t3.zeilen.map(r => [r[0], r[1], [].concat(r[2].a)[0], [].concat(r[3].a)[0]].join('')).join());
+    chk('B1.5 beide Eingänge 1: e1 gewinnt, Q = 0 (Schritt in der Prüffolge)', b1.aufgaben.find(a => a.id === 'B1.5').schritte.some(x => x.set && x.set.E1 === 1 && x.set.E2 === 1 && x.erwartet[0] === 0));
   }
   // B2: das getaktete Flipflop in der Engine
   const b2 = P.get('B2');
   if (b2) { const SZ2 = P.KONV.norSetzen === 'e2' ? 1 : 0; const m = b2.aufgaben.find(a => a.id === 'B2.2').muster, net = E.buildNetlist(JSON.parse(JSON.stringify(m))), st = E.newState(); let good = true;
     const run = (e1, e2, c) => { net.byId.E1.props.closed = !!e1; net.byId.E2.props.closed = !!e2; net.byId.C.props.closed = !!c; const r = E.step(net, st, { noGroundFault: true }); return (r.nodeV[net.pinNode['L1.in']] || 0) > E.LOGIC.vth ? 1 : 0; };
-    b2.aufgaben.find(a => a.id === 'B2.1').zeilen.forEach(r => { const val = c => P.isAns(c) ? [].concat(c.a)[0] : c, c = +r[0], s = +r[1], rr = +r[2], av = +r[3], a = val(r[4]); if (a === 'X') return; (SZ2 ? run(av ? 0 : 1, av ? 1 : 0, 1) : run(av ? 1 : 0, av ? 0 : 1, 1)); run(0, 0, 0); const q = run(s, rr, c); if (q !== +a) good = false; });
+    b2.aufgaben.find(a => a.id === 'B2.1').zeilen.forEach(r => { const val = c => P.isAns(c) ? [].concat(c.a)[0] : c, c = +r[0], e2 = +r[1], e1 = +r[2], av = +r[3], a = val(r[4]), s = SZ2 ? e2 : e1, rr = SZ2 ? e1 : e2; if (a === 'X') return; (SZ2 ? run(av ? 0 : 1, av ? 1 : 0, 1) : run(av ? 1 : 0, av ? 0 : 1, 1)); run(0, 0, 0); const q = run(e1, e2, c); if (q !== +a) good = false; });
     chk('B2.1 Analysetabelle des NOR-AND-Flipflops: jede zulässige Zeile in der Engine nachgeschaltet', good); }
   // B8 und B10: Laufzeit im Zeitverlauf (Studio-Simulation, 20 ns je Flipflop) – die Antworten der Prüffragen
   { const Sim = require('../studio/sim.js');

@@ -298,3 +298,10 @@ Benannt wie im Portal («Beamer»); der **Vorführ-Modus** des Spiels ist etwas 
 | A8 Aufgabe 1 = Förderband-Übung (DNF vereinfachen), 2 bis 17 die sechzehn Ausdrücke, 18 als a und b; 12 und 18 freiwillig. A10: 1 bis 10, 11 bis 13 (a und b), 14 bis 17; 7 bis 13 freiwillig | Auftrag |
 | Die selbst erfundenen Beispiele sind weg. Geblieben als **freiwillige Zusatzübungen** und mit «Zusatz (eigene Übung)» im Titel: Gesetze nachweisen (A8), Mehrheitsentscheid (A7), Schaltung zu KV-Aufgabe 1 und 3 (A10) | Auftrag: «deutlich getrennt von Stevens Serie» |
 | **Konventionen an einer Stelle** (`dev/studio/pfad/konventionen.js` und `E.RULES` in `engine.js`): Stellenwertigkeit der Buchstaben (`P.KONV.buchstaben`), welcher Eingang das NOR-Flipflop setzt (`P.KONV.norSetzen`, mit `'e2'` probiert: alle Tests bleiben grün), preClear-Regel (`E.RULES.preClearRennen`) | Auftrag Abschnitt 4: Steven beantwortet, die Änderung ist eine Zeile. Nicht zentralisiert: die Feldnummerierung selbst (der Rechenkern zählt «Eingang 1 = Bit 0»); sie hängt an den Nummern in den JSON-Dateien |
+
+### A9 und B1 aus den Nachträgen (16.10.2026)
+
+| Entscheidung | Begründung |
+|---|---|
+| A9 hat nur noch die zwei Originalaufgaben (`docs/aufgaben/A9_ORIGINAL.md`); meine Beispiele sind weg, auch die Prüffragen | Auftrag. Aufgabe 1 erlaubt ein NAND mit drei Eingängen (im Aufgabentext genannt, Prüfung `maxEingaenge: 3`), Aufgabe 2 höchstens vier NOR und vier UND mit je zwei Eingängen; andere Gattertypen werden abgelehnt |
+| B1: `P.KONV.norSetzen = 'e2'` (belegt), Rücksetzen gewinnt bei e1 = e2 = 1 (Q = 0, kein «unzulässig» mehr); Spaltenreihenfolge je Tabelle wie im Lehrmittel (Wahrheitstabelle e2 \| e1 \| AV \| A, Analysetabelle e2 \| e1 \| A, Ansteuertabelle AV \| A \| e2 \| e1) | Lehrmittel, nicht geglättet. Der Test vergleicht die Tabelle Zeile für Zeile mit den belegten Werten und die Engine-Schaltung aus zwei NOR ebenfalls; die gemeinsame 1 wird auch in B1.5 und B2 (getaktet) geprüft |

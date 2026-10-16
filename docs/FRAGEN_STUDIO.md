@@ -12,7 +12,6 @@ Hier steht, was ich nicht selbst entscheiden konnte oder wollte. Kurz, nach Drin
 
 ## Teil B des Lernpfads
 
-6. **NOR-Flipflop (B1, B2): Welcher Eingang ist e1?** Ich habe **e1 = Setzen, e2 = Rücksetzen** gewählt und es in den Aufgabentexten genannt. Wenn Dein Arbeitsblatt es umgekehrt hat, vertauschen sich in `st_B01.js` und `st_B02.js` die Eingangsleitungen.
 7. **Ripple-Zähler mit Rücksetzen: Rechenkern geändert.** Eine hand gebaute Digitaluhr (B9) funktionierte im Studio nicht, weil das Rücksetzen einer Stufe die nächste getaktet hat (die Engine kennt keine Gatterlaufzeit; im echten Baustein hält der preClear-Impuls solange an). Ich habe die Regel «ein Takt im selben Zeitpunkt, in dem preClear wegfällt, zählt nicht» in `engine.js` ergänzt. Sie gilt auch im Spiel. Bitte schau Dir an, ob Du damit einverstanden bist; die Tests (Spiel, Studio, Rechenkern, Robustheit) sind grün.
 8. **B9-Aufbau:** Die Uhr ist asynchron gebaut (Ripple, preClear bei 10 und bei 6, Übertrag über die fallende Flanke von Q3). Wenn Du im Unterricht einen anderen Aufbau erwartest (z. B. synchron), muss die Prüffolge nichts ändern, nur die Musterlösung und der Aufgabentext.
 9. **Zustandsfolgediagramme** sind «von Hand» mit Vergleich. Wenn die Software sie später prüfen soll, braucht es ein Zeichenwerkzeug für Zustände und Pfeile (nicht gebaut).
@@ -24,4 +23,8 @@ Hier steht, was ich nicht selbst entscheiden konnte oder wollte. Kurz, nach Drin
 12. **Aufgabe 11 der KV-Serie** (`Z = BCD' + BCD + AB'C' + A'B'C'`) verwendet Grossbuchstaben A bis D. Für das KV-Diagramm (11b) habe ich A als niederwertigstes Bit genommen (wie a), D als höchstwertiges. Die algebraische Vereinfachung (11a) ist davon unabhängig. Stimmt das?
 13. **Nummerierung der Minterme in `boolesche_algebra.json`:** Dort zählt e1 als **höchstes** Bit (Aufgabe 4 hat `minterme [4, 5]`), im KV-Teil und in der Wahrheitstabelle des Förderbands zählt der erste Eingang als **niedrigstes**. Es ändert nichts an den Aufgaben (die Prüfung rechnet mit dem Ausdruck); der Test rechnet die Nummern um. Falls das Absicht war: bitte bestätigen.
 14. **KV mit 5 und 6 Eingängen** (Aufgaben 14 bis 17): Ich zeichne zwei beziehungsweise vier 4×4-Diagramme (e = 0 | e = 1, f e = 00 … 11) mit durchgehender Feldnummer; Päckchen dürfen Diagramme überspannen. Wenn Du im Unterricht eine andere Anordnung zeichnest, bitte sagen.
-15. **A9 (normierte Schaltungen):** Die Originalaufgaben haben eine Schaltung mit e1 bis e5 (nur NAND) und Ausdrücke für 74HC02/74HC08, die als Bilder fehlen. A9 bleibt mit meinen Beispielen (XOR mit NAND, XOR mit NOR und UND), bis die Originale vorliegen.
+
+## Nach A9 und B1 (16.10.2026)
+
+16. **A9 Aufgabe 2, weitere Ausdrücke:** Der Aufgabentext kündigt «folgende Ausdrücke» im Plural an, belegt ist nur `A1 = NICHT(A + C) · B`. Es ist genau dieser eingebaut, nichts erfunden. Bitte am Original nachsehen, ob weitere Ausdrücke zur Aufgabe gehören.
+17. **B1 Ansteuertabelle:** Die Werte der Ansteuertabelle (Spalten AV | A | e2 | e1) stehen im Auszug nicht. Ich habe die übliche Tabelle gerechnet (e2 e1 = 0 X, 1 0, 0 1, X 0; die Kombination 11 wird nicht benutzt) und lasse X überall zu, wo es die Gleichung mit gemeinsamer 1 hergibt. Bitte gegen die Lösung im Lehrmittel prüfen.

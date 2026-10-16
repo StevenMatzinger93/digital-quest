@@ -9,7 +9,7 @@
      * Der Rechenkern zählt überall «Eingang 1 = Bit 0» (E1 = a); die Buchstaben benennen nur die Eingänge. */
     buchstaben: 'abcdef',
     /* NOR-Flipflop (B1, B2): Welcher Eingang SETZT (Q = 1)? 'e1' oder 'e2'. Der andere setzt zurück. Offen bis Steven antwortet (FRAGEN_STUDIO.md, Punkt 6). */
-    norSetzen: 'e1'
+    norSetzen: 'e2'
     /* preClear-Regel im Rechenkern (Takt im selben Zeitpunkt wie das Wegfallen von preSet/preClear zählt nicht): E.RULES.preClearRennen in src/engine.js (FRAGEN_STUDIO.md, Punkt 7). */
   };
 })(typeof window !== 'undefined' ? window : globalThis);

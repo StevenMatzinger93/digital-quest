@@ -3,8 +3,8 @@
   'use strict';
   var P = root.DQPfad;
   var SZ = P.KONV.norSetzen === 'e2' ? 1 : 0, sN = SZ ? 'e2' : 'e1', rN = SZ ? 'e1' : 'e2', SI = sN.toUpperCase(), RI = rN.toUpperCase();   // Rollen aus konventionen.js
-  var next = function (q, e) { return e[0] ? P.FF.rs(q, SZ ? [e[2], e[1]] : [e[1], e[2]]) : q; };          // e = [C, e1, e2]
-  var an = P.ffAnalyse(['C', 'e1', 'e2'], next);
+  var next = function (q, e) { var sv = SZ ? e[2] : e[1], rv = SZ ? e[1] : e[2]; return e[0] ? (rv ? 0 : sv ? 1 : q) : q; };   // Rücksetzen gewinnt bei beiden = 1 (wie B1)          // e = [C, e1, e2]
+  var an = P.ffAnalyse(['C', 'e2', 'e1'].map(function (x, i) { return x; }), function (q, e) { return next(q, [e[0], e[2], e[1]]); });   // Spalten C, e2, e1 (Setzeingang zuerst wie in B1)
   var muster = P.raster({ teile: [['E1', 'logicin'], ['E2', 'logicin'], ['C', 'logicin'], ['U1', 'and'], ['U2', 'and'], ['U3', 'nor'], ['U4', 'nor'], ['L1', 'logicled'], ['L2', 'logicled'], ['GND1', 'ground']], zeilen: 4,
     leitungen: [[SI, 'U1.in1'], ['C', 'U1.in2'], [RI, 'U2.in1'], ['C', 'U2.in2'], ['U2', 'U3.in1'], ['U4.out', 'U3.in2'], ['U1', 'U4.in1'], ['U3.out', 'U4.in2'], ['U3', 'L1'], ['U4', 'L2']] });
   var stp = function (sv, rv) { var o = {}; o[SI] = sv; o[RI] = rv; return o; };
@@ -15,7 +15,7 @@
     einfuehrung: '<p>Das NOR-Flipflop aus B1 reagiert sofort auf jede Änderung von e1 und e2. Oft soll es aber nur zu bestimmten Zeiten übernehmen. Dafür kommt vor jeden Eingang ein <b>UND-Gatter</b>, das den <b>Takt C</b> als zweiten Eingang hat:</p><ul><li><b>C = 0:</b> Beide UND liefern 0, die Eingänge des NOR-Flipflops sind in Ruhe: Das Flipflop <b>speichert</b>.</li><li><b>C = 1:</b> Die UND geben e1 und e2 frei: Es verhält sich wie das NOR-Flipflop aus B1.</li></ul><p>Das ist ein <b>taktzustandsgesteuertes</b> Flipflop: Es folgt den Eingängen, solange C = 1 ist.</p>',
     verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
     aufgaben: [
-      { id: 'B2.1', titel: 'Analysetabelle mit Takt', art: 'tabelle', kopf: an.kopf, zeilen: an.zeilen, text: '<p>Fülle die Analysetabelle des getakteten Flipflops aus: Zu jeder Kombination von C, e1, e2 und AV der Ausgang A. Bei C = 0 ändert sich nichts. Bei C = 1, e1 = 1, e2 = 1 schreibst du <b>X</b> (unzulässig).</p>' },
+      { id: 'B2.1', titel: 'Analysetabelle mit Takt', art: 'tabelle', kopf: an.kopf, zeilen: an.zeilen, text: '<p>Fülle die Analysetabelle des getakteten Flipflops aus: Zu jeder Kombination von C, e1, e2 und AV der Ausgang A. Bei C = 0 ändert sich nichts. Bei C = 1 und e1 = e2 = 1 gewinnt wie in B1 e1 (A = 0).</p>' },
       { id: 'B2.2', titel: 'NOR-AND-Flipflop bauen', art: 'folge', lesen: ['L1', 'L2'], takt: 'C', nur: ['nor', 'and'], limit: { nor: 2, and: 2 }, min: { nor: 2, and: 2 }, start: st, muster: muster, falsch: falsch,
         schritte: [{ set: stp(1, 0), takte: 1, erwartet: [1, 0], name: 'C = 1 mit S = 1: Q wird 1' }, { set: stp(0, 1), erwartet: [1, 0], name: 'R = 1 bei C = 0: Q bleibt' }, { takte: 1, erwartet: [0, 1], name: 'C = 1 mit R = 1: Q wird 0' },
           { set: stp(1, 0), erwartet: [0, 1], name: 'S = 1 bei C = 0: Q bleibt' }, { takte: 1, erwartet: [1, 0], name: 'C = 1 mit S = 1: Q wird 1' }],

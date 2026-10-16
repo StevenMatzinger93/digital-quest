@@ -257,3 +257,8 @@ Umgesetzt, weil mehr als zwei Stunden übrig waren. Angemeldete Lernende (Portal
 - **Konventionen an einer Stelle:** siehe `ENTSCHEIDUNGEN_STUDIO.md` (Buchstaben, NOR-Setzeingang, preClear-Regel als `E.RULES`).
 - Offene Punkte neu: `FRAGEN_STUDIO.md` 11 bis 15 (Wortlaut Aufgabe 18, Grossbuchstaben in Aufgabe 11, Nummerierung im JSON der Algebra, KV-Anordnung für 5/6 Eingänge, A9-Originale fehlen).
 - **Testkette nach den Originalaufgaben** (frischer Auszug des Commits 046435c): `test_engine` 174, `kern` 924 Prüfwerte, `validate` und `validate_exam` OK, `tests/pfad.js` 1045, `robust.js` beide Startzahlen ohne Befund, `tests/studio.js` 421, `pfad_browser` 47, `pfad_browser2` 33, `pfad_browser3` 16, `pfad_portal` 35, `netz` 37, `smoke` OK, `tasks` 341, `test_api` 128, `test_exam_api` 89, `test_avatar` 842, `portal` OK, `avatar` 29: alles grün.
+
+## A9 und B1 aus den Nachträgen (16.10.2026)
+- **A9:** nur noch Stevens zwei Aufgaben (Nur NAND mit erlaubtem 3-fach-NAND für `A = e1·e2·(e3+e4)·e5`; 74HC02 + 74HC08 für `A1 = NICHT(A+C)·B`). Tests: Funktion über alle 32 beziehungsweise 8 Kombinationen, Bauteilprüfung (richtige Funktion mit UND/ODER, mit 4-fach-NAND, mit fünf NOR, mit 3-fach-NOR wird abgelehnt; eine andere richtige Lösung nur aus vier NOR wird angenommen).
+- **B1:** `norSetzen = e2` bestätigt, Tabellen und Spaltenreihenfolge gegen die belegten Werte geprüft und angeglichen; unzulässiger Zustand entfällt (e1 gewinnt). Auch B2 folgt derselben Regel. `tests/pfad.js` 1043 Prüfungen.
+- `FRAGEN_STUDIO.md`: Punkte 6 und 15 gestrichen, neu 16 (A9 weitere Ausdrücke) und 17 (B1 Ansteuertabelle nicht belegt).
