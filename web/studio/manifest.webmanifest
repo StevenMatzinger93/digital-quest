@@ -1,6 +1,7 @@
 {
   "name": "Digital Quest Studio",
   "short_name": "DQ Studio",
+  "id": "./",
   "lang": "de-CH",
   "start_url": "./",
   "scope": "./",

@@ -341,3 +341,7 @@ body.beamer .dr text { font-size: inherit; }
 .pf-fragen > li { margin-bottom: 14px; } .pf-gl { list-style: none; padding: 0; } .pf-gl li { display: flex; gap: 8px; align-items: center; margin: 4px 0; font-size: 14px; } .pf-sw { width: 14px; height: 14px; border-radius: 4px; flex: none; }
 .kv-cell.sel rect { fill: #cdeefc; } .kv-cell:focus-visible rect { stroke: var(--blau-text); stroke-width: 3; } .ovt { text-decoration: overline; }
 .pfpanel { z-index: 30; } .pf-pb { padding: 10px 14px; overflow: auto; }
+
+/* ---- Hinweis auf neuere Fassung (studio/netz.js) ---- */
+.updbar { position: fixed; left: 0; right: 0; top: 0; z-index: 200; background: #fff3d6; color: #5c3d00; border-bottom: 2px solid #f0c040; padding: 8px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.updbar span { flex: 1; min-width: 240px; }

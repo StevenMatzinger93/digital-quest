@@ -48,6 +48,7 @@
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
   }
   function fileBase() { return (S.name || 'Schaltung').replace(/[^A-Za-z0-9ÄÖÜäöü_\- ]+/g, '').trim().replace(/\s+/g, '_') || 'Schaltung'; }
+  S.fileBase = fileBase;
   S.save = function () { var txt = JSON.stringify(S.serialize(), null, 1); download(fileBase() + '.dqstudio.json', new Blob([txt], { type: 'application/json' })); return txt; };
   S.openDialog = function () { var inp = $('#fileIn'); inp.value = ''; inp.click(); };
   S.setName = function () {
@@ -168,7 +169,7 @@
   S.initFns.push(function () {
     var inp = document.createElement('input'); inp.type = 'file'; inp.id = 'fileIn'; inp.accept = '.json,.dqstudio,application/json'; inp.hidden = true; document.body.appendChild(inp);
     inp.addEventListener('change', function () { var f = inp.files[0]; if (!f) return; var rd = new FileReader(); rd.onload = function () { S.openText(String(rd.result)); }; rd.readAsText(f); });
-    S.setMenu('datei', [{ label: 'Neu', act: function () { S.newCircuit(); S.name = 'Schaltung'; S.updateTitle(); } }, { label: 'Öffnen …', act: function () { S.openDialog(); } }, { label: 'Speichern', key: 'Strg+S', act: function () { S.save(); } }, { label: 'Name …', act: function () { S.setName(); } }, { label: 'Aufgabe stellen …', act: function () { S.taskDialog(); } },
+    S.setMenu('datei', [{ label: 'Neu', act: function () { S.newCircuit(); S.name = 'Schaltung'; S.updateTitle(); } }, { label: 'Öffnen …', act: function () { S.openDialog(); } }, { label: 'Speichern', key: 'Strg+S', act: function () { S.save(); } }, { label: 'Speichern unter …', act: function () { if (S.saveAs) S.saveAs(); else S.save(); } }, { label: 'Name …', act: function () { S.setName(); } }, { label: 'Aufgabe stellen …', act: function () { S.taskDialog(); } },
       { sep: 1 }, { label: 'Exportieren (SVG, PNG) …', act: function () { S.exportDialog(); } }, { label: 'Drucken …', key: 'Strg+P', act: function () { S.print(); } }, { label: 'Stückliste …', act: function () { S.showBom(); } }, { sep: 1 }, { label: 'Schaltung einpassen', act: function () { S.ed.fit(); } }]);
     document.addEventListener('keydown', function (ev) {
       if (!(ev.ctrlKey || ev.metaKey) || ev.altKey) return; var k = ev.key.toLowerCase();

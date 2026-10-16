@@ -1,0 +1,4 @@
+Digital Quest Studio – tragbare Fassung
+
+Die Datei studio.html mit einem Doppelklick im Browser öffnen (Chrome, Edge oder Firefox); sie braucht kein Internet und keine Installation.
+Schaltungen und deinen Lernpfad-Fortschritt speicherst du als Dateien (Menü Datei und Lernpfad) – die Datei studio.html selbst speichert nichts, und auf einem anderen Gerät beginnst du mit dem Öffnen deiner Datei.

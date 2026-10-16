@@ -236,6 +236,8 @@
     m.el.querySelector('.drop').innerHTML = m.items.map(function (it, i) { return it.sep ? '<hr>' : it.head ? '<span class="ex-head">' + esc(it.head) + '</span>' : it.info ? '<span class="ex-text">' + esc(it.info) + '</span>' : '<button role="menuitem" data-i="' + i + '">' + esc(it.label) + (it.key ? '<small>' + esc(it.key) + '</small>' : '') + '</button>'; }).join('');
   }
   function closeMenus() { $$('.menu.open').forEach(function (m) { m.classList.remove('open'); $('button', m).setAttribute('aria-expanded', 'false'); }); }
+  S.addMenuItem = function (id, item) { var m = MENUS.filter(function (x) { return x.id === id; })[0]; if (m) { m.items.push(item); fillMenu(m); } };
+  S.removeMenuItem = function (id, label) { var m = MENUS.filter(function (x) { return x.id === id; })[0]; if (m) { m.items = m.items.filter(function (it) { return it.label !== label; }); fillMenu(m); } };
   S.setMenu = function (id, items) { var m = MENUS.filter(function (x) { return x.id === id; })[0]; if (m) { m.items = items; fillMenu(m); } };
   function help() {
     openModal('<h2>Kurzanleitung</h2><ul><li><b>Bauen:</b> Bauteil oben in der Leiste anklicken, dann auf die Zeichenfläche klicken (so oft man will; <kbd>R</kbd> dreht, <kbd>Esc</kbd> beendet) – oder auf die Zeichenfläche ziehen; auf eine Leitung gesetzt oder gezogen, hängt ein Zweipol (Widerstand, Kondensator …) darin. Zwei Anschlüsse nacheinander anklicken = Leitung. <b>Leitung auf Leitung:</b> mit einer Leitung im Entstehen auf eine bestehende Leitung klicken, oder von einer Leitung wegziehen – dort entsteht ein Knotenpunkt (Punkt = verbunden, Kreuzung ohne Punkt = nicht verbunden).</li>' +

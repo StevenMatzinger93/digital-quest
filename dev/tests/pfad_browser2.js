@@ -6,7 +6,7 @@ const ROOT = path.join(__dirname, '../..'), url = 'file://' + path.join(ROOT, 's
 const fails = []; let checks = 0; const ok = (c, m) => { checks++; if (!c) fails.push(m); };
 (async () => {
   fs.mkdirSync(shots, { recursive: true });
-  const browser = await chromium.launch(), ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }), page = await ctx.newPage(), errors = [];
+  const browser = await chromium.launch(), ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }), page = await ctx.newPage(); await ctx.addInitScript(() => { window.showSaveFilePicker = undefined; window.showOpenFilePicker = undefined; }); // Dateiauswahl des Systems abschalten: Download und Dateiauswahl des Browsers lassen sich automatisch prüfen (tests/netz.js prüft die Systemdialoge), errors = [];
   page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto(url, { waitUntil: 'domcontentloaded' }); await page.waitForFunction(() => window.Studio && Studio.pfad); await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForFunction(() => window.Studio && Studio.pfad);

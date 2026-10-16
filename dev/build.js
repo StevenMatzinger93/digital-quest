@@ -150,7 +150,7 @@ if (/defExamTask|"hidden"/.test(game)) throw new Error('Prüfungspool ist im Spi
 const SD = f => fs.readFileSync(path.join(__dirname, 'studio', f), 'utf8').split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
 const PFAD_DIR = path.join(__dirname, 'studio', 'pfad'), pfadFiles = fs.readdirSync(PFAD_DIR).filter(f => /^st_.*\.js$/.test(f)).sort();   // Lernpfad: kern.js, dann alle Stationen (st_*.js, nur Daten), dann ui.js
 const studioFiles = fs.readdirSync(path.join(__dirname, 'studio')).filter(f => /\.js$/.test(f)).concat(['pfad/kern.js', 'pfad/bausteine.js', 'pfad/ui.js'], pfadFiles.map(f => 'pfad/' + f));
-const STUDIO_ORDER = ['sim.js', 'studio.js', 'counters.js', 'edit.js', 'slider.js', 'file.js', 'bool.js', 'logic.js', 'task.js', 'scope.js', 'bode.js', 'timing.js', 'inspector.js', 'signale.js', 'bedienung.js', 'ansicht.js', 'zeichnen.js', 'blatt.js', 'druck.js', 'beispiele.js', 'pfad/kern.js', 'pfad/bausteine.js'].concat(pfadFiles.map(f => 'pfad/' + f), ['pfad/ui.js', 'examples.js']);   // studio.js legt S an, danach die Module; examples.js zuletzt
+const STUDIO_ORDER = ['sim.js', 'studio.js', 'counters.js', 'edit.js', 'slider.js', 'file.js', 'bool.js', 'logic.js', 'task.js', 'scope.js', 'bode.js', 'timing.js', 'inspector.js', 'signale.js', 'bedienung.js', 'ansicht.js', 'zeichnen.js', 'blatt.js', 'druck.js', 'beispiele.js', 'netz.js', 'pfad/kern.js', 'pfad/bausteine.js'].concat(pfadFiles.map(f => 'pfad/' + f), ['pfad/ui.js', 'examples.js']);   // studio.js legt S an, danach die Module; examples.js zuletzt
 const studioJs = ['engine.js', 'circuit-ui.js', 'editor.js', 'visuals.js', 'content/_logic.js'].map(f => '/* ==== ' + f + ' ==== */\n' + src(f))
   .concat(STUDIO_ORDER.filter(f => studioFiles.includes(f)).map(f => '/* ==== studio/' + f + ' ==== */\n' + SD(f))).join('\n');
 studioFiles.forEach(f => { if (!STUDIO_ORDER.includes(f)) throw new Error('studio/' + f + ' fehlt in STUDIO_ORDER (build.js)'); });
@@ -160,11 +160,15 @@ const studioFill = pwa => studioTpl.split('/*CSS*/').join(SD('studio.css')).spli
 const studioIcon = '<link rel="icon" href="data:image/svg+xml,' + encodeURIComponent(fs.readFileSync(path.join(__dirname, 'assets/icon.svg'), 'utf8')) + '">';
 const studioOffline = studioFill(studioIcon);
 fs.writeFileSync(path.join(root, 'studio.html'), studioOffline);
+/* dist/: die tragbare Fassung zum Weitergeben (USB-Stick, Mail, Laufwerk): eine Datei, die ohne alles läuft, dazu zwei Sätze zur Benutzung */
+fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
+fs.writeFileSync(path.join(root, 'dist', 'studio.html'), studioOffline);
+fs.writeFileSync(path.join(root, 'dist', 'LIESMICH.txt'), 'Digital Quest Studio – tragbare Fassung\r\n\r\nDie Datei studio.html mit einem Doppelklick im Browser öffnen (Chrome, Edge oder Firefox); sie braucht kein Internet und keine Installation.\r\nSchaltungen und deinen Lernpfad-Fortschritt speicherst du als Dateien (Menü Datei und Lernpfad) – die Datei studio.html selbst speichert nichts, und auf einem anderen Gerät beginnst du mit dem Öffnen deiner Datei.\r\n');
 fs.mkdirSync(path.join(web, 'studio'), { recursive: true });
 const studioWeb = studioFill('<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="../icon.svg"><link rel="apple-touch-icon" href="../icon-192.png">' +
   '<script>if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));</script>');
 fs.writeFileSync(path.join(web, 'studio', 'index.html'), studioWeb);
-fs.writeFileSync(path.join(web, 'studio', 'manifest.webmanifest'), JSON.stringify({ name: 'Digital Quest Studio', short_name: 'DQ Studio', lang: 'de-CH', start_url: './', scope: './', display: 'standalone',
+fs.writeFileSync(path.join(web, 'studio', 'manifest.webmanifest'), JSON.stringify({ name: 'Digital Quest Studio', short_name: 'DQ Studio', id: './', lang: 'de-CH', start_url: './', scope: './', display: 'standalone',
   background_color: '#f6fbfc', theme_color: '#0f2d3a', description: 'Schaltungen frei bauen, simulieren und messen.', icons: icons.map(i => Object.assign({}, i, { src: i.src.replace('../', '../') })) }, null, 2));
 if (/https?:\/\/(fonts|cdn)/.test(studioOffline)) throw new Error('Studio (offline) darf keine Netzadressen laden');
 

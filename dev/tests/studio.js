@@ -215,6 +215,7 @@ function uhr() {
 (async () => {
   fs.mkdirSync(shots, { recursive: true });
   const browser = await chromium.launch();
+  { const nc = browser.newContext.bind(browser); browser.newContext = async o => { const c = await nc(o); await c.addInitScript(() => { window.showSaveFilePicker = undefined; window.showOpenFilePicker = undefined; }); return c; }; } // Dateiauswahl des Systems abschalten: hier gilt der Weg über Download und Dateiauswahl des Browsers (der Rückfallweg); die Systemdialoge prüft tests/netz.js
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
   const errors = [], external = [];
