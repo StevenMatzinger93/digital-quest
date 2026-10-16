@@ -445,6 +445,7 @@
      * nach tpd wirksam – auch ueber Rechenschritte hinweg. Ohne dt (Arbeitspunkt) gelten sie sofort. tv = Zeit des aktuellen Durchgangs innerhalb des Schritts. */
     var delayMode = !!opts.dt, t1s = state.t + (opts.dt || 0), tv = state.t;
     state.pend = state.pend || [];
+    Object.keys(state.ff || {}).forEach(function (k) { state.ff[k].ap = false; }); // neuer Zeitpunkt: kein asynchroner Eingang wirkt «noch»
     for (;;) {
       out = solve(net, { state: state, dt: opts.dt, t: state.t, meter: opts.meter, trace: trace, maxIter: opts.maxIter });
       if (opts.iters) opts.iters.push({ t: tv, nodeV: out.res.nodeV }); // Zwischenloesungen je Durchgang mit Zeitpunkt (Flipflop-Laufzeit im Zeitverlauf des Studios)
@@ -498,6 +499,10 @@
         var f = state.ff[p.id] || (state.ff[p.id] = { q: false, c: null });
         function lv(pin) { return p.n[pin] !== undefined && (out.V[p.n[pin]] || 0) > LOGIC.vth; }
         var c = lv('C'), ins = d.ffIns.map(lv), mode = d.ms ? 'ms' : (p.props.trig || 'pos'), nq = f.q, active = false;
+        /* Rennen beim asynchronen Rücksetzen (Zähler mit preClear): Fällt preSet/preClear im selben Zeitpunkt weg, in dem eine Taktflanke eintrifft, die erst durch das Rücksetzen einer Vorstufe
+         * entstand, so ist der Rücksetzimpuls im echten Baustein noch wirksam (Gatterlaufzeit) – die Flanke zählt nicht. Ohne diese Regel würde ein Ripple-Zähler mit Rücksetzung bei jedem Zurücksetzen falsch weiterzählen. */
+        var apNow = lv('PS') || lv('PC'), blocked = !!f.ap && !apNow; f.ap = apNow;
+        if (blocked) { f.c = c; }
         if (mode === 'pos') { if (f.c === false && c) { active = true; nq = d.ff(f.q, ins); } }
         else if (mode === 'neg') { if (f.c === true && !c) { active = true; nq = d.ff(f.q, ins); } }
         else if (mode === 'level') { if (c && (delayMode || guard === 0)) { active = true; nq = d.ff(f.q, ins); } }

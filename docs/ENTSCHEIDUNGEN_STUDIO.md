@@ -248,3 +248,27 @@ Benannt wie im Portal («Beamer»); der **Vorführ-Modus** des Spiels ist etwas 
 | A4 ohne alte DIN-Norm | Ohne Stevens Arbeitsblatt ist nicht gesichert, welche Zeichen er verlangt; erfundene Symbole wären schlimmer als keine (`FRAGEN_STUDIO.md`) |
 | Die 18 Vereinfachungen (A8) und die 13 KV-Funktionen (A10) sind eigene Beispiele, nicht Stevens Serien | Seine Arbeitsblätter liegen nicht im Repository. Der Test stellt sicher, dass jedes Beispiel wirklich einfacher wird und die Minimalform stimmt; Steven ersetzt sie durch seine |
 | KV: Gruppen werden mit Feldnummern (Minterm) und einer kleinen Zahl in jedem Feld gewählt, nicht per Zeichnen mit der Maus | Funktioniert auf Handy und Tastatur, und die Rückmeldung kann «Feld 6» sagen |
+
+### Lernpfad Teil B (Block 4)
+
+| Entscheidung | Begründung |
+|---|---|
+| Flipflops werden durch ihre Folgefunktion aus dem Lehrbuch beschrieben (`P.FF.rs/d/t/jk`); Analysetabelle, Ansteuertabelle (X wo beide Werte erlaubt sind), Zustandsfolgediagramm und Soll-Folgen entstehen daraus. Der Test vergleicht jede Folgefunktion mit dem Verhalten der Engine (alle Zustände und Eingaben) und schaltet das NOR-Flipflop aus zwei NOR sowie das getaktete NOR-AND-Flipflop in der Engine nach | Die Tabellen in den Stationen können so keine Tippfehler enthalten, und die Musterschaltungen bestätigen die Bauteile der Engine gegen das Lehrbuch |
+| B1 und B2: e1 = Setzen (S), e2 = Rücksetzen (R) | Stevens Zuordnung ist nicht belegt (`FRAGEN_STUDIO.md`); die Aufgabentexte sagen es ausdrücklich, damit sie in sich stimmen |
+| Zustandsfolgediagramme zeichnen die Lernenden von Hand; «Abgeben» zeigt danach das Diagramm der Software zum Vergleich, ohne Bewertung (Prüfart `vergleich`) | wie im Auftrag; die Station ist dafür mit ✎ gekennzeichnet |
+| Die Prüfart `folge` hat optional einen Takteingang und kennt `abfolge` (Eingänge nacheinander setzen, nach jedem Schritt rechnen). Damit lassen sich Taktzustand und Taktflanke unterscheiden (D ändert sich, während C = 1 ist) und das 1s-Catching zeigen | Ohne Reihenfolge der Eingänge ist der Unterschied nicht prüfbar |
+| Der Takteingang darf ein Pegelschalter oder ein Taktgeber sein; die Software taktet ihn von Hand (der Taktgeber wird dafür in einen Pegelschalter am selben Anschluss umgewandelt). Siebensegmentanzeigen werden als Ziffer gelesen | So lässt sich die Digitaluhr mit echtem Taktgeber und echten Anzeigen abnehmen, ohne eine Stunde zu simulieren |
+| **Engine:** Ein Flipflop-Takt, der im selben Zeitpunkt eintrifft, in dem preSet/preClear wegfällt, zählt nicht (`f.ap` in `engine.js`) | Beim Rücksetzen eines Ripple-Zählers lässt das Zurückfallen einer Stufe Q̄ steigen und taktet die nächste; im echten Baustein hält der Rücksetzimpuls wegen der Gatterlaufzeit noch an. Ohne diese Regel zählte jeder Dezimal- und Modulo-Zähler mit preClear (und damit die Digitaluhr, wie der Auftrag sie verlangt) nach dem Zurücksetzen falsch weiter. Gilt auch im Spiel; Regressionstest in `tests/kern.js`, Ringoszillator und `robust.js` unverändert grün |
+| B9 (Digitaluhr): Einerstelle und Zehnerstelle sind freiwillige Teilaufgaben, die Uhr ist die Pflichtaufgabe. Anzeige AZ1 = Einer, AZ2 = Zehner, der Taktgeber heisst CLK1 (erster Taktgeber, automatische Nummer) | Die Software muss wissen, welche Anzeige welche Stelle ist; die automatische Nummerierung des Studios macht das ohne Zusatzaufwand |
+| B8 schaltet Taktgeber, BCD-Dekoder und Siebensegmentanzeige frei (Aufgabe «Zählerstand sichtbar machen»); B9 schaltet nichts Neues frei, der Test prüft das | Auftrag: Wer A1 bis B8 durchgearbeitet hat, hat alles für B9 |
+| Modulo-n-Zähler in B12 mit asynchronem Dualzähler und preClear (n = 6, 3 verlangt, 12 freiwillig); BCD-Zähler in B11 synchron mit D-Flipflops (Gleichungen aus KV-Diagrammen mit Don't-Care 10 bis 15) | Entspricht den Bausteinen, die B8 und B10 liefern; die Studio-Zählerbauteile (`ctr_*`) stehen in den Aufgaben absichtlich nicht zur Verfügung, damit selbst gebaut wird |
+| Laufzeit-Fragen (B8.5, B10.4): Die Antworten (20/40/60 ns, Zwischenzustände 110 und 100, Frequenz 8 Hz → 4 Hz) werden im Test mit der Studio-Simulation nachgemessen | Keine Zahl in einer Prüffrage ohne Messung |
+
+### Betrieb im Netz (Block 5)
+
+| Entscheidung | Begründung |
+|---|---|
+| Dateidialoge: `S.saveFile` und `S.openFile` in `studio/netz.js` nutzen `showSaveFilePicker`/`showOpenFilePicker`, wo es sie gibt; «Speichern» schreibt danach in dieselbe Datei, «Speichern unter …» fragt immer. Bei Abbruch nichts, bei Fehler stiller Rückfall auf Download | Auftrag: ohne Fehlermeldung, ohne Hinweis. Die Aufgaben-Dateien (zwei Dateien nacheinander) und die Bildexporte bleiben beim Download, weil zwei Dialoge hintereinander ohne neue Eingabe der Browser verweigert |
+| Der Test ersetzt die Dialoge des Systems durch Ersatzfunktionen (`showSaveFilePicker` und `showOpenFilePicker`), prüft Aufruf, Schreiben und Rückfall | Die echten Dialoge des Betriebssystems lassen sich nicht automatisch bedienen; ob der echte Dialog in Chrome und Edge so aussieht, muss Steven einmal von Hand ansehen |
+| Neuere Fassung: Hinweisleiste auf `controllerchange` des Service Workers (nicht beim ersten Besuch); «Jetzt neu laden» oder «Später» | Der Service Worker liefert zuerst aus dem Cache und lädt neu nach; ohne Hinweis liefe die geöffnete Seite mit dem alten Stand weiter |
+| `dist/` mit `studio.html` und `LIESMICH.txt` wird vom Build erzeugt und eingecheckt; das Wurzel-`studio.html` bleibt | Auftrag: tragbare Fassung mit zwei Sätzen |

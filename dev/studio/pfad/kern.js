@@ -364,7 +364,7 @@
     return ok('Alle ' + a.fragen.length + ' Fragen richtig.');
   };
   P.pruefeProtokoll = function (a, antwort) { return antwort && antwort.selbst ? ok('Von dir als erledigt markiert (die Software prüft diese Station nicht).') : bad('Diese Station wird nicht von der Software geprüft: Führe die Messung durch und markiere sie dann selbst als erledigt.'); };
-  P.pruefeVergleich = function (a, antwort) { return antwort && String(antwort.text || '').trim() ? ok('Abgegeben. Vergleiche dein Diagramm mit dem der Software (es wird nicht bewertet).') : bad('Zeichne dein Diagramm auf Papier, schreibe unten kurz auf, was du gefunden hast, und gib es dann ab.'); };
+  P.pruefeVergleich = function (a, antwort) { return antwort && String(antwort.text || '').trim() ? ok('Abgegeben. Vergleiche dein Diagramm mit dem Diagramm der Software (es wird nicht bewertet).') : bad('Zeichne dein Diagramm auf Papier, schreibe unten kurz auf, was du gefunden hast, und gib es dann ab.'); };
 
   /* ---------- Ein Aufruf für alle Arten ---------- */
   P.pruefe = function (a, antwort) {

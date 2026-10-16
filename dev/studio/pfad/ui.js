@@ -204,6 +204,7 @@
     var wasRichtig = P.aufgabeStatus(stand, a.id) === 'richtig';
     P.speichereErgebnis(stand, a.id, res, antwort, jetzt()); sichere();
     zeigeMeldung(res); if (a.art === 'tabelle') markiereTabelle(res);
+    if (a.art === 'vergleich' && res.ok) { var vb = $('#pfSol'); if (vb) vb.innerHTML = '<div class="pf-sol"><h3>Zum Vergleich</h3>' + (a.zeigeMuster || '') + '<p class="hint">Das ist nur zum Vergleich mit deinem Diagramm. Bewertet wird es nicht.</p></div>'; }
     var lb = $('#pfLoesungBtn') || $('#pfpLoesung'); if (lb) lb.hidden = !P.loesungFrei(stand, a.id);
     if (!edit) { var li = $('.pf-aufg[data-aid="' + a.id + '"]'); if (li) { li.className = 'pf-aufg ast-' + P.aufgabeStatus(stand, a.id) + ' on'; $('.pf-ic', li).textContent = ICON[P.aufgabeStatus(stand, a.id)]; } }
     if (res.ok && !wasRichtig && P.stationFertig(stand, cur.sid)) abschlussHinweis();
@@ -249,7 +250,7 @@
     var e = P.eintrag(stand, a.id), h = '<div class="fh"><b>' + esc(a.id) + ' ' + esc(a.titel) + '</b></div><div class="fb pf-pb">';
     if (muster) h += '<p class="warnbox"><b>Musterlösung.</b> Das ist nicht deine Schaltung. Deine bleibt gespeichert; mit «Zurück zur Station» kommst du zu ihr zurück.</p><p class="pf-actions"><button class="tb run" data-a="zurueck">Zurück zur Station</button></p>';
     else {
-      h += a.text + (a.art === 'folge' ? '<p class="hint">Der Takteingang <b>' + esc(a.takt) + '</b> ist ein Pegelschalter: Ein Takt ist Pegel 1, dann wieder 0. Die Software gibt die Takte selbst ein und liest die Anzeigen ' + esc((a.lesen || []).join(', ')) + '.</p>' : '');
+      h += a.text + (a.art === 'folge' ? '<p class="hint">' + (a.takt ? 'Die Software taktet den Eingang <b>' + esc(a.takt) + '</b> selbst (Pegel 1, dann wieder 0) und ' : 'Die Software schaltet die Eingänge selbst und ') + 'liest die Anzeigen ' + esc((a.lesen || []).join(', ')) + '.</p>' : '');
       if (a.limit || a.nur) h += '<p class="hint">' + (a.nur ? 'Erlaubt: ' + a.nur.map(P.typName).join(', ') + '. ' : '') + (a.limitText || '') + '</p>';
       h += '<p class="pf-actions"><button class="tb run" data-a="check">Prüfen</button> <button class="tb" id="pfpLoesung" data-a="loesung"' + (P.loesungFrei(stand, a.id) ? '' : ' hidden') + '>Lösung zeigen</button> <button class="tb" data-a="zurueck">Zurück zur Station</button></p>' +
         '<div class="pf-msg" id="pfpMsg" role="status" aria-live="polite">' + (e && e.meldung ? '<span class="' + (e.letzte === 'richtig' ? 'ok' : 'bad') + '">' + esc(e.meldung) + '</span>' : '') + '</div><div id="pfpSol"></div>';
@@ -294,17 +295,18 @@
     }
   }
   function alertBox(titel, text) { S.openModal('<h2>' + esc(titel) + '</h2><p>' + esc(text) + '</p><p><button class="tb" id="mClose">Schliessen</button></p>'); }
-  function dateiWaehlen(fn) {
+  function dateiWaehlen(fn, key) { // Dateiauswahl des Systems (Chrome, Edge) oder des Browsers; studio/netz.js
+    if (S.openFile) return S.openFile({ desc: 'Lernpfad-Datei', ext: '.json', key: key }, fn);
     var inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json'; inp.style.display = 'none'; document.body.appendChild(inp);
     inp.onchange = function () { var f = inp.files[0]; if (!f) { inp.remove(); return; } var rd = new FileReader(); rd.onload = function () { inp.remove(); fn(String(rd.result)); }; rd.readAsText(f); };
     inp.click();
   }
-  function exportieren() { var d = new Date().toISOString().slice(0, 10); S.downloadText('Lernpfad_Fortschritt_' + d + '.fortschritt.dqstudio.json', P.exportiere(stand, jetzt())); }
+  function exportieren() { var d = new Date().toISOString().slice(0, 10), name = 'Lernpfad_Fortschritt_' + d + '.fortschritt.dqstudio.json', txt = P.exportiere(stand, jetzt()); if (S.saveFile) S.saveFile(name, txt, { desc: 'Lernpfad-Fortschritt', ext: '.json', key: 'fortschritt', dialog: true }); else S.downloadText(name, txt); }
   function freigabeDialog() {
     S.openModal('<h2>Stationen für die Klasse freischalten</h2><p class="hint">Du bestimmst das Tempo: Die gewählten Stationen sind bei den Lernenden offen, auch wenn die vorige noch nicht abgeschlossen ist. Gib ihnen die Datei, sie lesen sie im Lernpfad ein.</p><div style="max-height:300px;overflow:auto">' +
       P.stations.map(function (s) { return '<label class="pf-opt"><input type="checkbox" data-fg="' + s.id + '"> ' + s.id + ' ' + esc(s.titel) + '</label>'; }).join('') + '</div><p><button class="tb" data-fgall>Alle</button> <button class="tb run" id="fgGo">Freigabedatei speichern</button> <button class="tb" id="mClose">Abbrechen</button></p>');
     $('#modal [data-fgall]').onclick = function () { $$('#modal [data-fg]').forEach(function (c) { c.checked = true; }); };
-    $('#fgGo').onclick = function () { var ids = $$('#modal [data-fg]').filter(function (c) { return c.checked; }).map(function (c) { return c.dataset.fg; }); S.downloadText('Lernpfad_Freigabe.freigabe.dqstudio.json', P.freigabeDatei(ids, jetzt())); S.closeModal(); };
+    $('#fgGo').onclick = function () { var ids = $$('#modal [data-fg]').filter(function (c) { return c.checked; }).map(function (c) { return c.dataset.fg; }); var ft = P.freigabeDatei(ids, jetzt()); if (S.saveFile) S.saveFile('Lernpfad_Freigabe.freigabe.dqstudio.json', ft, { desc: 'Lernpfad-Freigabe', ext: '.json', key: 'freigabe', dialog: true }); else S.downloadText('Lernpfad_Freigabe.freigabe.dqstudio.json', ft); S.closeModal(); };
   }
   function drucken(a) {
     var w = root.open('', '_blank'); if (!w) return alertBox('Drucken nicht möglich', 'Der Browser hat das Druckfenster blockiert.');

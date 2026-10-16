@@ -161,6 +161,21 @@ if (section('stand')) {
   const fremd = JSON.parse(txt); fremd.stand.stationen.ZZ9 = { aufgaben: {} }; chk('Einlesen: unbekannte Stationen werden verworfen', !('ZZ9' in P.importiere(JSON.stringify(fremd)).stand.stationen));
 }
 
+/* ---------- 3b. Der ganze Pfad von vorn bis hinten ---------- */
+if (section('pfad')) {
+  const st = P.neuerStand(), ids = P.stations.map(s => s.id); let ok1 = true, fehler = '';
+  ids.forEach((id, i) => {
+    const vor = P.stationStatus(st, id); if (vor !== 'offen') { ok1 = false; fehler += ' ' + id + ' war «' + vor + '» statt offen;'; }
+    if (i + 1 < ids.length && P.stationStatus(st, ids[i + 1]) !== 'gesperrt') { ok1 = false; fehler += ' ' + ids[i + 1] + ' war nicht gesperrt;'; }
+    P.get(id).aufgaben.filter(P.pflicht).forEach(a => { const r = P.pruefe(a, P.muster(a)); P.speichereErgebnis(st, a.id, r, P.muster(a), 't'); if (!r.ok) { ok1 = false; fehler += ' ' + a.id + ' ' + r.meldung + ';'; } });
+    if (P.stationStatus(st, id) !== 'bestanden') { ok1 = false; fehler += ' ' + id + ' nicht bestanden;'; }
+  });
+  chk('Der ganze Pfad: ' + ids.length + ' Stationen nacheinander, jede öffnet sich erst, wenn die vorige bestanden ist; alle bestehen mit der Musterlösung' + fehler, ok1);
+  chk('Der ganze Pfad: Fortschritt nach dem Durchlauf übersteht Ausgeben und Einlesen', JSON.stringify(P.importiere(P.exportiere(st, 'z')).stand) === JSON.stringify(st));
+  chk('Der ganze Pfad: 26 Stationen A1 bis A13 und B1 bis B13', ids.length === 26 && ids.slice(0, 13).join() === 'A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13' && ids.slice(13).join() === 'B1,B2,B3,B4,B5,B6,B7,B8,B9,B10,B11,B12,B13', ids.join());
+  const lab = P.stations.filter(s => s.auto === false).map(s => s.id); chk('Laborstationen sind gekennzeichnet (nur A2)', lab.join() === 'A2', lab.join());
+}
+
 /* ---------- 4. Stationen ---------- */
 const GRUND = ['logicin', 'logicled', 'ground', 'node'];
 function mutiere(a, muster) { // eine bewusst falsche Antwort zur Musterlösung
@@ -284,6 +299,55 @@ if (section('fachlich')) {
     w.forEach(r => { const word = parseInt(r.slice(0, 4).join(''), 2), out = r.slice(4).map(c => [].concat(c.a)[0]); if (word >= 3 && word <= 12) { if (parseInt(out.join(''), 2) !== word - 3) ok2 = false; } else if (!out.every(x => x === 'X')) ok2 = false; });
     chk('A11.2 Wandlertabelle: gültige Wörter ergeben Ziffer = Wort − 3, die übrigen sechs sind X', ok2 && w.length === 16);
   }
+  // ---- Teil B ----
+  // Folgefunktionen aus dem Lehrbuch gegen das Verhalten der Engine (alle Zustände × Eingangskombinationen)
+  { const FFT = { dff: ['d', 1], tff: ['t', 1], jkff: ['jk', 2], rsff: ['rs', 2] };
+    Object.keys(FFT).forEach(t => { const [m, n] = FFT[t]; let good = true;
+      for (let q = 0; q < 2; q++) for (let k = 0; k < (1 << n); k++) { const e = Array.from({ length: n }, (_, i) => k >> (n - 1 - i) & 1), want = P.FF[m](q, e); if (want === 'X') continue; const got = E.PARTS[t].ff(!!q, e.map(Boolean)) ? 1 : 0; if (got !== want) good = false; }
+      chk('B Folgefunktion ' + t + ' (Lehrbuch) = Engine für alle Zustände und Eingänge', good); }); }
+  // B1: das NOR-Flipflop aus zwei NOR-Gattern in der Engine durchschalten: Analysetabelle, Ansteuertabelle und Wahrheitstabelle
+  const b1 = P.get('B1');
+  if (b1) {
+    const lay = P.raster({ teile: [['E1', 'logicin'], ['E2', 'logicin'], ['U1', 'nor'], ['U2', 'nor'], ['L1', 'logicled'], ['L2', 'logicled']], leitungen: [['E2', 'U1.in1'], ['U2.out', 'U1.in2'], ['E1', 'U2.in1'], ['U1.out', 'U2.in2'], ['U1', 'L1'], ['U2', 'L2']] });
+    const net = E.buildNetlist(JSON.parse(JSON.stringify(lay))), st = E.newState(), val = c => P.isAns(c) ? [].concat(c.a)[0] : c;
+    const Q = () => (E.step(net, st, { noGroundFault: true }).nodeV[net.pinNode['L1.in']] || 0) > E.LOGIC.vth ? 1 : 0, Qn = () => 0;
+    const setSR = (s, r) => { net.byId.E1.props.closed = !!s; net.byId.E2.props.closed = !!r; };
+    // Zustand herstellen und S, R setzen, dann den Folgezustand lesen
+    const folge = (av, s, r) => { setSR(av ? 1 : 0, av ? 0 : 1); E.step(net, st, { noGroundFault: true }); setSR(0, 0); E.step(net, st, { noGroundFault: true }); setSR(s, r); return Q(); };
+    let good = true; b1.aufgaben.find(a => a.id === 'B1.2').zeilen.forEach(r => { const s = +r[0], rr = +r[1], av = +r[2], a = val(r[3]); if (s && rr) return; if (folge(av, s, rr) !== +a) good = false; });
+    chk('B1.2 Analysetabelle des NOR-Flipflops: jede zulässige Zeile in der Engine nachgeschaltet', good);
+    good = true; b1.aufgaben.find(a => a.id === 'B1.3').zeilen.forEach(r => { const av = +r[0], a = +r[1]; [0, 1].forEach(sv => [0, 1].forEach(rv => { if (sv && rv) return; const ok = folge(av, sv, rv) === a; const v = [val(r[2]), val(r[3])]; const erlaubt = (v[0] === 'X' || v[0] === String(sv) || Array.isArray(v[0])) && (v[1] === 'X' || v[1] === String(rv) || Array.isArray(v[1])); if (ok && !((val(r[2]) === 'X' || (Array.isArray(r[2].a)) || String(sv) === val(r[2])) && (Array.isArray(r[3].a) || String(rv) === val(r[3])))) good = false; })); });
+    chk('B1.3 Ansteuertabelle: jede Eingabe, die den Übergang bewirkt, steht in der Tabelle (X = beides erlaubt)', good);
+    const w = b1.aufgaben.find(a => a.id === 'B1.1').zeilen.map(r => val(r[2])); chk('B1.1 Wahrheitstabelle: hält / 0 / 1 / unzulässig', w.join() === 'AV,0,1,unzulässig');
+  }
+  // B2: das getaktete Flipflop in der Engine
+  const b2 = P.get('B2');
+  if (b2) { const m = b2.aufgaben.find(a => a.id === 'B2.2').muster, net = E.buildNetlist(JSON.parse(JSON.stringify(m))), st = E.newState(); let good = true;
+    const run = (e1, e2, c) => { net.byId.E1.props.closed = !!e1; net.byId.E2.props.closed = !!e2; net.byId.C.props.closed = !!c; const r = E.step(net, st, { noGroundFault: true }); return (r.nodeV[net.pinNode['L1.in']] || 0) > E.LOGIC.vth ? 1 : 0; };
+    b2.aufgaben.find(a => a.id === 'B2.1').zeilen.forEach(r => { const val = c => P.isAns(c) ? [].concat(c.a)[0] : c, c = +r[0], s = +r[1], rr = +r[2], av = +r[3], a = val(r[4]); if (a === 'X') return; run(av ? 1 : 0, av ? 0 : 1, 1); run(0, 0, 0); const q = run(s, rr, c); if (q !== +a) good = false; });
+    chk('B2.1 Analysetabelle des NOR-AND-Flipflops: jede zulässige Zeile in der Engine nachgeschaltet', good); }
+  // B8 und B10: Laufzeit im Zeitverlauf (Studio-Simulation, 20 ns je Flipflop) – die Antworten der Prüffragen
+  { const Sim = require('../studio/sim.js');
+    const mitTakt = lay => { const l = JSON.parse(JSON.stringify(lay)); const c = l.parts.find(p => p.id === 'C'); c.type = 'clock'; c.props = { freq: 1e6 }; return l; };
+    const zeiten = lay => { const sim = new Sim({ getLayout: () => lay }); sim.refresh(true); sim.reset(); const tr = ['C', 'FF1', 'FF2', 'FF3'].map((id, i) => sim.addTrace({ kind: 'dig', a: i === 0 ? 'C.out' : id + '.Q' })); sim.advance(20e-6);
+      const ed = (t, fall) => { const o = []; for (let i = 1; i < t.n; i++) { const a = t.v[i - 1] > 2.5, b = t.v[i] > 2.5; if (fall ? a && !b : !a && b) o.push(t.t[i]); } return o; };
+      const up = ed(tr[0], false), f3 = ed(tr[3], true); if (!f3.length) return null; const t3 = f3[0], t2 = ed(tr[2], true).filter(t => t <= t3 + 1e-12).pop(), t1 = ed(tr[1], true).filter(t => t <= t3 + 1e-12).pop(), te = up.filter(t => t <= t1 + 1e-12).pop();
+      return { a: t1 - te, b: t2 - te, c: t3 - te }; };
+    const asyn = zeiten(mitTakt(P.rippleZaehler(3))), b10 = P.get('B10'), syn = b10 && zeiten(mitTakt(b10.aufgaben.find(a => a.id === 'B10.3').muster));
+    chk('B8.5 asynchron: Q0, Q1, Q2 fallen nach 20, 40, 60 ns (gemessen ' + (asyn ? [asyn.a, asyn.b, asyn.c].map(x => (x * 1e9).toFixed(1)).join(', ') : '–') + ' ns)', !!asyn && Math.abs(asyn.a - 20e-9) < 3e-9 && Math.abs(asyn.b - 40e-9) < 3e-9 && Math.abs(asyn.c - 60e-9) < 3e-9);
+    if (syn) chk('B10.4 synchron: alle Bits fallen zugleich nach 20 ns (gemessen ' + [syn.a, syn.b, syn.c].map(x => (x * 1e9).toFixed(1)).join(', ') + ' ns)', Math.abs(syn.a - 20e-9) < 3e-9 && Math.abs(syn.b - 20e-9) < 3e-9 && Math.abs(syn.c - 20e-9) < 3e-9);
+    // B4: Frequenzhalbierung gemessen: Takt 8 Hz → Q 4 Hz
+    const lt = { parts: [{ id: 'CLK1', type: 'clock', x: 0, y: 0, rot: 0, props: { freq: 8 } }, { id: 'H', type: 'logicin', x: 0, y: 0, rot: 0, props: { konst: true, closed: true } }, { id: 'FF1', type: 'tff', x: 0, y: 0, rot: 0 }], wires: [{ from: 'CLK1.out', to: 'FF1.C' }, { from: 'H.out', to: 'FF1.T' }] };
+    const sim = new Sim({ getLayout: () => lt }); sim.refresh(true); sim.reset(); const tq = sim.addTrace({ kind: 'dig', a: 'FF1.Q' }); sim.advance(2); let ups = 0; for (let i = 1; i < tq.n; i++) if (tq.v[i - 1] <= 2.5 && tq.v[i] > 2.5) ups++;
+    chk('B4 Frequenzhalbierung gemessen: Takt 8 Hz, in 2 s steigt Q ' + ups + '-mal (= 4 Hz)', ups === 8); }
+  // B10: Ansteuertabelle T = AV xor A, B11: Folgetabelle (n + 1) mod 10, B12: Johnson, B13: Zahlen
+  const b10 = P.get('B10'); if (b10) b10.aufgaben.find(a => a.id === 'B10.1').zeilen.forEach(r => { const s = +r[0] * 4 + +r[1] * 2 + +r[2], n2 = (s + 1) % 8, t = [].concat(r.slice(3)).map(c => +[].concat(c.a)[0]).reduce((a, b) => a * 2 + b, 0); chk('B10.1 Zustand ' + s + ': T = AV xor A', t === (s ^ n2)); });
+  const b11 = P.get('B11'); if (b11) b11.aufgaben.find(a => a.id === 'B11.1').zeilen.forEach(r => { const n = parseInt(r.slice(0, 4).join(''), 2), d = parseInt(r.slice(4).map(c => [].concat(c.a)[0]).join(''), 2); chk('B11.1 Zustand ' + n + ' → nächster Zustand ' + ((n + 1) % 10), d === (n + 1) % 10); });
+  const b12 = P.get('B12'); if (b12) { const z = b12.aufgaben.find(a => a.id === 'B12.4').zeilen, ints = z.map(r => parseInt(r.slice(1).map(c => P.isAns(c) ? [].concat(c.a)[0] : c).join(''), 2)); chk('B12.4 Johnson: 0, 1, 3, 7, 15, 14, 12, 8, 0, 1 – genau ein Bit je Schritt', ints.join() === '0,1,3,7,15,14,12,8,0,1' && ints.slice(1).every((x, i) => { const d = x ^ ints[i]; return d && !(d & (d - 1)); })); }
+  const b13 = P.get('B13'); if (b13) b13.aufgaben.find(a => a.id === 'B13.1').zeilen.forEach(r => { const w = +r[0], b = +r[1], v = c => +[].concat(c.a)[0]; chk('B13.1 ' + w + ' × ' + b + ': 2^Adressleitungen = Wörter, Bit = Wörter · Breite, Byte = Bit / 8', Math.pow(2, v(r[2])) === w && v(r[3]) === w * b && v(r[4]) === w * b / 8); });
+  // B9 (Abnahme): alle Bauteile der Uhr sind spätestens bis B8 freigeschaltet
+  const b9 = P.get('B9'); if (b9) { const bis8 = P.bauteileBis('B8'), uhr = b9.aufgaben.find(a => a.id === 'B9.3'), tp = Object.keys(P.zaehle(uhr.muster)).filter(t => !['logicin', 'logicled', 'ground', 'node'].includes(t)); const fehlt = tp.filter(t => !bis8.includes(t));
+    chk('B9 Digitaluhr: Bauteile der Musterlösung (' + tp.join(', ') + ') sind mit A1 bis B8 freigeschaltet' + (fehlt.length ? ' – fehlt: ' + fehlt.join(', ') : ''), !fehlt.length && b9.schaltet.length === 0); }
   // Vereinfachungsaufgaben: der gegebene Ausdruck ist wirklich länger als die Minimalform (sonst gäbe es nichts zu vereinfachen)
   P.stations.forEach(s => s.aufgaben.forEach(a => { if (a.art === 'ausdruck' && a.gegeben) { const r = P.refOf(a), m = P.minimal(r.n, r.ones, r.dc), g = P.litCount(B.clean(B.parse(a.gegeben).ast)); chk(s.id + ' ' + a.id + ': «' + a.gegeben + '» hat ' + g + ' Buchstaben, Minimalform ' + m.minLits + ' – es gibt etwas zu vereinfachen', g > m.minLits); } }));
   // Alle Aufgaben mit Ausdruck/KV: die hinterlegte Minimalform gegen Brute Force

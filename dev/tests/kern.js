@@ -343,6 +343,15 @@ ffCase('D RS-Flipflop (taktzustandsgesteuert): 00 halten, 01 zurück, 10 setzen'
   ['S', 'R'], [[F, F, F, F], [F, F, T, T], [F, T, F, F], [F, T, T, F], [T, F, F, T], [T, F, T, T]]);
 ffCase('D JK-MS-Flipflop (Slave bei fallender Flanke): Tabelle wie JK', 'jkms', 'ms',
   ['J', 'K'], [[F, F, F, F], [F, F, T, T], [F, T, F, F], [F, T, T, F], [T, F, F, T], [T, F, T, T], [T, T, F, T], [T, T, T, F]]);
+{ // Dezimal-Ripple-Zähler mit Rücksetzung bei 10: Das Rücksetzen einer Stufe lässt Q̄ steigen und würde die nächste Stufe takten; solange preClear noch wirkt, zählt diese Flanke nicht.
+  // Handgerechnet: 1, 2, …, 9, dann 10 → sofort 0, 1, 2 (Zählerstand = Takt mod 10); Q0 = Bit 0 … Q3 = Bit 3.
+  const parts = [lin('EC'), lin('H', true), P('FF1', 'tff'), P('FF2', 'tff'), P('FF3', 'tff'), P('FF4', 'tff'), P('U1', 'and')], wires = [W('EC.out', 'FF1.C'), W('FF1.Qn', 'FF2.C'), W('FF2.Qn', 'FF3.C'), W('FF3.Qn', 'FF4.C'),
+    W('FF2.Q', 'U1.in1'), W('FF4.Q', 'U1.in2')];
+  for (let k = 1; k <= 4; k++) wires.push(W('H.out', 'FF' + k + '.T'), W('U1.out', 'FF' + k + '.PC'));
+  const steps = [];
+  for (let t = 1; t <= 23; t++) { const z = t % 10, expect = {}; for (let b = 0; b < 4; b++) expect['FF' + (b + 1) + '.q'] = !!(z >> b & 1); steps.push({ set: [['EC', 'closed', true]], expect }); steps.push({ set: [['EC', 'closed', false]] }); }
+  digital.push({ name: 'D Dezimal-Ripple-Zähler mit preClear bei 10 zählt 0 bis 9 und springt auf 0 (kein Mitzählen beim Rücksetzen)', layout: { parts, wires }, steps });
+}
 digital.push({ name: 'D preSet/preClear setzen Q unabhängig vom Takt (Vorrang vor C, beide zugleich = unzulässig)',
   layout: { parts: [P('FF1', 'dff'), lin('EC'), lin('ED', true), lin('EP'), lin('EQ')], wires: [W('EC.out', 'FF1.C'), W('ED.out', 'FF1.D'), W('EP.out', 'FF1.PS'), W('EQ.out', 'FF1.PC')] },
   steps: [

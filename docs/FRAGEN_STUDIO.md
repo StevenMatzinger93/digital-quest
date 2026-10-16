@@ -9,3 +9,11 @@ Hier steht, was ich nicht selbst entscheiden konnte oder wollte. Kurz, nach Drin
 3. **Alte DIN-Norm (A4)** fehlt. Welche Zeichen verlangst Du? Ich konnte sie nicht sicher belegen und habe nichts erfunden.
 4. **Pflicht und freiwillig:** nach Deinen Hinweisen (A8 Nr. 12 und 18, A10 Nr. 7 bis 13) und zusätzlich von mir als freiwillig gesetzt: A7 Mehrheitsentscheid, A12 Hamming, A13 4-Bit-Komparator.
 5. **Verweise auf FestoLX** («Vertieft in FestoLX, Grundlagen Digitaltechnik») stehen bei allen Stationen als Vorschlag, ohne Kapitelnummern.
+
+## Teil B des Lernpfads
+
+6. **NOR-Flipflop (B1, B2): Welcher Eingang ist e1?** Ich habe **e1 = Setzen, e2 = Rücksetzen** gewählt und es in den Aufgabentexten genannt. Wenn Dein Arbeitsblatt es umgekehrt hat, vertauschen sich in `st_B01.js` und `st_B02.js` die Eingangsleitungen.
+7. **Ripple-Zähler mit Rücksetzen: Rechenkern geändert.** Eine hand gebaute Digitaluhr (B9) funktionierte im Studio nicht, weil das Rücksetzen einer Stufe die nächste getaktet hat (die Engine kennt keine Gatterlaufzeit; im echten Baustein hält der preClear-Impuls solange an). Ich habe die Regel «ein Takt im selben Zeitpunkt, in dem preClear wegfällt, zählt nicht» in `engine.js` ergänzt. Sie gilt auch im Spiel. Bitte schau Dir an, ob Du damit einverstanden bist; die Tests (Spiel, Studio, Rechenkern, Robustheit) sind grün.
+8. **B9-Aufbau:** Die Uhr ist asynchron gebaut (Ripple, preClear bei 10 und bei 6, Übertrag über die fallende Flanke von Q3). Wenn Du im Unterricht einen anderen Aufbau erwartest (z. B. synchron), muss die Prüffolge nichts ändern, nur die Musterlösung und der Aufgabentext.
+9. **Zustandsfolgediagramme** sind «von Hand» mit Vergleich. Wenn die Software sie später prüfen soll, braucht es ein Zeichenwerkzeug für Zustände und Pfeile (nicht gebaut).
+10. **«Wenn Zeit übrig bleibt»**: siehe Schlussbericht in `FORTSCHRITT_STUDIO.md`.

@@ -847,6 +847,7 @@ body.beamer .dr text { font-size: inherit; }
      * nach tpd wirksam – auch ueber Rechenschritte hinweg. Ohne dt (Arbeitspunkt) gelten sie sofort. tv = Zeit des aktuellen Durchgangs innerhalb des Schritts. */
     var delayMode = !!opts.dt, t1s = state.t + (opts.dt || 0), tv = state.t;
     state.pend = state.pend || [];
+    Object.keys(state.ff || {}).forEach(function (k) { state.ff[k].ap = false; }); // neuer Zeitpunkt: kein asynchroner Eingang wirkt «noch»
     for (;;) {
       out = solve(net, { state: state, dt: opts.dt, t: state.t, meter: opts.meter, trace: trace, maxIter: opts.maxIter });
       if (opts.iters) opts.iters.push({ t: tv, nodeV: out.res.nodeV }); // Zwischenloesungen je Durchgang mit Zeitpunkt (Flipflop-Laufzeit im Zeitverlauf des Studios)
@@ -900,6 +901,10 @@ body.beamer .dr text { font-size: inherit; }
         var f = state.ff[p.id] || (state.ff[p.id] = { q: false, c: null });
         function lv(pin) { return p.n[pin] !== undefined && (out.V[p.n[pin]] || 0) > LOGIC.vth; }
         var c = lv('C'), ins = d.ffIns.map(lv), mode = d.ms ? 'ms' : (p.props.trig || 'pos'), nq = f.q, active = false;
+        /* Rennen beim asynchronen Rücksetzen (Zähler mit preClear): Fällt preSet/preClear im selben Zeitpunkt weg, in dem eine Taktflanke eintrifft, die erst durch das Rücksetzen einer Vorstufe
+         * entstand, so ist der Rücksetzimpuls im echten Baustein noch wirksam (Gatterlaufzeit) – die Flanke zählt nicht. Ohne diese Regel würde ein Ripple-Zähler mit Rücksetzung bei jedem Zurücksetzen falsch weiterzählen. */
+        var apNow = lv('PS') || lv('PC'), blocked = !!f.ap && !apNow; f.ap = apNow;
+        if (blocked) { f.c = c; }
         if (mode === 'pos') { if (f.c === false && c) { active = true; nq = d.ff(f.q, ins); } }
         else if (mode === 'neg') { if (f.c === true && !c) { active = true; nq = d.ff(f.q, ins); } }
         else if (mode === 'level') { if (c && (delayMode || guard === 0)) { active = true; nq = d.ff(f.q, ins); } }
@@ -6654,8 +6659,22 @@ body.beamer .dr text { font-size: inherit; }
     return rows;
   }
   P.sollOf = sollOf;
+  /* Aufbau prüfen: erlaubte Typen (nur), Zahl der Bauteile je Typ (limit), Mindestzahl (min), Gatter mit höchstens maxEingaenge Eingängen, keine offenen Eingänge. Gibt den Text des ersten Mangels oder null. */
+  function strukturPruefen(a, layout) {
+    var nur = a.nur || (a.art === 'nand' ? ['nand'] : null), limit = a.limit || null, cnt = P.zaehle(layout);
+    if (nur) { var fremd = Object.keys(cnt).filter(function (t) { return !GRUND[t] && nur.indexOf(t) < 0; }); if (fremd.length) return 'Hier sind nur ' + nur.map(typName).join(' und ') + ' erlaubt – ' + typName(fremd[0]) + ' ist nicht dabei.'; }
+    if (limit) {
+      var gates = gateParts(layout).length;
+      for (var t in limit) { var have = t === 'gates' ? gates : (cnt[t] || 0); if (have > limit[t]) return (t === 'gates' ? 'Gatter' : typName(t)) + ': ' + have + ' verbaut, erlaubt sind höchstens ' + limit[t] + (a.limitText ? ' (' + a.limitText + ')' : '') + '.'; }
+    }
+    if (a.min) for (var mt in a.min) { var hv = mt === 'gates' ? gateParts(layout).length : (cnt[mt] || 0); if (hv < a.min[mt]) return (mt === 'gates' ? 'Die Schaltung braucht mindestens ' + a.min[mt] + ' Gatter' : 'Die Aufgabe verlangt mindestens ' + a.min[mt] + ' × ' + typName(mt)) + (mt === 'gates' ? ' – nur Draht von e1 zur Anzeige zählt nicht.' : '.'); }
+    if (a.maxEingaenge) { var breit = layout.parts.filter(function (p) { var d = E.PARTS[p.type]; return d && d.logic && d.multi && ((p.props && p.props.inputs) || d.props.inputs || 2) > a.maxEingaenge; })[0]; if (breit) return 'Das Gatter ' + breit.id + ' hat mehr als ' + a.maxEingaenge + ' Eingänge – hier sind nur Gatter mit höchstens ' + a.maxEingaenge + ' Eingängen erlaubt (wie im IC).'; }
+    var offen = offeneEingaenge(layout); if (offen.length && a.offeneOk !== true) return 'Der Eingang ' + offen[0] + ' ist offen. Offene Eingänge gibt es nicht: Jeden Eingang an einen Ausgang oder einen Pegelschalter anschliessen.';
+    if (a.props) for (var i = 0; i < a.props.length; i++) { var pr = a.props[i], teil = layout.parts.filter(function (p) { return p.id === pr.id; })[0]; var wert = teil ? (teil.props && teil.props[pr.k] !== undefined ? teil.props[pr.k] : E.PARTS[teil.type].props[pr.k]) : undefined; if (teil && wert !== pr.v) return 'Bei ' + pr.id + ' ist «' + (pr.name || pr.k) + '» falsch eingestellt (' + (pr.zeige ? pr.zeige(wert) : wert) + ').'; }
+    return null;
+  }
   P.pruefeSchaltung = function (a, layout) {
-    var n = a.n, nur = a.nur || (a.art === 'nand' ? ['nand'] : null), limit = a.limit || null, mel = [];
+    var n = a.n, nur = a.nur || (a.art === 'nand' ? ['nand'] : null);
     if (!layout || !layout.parts || !layout.parts.length) return bad('Die Zeichenfläche ist leer.');
     var ins = B.inputsOf(layout), want = []; for (var i = 1; i <= n; i++) want.push('E' + i);
     var haveIds = ins.map(function (x) { return x.id; });
@@ -6665,16 +6684,7 @@ body.beamer .dr text { font-size: inherit; }
     var leds = layout.parts.filter(function (p) { return p.type === 'logicled'; }).sort(function (x, y) { return x.id < y.id ? -1 : 1; }), nOut = a.ausgaenge || 1;
     if (leds.length < nOut) return bad('Es fehlt eine Logikanzeige für den Ausgang' + (nOut > 1 ? ' (verlangt: ' + nOut + ')' : '') + '.');
     if (leds.length > nOut) return bad('Es gibt mehr Logikanzeigen als Ausgänge (verlangt: ' + nOut + ').');
-    // Aufbau: erlaubte Typen und Zahl der Gatter je Typ
-    var cnt = P.zaehle(layout);
-    if (nur) { var fremd = Object.keys(cnt).filter(function (t) { return !GRUND[t] && nur.indexOf(t) < 0; }); if (fremd.length) return bad('Hier sind nur ' + nur.map(typName).join(' und ') + ' erlaubt – ' + typName(fremd[0]) + ' ist nicht dabei.'); }
-    if (limit) {
-      var gates = gateParts(layout).length;
-      for (var t in limit) { var have = t === 'gates' ? gates : (cnt[t] || 0); if (have > limit[t]) return bad((t === 'gates' ? 'Gatter' : typName(t)) + ': ' + have + ' verbaut, erlaubt sind höchstens ' + limit[t] + (a.limitText ? ' (' + a.limitText + ')' : '') + '.'); }
-    }
-    if (a.min) for (var mt in a.min) { var hv = mt === 'gates' ? gateParts(layout).length : (cnt[mt] || 0); if (hv < a.min[mt]) return bad((mt === 'gates' ? 'Die Schaltung braucht mindestens ' + a.min[mt] + ' Gatter' : 'Die Aufgabe verlangt mindestens ' + a.min[mt] + ' × ' + typName(mt)) + ' – nur Draht von e1 zur Anzeige zählt nicht.'); }
-    if (a.maxEingaenge) { var breit = layout.parts.filter(function (p) { var d = E.PARTS[p.type]; return d && d.logic && d.multi && ((p.props && p.props.inputs) || d.props.inputs || 2) > a.maxEingaenge; })[0]; if (breit) return bad('Das Gatter ' + breit.id + ' hat mehr als ' + a.maxEingaenge + ' Eingänge – hier sind nur Gatter mit höchstens ' + a.maxEingaenge + ' Eingängen erlaubt (wie im IC).'); }
-    var offen = offeneEingaenge(layout); if (offen.length && a.offeneOk !== true) return bad('Der Eingang ' + offen[0] + ' ist offen. Offene Eingänge gibt es nicht: Jeden Eingang an einen Ausgang oder einen Pegelschalter anschliessen.');
+    var sm = strukturPruefen(a, layout); if (sm) return bad(sm);
     // Funktion: alle Eingangskombinationen durchschalten
     var lay = clone(layout), net, st = E.newState(), faults = {};
     try { net = E.buildNetlist(lay); } catch (e) { return bad('Die Schaltung lässt sich nicht berechnen: ' + e.message); }
@@ -6751,25 +6761,41 @@ body.beamer .dr text { font-size: inherit; }
     return (a.soll || []).map(function (z) { var e = []; for (var i = a.lesen.length - 1; i >= 0; i--) e.push(z >> i & 1); return { takte: 1, erwartet: a.lesen.map(function (x, j) { return z >> (a.lesen.length - 1 - j) & 1; }) }; });
   }
   P.folgeSchritte = folgeSchritte;
+  /* Siebensegmentanzeige als Ziffer lesen: Segmentmuster a bis g, 'X' wenn es keine Ziffer ist */
+  var SEG = { 0: 'abcdef', 1: 'bc', 2: 'abdeg', 3: 'abcdg', 4: 'bcfg', 5: 'acdfg', 6: 'acdefg', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg' };
+  function ziffer(on) { var m = 'abcdefg'.split('').filter(function (c) { return on[c]; }).join(''); for (var d in SEG) if (SEG[d] === m) return +d; return 'X'; }
+  P.SEGMENTE = SEG;
+  /* Schritt = {set:{E1:1}, takte:n, erwartet:[…]} oder {abfolge:[{set:{…}}, …], erwartet:[…]} (Eingänge nacheinander setzen, nach jedem Schritt rechnen).
+   * takt (optional): Pegelschalter oder Taktgeber, den die Software von Hand taktet. lesen: Logikanzeigen (Wert 0/1) oder Siebensegmentanzeigen (Ziffer 0 bis 9, X = keine Ziffer). */
   P.pruefeFolge = function (a, layout) {
     if (!layout || !layout.parts || !layout.parts.length) return bad('Die Zeichenfläche ist leer.');
     var lay = clone(layout), net, st = E.newState(), clk = a.takt, byId = {}; lay.parts.forEach(function (p) { byId[p.id] = p; });
-    if (!byId[clk] || byId[clk].type !== 'logicin') return bad('Der Takteingang ' + clk + ' (Pegelschalter) fehlt.');
-    var miss = (a.lesen || []).filter(function (id) { return !byId[id] || byId[id].type !== 'logicled'; }); if (miss.length) return bad('Die Logikanzeige ' + miss[0] + ' fehlt.');
-    var offen = offeneEingaenge(layout); if (offen.length && a.offeneOk !== true) return bad('Der Eingang ' + offen[0] + ' ist offen. Jeden Eingang anschliessen (nicht gebrauchte auf einen Pegelschalter legen).');
+    if (clk) {
+      if (!byId[clk] || (byId[clk].type !== 'logicin' && byId[clk].type !== 'clock')) return bad('Der Takteingang ' + clk + ' (Pegelschalter oder Taktgeber) fehlt.');
+      if (byId[clk].type === 'clock') { byId[clk].type = 'logicin'; byId[clk].props = { closed: false }; } // die Software taktet von Hand: derselbe Anschluss out
+    }
+    var miss = (a.lesen || []).filter(function (id) { return !byId[id] || (byId[id].type !== 'logicled' && byId[id].type !== 'seg7'); }); if (miss.length) return bad('Die Anzeige ' + miss[0] + ' fehlt (Logikanzeige oder Siebensegmentanzeige).');
+    var sm = strukturPruefen(a, layout); if (sm) return bad(sm);
     try { net = E.buildNetlist(lay); } catch (e) { return bad('Die Schaltung lässt sich nicht berechnen: ' + e.message); }
     function setIn(id, v) { if (net.byId[id]) net.byId[id].props.closed = !!v; }
     function run() { return E.step(net, st, { noGroundFault: true }); }
-    function read(r) { return a.lesen.map(function (id) { return (r.nodeV[net.pinNode[id + '.in']] || 0) > E.LOGIC.vth ? 1 : 0; }); }
+    function lv(r, pin) { return (r.nodeV[net.pinNode[pin]] || 0) > E.LOGIC.vth; }
+    function read(r) { return a.lesen.map(function (id) { if (byId[id].type === 'seg7') { var on = {}; 'abcdefg'.split('').forEach(function (c) { on[c] = lv(r, id + '.' + c); }); return ziffer(on); } return lv(r, id + '.in') ? 1 : 0; }); }
     Object.keys(byId).forEach(function (id) { if (byId[id].type === 'logicin' && !(byId[id].props && byId[id].props.konst)) setIn(id, false); });
     (a.vorher || []).forEach(function (v) { Object.keys(v.set || {}).forEach(function (id) { setIn(id, v.set[id]); }); run(); });
-    var r = run(), schritte = folgeSchritte(a), takteSumme = 0;
+    var r, schritte = folgeSchritte(a), takteSumme = 0;
+    try { r = run(); } catch (e) { return bad('Die Schaltung lässt sich nicht berechnen: ' + e.message); }
     for (var s = 0; s < schritte.length; s++) {
-      var sc = schritte[s]; Object.keys(sc.set || {}).forEach(function (id) { setIn(id, sc.set[id]); }); if (sc.set) r = run();
-      for (var t = 0; t < (sc.takte || 0); t++) { setIn(clk, true); r = run(); setIn(clk, false); r = run(); takteSumme++; }
+      var sc = schritte[s], was = '';
+      try {
+        (sc.abfolge || []).forEach(function (x) { Object.keys(x.set || {}).forEach(function (id) { setIn(id, x.set[id]); }); r = run(); });
+        Object.keys(sc.set || {}).forEach(function (id) { setIn(id, sc.set[id]); }); if (sc.set) r = run();
+        for (var t = 0; t < (sc.takte || 0); t++) { setIn(clk, true); r = run(); setIn(clk, false); r = run(); takteSumme++; }
+      } catch (e) { return bad('Die Schaltung lässt sich nicht berechnen: ' + e.message); }
       var got = read(r), want = sc.erwartet, nm = a.lesen;
       for (var j = 0; j < want.length; j++) if (want[j] !== 'X' && got[j] !== want[j]) {
-        return bad('Nach ' + (takteSumme ? 'dem ' + takteSumme + '. Takt' : 'dem Start') + (sc.set ? ' (mit ' + Object.keys(sc.set).map(function (id) { return id + ' = ' + (sc.set[id] ? 1 : 0); }).join(', ') + ')' : '') + ' zeigt ' + nm[j] + ' eine ' + got[j] + ', erwartet ist ' + want[j] + '. Gelesen ' + nm.join('') + ' = ' + got.join('') + ', soll ' + want.join('') + '.', { schritt: s });
+        var wo = sc.name ? sc.name : (takteSumme && !sc.abfolge ? 'dem ' + takteSumme + '. Takt' : 'Schritt ' + (s + 1));
+        return bad('Nach ' + wo + (sc.set ? ' (mit ' + Object.keys(sc.set).map(function (id) { return id + ' = ' + (sc.set[id] ? 1 : 0); }).join(', ') + ')' : '') + ' zeigt ' + nm[j] + ' ' + (byId[nm[j]].type === 'seg7' ? 'die Ziffer ' + (got[j] === 'X' ? '(keine gültige Ziffer)' : got[j]) : 'eine ' + got[j]) + ', erwartet ist ' + want[j] + '. Gelesen ' + got.join(' ') + ', soll ' + want.join(' ') + '.', { schritt: s });
       }
     }
     return ok('Richtig: die Ausgangsfolge stimmt über alle ' + schritte.length + ' Schritte' + (takteSumme ? ' (' + takteSumme + ' Takte)' : '') + '.');
@@ -6787,7 +6813,7 @@ body.beamer .dr text { font-size: inherit; }
     return ok('Alle ' + a.fragen.length + ' Fragen richtig.');
   };
   P.pruefeProtokoll = function (a, antwort) { return antwort && antwort.selbst ? ok('Von dir als erledigt markiert (die Software prüft diese Station nicht).') : bad('Diese Station wird nicht von der Software geprüft: Führe die Messung durch und markiere sie dann selbst als erledigt.'); };
-  P.pruefeVergleich = function (a, antwort) { return antwort && String(antwort.text || '').trim() ? ok('Abgegeben. Vergleiche dein Diagramm mit dem der Software (es wird nicht bewertet).') : bad('Zeichne dein Diagramm auf Papier, schreibe unten kurz auf, was du gefunden hast, und gib es dann ab.'); };
+  P.pruefeVergleich = function (a, antwort) { return antwort && String(antwort.text || '').trim() ? ok('Abgegeben. Vergleiche dein Diagramm mit dem Diagramm der Software (es wird nicht bewertet).') : bad('Zeichne dein Diagramm auf Papier, schreibe unten kurz auf, was du gefunden hast, und gib es dann ab.'); };
 
   /* ---------- Ein Aufruf für alle Arten ---------- */
   P.pruefe = function (a, antwort) {
@@ -6999,6 +7025,95 @@ body.beamer .dr text { font-size: inherit; }
     var out = neg ? (art === 'not' || art === 'and' ? 52 : 58) : (art === 'and' ? 44 : art === 'or' ? 50 : 46);
     return '<svg viewBox="0 0 72 44" width="72" height="44" class="pf-sym" role="img" aria-label="Gatter in US-Darstellung"><path d="' + body + '" fill="none" stroke="currentColor" stroke-width="2"/>' + (xor ? '<path d="M6 6Q16 22 6 38" fill="none" stroke="currentColor" stroke-width="2"/>' : '') + bubble +
       (art === 'buf' || art === 'not' ? '<path d="M2 22H14" stroke="currentColor" stroke-width="2"/>' : '<path d="M2 15H' + (xor ? 12 : 14) + 'M2 29H' + (xor ? 12 : 14) + '" stroke="currentColor" stroke-width="2"/>') + '<path d="M' + out + ' 22H70" stroke="currentColor" stroke-width="2"/></svg>';
+  };
+
+  /* ---------- Flipflops nach Lehrbuch (Teil B) ----------
+   * Ein Flipflop wird durch seine Folgefunktion next(AV, e) beschrieben (e = Liste der Eingangswerte, Ergebnis 0, 1 oder 'X' für unzulässig). Daraus entstehen
+   * Analysetabelle, Ansteuertabelle, Zustandsfolgediagramm und Soll-Folgen für die Prüfmaschine. Die Tests vergleichen next() mit dem Verhalten der Engine. */
+  var X = ['X', 'x', '-', 'verboten'];
+  P.ffAnalyse = function (ein, next) { // Zeilen: Eingänge (hochzählend), dann AV; Antwort A
+    var n = ein.length, zeilen = [];
+    for (var k = 0; k < (1 << (n + 1)); k++) { var av = k & 1, e = []; for (var i = 0; i < n; i++) e.push(k >> (n - i) & 1); var a = next(av, e); zeilen.push(e.map(String).concat([String(av), { a: a === 'X' ? X : String(a), typ: 'bit' }])); }
+    return { kopf: ein.concat(['AV', 'A']), zeilen: zeilen };
+  };
+  /* Ansteuertabelle: zu jedem Übergang AV → A die nötigen Eingangswerte (0, 1 oder X = beliebig) */
+  P.ffUebergang = function (ein, next) {
+    var n = ein.length, out = [];
+    [[0, 0], [0, 1], [1, 0], [1, 1]].forEach(function (t) {
+      var sets = ein.map(function () { return {}; });
+      for (var k = 0; k < (1 << n); k++) { var e = []; for (var i = 0; i < n; i++) e.push(k >> (n - 1 - i) & 1); if (next(t[0], e) === t[1]) e.forEach(function (v, i) { sets[i][v] = 1; }); }
+      out.push({ av: t[0], a: t[1], v: sets.map(function (st) { return st[0] && st[1] ? 'X' : st[1] ? '1' : '0'; }) });
+    });
+    return out;
+  };
+  P.ffAnsteuer = function (ein, next) {
+    var u = P.ffUebergang(ein, next);
+    return { kopf: ['AV', 'A'].concat(ein), zeilen: u.map(function (r) { return [String(r.av), String(r.a)].concat(r.v.map(function (x) { return { a: x === 'X' ? X : x, typ: 'bit' }; })); }) };
+  };
+  /* Zustandsfolgediagramm als SVG (zwei Zustände, Pfeile beschriftet mit den Eingängen der Ansteuertabelle) */
+  P.svgZustand = function (ein, next) {
+    var u = P.ffUebergang(ein, next), lab = function (r) { return ein.join(' ') + ' = ' + r.v.join(' '); }, t = function (x, y, s) { return '<text x="' + x + '" y="' + y + '" text-anchor="middle" font-size="12" font-family="sans-serif" fill="currentColor">' + s + '</text>'; };
+    var s = '<svg viewBox="0 0 280 150" width="320" class="pf-sfd" role="img" aria-label="Zustandsfolgediagramm"><defs><marker id="pfa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs><g fill="none" stroke="currentColor" stroke-width="1.6">';
+    s += '<circle cx="70" cy="78" r="22"/><circle cx="210" cy="78" r="22"/><path d="M90 66C115 48 165 48 190 66" marker-end="url(#pfa)"/><path d="M190 90C165 108 115 108 90 90" marker-end="url(#pfa)"/><path d="M58 58C40 22 82 22 76 56" marker-end="url(#pfa)"/><path d="M198 58C180 22 222 22 216 56" marker-end="url(#pfa)"/></g>';
+    return s + t(70, 83, '0') + t(210, 83, '1') + t(140, 42, lab(u[1])) + t(140, 124, lab(u[2])) + t(62, 16, lab(u[0])) + t(202, 16, lab(u[3])) + '</svg>';
+  };
+  /* Soll-Folge für die Prüfmaschine: plan = [{set:{E1:1}, takte:n}] → Schritte mit erwartet [Q, Q̄]; ein Taktimpuls wendet next(AV, Eingänge) an; Eingangsnamen in ein (Reihenfolge wie next) */
+  P.ffSchritte = function (ein, next, plan, q0) {
+    var q = q0 ? 1 : 0, cur = {}; ein.forEach(function (n, i) { cur['E' + (i + 1)] = 0; }); // Eingänge der Prüfschaltung heissen E1, E2 … in der Reihenfolge von ein
+    return plan.map(function (p) {
+      Object.keys(p.set || {}).forEach(function (k) { cur[k] = p.set[k] ? 1 : 0; });
+      for (var t = 0; t < (p.takte || 0); t++) { var nq = next(q, ein.map(function (n, i) { return cur['E' + (i + 1)]; })); if (nq !== 'X') q = nq; }
+      var st = { erwartet: [q, 1 - q] }; if (p.set) st.set = p.set; if (p.takte) st.takte = p.takte; if (p.name) st.name = p.name; return st;
+    });
+  };
+  P.FF = {
+    rs: function (q, e) { return e[0] && e[1] ? 'X' : e[0] ? 1 : e[1] ? 0 : q; },       // e = [S, R]
+    d: function (q, e) { return e[0]; },
+    t: function (q, e) { return e[0] ? 1 - q : q; },
+    jk: function (q, e) { return e[0] && e[1] ? 1 - q : e[0] ? 1 : e[1] ? 0 : q; }       // e = [J, K]
+  };
+
+  /* Standard-Station für ein einzelnes Flipflop (T, D, RS, JK): Analysetabelle, Ansteuertabelle, Zustandsfolgediagramm (von Hand, die Software zeigt das Muster),
+   * Schaltung mit dem Bauteil bauen und über Takte prüfen. def: {id, nr, titel, kurz, einfuehrung, typ (Bauteil), ein (Namen der Eingänge, Reihenfolge wie next), next,
+   * plan (Schritte für die Prüfung), props? (Eigenschaften des Bauteils, z. B. {trig:'pos'}), extra:[weitere Aufgaben], fragen:[…], schaltet:[…]} */
+  P.ffStation = function (d) {
+    var id = d.id, n = d.ein.length, aufg = [], nr = 0, q = function () { return id + '.' + (++nr); };
+    var an = P.ffAnalyse(d.ein, d.next), ans = P.ffAnsteuer(d.ein, d.next), pins = d.ein.concat(['C']);
+    var start = P.startNetz(n, 2, [{ id: 'C', type: 'logicin', x: 200, y: 80 + n * 100 + 100, rot: 0 }]);
+    var srcs = d.ein.map(function (x, i) { return 'E' + (i + 1); }).concat(['C']);
+    var muster = P.netz({ n: n, eingaenge: ['C'], gatter: [['FF1', d.typ, srcs, d.props || null, pins]], aus: { L1: 'FF1.Q', L2: 'FF1.Qn' } });
+    aufg.push({ id: q(), titel: 'Analysetabelle', art: 'tabelle', kopf: an.kopf, zeilen: an.zeilen, text: d.analyseText || '<p>Fülle die <b>Analysetabelle</b> aus: Bei welchem Eingang und welchem Zustand <b>vor</b> der Taktflanke (<b>AV</b>) hat der Ausgang <b>danach</b> (<b>A</b>) welchen Wert?' + (d.unzulaessig ? ' Für den unzulässigen Fall schreibst du <b>X</b>.' : '') + '</p>', hilfe: d.analyseHilfe });
+    aufg.push({ id: q(), titel: 'Ansteuertabelle', art: 'tabelle', kopf: ans.kopf, zeilen: ans.zeilen, text: '<p>Die <b>Ansteuertabelle</b> fragt umgekehrt: Der Zustand soll von <b>AV</b> nach <b>A</b> wechseln – welche Eingangswerte braucht es dafür? Wo es egal ist, schreibst du <b>X</b> (beliebig).</p>', hilfe: 'Schau dir in der Analysetabelle alle Zeilen an, die zu diesem Übergang führen. Ist ein Eingang darin einmal 0 und einmal 1, ist er egal: X.' });
+    aufg.push({ id: q(), titel: 'Zustandsfolgediagramm', art: 'vergleich', text: '<p>Zeichne das <b>Zustandsfolgediagramm</b> des Flipflops auf Papier: zwei Kreise für Q = 0 und Q = 1, vier Pfeile für die vier Übergänge, jeder beschriftet mit den Eingangswerten aus der Ansteuertabelle. Schreibe dann kurz auf, was dir aufgefallen ist, und gib ab. Die Software zeigt dir danach das Diagramm zum Vergleich; bewertet wird nicht.</p>', zeigeMuster: '<p>So sieht das Diagramm aus:</p>' + P.svgZustand(d.ein, d.next) });
+    aufg.push({ id: q(), titel: 'Schaltung bauen und prüfen', art: 'folge', takt: 'C', lesen: ['L1', 'L2'], schritte: P.ffSchritte(d.ein, d.next, d.plan), start: start, muster: muster, min: (function () { var m = {}; m[d.typ] = 1; return m; })(),
+      text: d.bauText || '<p>Baue die Schaltung: Setze ein <b>' + P.FFNAMEN[d.typ] + '</b> und verbinde es mit den Pegelschaltern ' + d.ein.map(function (x, i) { return '<b>E' + (i + 1) + '</b> (' + x + ')'; }).join(', ') + ' und <b>C</b> (Takt). Die Anzeige <b>L1</b> zeigt Q, <b>L2</b> zeigt Q̄. Die Software schaltet die Eingänge, gibt Takte und liest die Anzeigen.</p>', hilfe: 'Q und Q̄ sind die zwei Ausgänge des Bauteils. Du kannst die Schaltung selbst ausprobieren: Eingänge setzen, C auf 1 und wieder auf 0.' });
+    (d.extra || []).forEach(function (x) { x.id = q(); aufg.push(x); });
+    if (d.fragen) aufg.push({ id: q(), titel: 'Prüffragen ' + d.titel, art: 'fragen', text: '<p>Kurze Fragen.</p>', fragen: d.fragen });
+    return P.station({ id: id, teil: 'B', nr: d.nr, titel: d.titel, kurz: d.kurz, einfuehrung: d.einfuehrung, verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: d.schaltet || [], auto: true, aufgaben: aufg });
+  };
+  P.FFNAMEN = { tff: 'T-Flipflop', dff: 'D-Flipflop', rsff: 'RS-Flipflop', jkff: 'JK-Flipflop', jkms: 'JK-Master-Slave-Flipflop' };
+
+  /* Schaltung mit Rückkopplung (Zähler, Speicher) aus Teileliste und Leitungsliste; Positionen automatisch im Raster. teile: [[id, typ, props?], …], leitungen: [[von, nach], …].
+   * 'E1' und 'L1' dürfen in den Leitungen ohne Anschlussnamen stehen (E1 = E1.out, L1 = L1.in), 'H' ist ein Pegelschalter fest auf 1, 'Z' fest auf 0. */
+  P.raster = function (d) {
+    var zeilen = d.zeilen || 5, parts = [], k = 0, col = {};
+    d.teile.forEach(function (t) {
+      var typ = t[1], x = 200 + Math.floor(k / zeilen) * 230, y = 80 + (k % zeilen) * 110; k++;
+      var p = { id: t[0], type: typ, x: x, y: y, rot: 0 }; if (t[2]) p.props = t[2]; parts.push(p);
+    });
+    var pinOf = function (s, nach) { if (s.indexOf('.') >= 0) return s; var p = parts.filter(function (x) { return x.id === s; })[0]; return p && p.type === 'logicled' ? s + '.in' : s + '.out'; };
+    return { parts: parts, wires: d.leitungen.map(function (w) { return { from: pinOf(w[0]), to: pinOf(w[1]) }; }) };
+  };
+  P.EIN1 = function (id) { return [id || 'H', 'logicin', { konst: true, closed: true }]; };   // fest 1
+  P.EIN0 = function (id) { return [id || 'Z', 'logicin', { konst: true, closed: false }]; };  // fest 0
+  P.pegel = function (id, konst) { return { id: id, type: 'logicin', x: 200, y: 460, rot: 0, props: konst === undefined ? undefined : { konst: true, closed: !!konst } }; };
+  /* Asynchroner Dualzähler mit n Stufen aus T-Flipflops; modul < 2^n: bei Erreichen von modul werden alle Stufen über preClear zurückgesetzt (UND der gesetzten Bits). aufwaerts false: Q statt Q̄ taktet die nächste Stufe */
+  P.rippleZaehler = function (n, modul, aufwaerts) {
+    var teile = [['C', 'logicin'], P.EIN1('H')], leit = [], i; aufwaerts = aufwaerts !== false;
+    for (i = 0; i < n; i++) { teile.push(['FF' + (i + 1), 'tff']); teile.push(['L' + (i + 1), 'logicled']); }
+    for (i = 0; i < n; i++) { leit.push(['H', 'FF' + (i + 1) + '.T']); leit.push(['FF' + (i + 1) + '.Q', 'L' + (i + 1)]); leit.push(i === 0 ? ['C', 'FF1.C'] : ['FF' + i + '.' + (aufwaerts ? 'Qn' : 'Q'), 'FF' + (i + 1) + '.C']); }
+    if (modul && modul < (1 << n)) { var bits = []; for (i = 0; i < n; i++) if (modul >> i & 1) bits.push('FF' + (i + 1) + '.Q'); teile.push(['U1', 'and', { inputs: Math.max(2, bits.length) }]); bits.forEach(function (b, k) { leit.push([b, 'U1.in' + (k + 1)]); }); for (i = 0; i < n; i++) leit.push(['U1', 'FF' + (i + 1) + '.PC']); }
+    return P.raster({ teile: teile, leitungen: leit, zeilen: n + 2 });
   };
   /* Dezimal ↔ Dual ↔ Hex für die Zahlensysteme */
   P.dual = function (v, stellen) { var s = v.toString(2); while (s.length < (stellen || 0)) s = '0' + s; return s; };
@@ -7514,6 +7629,414 @@ body.beamer .dr text { font-size: inherit; }
   });
 })(typeof window !== 'undefined' ? window : globalThis);
 
+/* ==== studio/pfad/st_B01.js ==== */
+/* Lernpfad Station B1 – NOR-Flipflop. Eingänge wie im Lehrmittel e1 und e2; hier e1 = Setzen (S), e2 = Rücksetzen (R) – siehe docs/FRAGEN_STUDIO.md.
+ * Tabellen aus der Folgefunktion des RS-Flipflops (P.FF.rs); die Schaltung aus zwei NOR wird von der Prüfmaschine über das Verhalten geprüft. */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  var EIN = ['e1', 'e2'], an = P.ffAnalyse(EIN, P.FF.rs), ans = P.ffAnsteuer(EIN, P.FF.rs);
+  var OPT = ['0', '1', 'AV', 'unzulässig'];
+  var wt = { kopf: ['e1', 'e2', 'A'], zeilen: [['0', '0', { a: 'AV', typ: 'wahl', opt: OPT }], ['0', '1', { a: '0', typ: 'wahl', opt: OPT }], ['1', '0', { a: '1', typ: 'wahl', opt: OPT }], ['1', '1', { a: 'unzulässig', typ: 'wahl', opt: OPT }]] };
+  var nor = P.raster({ teile: [['E1', 'logicin'], ['E2', 'logicin'], ['U1', 'nor'], ['U2', 'nor'], ['L1', 'logicled'], ['L2', 'logicled'], ['GND1', 'ground']], zeilen: 3,
+    leitungen: [['E2', 'U1.in1'], ['U2.out', 'U1.in2'], ['E1', 'U2.in1'], ['U1.out', 'U2.in2'], ['U1', 'L1'], ['U2', 'L2']] });
+  var Sch = function (s, r, q) { return { set: { E1: s, E2: r }, erwartet: [q, 1 - q] }; };
+  var falsch = P.raster({ teile: [['E1', 'logicin'], ['E2', 'logicin'], ['U1', 'nor'], ['U2', 'nor'], ['L1', 'logicled'], ['L2', 'logicled'], ['GND1', 'ground']], zeilen: 3,   // Rückführung fehlt
+    leitungen: [['E2', 'U1.in1'], ['E1', 'U1.in2'], ['E1', 'U2.in1'], ['E2', 'U2.in2'], ['U1', 'L1'], ['U2', 'L2']] });
+  P.station({
+    id: 'B1', teil: 'B', nr: 1, titel: 'NOR-Flipflop', kurz: 'Das einfachste Speicherelement aus zwei NOR-Gattern',
+    einfuehrung: '<p>Bisher hing der Ausgang einer Schaltung nur von den <b>jetzigen</b> Eingängen ab (kombinatorische Logik). Ein <b>Flipflop</b> dagegen hat ein <b>Gedächtnis</b>: Sein Ausgang hängt auch davon ab, was vorher war. Möglich wird das durch eine <b>Rückkopplung</b>: Der Ausgang jedes Gatters führt zu einem Eingang des anderen.</p><p>Das <b>NOR-Flipflop</b> besteht aus zwei NOR-Gattern. Zwei Eingänge: <b>e1</b> (Setzen, S: macht Q = 1) und <b>e2</b> (Rücksetzen, R: macht Q = 0). Sind beide 0, hält das Flipflop seinen Zustand. Beide 1 ist unzulässig.</p><p><b>Schreibweise:</b> <b>AV</b> = Ausgang vorher, <b>A</b> = Ausgang danach. Die <b>Wahrheitstabelle</b> zeigt A in Abhängigkeit von e1 und e2 (mit AV als Wert «hält»), die <b>Analysetabelle</b> führt AV als zusätzliche Spalte, die <b>Ansteuertabelle</b> fragt umgekehrt, welche Eingänge einen Übergang AV → A bewirken. Das <b>Zustandsfolgediagramm</b> zeigt die Übergänge als Pfeile.</p>',
+    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    aufgaben: [
+      { id: 'B1.1', titel: 'Wahrheitstabelle', art: 'tabelle', kopf: wt.kopf, zeilen: wt.zeilen, text: '<p>Wähle für jede Eingangskombination, was der Ausgang A <b>danach</b> zeigt: <b>0</b>, <b>1</b>, <b>AV</b> (hält den alten Wert) oder <b>unzulässig</b>.</p><p>e1 setzt (Q = 1), e2 setzt zurück (Q = 0).</p>' },
+      { id: 'B1.2', titel: 'Analysetabelle', art: 'tabelle', kopf: an.kopf, zeilen: an.zeilen, text: '<p>Fülle die <b>Analysetabelle</b> aus: Zu jeder Kombination von e1, e2 und AV der Ausgang A. Für den unzulässigen Fall schreibst du <b>X</b>.</p>' },
+      { id: 'B1.3', titel: 'Ansteuertabelle', art: 'tabelle', kopf: ans.kopf, zeilen: ans.zeilen, text: '<p>Fülle die <b>Ansteuertabelle</b> aus: Welche Werte brauchen e1 und e2 für den Übergang von AV nach A? Wo es egal ist: <b>X</b>.</p>', hilfe: 'Bei AV = 0, A = 0: Es darf nicht gesetzt werden (e1 = 0), zurücksetzen ist egal.' },
+      { id: 'B1.4', titel: 'Zustandsfolgediagramm', art: 'vergleich', text: '<p>Zeichne das Zustandsfolgediagramm des NOR-Flipflops auf Papier: zwei Zustände (Q = 0, Q = 1) und vier Pfeile, beschriftet mit e1 e2 aus der Ansteuertabelle. Notiere kurz, was dir auffällt, und gib ab; die Software zeigt dir ihr Diagramm zum Vergleich (bewertet wird nicht).</p>', zeigeMuster: '<p>So sieht das Diagramm aus:</p>' + P.svgZustand(EIN, P.FF.rs) },
+      { id: 'B1.5', titel: 'Schaltung aus zwei NOR bauen', art: 'folge', lesen: ['L1', 'L2'], nur: ['nor'], limit: { nor: 2 }, min: { nor: 2 }, start: P.startNetz(2, 2), muster: nor, falsch: falsch,
+        schritte: [Sch(1, 0, 1), Sch(0, 0, 1), Sch(0, 1, 0), Sch(0, 0, 0), Sch(1, 0, 1), Sch(0, 0, 1)],
+        text: '<p>Baue das Flipflop aus <b>genau zwei NOR-Gattern</b>: <b>E1</b> = Setzen (S), <b>E2</b> = Rücksetzen (R); <b>L1</b> zeigt Q, <b>L2</b> zeigt Q̄. Der Ausgang jedes NOR geht an einen Eingang des anderen. Probiere es aus: Setzen, loslassen, Rücksetzen, loslassen.</p>', hilfe: 'NOR 1 bekommt R und den Ausgang von NOR 2, NOR 2 bekommt S und den Ausgang von NOR 1. Q ist der Ausgang von NOR 1.' },
+      { id: 'B1.6', titel: 'Prüffragen NOR-Flipflop', art: 'fragen', text: '<p>Vier kurze Fragen.</p>', fragen: [
+        { q: 'Was bewirkt die Rückkopplung im Flipflop?', opt: ['Sie macht es schneller', 'Sie speichert den Zustand', 'Sie verhindert Störungen', 'Sie erzeugt den Takt'], richtig: 1, erkl: 'Jedes Gatter hält durch den anderen seinen Ausgang fest.' },
+        { q: 'Beide Eingänge e1, e2 sind 0. Was zeigt der Ausgang?', opt: ['0', '1', 'Den alten Wert (AV)', 'Unzulässig'], richtig: 2, erkl: 'Ruhezustand: Das Flipflop speichert.' },
+        { q: 'e1 = 1, e2 = 0. Welcher Wert hat A danach?', opt: ['0', '1', 'AV', 'Unzulässig'], richtig: 1, erkl: 'e1 setzt.' },
+        { q: 'Welche Eingabe ist beim NOR-Flipflop verboten?', opt: ['e1 = 0, e2 = 0', 'e1 = 1, e2 = 1', 'e1 = 1, e2 = 0', 'e1 = 0, e2 = 1'], richtig: 1, erkl: 'Gleichzeitig setzen und rücksetzen.' }] }
+    ]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_B02.js ==== */
+/* Lernpfad Station B2 – NOR-AND-Flipflop: das NOR-Flipflop mit zwei UND-Gattern vor den Eingängen, die der Takt C freigibt (taktzustandsgesteuert). */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  var next = function (q, e) { return e[0] ? P.FF.rs(q, [e[1], e[2]]) : q; };          // e = [C, e1, e2]
+  var an = P.ffAnalyse(['C', 'e1', 'e2'], next);
+  var muster = P.raster({ teile: [['E1', 'logicin'], ['E2', 'logicin'], ['C', 'logicin'], ['U1', 'and'], ['U2', 'and'], ['U3', 'nor'], ['U4', 'nor'], ['L1', 'logicled'], ['L2', 'logicled'], ['GND1', 'ground']], zeilen: 4,
+    leitungen: [['E1', 'U1.in1'], ['C', 'U1.in2'], ['E2', 'U2.in1'], ['C', 'U2.in2'], ['U2', 'U3.in1'], ['U4.out', 'U3.in2'], ['U1', 'U4.in1'], ['U3.out', 'U4.in2'], ['U3', 'L1'], ['U4', 'L2']] });
+  var falsch = JSON.parse(JSON.stringify(muster)); falsch.wires = falsch.wires.filter(function (w) { return !(w.from === 'C.out' && w.to === 'U2.in2'); }); falsch.wires.push({ from: 'E1.out', to: 'U2.in2' }); // R wird nicht vom Takt gesperrt
+  var st = P.startNetz(2, 2, [{ id: 'C', type: 'logicin', x: 200, y: 380, rot: 0 }]);
+  P.station({
+    id: 'B2', teil: 'B', nr: 2, titel: 'NOR-AND-Flipflop', kurz: 'Das getaktete NOR-Flipflop',
+    einfuehrung: '<p>Das NOR-Flipflop aus B1 reagiert sofort auf jede Änderung von e1 und e2. Oft soll es aber nur zu bestimmten Zeiten übernehmen. Dafür kommt vor jeden Eingang ein <b>UND-Gatter</b>, das den <b>Takt C</b> als zweiten Eingang hat:</p><ul><li><b>C = 0:</b> Beide UND liefern 0, die Eingänge des NOR-Flipflops sind in Ruhe: Das Flipflop <b>speichert</b>.</li><li><b>C = 1:</b> Die UND geben e1 und e2 frei: Es verhält sich wie das NOR-Flipflop aus B1.</li></ul><p>Das ist ein <b>taktzustandsgesteuertes</b> Flipflop: Es folgt den Eingängen, solange C = 1 ist.</p>',
+    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    aufgaben: [
+      { id: 'B2.1', titel: 'Analysetabelle mit Takt', art: 'tabelle', kopf: an.kopf, zeilen: an.zeilen, text: '<p>Fülle die Analysetabelle des getakteten Flipflops aus: Zu jeder Kombination von C, e1, e2 und AV der Ausgang A. Bei C = 0 ändert sich nichts. Bei C = 1, e1 = 1, e2 = 1 schreibst du <b>X</b> (unzulässig).</p>' },
+      { id: 'B2.2', titel: 'NOR-AND-Flipflop bauen', art: 'folge', lesen: ['L1', 'L2'], takt: 'C', nur: ['nor', 'and'], limit: { nor: 2, and: 2 }, min: { nor: 2, and: 2 }, start: st, muster: muster, falsch: falsch,
+        schritte: [{ set: { E1: 1, E2: 0 }, takte: 1, erwartet: [1, 0], name: 'C = 1 mit S = 1: Q wird 1' }, { set: { E1: 0, E2: 1 }, erwartet: [1, 0], name: 'R = 1 bei C = 0: Q bleibt' }, { takte: 1, erwartet: [0, 1], name: 'C = 1 mit R = 1: Q wird 0' },
+          { set: { E1: 1, E2: 0 }, erwartet: [0, 1], name: 'S = 1 bei C = 0: Q bleibt' }, { takte: 1, erwartet: [1, 0], name: 'C = 1 mit S = 1: Q wird 1' }],
+        text: '<p>Baue das Flipflop: zwei <b>UND</b> (e1 mit C, e2 mit C) vor einem NOR-Flipflop aus zwei <b>NOR</b>. <b>E1</b> = S, <b>E2</b> = R, <b>C</b> = Takt; <b>L1</b> zeigt Q, <b>L2</b> zeigt Q̄. Nur UND und NOR sind erlaubt, von jedem höchstens zwei.</p>', hilfe: 'Die UND-Ausgänge sind die Eingänge des NOR-Flipflops aus B1: UND mit e2 geht an NOR 1, UND mit e1 an NOR 2.' },
+      { id: 'B2.3', titel: 'Prüffragen getaktetes Flipflop', art: 'fragen', text: '<p>Drei kurze Fragen.</p>', fragen: [
+        { q: 'Was tun die beiden UND-Gatter vor dem NOR-Flipflop?', opt: ['Sie invertieren e1 und e2', 'Sie geben e1 und e2 nur bei C = 1 frei', 'Sie speichern', 'Sie erzeugen den Takt'], richtig: 1, erkl: 'Bei C = 0 liefern sie 0: Das NOR-Flipflop sieht keine Eingänge.' },
+        { q: 'C = 0, e1 = 1, e2 = 0. Was zeigt Q?', opt: ['Q = 1', 'Q = 0', 'Den alten Wert', 'Unzulässig'], richtig: 2, erkl: 'Ohne Takt ändert sich nichts.' },
+        { q: 'Ändert sich e1 von 0 nach 1, während C = 1 ist (Taktzustand). Was passiert mit Q?', opt: ['Nichts', 'Q folgt sofort', 'Q kippt erst bei der nächsten Flanke', 'Unzulässig'], richtig: 1, erkl: 'Taktzustandssteuerung: Solange C = 1, wirken die Eingänge sofort. Das ist der Unterschied zur Flankensteuerung (B3).' }] }
+    ]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_B03.js ==== */
+/* Lernpfad Station B3 – Steuerungsarten: Taktzustand gegen Taktflanke, positiv und negativ, preSet und preClear. Alles am D-Flipflop; die Prüfmaschine setzt die Eingänge
+ * der Reihe nach (Taktzustand und Flanke lassen sich nur so unterscheiden: D ändert sich, während C = 1 ist) und liest Q. Ab hier stehen alle Flipflop-Bauteile zur Verfügung. */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  var start = P.startNetz(3, 1, [{ id: 'C', type: 'logicin', x: 200, y: 480, rot: 0 }]);   // E1 = D, E2 = preSet, E3 = preClear, C = Takt, L1 = Q
+  function muster(trig) { return P.netz({ n: 3, eingaenge: ['C'], gatter: [['FF1', 'dff', ['E1', 'C', 'E2', 'E3'], { trig: trig }, ['D', 'C', 'PS', 'PC']]], aus: { L1: 'FF1.Q' } }); }
+  var S = function (set, erw, name) { return { abfolge: [{ set: set }], erwartet: [erw], name: name }; };
+  var FALSCH = { level: 'pos', pos: 'neg', neg: 'level' }; // die falsche Steuerungsart: Der Test muss sie erkennen
+  function folge(id, titel, text, trig, schritte, hilfe) {
+    var a = { id: id, titel: titel, art: 'folge', lesen: ['L1'], schritte: schritte, start: start, muster: muster(trig), min: { dff: 1 }, text: text, hilfe: hilfe }; if (id !== 'B3.5') a.falsch = muster(FALSCH[trig]); return a;
+  }
+  var bau = '<p>Setze ein <b>D-Flipflop</b>: <b>E1</b> an D, <b>C</b> an C (Takt), <b>E2</b> an preSet (PS), <b>E3</b> an preClear (PC); <b>L1</b> zeigt Q. Stelle im Eigenschaftenfeld die <b>Steuerungsart</b> ein. Probiere es im Zeitverlauf aus (Rechtsklick auf Anschluss → «Zeitverlauf»), dann lass prüfen.</p>';
+  P.station({
+    id: 'B3', teil: 'B', nr: 3, titel: 'Steuerungsarten', kurz: 'Taktzustand, Taktflanke, preSet und preClear',
+    einfuehrung: '<p>Ein getaktetes Flipflop übernimmt seine Eingänge nicht immer, sondern nur, wenn der <b>Takt</b> C es erlaubt. Es gibt zwei Arten:</p><ul><li><b>Taktzustandssteuerung:</b> Solange C = 1 ist (positiv) beziehungsweise C = 0 (negativ), folgt das Flipflop den Eingängen. Ändert sich D, während C = 1 ist, ändert sich auch Q.</li><li><b>Taktflankensteuerung:</b> Nur im <b>Moment</b> des Wechsels von C wird gelesen: bei der <b>steigenden</b> Flanke (0 → 1, positiv) oder der <b>fallenden</b> (1 → 0, negativ). Danach sind die Eingänge egal, bis zur nächsten Flanke.</li></ul><p>Dazu kommen die <b>asynchronen</b> Eingänge <b>preSet</b> (Q sofort auf 1) und <b>preClear</b> (Q sofort auf 0): Sie wirken ohne Takt und haben Vorrang.</p><p>Ab dieser Station stehen dir alle Flipflop-Bauteile zur Verfügung.</p>',
+    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: ['dff', 'tff', 'jkff', 'rsff', 'jkms'], auto: true,
+    aufgaben: [
+      { id: 'B3.1', titel: 'Prüffragen Steuerungsarten', art: 'fragen', text: '<p>Fünf kurze Fragen.</p>', fragen: [
+        { q: 'Ein taktzustandsgesteuertes D-Flipflop (C = 1 aktiv): D ändert sich, während C = 1 ist. Was passiert mit Q?', opt: ['Q bleibt', 'Q folgt D', 'Q kippt', 'Q wird 0'], richtig: 1, erkl: 'Solange der Takt aktiv ist, ist das Flipflop «durchsichtig».' },
+        { q: 'Ein flankengesteuertes D-Flipflop (steigende Flanke): D ändert sich, während C = 1 ist. Was passiert mit Q?', opt: ['Q folgt D', 'Q bleibt, bis zur nächsten steigenden Flanke', 'Q wird 1', 'Q wird 0'], richtig: 1, erkl: 'Gelesen wird nur im Moment der Flanke.' },
+        { q: 'Bei der negativen Flankensteuerung reagiert das Flipflop auf …', opt: ['0 → 1', '1 → 0', 'C = 1', 'C = 0'], richtig: 1, erkl: 'Negativ heisst: fallende Flanke.' },
+        { q: 'preSet setzt Q …', opt: ['bei der nächsten Taktflanke auf 1', 'sofort auf 1, ohne Takt', 'auf D', 'auf Q̄'], richtig: 1, erkl: 'preSet und preClear sind asynchron: Sie wirken unabhängig vom Takt.' },
+        { q: 'Welche Steuerung eignet sich für Zähler und Schieberegister, in denen sich Ausgänge zurückkoppeln?', opt: ['Taktzustandssteuerung', 'Taktflankensteuerung', 'Keine', 'Nur preSet'], richtig: 1, erkl: 'Bei Taktzustand würde ein geänderter Ausgang während C = 1 sofort wieder durchlaufen (Rennen).' }] },
+      folge('B3.2', 'Taktzustandssteuerung (C = 1)', bau + '<p><b>Steuerungsart:</b> Taktzustand (C = 1).</p>', 'level', [
+        S({ E1: 1, C: 1 }, 1, 'C = 1 mit D = 1'), S({ E1: 0 }, 0, 'D → 0 bei C = 1 (Q folgt)'), S({ C: 0 }, 0, 'C → 0'), S({ E1: 1 }, 0, 'D → 1 bei C = 0 (Q bleibt)'), S({ C: 1 }, 1, 'C → 1 (Q übernimmt D)')], 'Bei Taktzustandssteuerung folgt Q dem Eingang D, solange C = 1 ist.'),
+      folge('B3.3', 'Steigende Flanke (positiv)', bau + '<p><b>Steuerungsart:</b> Flanke steigend ↑.</p>', 'pos', [
+        S({ E1: 1, C: 1 }, 1, 'steigende Flanke mit D = 1'), S({ E1: 0 }, 1, 'D → 0 bei C = 1 (Q bleibt)'), S({ C: 0 }, 1, 'fallende Flanke (nichts)'), S({ C: 1 }, 0, 'steigende Flanke mit D = 0')], 'Q ändert sich nur im Moment des Wechsels von C: 0 → 1.'),
+      folge('B3.4', 'Fallende Flanke (negativ)', bau + '<p><b>Steuerungsart:</b> Flanke fallend ↓.</p>', 'neg', [
+        S({ E1: 1, C: 1 }, 0, 'steigende Flanke (nichts)'), S({ C: 0 }, 1, 'fallende Flanke mit D = 1'), S({ E1: 0 }, 1, 'D → 0 bei C = 0 (Q bleibt)'), S({ C: 1 }, 1, 'steigende Flanke (nichts)'), S({ C: 0 }, 0, 'fallende Flanke mit D = 0')], 'Q ändert sich nur im Moment des Wechsels von C: 1 → 0.'),
+      folge('B3.5', 'preSet und preClear', bau + '<p>Hier prüft die Software die asynchronen Eingänge. Die Steuerungsart ist egal (nimm steigende Flanke).</p>', 'pos', [
+        S({ E2: 1 }, 1, 'preSet = 1: Q sofort 1'), S({ E2: 0 }, 1, 'preSet wieder 0: Q bleibt'), S({ E3: 1 }, 0, 'preClear = 1: Q sofort 0'), S({ E3: 0 }, 0, 'preClear wieder 0: Q bleibt'),
+        { abfolge: [{ set: { E1: 1 } }, { set: { E3: 1 } }, { set: { C: 1 } }], erwartet: [0], name: 'preClear = 1 und steigende Flanke mit D = 1: preClear hat Vorrang' }], 'preSet und preClear brauchen keinen Takt und gehen dem Takt vor.')
+    ]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_B04.js ==== */
+/* Lernpfad Station B4 – T-Flipflop. Folgefunktion aus dem Lehrbuch (T = 1 kippt, T = 0 hält); die Tabellen und die Prüffolge werden daraus gerechnet. */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  P.ffStation({
+    id: 'B4', nr: 4, titel: 'T-Flipflop', kurz: 'Kippen bei T = 1 – Frequenzhalbierung', typ: 'tff', ein: ['T'], next: P.FF.t,
+    plan: [{ set: { E1: 1 }, takte: 1 }, { takte: 1 }, { takte: 1 }, { set: { E1: 0 }, takte: 2 }, { set: { E1: 1 }, takte: 1 }, { takte: 3 }],
+    einfuehrung: '<p>Das <b>T-Flipflop</b> («Toggle») hat einen Eingang T und den Takt C. Ist <b>T = 1</b>, <b>kippt</b> der Ausgang bei jeder aktiven Taktflanke (aus 0 wird 1, aus 1 wird 0). Ist <b>T = 0</b>, bleibt er, wie er ist.</p><p>Mit T = 1 kippt Q bei jeder Flanke, also nur bei jeder <b>zweiten</b> in dieselbe Richtung: Die Ausgangsfrequenz ist <b>halb so gross</b> wie die Taktfrequenz. Darum ist das T-Flipflop der Grundbaustein von Zählern.</p><p>Notation wie im Lehrmittel: <b>AV</b> ist der Ausgang <b>vor</b> der Taktflanke, <b>A</b> der Ausgang <b>danach</b>.</p>',
+    analyseHilfe: 'T = 0 hält den Zustand, T = 1 kippt ihn.',
+    extra: [
+      { titel: 'Frequenzhalbierung im Zeitverlauf', art: 'fragen', text: '<p>Setze ein T-Flipflop mit <b>T = 1</b> (Pegelschalter auf 1) und einem <b>Taktgeber</b> von <b>8 Hz</b> (Eigenschaft Frequenz). Öffne den Zeitverlauf mit dem Takt und Q (Rechtsklick auf die Anschlüsse → «Zeitverlauf»), lass einige Sekunden laufen und lies die Periode von Q ab. Beantworte dann:</p>', fragen: [
+        { q: 'Der Takt hat 8 Hz. Welche Frequenz hat Q?', opt: ['16 Hz', '8 Hz', '4 Hz', '2 Hz'], richtig: 2, erkl: 'Q kippt bei jeder steigenden Flanke: Eine volle Periode von Q braucht zwei Taktperioden. 8 Hz / 2 = 4 Hz.' },
+        { q: 'Zwei T-Flipflops hintereinander (Q des ersten taktet das zweite), beide mit T = 1, Takt 8 Hz. Welche Frequenz hat Q des zweiten?', opt: ['4 Hz', '2 Hz', '1 Hz', '16 Hz'], richtig: 1, erkl: 'Je Stufe wird halbiert: 8 → 4 → 2 Hz.' },
+        { q: 'Wie viele Takte braucht ein T-Flipflop mit T = 1, bis Q wieder denselben Wert hat?', opt: ['1', '2', '3', '4'], richtig: 1, erkl: 'Zweimal kippen führt zurück zum Anfang.' }] }
+    ],
+    fragen: [
+      { q: 'Was macht ein T-Flipflop bei T = 1 an der aktiven Taktflanke?', opt: ['Q wird 0', 'Q wird 1', 'Q kippt', 'Q bleibt'], richtig: 2, erkl: 'Das ist der Sinn des «Toggle».' },
+      { q: 'Was macht ein T-Flipflop bei T = 0?', opt: ['Q bleibt', 'Q kippt', 'Q wird 0', 'Q wird 1'], richtig: 0, erkl: 'Ohne T geschieht nichts, der Zustand wird gehalten.' },
+      { q: 'In der Ansteuertabelle steht für AV = 1, A = 1 (halten) bei T:', opt: ['1', '0', 'X', 'Q'], richtig: 1, erkl: 'Gehalten wird bei T = 0.' }]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_B05.js ==== */
+/* Lernpfad Station B5 – D-Flipflop. */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad, N = function (id, type, ins, props, pins) { return [id, type, ins, props, pins]; };
+  // Frequenzteiler: Q̄ an D zurückgekoppelt (von Hand verdrahtet, weil das Bauteil sich selbst speist)
+  var Pt = function (id, type, x, y) { return { id: id, type: type, x: x, y: y, rot: 0 }; };
+  var teiler = { parts: [Pt('C', 'logicin', 200, 100), Pt('FF1', 'dff', 520, 160), Pt('L1', 'logicled', 900, 120), Pt('L2', 'logicled', 900, 240), Pt('GND1', 'ground', 200, 260)],
+    wires: [{ from: 'C.out', to: 'FF1.C' }, { from: 'FF1.Qn', to: 'FF1.D' }, { from: 'FF1.Q', to: 'L1.in' }, { from: 'FF1.Qn', to: 'L2.in' }] };
+  P.ffStation({
+    id: 'B5', nr: 5, titel: 'D-Flipflop', kurz: 'Daten übernehmen – das Zwischenspeicher-Flipflop', typ: 'dff', ein: ['D'], next: P.FF.d,
+    plan: [{ set: { E1: 1 }, takte: 1 }, { set: { E1: 0 }, takte: 1 }, { set: { E1: 1 }, takte: 2 }, { set: { E1: 0 }, takte: 1 }, { takte: 2 }],
+    einfuehrung: '<p>Das <b>D-Flipflop</b> («Data») ist das einfachste Speicherelement: Bei der aktiven Taktflanke übernimmt es den Wert von D und hält ihn bis zur nächsten Flanke. Q folgt also D – aber nur im Takt, und mit einer Taktperiode Verzögerung.</p><p>Das D-Flipflop ist der Baustein von Registern, Schieberegistern und vielen Zählern.</p>',
+    analyseHilfe: 'Der Ausgang danach ist immer gleich D, egal wie er vorher war.',
+    extra: [
+      { titel: 'Frequenzteiler aus einem D-Flipflop', art: 'folge', takt: 'C', lesen: ['L1', 'L2'], start: P.startNetz(0, 2, [{ id: 'C', type: 'logicin', x: 200, y: 100, rot: 0 }]), gesperrt: ['C', 'L1', 'L2', 'GND1'], muster: teiler, min: { dff: 1 },
+        schritte: [1, 0, 1, 0, 1, 0].map(function (q) { return { takte: 1, erwartet: [q, 1 - q] }; }),
+        text: '<p>Aus einem D-Flipflop wird ein <b>Frequenzteiler 2:1</b>, wenn der Eingang D dauernd den <b>negierten Ausgang Q̄</b> bekommt. Baue es: ein D-Flipflop, <b>C</b> an den Takt, <b>Q̄ an D</b>, <b>L1</b> zeigt Q und <b>L2</b> zeigt Q̄.</p>', hilfe: 'Bei jeder Flanke wird D = Q̄ übernommen: Q kippt. So wird das D-Flipflop zum T-Flipflop mit T = 1.' }
+    ],
+    fragen: [
+      { q: 'Bei welchem Wert von D wird Q bei der nächsten aktiven Taktflanke 1?', opt: ['D = 0', 'D = 1', 'Nie', 'Immer'], richtig: 1, erkl: 'Q übernimmt D.' },
+      { q: 'D ändert sich zwischen zwei Taktflanken mehrmals. Was übernimmt das flankengesteuerte D-Flipflop?', opt: ['Den ersten Wert', 'Den Wert im Moment der Flanke', 'Den letzten Wert vor der Flanke, egal wann', 'Nichts'], richtig: 1, erkl: 'Nur im Moment der aktiven Flanke wird gelesen.' },
+      { q: 'Wie viele Takte braucht ein Datenwert am D-Eingang, bis er am Ausgang Q erscheint?', opt: ['0 (sofort)', '1', '2', 'Kommt auf D an'], richtig: 1, erkl: 'Mit der nächsten aktiven Flanke.' }]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_B06.js ==== */
+/* Lernpfad Station B6 – RS-Flipflop (getaktet, Bauteil «RS-Flipflop») mit dem unzulässigen Zustand S = R = 1. */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  P.ffStation({
+    id: 'B6', nr: 6, titel: 'RS-Flipflop', kurz: 'Setzen, Rücksetzen – und der unzulässige Zustand', typ: 'rsff', ein: ['S', 'R'], next: P.FF.rs, unzulaessig: true,
+    plan: [{ set: { E1: 1, E2: 0 }, takte: 1 }, { set: { E1: 0 }, takte: 1 }, { set: { E2: 1 }, takte: 1 }, { set: { E2: 0 }, takte: 2 }, { set: { E1: 1 }, takte: 1 }, { set: { E1: 0, E2: 1 }, takte: 1 }],
+    einfuehrung: '<p>Das <b>RS-Flipflop</b> hat zwei Eingänge: <b>S</b> (Set, setzt Q auf 1) und <b>R</b> (Reset, setzt Q auf 0). Bei S = R = 0 bleibt der Zustand. Bei <b>S = R = 1</b> ist der Zustand <b>unzulässig</b>: Die Schaltung soll gleichzeitig setzen und rücksetzen. Bei der NOR-Schaltung sind dann beide Ausgänge 0, und was nach dem Loslassen geschieht, hängt davon ab, welcher Eingang zuerst zurückgeht – das ist Zufall. Diese Eingabe vermeidet man.</p><p>Das Bauteil im Studio meldet die Eingabe S = R = 1 als <b>Störung</b>.</p>',
+    analyseHilfe: 'S = 1 setzt, R = 1 setzt zurück, beide 0 halten. Bei S = R = 1 schreibst du X.',
+    fragen: [
+      { q: 'Welche Eingangskombination ist beim RS-Flipflop unzulässig?', opt: ['S = 0, R = 0', 'S = 1, R = 0', 'S = 0, R = 1', 'S = 1, R = 1'], richtig: 3, erkl: 'Setzen und Rücksetzen gleichzeitig.' },
+      { q: 'Beim NOR-Flipflop liefert S = R = 1 …', opt: ['Q = 1, Q̄ = 0', 'Q = 0, Q̄ = 1', 'Q = 0 und Q̄ = 0 – kein Gegenstück', 'Q = 1 und Q̄ = 1'], richtig: 2, erkl: 'Jedes NOR sieht eine 1 an einem Eingang: Beide Ausgänge werden 0.' },
+      { q: 'Was folgt aus dem unzulässigen Zustand nach dem Loslassen beider Eingänge zugleich?', opt: ['Q = 1', 'Q = 0', 'Unbestimmt', 'Q kippt'], richtig: 2, erkl: 'Beide Gatter versuchen gleichzeitig zu kippen: Das Ergebnis hängt von kleinsten Laufzeitunterschieden ab.' },
+      { q: 'Was bewirken S = 0 und R = 0?', opt: ['Q wird 0', 'Q wird 1', 'Der Zustand bleibt', 'Unzulässig'], richtig: 2, erkl: 'Beide Eingänge in Ruhe: Speichern.' }]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_B07.js ==== */
+/* Lernpfad Station B7 – JK-Flipflop. Dazu das JK-Master-Slave-Flipflop und das Problem des «1s-Catching». */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  var start = P.startNetz(2, 1, [{ id: 'C', type: 'logicin', x: 200, y: 380, rot: 0 }]);   // E1 = J, E2 = K, C = Takt, L1 = Q
+  function ms(typ) { return P.netz({ n: 2, eingaenge: ['C'], gatter: [['FF1', typ, ['E1', 'E2', 'C'], null, ['J', 'K', 'C']]], aus: { L1: 'FF1.Q' } }); }
+  P.ffStation({
+    id: 'B7', nr: 7, titel: 'JK-Flipflop', kurz: 'Das Universal-Flipflop, JK-Master-Slave und 1s-Catching', typ: 'jkff', ein: ['J', 'K'], next: P.FF.jk,
+    plan: [{ set: { E1: 1, E2: 0 }, takte: 1 }, { set: { E1: 0 }, takte: 1 }, { set: { E2: 1 }, takte: 1 }, { set: { E2: 0 }, takte: 2 }, { set: { E1: 1, E2: 1 }, takte: 1 }, { takte: 1 }, { takte: 1 }, { set: { E1: 0, E2: 0 }, takte: 2 }],
+    einfuehrung: '<p>Das <b>JK-Flipflop</b> ist das vielseitigste: <b>J</b> setzt, <b>K</b> setzt zurück, <b>J = K = 0</b> hält, und <b>J = K = 1 kippt</b> (statt des unzulässigen Zustands beim RS-Flipflop). Es lässt sich durch Verdrahtung zu jedem anderen Flipflop machen: Mit J = K = T wird es zum T-Flipflop.</p><p>Ist ein JK-Flipflop <b>taktzustandsgesteuert</b> und J = K = 1, kippt es, solange C = 1 ist, immer wieder (es «rennt»). Darum gibt es das <b>JK-Master-Slave-Flipflop</b>: Zwei Flipflops hintereinander, der <b>Master</b> nimmt die Eingänge bei C = 1 auf, der <b>Slave</b> übernimmt sie erst bei der <b>fallenden</b> Flanke von C. So kippt es höchstens einmal pro Takt. Sein Nachteil ist das <b>1s-Catching</b> (siehe unten).</p>',
+    analyseHilfe: 'J = 1, K = 0 setzt. J = 0, K = 1 setzt zurück. J = K = 1 kippt. J = K = 0 hält.',
+    extra: [
+      { titel: 'JK-Master-Slave: Ausgang ändert bei fallender Flanke', art: 'folge', lesen: ['L1'], start: start, muster: ms('jkms'), min: { jkms: 1 }, falsch: ms('jkff'),
+        schritte: [{ abfolge: [{ set: { E1: 1, E2: 1 } }, { set: { C: 1 } }], erwartet: [0], name: 'C = 1 mit J = K = 1 (Master nimmt auf, Q noch alt)' }, { abfolge: [{ set: { C: 0 } }], erwartet: [1], name: 'fallende Flanke: Slave übernimmt, Q kippt' },
+          { abfolge: [{ set: { C: 1 } }], erwartet: [1], name: 'C = 1 (Q noch alt)' }, { abfolge: [{ set: { C: 0 } }], erwartet: [0], name: 'fallende Flanke: Q kippt zurück' }],
+        text: '<p>Setze ein <b>JK-MS-Flipflop</b>: <b>E1</b> an J, <b>E2</b> an K, <b>C</b> an C, <b>L1</b> zeigt Q. Bei J = K = 1 darf sich Q nur bei der <b>fallenden</b> Flanke von C ändern, nicht, wenn C auf 1 geht.</p>', hilfe: 'Verwende das Bauteil «JK-MS-Flipflop» (nicht das normale JK).' },
+      { titel: '1s-Catching zeigen', art: 'folge', lesen: ['L1'], start: start, muster: ms('jkms'), min: { jkms: 1 }, falsch: ms('jkff'),
+        schritte: [{ abfolge: [{ set: { C: 1 } }, { set: { E1: 1 } }, { set: { E1: 0 } }, { set: { C: 0 } }], erwartet: [1], name: 'C = 1, J kurz auf 1 und wieder 0, dann C = 0: der Slave übernimmt die «gefangene» 1' }],
+        text: '<p><b>1s-Catching</b>: Der Master merkt sich <b>jede</b> 1 an J, die er bei C = 1 sieht – auch einen kurzen Störimpuls, der schon wieder weg ist. Bei der fallenden Flanke wird sie an den Ausgang weitergegeben.</p><p>Verwende dasselbe Bauteil wie in der Aufgabe davor (JK-MS-Flipflop) und zeige den Effekt: Ausgangslage Q = 0, J = 0, K = 0, C = 0. Setze C auf 1, schalte J <b>kurz auf 1 und gleich wieder auf 0</b> und nimm C auf 0. Q sollte jetzt <b>1</b> sein, obwohl J am Ende der Taktzeit 0 war. Ein normales flankengesteuertes JK-Flipflop würde das nicht tun – die Software prüft das mit.</p>', hilfe: 'Der Master reagiert auf J = 1, solange C = 1 ist, und hält es fest.' }
+    ],
+    fragen: [
+      { q: 'Wie verhält sich ein JK-Flipflop bei J = 1 und K = 1?', opt: ['Es setzt Q', 'Es setzt Q zurück', 'Es kippt Q', 'Es hält Q'], richtig: 2, erkl: 'J = K = 1 kippt, anders als beim RS-Flipflop ist die Eingabe zulässig.' },
+      { q: 'Wie wird aus einem JK-Flipflop ein T-Flipflop?', opt: ['J und K verbinden und T nennen', 'J auf 1, K auf 0', 'K auf 1, J offen', 'Gar nicht'], richtig: 0, erkl: 'J = K = T: Bei T = 1 kippt es, bei T = 0 hält es.' },
+      { q: 'Wozu dient das Master-Slave-Prinzip?', opt: ['Es macht das Flipflop schneller', 'Es verhindert das mehrfache Kippen während eines Takts (Rennen)', 'Es spart Gatter', 'Es setzt den Zustand zurück'], richtig: 1, erkl: 'Der Ausgang ändert sich erst nach dem Takt (fallende Flanke), nie mitten im aktiven Takt.' },
+      { q: 'Was ist das 1s-Catching?', opt: ['Der Master merkt sich eine kurze Störung an J oder K während C = 1', 'Das Flipflop fängt Daten zu spät', 'Der Ausgang hängt an 1', 'Ein Kurzschluss'], richtig: 0, erkl: 'Auch ein kurzer Impuls bei aktivem Takt wird gefangen und beim Takt-Ende ausgegeben.' }]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_B08.js ==== */
+/* Lernpfad Station B8 – Asynchroner Dualzähler: aus T-Flipflops bauen, Zählfolge prüfen, Laufzeit sichtbar machen. Ab hier: Taktgeber, Dekoder und Siebensegmentanzeige. */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  var st = P.startNetz(0, 3, [{ id: 'C', type: 'logicin', x: 200, y: 80, rot: 0 }, { id: 'H', type: 'logicin', x: 200, y: 180, rot: 0, props: { konst: true, closed: true } }]);   // L1 = Q0, L2 = Q1, L3 = Q2; H fest auf 1
+  var zaehl = { kopf: ['Takt', 'Q2', 'Q1', 'Q0', 'Dezimal'], zeilen: [] };
+  for (var k = 0; k <= 8; k++) { var z = k % 8; zaehl.zeilen.push([String(k), { a: String(z >> 2 & 1), typ: 'bit' }, { a: String(z >> 1 & 1), typ: 'bit' }, { a: String(z & 1), typ: 'bit' }, { a: String(z), typ: 'dez' }]); }
+  var folgeSoll = function (n, richtung) { var o = [], m = 1 << n; for (var i = 1; i <= m + 1; i++) o.push(richtung === 'ab' ? ((m - i) % m + m) % m : i % m); return o; };
+  var sechs = P.raster({ teile: [['C', 'logicin'], P.EIN1('H'), ['FF1', 'tff'], ['FF2', 'tff'], ['FF3', 'tff'], ['L1', 'logicled'], ['L2', 'logicled'], ['L3', 'logicled']], zeilen: 4,
+    leitungen: [['C', 'FF1.C'], ['FF1.Qn', 'FF2.C'], ['FF2.Qn', 'FF3.C'], ['H', 'FF1.T'], ['H', 'FF2.T'], ['H', 'FF3.T'], ['FF1.Q', 'L1'], ['FF2.Q', 'L2'], ['FF3.Q', 'L3']] });
+  var anz = P.raster({ teile: [['C', 'logicin'], P.EIN1('H'), P.EIN0('Z'), ['FF1', 'tff'], ['FF2', 'tff'], ['FF3', 'tff'], ['IC1', 'dec7'], ['AZ1', 'seg7']], zeilen: 4,
+    leitungen: [['C', 'FF1.C'], ['FF1.Qn', 'FF2.C'], ['FF2.Qn', 'FF3.C'], ['H', 'FF1.T'], ['H', 'FF2.T'], ['H', 'FF3.T'], ['FF1.Q', 'IC1.A'], ['FF2.Q', 'IC1.B'], ['FF3.Q', 'IC1.C'], ['Z', 'IC1.D'],
+      ['IC1.a', 'AZ1.a'], ['IC1.b', 'AZ1.b'], ['IC1.c', 'AZ1.c'], ['IC1.d', 'AZ1.d'], ['IC1.e', 'AZ1.e'], ['IC1.f', 'AZ1.f'], ['IC1.g', 'AZ1.g']] });
+  P.station({
+    id: 'B8', teil: 'B', nr: 8, titel: 'Asynchroner Dualzähler', kurz: 'Zähler aus Flipflops – und warum die Laufzeit zählt',
+    einfuehrung: '<p>Ein <b>Zähler</b> ist eine Kette von Flipflops, die Impulse zählt. Der <b>asynchrone Dualzähler</b> («Ripple-Zähler») ist die einfachste Form: Jede Stufe ist ein <b>T-Flipflop mit T = 1</b> (es kippt bei jeder Flanke und halbiert die Frequenz). Der Ausgang einer Stufe taktet die <b>nächste</b>. Der Takt kommt nur an der ersten Stufe an, die höheren Stufen bekommen ihn erst von den niedrigeren – darum «asynchron».</p><p>Drei Stufen zählen 0 bis 7. Mit <b>Q̄</b> der Vorstufe als Takt der nächsten Stufe zählt der Zähler <b>aufwärts</b>.</p><p>Jedes Flipflop braucht eine kleine Zeit (<b>Laufzeit t<sub>pd</sub></b>), bis sein Ausgang kippt. Beim Ripple-Zähler addieren sich diese Zeiten stufenweise: Beim Übergang 7 → 0 kippen die Bits nacheinander, und kurz stehen falsche Zwischenzustände am Ausgang. Das siehst du im Zeitverlauf.</p><p>Neu ab hier: der <b>Taktgeber</b>, der <b>BCD-7-Segment-Dekoder</b> und die <b>Siebensegmentanzeige</b>.</p>',
+    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: ['clock', 'dec7', 'seg7'], auto: true,
+    aufgaben: [
+      { id: 'B8.1', titel: 'Zählfolge eines 3-Bit-Zählers', art: 'tabelle', kopf: zaehl.kopf, zeilen: zaehl.zeilen, text: '<p>Ein 3-Bit-Aufwärtszähler startet bei 0 (alle Q = 0). Schreibe für jeden Takt den Zählerstand auf (Q2 Q1 Q0 und dezimal). Was passiert nach dem 7. Takt?</p>' },
+      { id: 'B8.2', titel: '3-Bit-Aufwärtszähler bauen', art: 'folge', takt: 'C', lesen: ['L3', 'L2', 'L1'], soll: folgeSoll(3), start: st, muster: sechs, min: { tff: 3 }, limit: { tff: 3 },
+        text: '<p>Baue den asynchronen Dualzähler aus <b>drei T-Flipflops</b>. Der Pegelschalter <b>H</b> liegt fest auf 1 (an alle T). <b>C</b> ist der Takt. <b>L1, L2, L3</b> zeigen Q0, Q1, Q2 (Q0 = niedrigstes Bit). Die Software gibt neun Takte und liest den Zählerstand.</p>', hilfe: 'Takt an FF1. Q̄ von FF1 an C von FF2, Q̄ von FF2 an C von FF3.' },
+      { id: 'B8.3', titel: 'Abwärtszähler bauen', pflicht: false, art: 'folge', takt: 'C', lesen: ['L3', 'L2', 'L1'], soll: folgeSoll(3, 'ab'), start: st, muster: P.rippleZaehler(3, null, false), min: { tff: 3 }, limit: { tff: 3 },
+        text: '<p><b>Freiwillig.</b> Derselbe Zähler, aber <b>abwärts</b>: Er beginnt bei 0 und zählt nach dem ersten Takt 7, 6, 5 … Was musst du an der Taktverdrahtung der Stufen ändern?</p>', hilfe: 'Statt Q̄ nimmst du Q der Vorstufe als Takt der nächsten.' },
+      { id: 'B8.4', titel: 'Zählerstand sichtbar machen', art: 'folge', takt: 'C', lesen: ['AZ1'], schritte: [1, 2, 3, 4, 5, 6, 7, 0, 1].map(function (v) { return { takte: 1, erwartet: [v] }; }), start: P.startNetz(0, 0, [{ id: 'C', type: 'logicin', x: 200, y: 80, rot: 0 }, { id: 'H', type: 'logicin', x: 200, y: 180, rot: 0, props: { konst: true, closed: true } }, { id: 'Z', type: 'logicin', x: 200, y: 280, rot: 0, props: { konst: true, closed: false } }]), muster: anz, min: { tff: 3, dec7: 1, seg7: 1 },
+        text: '<p>Zeige den Zählerstand an: Der Zähler aus der vorigen Aufgabe, dahinter ein <b>BCD-7-Segment-Dekoder</b> (A, B, C = Q0, Q1, Q2; D an den festen Pegelschalter <b>Z</b>, der auf 0 liegt) und eine <b>Siebensegmentanzeige</b>, deren Segmente a bis g an die Ausgänge a bis g des Dekoders gehen. Die Anzeige muss <b>AZ1</b> heissen (die erste Anzeige, die du setzt). Die Software zählt von 0 bis 7 und wieder auf 0.</p>', hilfe: 'Der Dekoder wandelt die Dualzahl A bis D in die sieben Segmente a bis g um. Verbinde jedes Segment der Anzeige mit dem gleichnamigen Ausgang.' },
+      { id: 'B8.5', titel: 'Laufzeit im Zeitverlauf', art: 'fragen', text: '<p>Setze den Zähler aus B8.2 mit einem <b>Taktgeber von 1 MHz</b> statt des Pegelschalters. Öffne den Zeitverlauf mit Takt und den drei Q (Rechtsklick auf die Anschlüsse → «Zeitverlauf») und zoome auf eine Zeitspanne von etwa 1,2 µs. Jedes Flipflop hat eine Laufzeit von 20 ns (Standardwert). Suche die Stelle, an der der Zähler von 7 auf 0 springt.</p>', fragen: [
+        { q: 'Wie lange nach der Taktflanke ist Q0 gekippt, wie lange Q1, wie lange Q2 (Übergang 7 → 0)?', opt: ['je 20 ns', '20 ns, 40 ns, 60 ns', '60 ns, 40 ns, 20 ns', 'alle sofort'], richtig: 1, erkl: 'Jede Stufe wartet auf die vorige: Die Laufzeiten addieren sich.' },
+        { q: 'Welche falschen Zwischenzustände (Q2 Q1 Q0) erscheinen kurz beim Übergang 7 → 0?', opt: ['110 und 100', '011 und 001', 'Keine', '101 und 010'], richtig: 0, erkl: 'Erst fällt Q0 (110), dann Q1 (100), zuletzt Q2 (000).' },
+        { q: 'Wann ist der Zählerstand nach dem Übergang 7 → 0 endgültig gültig?', opt: ['20 ns nach der Flanke', '40 ns nach der Flanke', '60 ns nach der Flanke', 'Sofort'], richtig: 2, erkl: 'Das letzte Bit (Q2) braucht drei Laufzeiten.' },
+        { q: 'Welche Folge hat die Laufzeit für die höchste Taktfrequenz des Ripple-Zählers?', opt: ['Keine', 'Der Takt darf nicht schneller sein als die Summe der Laufzeiten, sonst ist der Zählerstand nie gültig', 'Der Zähler zählt rückwärts', 'Der Zähler wird genauer'], richtig: 1, erkl: 'Bei Takt-Perioden unter 3 · t_pd hat Q2 noch nicht gekippt, wenn der nächste Takt kommt.' }] }
+    ]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_B09.js ==== */
+/* Lernpfad Station B9 – Digitale Uhr: Sekundenzähler 0 bis 59 mit zwei Siebensegmentanzeigen, selbst gebaut. Die Abnahme des ganzen Pfades:
+ * Wer A1 bis B8 durchgearbeitet hat, hat alle nötigen Bauteile freigeschaltet (diese Station schaltet nichts Neues frei, der Test prüft das). */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  var seg = function (i) { return 'abcdefg'.split('').map(function (c) { return ['IC' + i + '.' + c, 'AZ' + i + '.' + c]; }); };
+  var einer = [['CLK1', 'clock'], P.EIN1('H'), ['FF1', 'tff'], ['FF2', 'tff'], ['FF3', 'tff'], ['FF4', 'tff'], ['U1', 'and'], ['L1', 'logicled'], ['L2', 'logicled'], ['L3', 'logicled'], ['L4', 'logicled']];
+  var einerW = [['CLK1', 'FF1.C'], ['FF1.Qn', 'FF2.C'], ['FF2.Qn', 'FF3.C'], ['FF3.Qn', 'FF4.C'], ['H', 'FF1.T'], ['H', 'FF2.T'], ['H', 'FF3.T'], ['H', 'FF4.T'], ['FF2.Q', 'U1.in1'], ['FF4.Q', 'U1.in2'], ['U1', 'FF1.PC'], ['U1', 'FF2.PC'], ['U1', 'FF3.PC'], ['U1', 'FF4.PC'],
+    ['FF1.Q', 'L1'], ['FF2.Q', 'L2'], ['FF3.Q', 'L3'], ['FF4.Q', 'L4']];
+  var zehner = [['CLK1', 'logicin'], P.EIN1('H'), ['FF1', 'tff', { trig: 'neg' }], ['FF2', 'tff'], ['FF3', 'tff'], ['U1', 'and'], ['L1', 'logicled'], ['L2', 'logicled'], ['L3', 'logicled']];
+  var zehnerW = [['CLK1', 'FF1.C'], ['FF1.Qn', 'FF2.C'], ['FF2.Qn', 'FF3.C'], ['H', 'FF1.T'], ['H', 'FF2.T'], ['H', 'FF3.T'], ['FF2.Q', 'U1.in1'], ['FF3.Q', 'U1.in2'], ['U1', 'FF1.PC'], ['U1', 'FF2.PC'], ['U1', 'FF3.PC'], ['FF1.Q', 'L1'], ['FF2.Q', 'L2'], ['FF3.Q', 'L3']];
+  // Uhr: Einer FF1–FF4, Zehner FF5–FF7; der Übertrag ist die fallende Flanke von Q3 der Einer (Zehner-FF5 mit fallender Flanke)
+  var uhrT = [['CLK1', 'clock'], P.EIN1('H'), P.EIN0('Z'), ['FF1', 'tff'], ['FF2', 'tff'], ['FF3', 'tff'], ['FF4', 'tff'], ['U1', 'and'], ['FF5', 'tff', { trig: 'neg' }], ['FF6', 'tff'], ['FF7', 'tff'], ['U2', 'and'], ['IC1', 'dec7'], ['IC2', 'dec7'], ['AZ1', 'seg7'], ['AZ2', 'seg7']];
+  var uhrW = [['CLK1', 'FF1.C'], ['FF1.Qn', 'FF2.C'], ['FF2.Qn', 'FF3.C'], ['FF3.Qn', 'FF4.C'], ['FF4.Q', 'FF5.C'], ['FF5.Qn', 'FF6.C'], ['FF6.Qn', 'FF7.C']];
+  for (var i = 1; i <= 7; i++) uhrW.push(['H', 'FF' + i + '.T']);
+  uhrW.push(['FF2.Q', 'U1.in1'], ['FF4.Q', 'U1.in2'], ['FF6.Q', 'U2.in1'], ['FF7.Q', 'U2.in2']);
+  for (i = 1; i <= 4; i++) uhrW.push(['U1', 'FF' + i + '.PC']); for (i = 5; i <= 7; i++) uhrW.push(['U2', 'FF' + i + '.PC']);
+  uhrW.push(['FF1.Q', 'IC1.A'], ['FF2.Q', 'IC1.B'], ['FF3.Q', 'IC1.C'], ['FF4.Q', 'IC1.D'], ['FF5.Q', 'IC2.A'], ['FF6.Q', 'IC2.B'], ['FF7.Q', 'IC2.C'], ['Z', 'IC2.D']);
+  seg(1).concat(seg(2)).forEach(function (w) { uhrW.push(w); });
+  var uhr = P.raster({ teile: uhrT, leitungen: uhrW, zeilen: 6 });
+  var start0 = function (extra) { return P.startNetz(0, 0, extra); };
+  var H = { id: 'H', type: 'logicin', x: 200, y: 80, rot: 0, props: { konst: true, closed: true } }, Z = { id: 'Z', type: 'logicin', x: 200, y: 180, rot: 0, props: { konst: true, closed: false } };
+  var zaehle = function (n, f) { var o = []; for (var k = 1; k <= n; k++) o.push({ takte: 1, erwartet: f(k) }); return o; };
+  P.station({
+    id: 'B9', teil: 'B', nr: 9, titel: 'Digitale Uhr', kurz: 'Abnahme: Sekundenzähler 0 bis 59 mit zwei Anzeigen',
+    einfuehrung: '<p>Jetzt wird alles zusammengesetzt. Eine <b>Sekundenuhr</b> zählt Taktimpulse von 0 bis 59 und beginnt dann von vorn. Sie besteht aus:</p><ul><li>einem <b>Taktgeber</b> mit 1 Hz;</li><li>einer <b>Einerstelle</b>, die von 0 bis 9 zählt und dann auf 0 zurückspringt (<b>Dezimalzähler</b>: ein Dualzähler, der beim Erreichen von 10 mit <b>preClear</b> zurückgesetzt wird);</li><li>einer <b>Zehnerstelle</b>, die von 0 bis 5 zählt und bei 6 zurückspringt; sie wird vom <b>Übertrag</b> der Einerstelle getaktet (die Einer springen von 9 auf 0: Q3 fällt);</li><li>für jede Stelle einem <b>Dekoder</b> und einer <b>Siebensegmentanzeige</b>.</li></ul><p>Das sind alles Teile, die du schon kennst. Du brauchst nur noch den Plan. Zwei Teilaufgaben helfen dir beim Üben, die Abnahme ist die ganze Uhr.</p>',
+    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    aufgaben: [
+      { id: 'B9.1', titel: 'Teilaufgabe: Einerstelle 0 bis 9', pflicht: false, art: 'folge', takt: 'CLK1', lesen: ['L4', 'L3', 'L2', 'L1'], schritte: zaehle(11, function (k) { return [(k % 10) >> 3 & 1, (k % 10) >> 2 & 1, (k % 10) >> 1 & 1, (k % 10) & 1]; }), start: start0([H]), muster: P.raster({ teile: einer, leitungen: einerW, zeilen: 6 }), min: { tff: 4 },
+        text: '<p><b>Teilaufgabe.</b> Baue einen Zähler, der von 0 bis 9 zählt und dann auf 0 zurückspringt: vier T-Flipflops (Ripple), ein <b>UND</b> erkennt den Zählerstand 10 (Q1 und Q3) und setzt alle vier über <b>preClear</b> zurück. Der Takt ist ein <b>Taktgeber</b> (er heisst CLK1). <b>L1 bis L4</b> zeigen Q0 bis Q3. Die Software taktet selbst (der Taktgeber wird dafür von Hand bedient).</p>', hilfe: 'Der Zählerstand 10 = 1010: Q1 = 1 und Q3 = 1 kommt vorher nie vor.' },
+      { id: 'B9.2', titel: 'Teilaufgabe: Zehnerstelle 0 bis 5', pflicht: false, art: 'folge', takt: 'CLK1', lesen: ['L3', 'L2', 'L1'], schritte: zaehle(7, function (k) { return [(k % 6) >> 2 & 1, (k % 6) >> 1 & 1, (k % 6) & 1]; }), start: start0([H]), muster: P.raster({ teile: zehner, leitungen: zehnerW, zeilen: 5 }), min: { tff: 3 }, takt0: true,
+        text: '<p><b>Teilaufgabe.</b> Baue einen Zähler, der von 0 bis 5 zählt und bei 6 zurückspringt: drei T-Flipflops, ein UND erkennt 6 (Q1 und Q2) und setzt zurück. Der Takteingang heisst hier <b>CLK1</b> (ein Pegelschalter oder ein Taktgeber). Das erste Flipflop soll auf die <b>fallende</b> Flanke reagieren – so wird es später vom Übertrag der Einerstelle getaktet. <b>L1 bis L3</b> zeigen Q0 bis Q2.</p><p>Hinweis: Hier genügt als Takt ein Pegelschalter mit dem Namen <b>CLK1</b>; das Programm taktet ihn selbst.</p>', hilfe: 'Der Zählerstand 6 = 110. Die fallende Flanke stellst du im Eigenschaftenfeld des ersten Flipflops ein.' },
+      { id: 'B9.3', titel: 'Die Digitaluhr', art: 'folge', takt: 'CLK1', lesen: ['AZ2', 'AZ1'], schritte: zaehle(62, function (k) { var s = k % 60; return [Math.floor(s / 10), s % 10]; }), start: start0([H, Z]), muster: uhr, min: { tff: 7, dec7: 2, seg7: 2, clock: 1 },
+        text: '<p><b>Abnahme.</b> Baue die Sekundenuhr: ein <b>Taktgeber</b> (heisst <b>CLK1</b>, 1 Hz), sieben T-Flipflops (vier für die Einer, drei für die Zehner), zwei UND zum Zurücksetzen, zwei <b>BCD-7-Segment-Dekoder</b> und zwei <b>Siebensegmentanzeigen</b>. Die <b>zuerst gesetzte</b> Anzeige (AZ1) ist die <b>Einerstelle</b>, die zweite (AZ2) die <b>Zehnerstelle</b>. Die festen Pegelschalter <b>H</b> (immer 1, für die T-Eingänge) und <b>Z</b> (immer 0, für den vierten Eingang D des Zehner-Dekoders) sind schon da. Die Software gibt 62 Takte und liest nach jedem Takt beide Anzeigen: 1, 2, …, 59, 0, 1.</p><p>Probiere sie zuerst im Studio aus (Taktgeber auf 10 Hz, dann sieht man sie schneller laufen).</p>', hilfe: 'Zuerst die Einerstelle (B9.1), dann die Zehnerstelle (B9.2), dann der Übertrag: Q3 der Einer taktet die Zehner (fallende Flanke). Dekoder-Ausgänge a bis g an die gleichnamigen Segmente.' },
+      { id: 'B9.4', titel: 'Prüffragen Digitaluhr', art: 'fragen', text: '<p>Vier kurze Fragen.</p>', fragen: [
+        { q: 'Warum zählt die Zehnerstelle nur bis 5?', opt: ['Weil 60 Sekunden eine Minute sind', 'Weil es nur fünf Flipflops gibt', 'Weil 6 nicht dargestellt werden kann', 'Zufall'], richtig: 0, erkl: 'Nach 59 Sekunden beginnt die Zählung wieder bei 0.' },
+        { q: 'Woran erkennt die Einerstelle den Zählerstand 10 für das Zurücksetzen?', opt: ['Q0 und Q1 sind 1', 'Q1 und Q3 sind 1', 'Q2 und Q3 sind 1', 'Alle Q sind 1'], richtig: 1, erkl: '10 = 1010: Q3 und Q1 sind 1, und das kommt in 0 bis 9 vorher nie vor.' },
+        { q: 'Wie taktet die Einerstelle die Zehnerstelle?', opt: ['Mit der steigenden Flanke von Q0', 'Mit der fallenden Flanke von Q3 (Übertrag beim Sprung von 9 auf 0)', 'Gar nicht', 'Mit dem Takt der Uhr'], richtig: 1, erkl: 'Q3 geht nur beim Sprung von 9 auf 0 von 1 nach 0.' },
+        { q: 'Wie viele Flipflops braucht die Sekundenuhr mindestens (mit dieser Bauweise)?', opt: ['6', '7', '8', '10'], richtig: 1, erkl: 'Vier für die Einer (0 bis 9) und drei für die Zehner (0 bis 5).' }] }
+    ]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_B10.js ==== */
+/* Lernpfad Station B10 – Synchroner Dualzähler: alle Flipflops haben denselben Takt; die T-Eingänge kommen aus den tieferen Stufen. Die Übergangstabelle rechnet T aus AV und A (T = AV xor A). */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  var st = P.startNetz(0, 3, [{ id: 'C', type: 'logicin', x: 200, y: 80, rot: 0 }, { id: 'H', type: 'logicin', x: 200, y: 180, rot: 0, props: { konst: true, closed: true } }]);
+  var tab = { kopf: ['Q2', 'Q1', 'Q0', 'T2', 'T1', 'T0'], zeilen: [] };
+  for (var s = 0; s < 8; s++) { var n = (s + 1) % 8, t = s ^ n; tab.zeilen.push([String(s >> 2 & 1), String(s >> 1 & 1), String(s & 1), { a: String(t >> 2 & 1), typ: 'bit' }, { a: String(t >> 1 & 1), typ: 'bit' }, { a: String(t & 1), typ: 'bit' }]); }
+  var muster = P.raster({ teile: [['C', 'logicin'], P.EIN1('H'), ['FF1', 'tff'], ['FF2', 'tff'], ['FF3', 'tff'], ['U1', 'and'], ['L1', 'logicled'], ['L2', 'logicled'], ['L3', 'logicled']], zeilen: 4,
+    leitungen: [['C', 'FF1.C'], ['C', 'FF2.C'], ['C', 'FF3.C'], ['H', 'FF1.T'], ['FF1.Q', 'FF2.T'], ['FF1.Q', 'U1.in1'], ['FF2.Q', 'U1.in2'], ['U1', 'FF3.T'], ['FF1.Q', 'L1'], ['FF2.Q', 'L2'], ['FF3.Q', 'L3']] });
+  var soll = []; for (var i = 1; i <= 9; i++) soll.push(i % 8);
+  P.station({
+    id: 'B10', teil: 'B', nr: 10, titel: 'Synchroner Dualzähler', kurz: 'Alle Stufen am selben Takt – ohne Zwischenzustände',
+    einfuehrung: '<p>Beim asynchronen Zähler (B8) addieren sich die Laufzeiten der Stufen, und beim Umschalten erscheinen falsche Zwischenzustände. Der <b>synchrone Zähler</b> vermeidet das: <b>Alle</b> Flipflops bekommen <b>denselben Takt</b> und schalten zugleich. Damit die richtigen Stufen kippen, werden ihre T-Eingänge so beschaltet, dass sie nur dann 1 sind, wenn die Stufe wirklich kippen muss.</p><p>Beim Dualzähler kippt eine Stufe, wenn <b>alle tieferen Stufen 1</b> sind. Die Ansteuertabelle sagt es dir: Aus dem Übergang von Zählerstand AV nach A ergibt sich T = AV <b>XOR</b> A für jedes Bit.</p><p>Der Preis: mehr Gatter. Der Gewinn: höhere Taktfrequenz und saubere Übergänge.</p>',
+    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    aufgaben: [
+      { id: 'B10.1', titel: 'Ansteuertabelle des 3-Bit-Zählers', art: 'tabelle', kopf: tab.kopf, zeilen: tab.zeilen, text: '<p>Zu jedem Zählerstand Q2 Q1 Q0 (vor dem Takt) gehört der nächste Zählerstand (+1, nach 7 kommt 0). Welche T-Eingänge (T2 T1 T0) müssen 1 sein, damit die richtigen Stufen kippen? Ein Bit kippt, wenn es sich von AV nach A ändert.</p>', hilfe: 'T ist 1, wenn sich das Bit ändert: T = AV XOR A. Stufe 0 ändert sich immer.' },
+      { id: 'B10.2', titel: 'Welche T-Eingänge?', art: 'fragen', text: '<p>Lies die Gleichungen aus der Tabelle ab.</p>', fragen: [
+        { q: 'T0 ist …', opt: ['immer 1', 'Q0', 'Q0 UND Q1', 'immer 0'], richtig: 0, erkl: 'Das niedrigste Bit kippt bei jedem Takt.' },
+        { q: 'T1 ist …', opt: ['immer 1', 'Q0', 'Q0 UND Q1', 'Q2'], richtig: 1, erkl: 'Q1 kippt, wenn Q0 = 1 ist.' },
+        { q: 'T2 ist …', opt: ['Q0', 'Q1', 'Q0 UND Q1', 'Q0 ODER Q1'], richtig: 2, erkl: 'Q2 kippt nur, wenn beide tieferen Stufen 1 sind.' }] },
+      { id: 'B10.3', titel: '3-Bit-Synchronzähler bauen', art: 'folge', takt: 'C', lesen: ['L3', 'L2', 'L1'], soll: soll, start: st, muster: muster, min: { tff: 3, and: 1 }, limit: { tff: 3 },
+        text: '<p>Baue den <b>synchronen</b> 3-Bit-Zähler aus drei T-Flipflops und einem UND. <b>Alle drei C-Eingänge</b> hängen direkt am Takt <b>C</b>. Die T-Eingänge nach deiner Tabelle: T0 = H (fest 1), T1 = Q0, T2 = Q0 UND Q1. <b>L1, L2, L3</b> zeigen Q0, Q1, Q2.</p>', hilfe: 'Der Takt geht an alle drei Flipflops, nicht von Stufe zu Stufe.' },
+      { id: 'B10.4', titel: 'Synchron gegen asynchron im Zeitverlauf', art: 'fragen', text: '<p>Setze beide Zähler (B8 und B10) mit einem Taktgeber von 1 MHz auf, öffne den Zeitverlauf und vergleiche den Übergang 7 → 0 (Laufzeit je Flipflop 20 ns).</p>', fragen: [
+        { q: 'Wann sind beim synchronen Zähler alle Bits endgültig gekippt?', opt: ['20 ns nach dem Takt (alle zugleich)', '20, 40 und 60 ns', '60 ns nach dem Takt', 'Gar nicht'], richtig: 0, erkl: 'Alle Flipflops bekommen denselben Takt und schalten mit derselben Laufzeit.' },
+        { q: 'Welche Zwischenzustände erscheinen beim synchronen Zähler beim Übergang 7 → 0?', opt: ['110 und 100', 'Keine', '011 und 001', '101'], richtig: 1, erkl: 'Alle Bits fallen gleichzeitig von 111 auf 000.' },
+        { q: 'Was ist der Preis des synchronen Zählers?', opt: ['Er zählt langsamer', 'Zusätzliche Gatter für die T-Eingänge', 'Er braucht mehr Takte', 'Er kann nicht zurücksetzen'], richtig: 1, erkl: 'Die UND-Gatter für T2, T3 … kosten Bauteile und etwas Laufzeit.' }] }
+    ]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_B11.js ==== */
+/* Lernpfad Station B11 – Synchroner Dezimalzähler (BCD) mit D-Flipflops. Folgetabelle und Ansteuergleichungen werden aus «nächster Zählerstand = (n + 1) mod 10» gerechnet,
+ * die KV-Aufgaben haben die Zustände 10 bis 15 als Don't-Care. Eingänge der KV-Aufgaben: e1 = Q0 (niedrigstes Bit) … e4 = Q3. */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  var next = function (n) { return (n + 1) % 10; };
+  var tab = { kopf: ['Q3', 'Q2', 'Q1', 'Q0', 'D3', 'D2', 'D1', 'D0'], zeilen: [] };
+  for (var n = 0; n <= 9; n++) { var m = next(n), row = [n >> 3 & 1, n >> 2 & 1, n >> 1 & 1, n & 1].map(String); [3, 2, 1, 0].forEach(function (b) { row.push({ a: String(m >> b & 1), typ: 'bit' }); }); tab.zeilen.push(row); }
+  var dc = [10, 11, 12, 13, 14, 15];
+  var kvs = [3, 2, 1].map(function (b) {
+    var ones = []; for (var k = 0; k <= 9; k++) if (next(k) >> b & 1) ones.push(k);
+    return { id: 'B11.' + (6 - b), titel: 'KV-Diagramm für D' + b, art: 'kv', n: 4, ones: ones, dc: dc, text: '<p>Der D-Eingang <b>D' + b + '</b> muss beim nächsten Takt 1 sein in den Zählerständen <b>m(' + ones.join(', ') + ')</b> (Q0 = e1, Q1 = e2, Q2 = e3, Q3 = e4). Die Zählerstände 10 bis 15 kommen nie vor: <b>d(' + dc.join(', ') + ')</b>. Päckchen einzeichnen, Minimalform angeben.</p>' };
+  });
+  // Muster: D0 = /Q0, D1 = Q1 xor (Q0 /Q3), D2 = Q2 xor (Q1 Q0), D3 = Q3 /Q0 v Q2 Q1 Q0
+  var muster = P.raster({ teile: [['C', 'logicin'], ['FF1', 'dff'], ['FF2', 'dff'], ['FF3', 'dff'], ['FF4', 'dff'], ['G1', 'not'], ['G2', 'not'], ['G3', 'and'], ['G4', 'xor'], ['G5', 'and'], ['G6', 'xor'], ['G7', 'and'], ['G8', 'and'], ['G9', 'or'], ['L1', 'logicled'], ['L2', 'logicled'], ['L3', 'logicled'], ['L4', 'logicled']], zeilen: 6,
+    leitungen: [['C', 'FF1.C'], ['C', 'FF2.C'], ['C', 'FF3.C'], ['C', 'FF4.C'], ['FF1.Q', 'G1.in'], ['G1', 'FF1.D'], ['FF4.Q', 'G2.in'], ['FF1.Q', 'G3.in1'], ['G2', 'G3.in2'], ['FF2.Q', 'G4.in1'], ['G3', 'G4.in2'], ['G4', 'FF2.D'],
+      ['FF1.Q', 'G5.in1'], ['FF2.Q', 'G5.in2'], ['FF3.Q', 'G6.in1'], ['G5', 'G6.in2'], ['G6', 'FF3.D'], ['FF4.Q', 'G7.in1'], ['G1', 'G7.in2'], ['FF3.Q', 'G8.in1'], ['G5', 'G8.in2'], ['G7', 'G9.in1'], ['G8', 'G9.in2'], ['G9', 'FF4.D'],
+      ['FF1.Q', 'L1'], ['FF2.Q', 'L2'], ['FF3.Q', 'L3'], ['FF4.Q', 'L4']] });
+  var soll = []; for (var i = 1; i <= 12; i++) soll.push(i % 10);
+  P.station({
+    id: 'B11', teil: 'B', nr: 11, titel: 'Synchroner Dezimalzähler', kurz: 'BCD-Zähler 0 bis 9, Rücksetzung bei 10',
+    einfuehrung: '<p>Der <b>Dezimalzähler</b> (BCD-Zähler) zählt von 0 bis 9 und springt dann auf 0. Vier Flipflops sind nötig, sechs der sechzehn möglichen Zustände (10 bis 15) werden nie gebraucht – sie sind <b>Don\'t-Care</b>.</p><p>Als <b>synchroner</b> Zähler mit <b>D-Flipflops</b> geht es so: Die Aufgabe jedes D-Eingangs ist der <b>nächste Zustand</b> seines Bits. Aus der Folgetabelle (Zählerstand → nächster Zählerstand) liest du für jedes D eine Tabelle ab, vereinfachst sie mit dem KV-Diagramm (die Don\'t-Care helfen!) und baust die Gatter davor. Alle vier Flipflops bekommen denselben Takt.</p><p>Die Gleichungen darfst du selbst herleiten oder aus den KV-Diagrammen nehmen; als Kontrolle: D0 = /Q0.</p>',
+    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    aufgaben: [
+      { id: 'B11.1', titel: 'Folgetabelle', art: 'tabelle', kopf: tab.kopf, zeilen: tab.zeilen, text: '<p>Zu jedem Zählerstand Q3 Q2 Q1 Q0 (0 bis 9) der <b>nächste</b> Zählerstand, der am D-Eingang anliegen muss: D3 D2 D1 D0. Nach der 9 kommt wieder 0.</p>' },
+      { id: 'B11.2', titel: 'D0 bestimmen', art: 'fragen', text: '<p>Lies D0 aus der Tabelle ab.</p>', fragen: [{ q: 'D0 ist …', opt: ['immer 1', 'Q0', '/Q0 (Q0 negiert)', 'Q1'], richtig: 2, erkl: 'Das niedrigste Bit kippt bei jedem Takt: Der nächste Wert ist das Gegenteil des jetzigen.' }] }
+    ].concat(kvs, [
+      { id: 'B11.6', titel: 'Dezimalzähler bauen', art: 'folge', takt: 'C', lesen: ['L4', 'L3', 'L2', 'L1'], soll: soll, start: P.startNetz(0, 4, [{ id: 'C', type: 'logicin', x: 200, y: 80, rot: 0 }]), muster: muster, min: { dff: 4 }, limit: { dff: 4 },
+        text: '<p>Baue den synchronen Dezimalzähler aus <b>vier D-Flipflops</b> und Gattern. Alle vier C-Eingänge am Takt <b>C</b>. <b>L1 bis L4</b> zeigen Q0 bis Q3. Die Software gibt zwölf Takte: 1, 2, … 9, 0, 1, 2.</p>', hilfe: 'Jedes D bekommt seine vereinfachte Gleichung aus dem KV-Diagramm. Die Q der Flipflops führen zu den Gattern zurück.' }
+    ])
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_B12.js ==== */
+/* Lernpfad Station B12 – Spezialzähler und Johnson-Zähler. Modulo n frei wählbar: asynchrone Dualzähler, die bei Erreichen von n über preClear zurückgesetzt werden;
+ * Johnson-Zähler als Schieberegister aus D-Flipflops mit invertierter Rückkopplung. Die Folgen werden gerechnet (Takt mod n beziehungsweise Schieben). */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  var st = function (n) { return P.startNetz(0, n, [{ id: 'C', type: 'logicin', x: 200, y: 80, rot: 0 }, { id: 'H', type: 'logicin', x: 200, y: 180, rot: 0, props: { konst: true, closed: true } }]); };
+  var mod = function (id, n, bits, pflicht) {
+    var soll = []; for (var i = 1; i <= 2 * n + 1; i++) soll.push(i % n);
+    var lesen = []; for (var b = bits; b >= 1; b--) lesen.push('L' + b);
+    var ohne = P.rippleZaehler(bits, n); ohne.wires = ohne.wires.filter(function (w) { return !/\.PC$/.test(w.to); }); // falsch: ohne Rücksetzen zählt er bis 2^n
+    return { id: id, falsch: ohne, titel: 'Modulo-' + n + '-Zähler bauen', pflicht: pflicht !== false, art: 'folge', takt: 'C', lesen: lesen, soll: soll, start: st(bits), muster: P.rippleZaehler(bits, n), min: { tff: bits }, limit: { tff: bits },
+      text: '<p>Baue einen Zähler, der von <b>0 bis ' + (n - 1) + '</b> zählt und dann wieder auf 0 springt (<b>Modulo ' + n + '</b>): ' + bits + ' T-Flipflops als asynchroner Dualzähler (T an <b>H</b>, fest 1), dazu ein <b>UND</b>, das den Zählerstand <b>' + n + '</b> erkennt (die Bits von ' + n + ' = ' + P.dual(n, bits) + ', die 1 sind) und alle Stufen über <b>preClear</b> zurücksetzt. <b>L1 …</b> zeigen Q0 …, Q0 = niedrigstes Bit.</p>', hilfe: 'Beim Zählerstand ' + n + ' sind genau die Bits gesetzt, die in ' + P.dual(n, bits) + ' eine 1 haben. Diese Q gehen an das UND.' };
+  };
+  var joh = P.raster({ teile: [['C', 'logicin'], ['FF1', 'dff'], ['FF2', 'dff'], ['FF3', 'dff'], ['FF4', 'dff'], ['L1', 'logicled'], ['L2', 'logicled'], ['L3', 'logicled'], ['L4', 'logicled']], zeilen: 5,
+    leitungen: [['C', 'FF1.C'], ['C', 'FF2.C'], ['C', 'FF3.C'], ['C', 'FF4.C'], ['FF4.Qn', 'FF1.D'], ['FF1.Q', 'FF2.D'], ['FF2.Q', 'FF3.D'], ['FF3.Q', 'FF4.D'], ['FF1.Q', 'L1'], ['FF2.Q', 'L2'], ['FF3.Q', 'L3'], ['FF4.Q', 'L4']] });
+  // Johnson-4-Bit: Schieben nach links, vorn kommt Q̄ des letzten: Q3Q2Q1Q0 = 0000 → 0001 → 0011 → 0111 → 1111 → 1110 → 1100 → 1000 → 0000
+  var jf = [], q = [0, 0, 0, 0]; for (var i = 0; i < 9; i++) { q = [1 - q[3], q[0], q[1], q[2]]; jf.push(q[3] * 8 + q[2] * 4 + q[1] * 2 + q[0]); }
+  var jt = { kopf: ['Takt', 'Q3', 'Q2', 'Q1', 'Q0'], zeilen: [] };
+  var s = [0, 0, 0, 0]; jt.zeilen.push(['0', '0', '0', '0', '0']);
+  for (var t = 1; t <= 9; t++) { s = [1 - s[3], s[0], s[1], s[2]]; jt.zeilen.push([String(t), { a: String(s[3]), typ: 'bit' }, { a: String(s[2]), typ: 'bit' }, { a: String(s[1]), typ: 'bit' }, { a: String(s[0]), typ: 'bit' }]); } // s = [Q0, Q1, Q2, Q3]
+  P.station({
+    id: 'B12', teil: 'B', nr: 12, titel: 'Spezial- und Johnson-Zähler', kurz: 'Modulo n frei wählbar, Johnson-Zähler',
+    einfuehrung: '<p>Nicht jeder Zähler zählt bis 2<sup>n</sup>. Ein <b>Modulo-n-Zähler</b> zählt von 0 bis n − 1 und springt dann auf 0. Die einfachste Bauweise: ein Dualzähler mit so vielen Stufen, dass n hineinpasst, und ein <b>UND</b>, das den Zählerstand <b>n</b> erkennt und alle Stufen über <b>preClear</b> auf 0 setzt. Der Zählerstand n selbst ist nur ganz kurz da.</p><p>Der <b>Johnson-Zähler</b> ist ein <b>Schieberegister</b> aus D-Flipflops, in dem der <b>negierte</b> Ausgang des letzten Flipflops an den Eingang des ersten zurückgeführt wird. Mit n Flipflops hat er <b>2n Zustände</b>, und von einem Zustand zum nächsten ändert sich <b>nur ein Bit</b>. Dadurch braucht man zum Dekodieren jedes Zustands nur ein UND mit zwei Eingängen.</p>',
+    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    aufgaben: [
+      mod('B12.1', 6, 3), mod('B12.2', 3, 2), mod('B12.3', 12, 4, false),
+      { id: 'B12.4', titel: 'Johnson-Zählfolge', art: 'tabelle', kopf: jt.kopf, zeilen: jt.zeilen, text: '<p>Ein 4-Bit-<b>Johnson-Zähler</b> startet bei 0000. Bei jedem Takt schieben alle Bits eine Stelle nach links (Q0 → Q1 → Q2 → Q3), vorn kommt das <b>Gegenteil von Q3</b> hinein. Schreibe die Zustände für neun Takte auf. Nach wie vielen Takten wiederholt sich die Folge?</p>' },
+      { id: 'B12.5', titel: 'Johnson-Zähler bauen', art: 'folge', takt: 'C', lesen: ['L4', 'L3', 'L2', 'L1'], soll: jf, start: P.startNetz(0, 4, [{ id: 'C', type: 'logicin', x: 200, y: 80, rot: 0 }]), muster: joh, min: { dff: 4 }, limit: { dff: 4 },
+        text: '<p>Baue den 4-Bit-Johnson-Zähler aus vier <b>D-Flipflops</b>: Q0 → D1, Q1 → D2, Q2 → D3 und <b>Q̄3 → D0</b>. Alle C am Takt <b>C</b>. <b>L1 bis L4</b> zeigen Q0 bis Q3.</p>', hilfe: 'Die Rückkopplung geht von Q̄ des letzten an D des ersten Flipflops.' },
+      { id: 'B12.6', titel: 'Prüffragen Spezialzähler', art: 'fragen', text: '<p>Vier kurze Fragen.</p>', fragen: [
+        { q: 'Wie viele Zustände hat ein Johnson-Zähler mit 5 Flipflops?', opt: ['5', '10', '25', '32'], richtig: 1, erkl: '2 · n Zustände.' },
+        { q: 'Wie viele Flipflops braucht man mindestens für einen Modulo-12-Zähler?', opt: ['3', '4', '5', '12'], richtig: 1, erkl: '2³ = 8 reicht nicht, 2⁴ = 16 reicht.' },
+        { q: 'Bei welchem Zählerstand wird ein Modulo-6-Zähler (Dualzähler mit preClear) zurückgesetzt?', opt: ['5', '6', '7', '3'], richtig: 1, erkl: 'Beim Erreichen von 6 = 110: Q1 und Q2 sind 1.' },
+        { q: 'Wie viele Bits ändern sich beim Johnson-Zähler von einem Zustand zum nächsten?', opt: ['Eines', 'Zwei', 'Alle', 'Das ist verschieden'], richtig: 0, erkl: 'Das macht ihn störsicher und das Dekodieren einfach.' }] }
+    ]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ==== studio/pfad/st_B13.js ==== */
+/* Lernpfad Station B13 – Speicher: Übersicht und Organisation. Überwiegend Theorie mit Prüffragen; die Zahlen der Organisationstabelle werden gerechnet (2^n Wörter). */
+(function (root) {
+  'use strict';
+  var P = root.DQPfad;
+  var org = { kopf: ['Wörter', 'Wortbreite in Bit', 'Adressleitungen', 'Kapazität in Bit', 'Kapazität in Byte'], zeilen: [[256, 8], [1024, 8], [4096, 4], [16384, 1], [65536, 8]].map(function (w) {
+    var bits = w[0] * w[1]; return [String(w[0]), String(w[1]), { a: String(Math.round(Math.log(w[0]) / Math.LN2)), typ: 'dez' }, { a: String(bits), typ: 'dez' }, { a: String(bits / 8), typ: 'dez' }]; }) };
+  var ARTEN = ['flüchtig, lesen und schreiben', 'nichtflüchtig, bei der Herstellung festgelegt', 'nichtflüchtig, einmal vom Anwender programmierbar', 'nichtflüchtig, mit UV-Licht löschbar', 'nichtflüchtig, elektrisch löschbar'];
+  var art = { kopf: ['Speicher', 'Eigenschaft'], zeilen: [['RAM', { a: ARTEN[0], typ: 'wahl', opt: ARTEN }], ['ROM', { a: ARTEN[1], typ: 'wahl', opt: ARTEN }], ['PROM', { a: ARTEN[2], typ: 'wahl', opt: ARTEN }], ['EPROM', { a: ARTEN[3], typ: 'wahl', opt: ARTEN }], ['EEPROM', { a: ARTEN[4], typ: 'wahl', opt: ARTEN }]] };
+  P.station({
+    id: 'B13', teil: 'B', nr: 13, titel: 'Speicher', kurz: 'Übersicht und Organisation – überwiegend Theorie',
+    einfuehrung: '<p>Zähler und Flipflops speichern einzelne Bits. Ein <b>Speicherbaustein</b> fasst sehr viele davon zusammen. Er ist in <b>Wörter</b> aufgeteilt, jedes Wort hat eine <b>Adresse</b> und besteht aus mehreren Bits (der <b>Wortbreite</b>, oft 8). Mit <b>n Adressleitungen</b> lassen sich <b>2<sup>n</sup></b> Wörter unterscheiden. Die Kapazität ist Wörter mal Wortbreite.</p><p>Die Speicherarten unterscheiden sich darin, ob sie ihren Inhalt ohne Spannung behalten (<b>nichtflüchtig</b>) und wie sie beschrieben werden: <b>RAM</b> (flüchtig, Schreib-Lese-Speicher), <b>ROM</b> (bei der Herstellung festgelegt), <b>PROM</b> (einmal programmierbar), <b>EPROM</b> (mit UV-Licht löschbar), <b>EEPROM</b> (elektrisch löschbar) – und der <b>Flash</b>, eine Weiterentwicklung des EEPROM, der blockweise gelöscht wird.</p>',
+    verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: [], auto: true,
+    aufgaben: [
+      { id: 'B13.1', titel: 'Organisation und Kapazität', art: 'tabelle', kopf: org.kopf, zeilen: org.zeilen, text: '<p>Fülle die Tabelle aus: Wie viele Adressleitungen braucht der Speicher, und wie gross ist seine Kapazität in Bit und in Byte (1 Byte = 8 Bit)?</p>', hilfe: 'Adressleitungen: Wie oft muss man 2 mit sich selbst multiplizieren, um die Zahl der Wörter zu erreichen?' },
+      { id: 'B13.2', titel: 'Speicherarten zuordnen', art: 'tabelle', kopf: art.kopf, zeilen: art.zeilen, text: '<p>Wähle zu jedem Speicher die passende Eigenschaft.</p>' },
+      { id: 'B13.3', titel: 'Prüffragen Speicher', art: 'fragen', text: '<p>Sechs kurze Fragen.</p>', fragen: [
+        { q: 'Ein Speicher hat 10 Adressleitungen. Wie viele Wörter kann er adressieren?', opt: ['10', '100', '1000', '1024'], richtig: 3, erkl: '2¹⁰ = 1024.' },
+        { q: 'Welcher Speicher verliert seinen Inhalt, wenn die Spannung abgeschaltet wird?', opt: ['ROM', 'EPROM', 'RAM', 'EEPROM'], richtig: 2, erkl: 'RAM ist flüchtig.' },
+        { q: 'Ein Speicher hat 1024 Wörter zu 8 Bit. Wie viele Byte sind das?', opt: ['1024', '8192', '128', '1000'], richtig: 0, erkl: 'Ein Wort mit 8 Bit ist genau ein Byte: 1024 Byte.' },
+        { q: 'Wozu dient bei einem Speicher die Adresse?', opt: ['Sie wählt das Wort aus, das gelesen oder geschrieben wird', 'Sie gibt die Taktfrequenz an', 'Sie schaltet den Speicher aus', 'Sie ist die Wortbreite'], richtig: 0, erkl: 'Jedes Wort hat seine Nummer: die Adresse.' },
+        { q: 'Für welchen Zweck eignet sich ein ROM?', opt: ['Für Daten, die sich nie ändern (zum Beispiel ein Startprogramm)', 'Als Arbeitsspeicher', 'Als Zähler', 'Als Taktgeber'], richtig: 0, erkl: 'Sein Inhalt ist fest.' },
+        { q: 'Wie viele Adressleitungen braucht man mindestens für 100 Wörter?', opt: ['6', '7', '8', '100'], richtig: 1, erkl: '2⁶ = 64 reicht nicht, 2⁷ = 128 reicht.' }] }
+    ]
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+
 /* ==== studio/pfad/ui.js ==== */
 /* Digital Quest Studio – Lernpfad: Oberfläche (Nachtlauf 2, Block 2)
  * Eigener Bereich über dem Editor: Stationsliste, Station mit Aufgaben, Arbeitsfläche je Prüfart. Schaltungsaufgaben wechseln in den Editor
@@ -7721,6 +8244,7 @@ body.beamer .dr text { font-size: inherit; }
     var wasRichtig = P.aufgabeStatus(stand, a.id) === 'richtig';
     P.speichereErgebnis(stand, a.id, res, antwort, jetzt()); sichere();
     zeigeMeldung(res); if (a.art === 'tabelle') markiereTabelle(res);
+    if (a.art === 'vergleich' && res.ok) { var vb = $('#pfSol'); if (vb) vb.innerHTML = '<div class="pf-sol"><h3>Zum Vergleich</h3>' + (a.zeigeMuster || '') + '<p class="hint">Das ist nur zum Vergleich mit deinem Diagramm. Bewertet wird es nicht.</p></div>'; }
     var lb = $('#pfLoesungBtn') || $('#pfpLoesung'); if (lb) lb.hidden = !P.loesungFrei(stand, a.id);
     if (!edit) { var li = $('.pf-aufg[data-aid="' + a.id + '"]'); if (li) { li.className = 'pf-aufg ast-' + P.aufgabeStatus(stand, a.id) + ' on'; $('.pf-ic', li).textContent = ICON[P.aufgabeStatus(stand, a.id)]; } }
     if (res.ok && !wasRichtig && P.stationFertig(stand, cur.sid)) abschlussHinweis();
@@ -7766,7 +8290,7 @@ body.beamer .dr text { font-size: inherit; }
     var e = P.eintrag(stand, a.id), h = '<div class="fh"><b>' + esc(a.id) + ' ' + esc(a.titel) + '</b></div><div class="fb pf-pb">';
     if (muster) h += '<p class="warnbox"><b>Musterlösung.</b> Das ist nicht deine Schaltung. Deine bleibt gespeichert; mit «Zurück zur Station» kommst du zu ihr zurück.</p><p class="pf-actions"><button class="tb run" data-a="zurueck">Zurück zur Station</button></p>';
     else {
-      h += a.text + (a.art === 'folge' ? '<p class="hint">Der Takteingang <b>' + esc(a.takt) + '</b> ist ein Pegelschalter: Ein Takt ist Pegel 1, dann wieder 0. Die Software gibt die Takte selbst ein und liest die Anzeigen ' + esc((a.lesen || []).join(', ')) + '.</p>' : '');
+      h += a.text + (a.art === 'folge' ? '<p class="hint">' + (a.takt ? 'Die Software taktet den Eingang <b>' + esc(a.takt) + '</b> selbst (Pegel 1, dann wieder 0) und ' : 'Die Software schaltet die Eingänge selbst und ') + 'liest die Anzeigen ' + esc((a.lesen || []).join(', ')) + '.</p>' : '');
       if (a.limit || a.nur) h += '<p class="hint">' + (a.nur ? 'Erlaubt: ' + a.nur.map(P.typName).join(', ') + '. ' : '') + (a.limitText || '') + '</p>';
       h += '<p class="pf-actions"><button class="tb run" data-a="check">Prüfen</button> <button class="tb" id="pfpLoesung" data-a="loesung"' + (P.loesungFrei(stand, a.id) ? '' : ' hidden') + '>Lösung zeigen</button> <button class="tb" data-a="zurueck">Zurück zur Station</button></p>' +
         '<div class="pf-msg" id="pfpMsg" role="status" aria-live="polite">' + (e && e.meldung ? '<span class="' + (e.letzte === 'richtig' ? 'ok' : 'bad') + '">' + esc(e.meldung) + '</span>' : '') + '</div><div id="pfpSol"></div>';

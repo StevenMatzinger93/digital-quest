@@ -134,6 +134,29 @@
     return P.station({ id: id, teil: 'B', nr: d.nr, titel: d.titel, kurz: d.kurz, einfuehrung: d.einfuehrung, verweis: 'Vertieft in FestoLX, «Grundlagen Digitaltechnik».', schaltet: d.schaltet || [], auto: true, aufgaben: aufg });
   };
   P.FFNAMEN = { tff: 'T-Flipflop', dff: 'D-Flipflop', rsff: 'RS-Flipflop', jkff: 'JK-Flipflop', jkms: 'JK-Master-Slave-Flipflop' };
+
+  /* Schaltung mit Rückkopplung (Zähler, Speicher) aus Teileliste und Leitungsliste; Positionen automatisch im Raster. teile: [[id, typ, props?], …], leitungen: [[von, nach], …].
+   * 'E1' und 'L1' dürfen in den Leitungen ohne Anschlussnamen stehen (E1 = E1.out, L1 = L1.in), 'H' ist ein Pegelschalter fest auf 1, 'Z' fest auf 0. */
+  P.raster = function (d) {
+    var zeilen = d.zeilen || 5, parts = [], k = 0, col = {};
+    d.teile.forEach(function (t) {
+      var typ = t[1], x = 200 + Math.floor(k / zeilen) * 230, y = 80 + (k % zeilen) * 110; k++;
+      var p = { id: t[0], type: typ, x: x, y: y, rot: 0 }; if (t[2]) p.props = t[2]; parts.push(p);
+    });
+    var pinOf = function (s, nach) { if (s.indexOf('.') >= 0) return s; var p = parts.filter(function (x) { return x.id === s; })[0]; return p && p.type === 'logicled' ? s + '.in' : s + '.out'; };
+    return { parts: parts, wires: d.leitungen.map(function (w) { return { from: pinOf(w[0]), to: pinOf(w[1]) }; }) };
+  };
+  P.EIN1 = function (id) { return [id || 'H', 'logicin', { konst: true, closed: true }]; };   // fest 1
+  P.EIN0 = function (id) { return [id || 'Z', 'logicin', { konst: true, closed: false }]; };  // fest 0
+  P.pegel = function (id, konst) { return { id: id, type: 'logicin', x: 200, y: 460, rot: 0, props: konst === undefined ? undefined : { konst: true, closed: !!konst } }; };
+  /* Asynchroner Dualzähler mit n Stufen aus T-Flipflops; modul < 2^n: bei Erreichen von modul werden alle Stufen über preClear zurückgesetzt (UND der gesetzten Bits). aufwaerts false: Q statt Q̄ taktet die nächste Stufe */
+  P.rippleZaehler = function (n, modul, aufwaerts) {
+    var teile = [['C', 'logicin'], P.EIN1('H')], leit = [], i; aufwaerts = aufwaerts !== false;
+    for (i = 0; i < n; i++) { teile.push(['FF' + (i + 1), 'tff']); teile.push(['L' + (i + 1), 'logicled']); }
+    for (i = 0; i < n; i++) { leit.push(['H', 'FF' + (i + 1) + '.T']); leit.push(['FF' + (i + 1) + '.Q', 'L' + (i + 1)]); leit.push(i === 0 ? ['C', 'FF1.C'] : ['FF' + i + '.' + (aufwaerts ? 'Qn' : 'Q'), 'FF' + (i + 1) + '.C']); }
+    if (modul && modul < (1 << n)) { var bits = []; for (i = 0; i < n; i++) if (modul >> i & 1) bits.push('FF' + (i + 1) + '.Q'); teile.push(['U1', 'and', { inputs: Math.max(2, bits.length) }]); bits.forEach(function (b, k) { leit.push([b, 'U1.in' + (k + 1)]); }); for (i = 0; i < n; i++) leit.push(['U1', 'FF' + (i + 1) + '.PC']); }
+    return P.raster({ teile: teile, leitungen: leit, zeilen: n + 2 });
+  };
   /* Dezimal ↔ Dual ↔ Hex für die Zahlensysteme */
   P.dual = function (v, stellen) { var s = v.toString(2); while (s.length < (stellen || 0)) s = '0' + s; return s; };
   P.hex = function (v) { return v.toString(16).toUpperCase(); };
